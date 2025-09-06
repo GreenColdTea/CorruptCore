@@ -391,11 +391,13 @@ class MusicBeatState extends FlxState
 	}
 	
 	override function destroy() {
+		#if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
 		for (sc in menuScriptArray) {
 			sc.call("onDestroy", []);
 			sc.stop();
 		}
 		menuScriptArray = [];
+		#end
 		
 		super.destroy();
 	}

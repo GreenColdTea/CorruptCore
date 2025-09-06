@@ -29,7 +29,9 @@ class MusicBeatSubstate extends FlxSubState
 	{
 		super();
 
+		#if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
 		excludeSubStates = initExcludeSubStates();
+		#end
 		
 		#if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
 		if (!excludeSubStates.contains(Type.getClass(this)))

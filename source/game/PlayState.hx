@@ -534,14 +534,11 @@ class PlayState extends MusicBeatState
 			
 		}
 
-		#if LUA_ALLOWED
 		luaDebugGroup = new FlxTypedGroup<DebugLuaText>();
 		luaDebugGroup.cameras = [camOther];
 		add(luaDebugGroup);
-		#end
 
 		// "GLOBAL" SCRIPTS
-		#if LUA_ALLOWED
 		var filesPushed:Array<String> = [];
 		var foldersToCheck:Array<String> = [Paths.getPreloadPath('scripts/')];
 
@@ -560,11 +557,13 @@ class PlayState extends MusicBeatState
 			{
 				for (file in FileSystem.readDirectory(folder))
 				{
+					#if LUA_ALLOWED
 					if(file.endsWith('.lua') && !filesPushed.contains(file))
 					{
 						luaArray.push(new FunkinLua(folder + file));
 						filesPushed.push(file);
 					}
+					#end
 					#if HSCRIPT_ALLOWED
 					if (file.endsWith('.hx') && !filesPushed.contains(file)) {
 						hscriptArray.push(new FunkinHScript(folder + file));
@@ -574,14 +573,13 @@ class PlayState extends MusicBeatState
 				}
 			}
 		}
-		#end
 
 		// STAGE SCRIPTS
 		#if LUA_ALLOWED
 		startLuasOnFolder('stages/' + curStage + '.lua');
+		#end
 		#if HSCRIPT_ALLOWED
 		startHScriptOnFolder('stages/' + curStage + '.hx');
-		#end
 		#end
 
 		if (!stageData.hide_girlfriend)
@@ -874,7 +872,6 @@ class PlayState extends MusicBeatState
 		eventPushedMap = null;
 
 		// SONG SPECIFIC SCRIPTS
-		#if LUA_ALLOWED
 		var filesPushed:Array<String> = [];
 		var foldersToCheck:Array<String> = [Paths.getPreloadPath('data/' + Paths.formatToSongPath(SONG.song) + '/')];
 
@@ -893,11 +890,13 @@ class PlayState extends MusicBeatState
 			{
 				for (file in FileSystem.readDirectory(folder))
 				{
+					#if LUA_ALLOWED
 					if(file.endsWith('.lua') && !filesPushed.contains(file))
 					{
 						luaArray.push(new FunkinLua(folder + file));
 						filesPushed.push(file);
 					}
+					#end
 					#if HSCRIPT_ALLOWED
 					if (file.endsWith('.hx') && !filesPushed.contains(file)) {
 						hscriptArray.push(new FunkinHScript(folder + file));
@@ -907,7 +906,6 @@ class PlayState extends MusicBeatState
 				}
 			}
 		}
-		#end
 
 		startCallback();
 		RecalculateRating();
@@ -1105,7 +1103,6 @@ class PlayState extends MusicBeatState
 	}
 
 	public function addTextToDebug(text:String, color:FlxColor) {
-		#if LUA_ALLOWED
 		luaDebugGroup.forEachAlive((spr:DebugLuaText) -> spr.y += 20);
 
 		if(luaDebugGroup.members.length > 34) {
@@ -1114,7 +1111,6 @@ class PlayState extends MusicBeatState
 			luaDebugGroup.remove(blah);
 		}
 		luaDebugGroup.insert(0, new DebugLuaText(text, luaDebugGroup, color));
-		#end
 	}
 
 	public function reloadHealthBarColors() {

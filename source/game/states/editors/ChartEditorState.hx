@@ -1134,7 +1134,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			key++;
 		}
 
-		#if LUA_ALLOWED
+		#if (LUA_ALLOWED || HSCRIPT_ALLOWED)
 		var directories:Array<String> = [];
 
 		directories.push(Paths.getPreloadPath('custom_notetypes/'));
@@ -1167,8 +1167,18 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 		noteTypeDropDown = new PsychUIDropDownMenu(10, 105, displayNameList, function(id:Int, type:String)
 		{
-			if(curSelectedNote != null && curSelectedNote[1] > -1) {
+			if (selectedNotes.length > 0) {
+				for (note in selectedNotes) {
+					if (note.noteData > -1) {
+						note.rawData[3] = noteTypeIntMap.get(id);
+					}
+				}
+				currentType = id;
+				updateGrid();
+			}
+			else if (curSelectedNote != null && curSelectedNote[1] > -1) {
 				curSelectedNote[3] = noteTypeIntMap.get(id);
+				currentType = id;
 				updateGrid();
 			}
 		});
@@ -1205,7 +1215,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	{
 		var tab_group_event = mainBox.getTab('Events').menu;
 
-		#if LUA_ALLOWED
+		#if (LUA_ALLOWED || HSCRIPT_ALLOWED)
 		var eventPushedMap:Map<String, Bool> = new Map<String, Bool>();
 		var directories:Array<String> = [];
 

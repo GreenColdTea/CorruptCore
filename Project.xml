@@ -136,9 +136,9 @@
 	<haxelib name="hscript" if="HSCRIPT_ALLOWED"/>
 	<haxedef name="hscriptPos" />
 
-	<haxelib name="flixel-animate" />
-	<haxelib name="flxsoundfilters" unless="flash || html5"/>
-	<haxelib name="flxgif" />
+	<haxelib name="flixel-animate"/>
+	<haxelib name="flxsoundfilters" unless="flash || html5 || hl"/>
+	<haxelib name="flxgif"/>
 	<haxelib name="hxcpp"/>
 
 	<haxelib name="funkin-modchart" if="MODCHART_ALLOWED"/>
