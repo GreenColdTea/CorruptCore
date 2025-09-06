@@ -1901,9 +1901,9 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			strumLineNotes.members[i].alpha = FlxG.sound.music.playing ? 1 : 0.35;
 		}
 
-		quant?.update(elapsed);
-		daNoteType?.update(elapsed);
-		daEventText?.update(elapsed);
+		if (quant != null && quant.exists) quant?.update(elapsed);
+		if (daNoteType != null && daNoteType.exists) daNoteType.update(elapsed);
+		if (daEventText != null && daEventText.exists) daEventText.update(elapsed);
 	}
 
 	function handleKeyboardInput():Void
