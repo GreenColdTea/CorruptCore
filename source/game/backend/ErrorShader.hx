@@ -6,7 +6,7 @@ import flixel.addons.display.FlxRuntimeShader;
 
 import lime.graphics.opengl.GLProgram;
 
-#if (cpp && windows)
+#if sl_windows_api
 import winapi.WindowsAPI.MessageBoxIcon;
 import winapi.WindowsAPI.MessageBoxType;
 import winapi.WindowsAPI;

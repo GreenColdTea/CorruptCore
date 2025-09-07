@@ -41,6 +41,7 @@ import psych.ui.*;
 
 import game.backend.ClientPrefs;
 import game.backend.utils.CoolUtil;
+import game.backend.utils.MemoryUtil;
 
 #if flixel_animate
 import animate.*;
@@ -61,7 +62,7 @@ import haxe.ui.backend.flixel.UIState;
 #end
 
 // Windows API
-#if (cpp && windows)
+#if sl_windows_api
 import winapi.*;
 #end
 

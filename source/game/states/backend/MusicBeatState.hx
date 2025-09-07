@@ -87,7 +87,6 @@ class MusicBeatState extends FlxState
 			game.states.editors.MasterEditorMenu,
 			game.states.editors.MenuCharacterEditorState,
 			game.states.editors.WeekEditorState,
-			game.states.CrashHandlerState
 		];
 	}
 

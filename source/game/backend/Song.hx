@@ -90,7 +90,10 @@ class Song
 					var note:Array<Dynamic> = notes[i];
 					if(note[1] < 0)
 					{
-						songJson.events.push([note[0], [[note[2], note[3], note[4]]]]);
+						//hl fix
+						try {
+							songJson.events.push([note[0], [[note[2], note[3], note[4]]]]);
+						} catch (e) {}
 						notes.remove(note);
 						len = notes.length;
 					}
@@ -161,13 +164,38 @@ class Song
 		var parsedJson:Dynamic = Json.parse(rawJson);
 		var swagShit:SwagSong = null;
 		
-		if (parsedJson.format != null) {
-			swagShit = cast parsedJson;
-		} else if (parsedJson.song != null) {
-			swagShit = cast parsedJson.song;
-		} else {
-			swagShit = cast parsedJson;
+		switch (Type.typeof(parsedJson)) {
+			case TObject:
+				if (parsedJson.format != null)
+					swagShit = cast parsedJson;
+				else if (parsedJson.song != null && Type.typeof(parsedJson.song) == TObject)
+					swagShit = cast parsedJson.song;
+				else
+					swagShit = cast parsedJson;
+			default:
+				swagShit = getDefaultSong();
 		}
+		
 		return swagShit;
+	}
+
+	public static function getDefaultSong():SwagSong
+	{
+		return {
+			song: 'Test',
+			notes: [],
+			events: [],
+			bpm: 150.0,
+			needsVoices: true,
+			arrowSkin: '',
+			splashSkin: 'noteSplashes',//idk it would crash if i didn't
+			holdCoverSkin: 'holdCovers',
+			player1: 'bf',
+			player2: 'dad',
+			gfVersion: 'gf',
+			speed: 1,
+			stage: 'stage',
+			validScore: false
+		};
 	}
 }

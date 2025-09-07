@@ -2793,12 +2793,26 @@ class PlayState extends MusicBeatState
 		callOnScripts('onEvent', [eventName, value1, value2]);
 	}
 
-	function moveCameraSection(?sec:Null<Int>):Void {
+	function moveCameraSection(?sec:Null<Int>):Void
+	{
 		sec ??= curSection;
 		if(sec < 0) sec = 0;
 
 		if(SONG.notes[sec] == null) return;
-
+		
+		#if hl
+		if (gf != null && SONG.notes[sec].gfSection)
+		{
+			var gfMidpoint = gf.getMidpoint();
+			camFollow.setPosition(
+				gfMidpoint.x + gf.cameraPosition[0] + girlfriendCameraOffset[0],
+				gfMidpoint.y + gf.cameraPosition[1] + girlfriendCameraOffset[1]
+			);
+			isCameraOnForcedPos = false;
+			callOnScripts('onMoveCamera', ['gf']);
+			return;
+		}
+		#else
 		if (gf != null && SONG.notes[sec].gfSection)
 		{
 			camFollow.setPosition(gf.getMidpoint().x, gf.getMidpoint().y);
@@ -2808,6 +2822,7 @@ class PlayState extends MusicBeatState
 			callOnScripts('onMoveCamera', ['gf']);
 			return;
 		}
+		#end
 
 		var isDad:Bool = (SONG.notes[sec].mustHitSection != true);
 		moveCamera(isDad);

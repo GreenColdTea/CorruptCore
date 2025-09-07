@@ -84,10 +84,7 @@ class Paths
 			}
 		}						   
 		// run the garbage collector for good measure lmfao
-		openfl.system.System.gc();
-		#if cpp
-		cpp.NativeGc.run(true);
-		#end
+		MemoryUtil.forceGC();
 	}
 
 	// define the locally tracked assets
@@ -112,6 +109,7 @@ class Paths
 		}
 
 		FlxG.bitmap.clearUnused();
+		MemoryUtil.compact();
 		
 		// flags everything to be cleared out next unused memory clear
 		localTrackedAssets.resize(0);
@@ -170,8 +168,7 @@ class Paths
 	inline static function destroyGraphic(graphic:FlxGraphic)
 	{
 		// free some gpu memory
-		if (graphic != null && graphic.bitmap != null && graphic.bitmap.__texture != null)
-			graphic.bitmap.__texture.dispose();
+		graphic?.bitmap?.__texture?.dispose();
 		FlxG.bitmap.remove(graphic);
 	}
 

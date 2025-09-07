@@ -10,8 +10,17 @@ import sys.io.File;
 import haxe.Exception;
 import flixel.FlxG;
 import lime.system.System;
+import openfl.system.System as OpenFlSystem;
+import game.backend.utils.CoolUtil;
+import game.states.MainMenuState;
 
 using StringTools;
+
+enum AudioStatus {
+    PAUSE;
+    RESUME;
+    STOP;
+}
 
 class CrashHandler
 {
@@ -38,7 +47,7 @@ class CrashHandler
         e.stopImmediatePropagation();
 
         var message = parseErrorMessage(e.error);
-        var stack = formatStack(haxe.CallStack.exceptionStack());
+        var stack = formatExceptionStack(haxe.CallStack.exceptionStack());
         
         handleCrash(message, stack);
     }
@@ -50,7 +59,7 @@ class CrashHandler
         if (message != null && Std.string(message).length > 0)
             log.push(Std.string(message));
             
-        log.push(haxe.CallStack.toString(haxe.CallStack.exceptionStack(true)));
+        log.push(formatExceptionStack(haxe.CallStack.exceptionStack(true)));
         handleCrash(log.join('\n'), "");
     }
     #end
@@ -66,48 +75,107 @@ class CrashHandler
         }
     }
 
-    private static function formatStack(stack:Array<haxe.CallStack.StackItem>):String
-    {
-        return [for (item in stack) switch (item) {
-            case CFunction: "Non-Haxe (C) Function";
-            case Module(c): 'Module $c';
-            case FilePos(parent, file, line, _):
-                switch (parent) {
-                    case Method(cla, func): '${file.replace(".hx", "")}.$func() [line $line]';
-                    case _: '${file.replace(".hx", "")} [line $line]';
-                }
-            case LocalFunction(v): 'Local Function $v';
-            case Method(cl, m): '$cl - $m';
-        }].join("\n");
+    private static function formatExceptionStack(stack:Array<haxe.CallStack.StackItem>):String {
+        var result = "";
+        for (item in stack) {
+            switch(item) {
+                case FilePos(item, file, line):
+                    result += 'at ${formatStackItem(item)} ($file: $line line)\n';
+                    
+                case Method(classname, method):
+                    result += 'in ${classname}.$method\n';
+                    
+                case Module(module):
+                    result += 'in module $module\n';
+                    
+                case CFunction:
+                    result += "in C function\n";
+                    
+                case _:
+                    result += 'in ${Std.string(item)}\n';
+            }
+        }
+        return result;
+    }
+
+    private static function formatStackItem(item:haxe.CallStack.StackItem):String {
+        return switch(item) {
+            case Method(classname, method): '$classname.$method';
+            case Module(module): 'module $module';
+            case CFunction: "C function";
+            case FilePos(_, file, line): '$file:$line';
+            case _: Std.string(item);
+        };
     }
 
     private static function handleCrash(message:String, stack:String):Void
     {
-        var fullError = message + (stack.length > 0 ? '\n$stack' : "");
+        var fullError = 'CRASH DETAILS:\n$message\n\nSTACK TRACE:\n$stack';
         
         #if sys
         saveCrashLog(fullError);
         #end
         
-        stopAudio();
+        switchAudioStatus(PAUSE);
         showErrorPopup(fullError);
-        System.exit(1);
+        
+        try {
+            switchAudioStatus(RESUME);
+
+            FlxG.sound.playMusic(Paths.music('freakyMenu'));
+
+            FlxTransitionableState.skipNextTransIn = true;
+            FlxTransitionableState.skipNextTransOut = true;
+            FlxG.switchState(MainMenuState.new);
+        } catch (e:Dynamic) {
+            switchAudioStatus(STOP);
+            trace("Failed to switch to MainMenuState: " + e);
+            #if sys
+            System.exit(1);
+            #elseif js
+            js.Browser.window.location.reload();
+            #end
+        }
     }
 
-    private static function stopAudio():Void
+    private static function switchAudioStatus(status:AudioStatus):Void
     {
-        FlxG.sound.music?.stop();
-        try {
-            if (PlayState.instance != null) {
-                PlayState.instance.vocals?.stop();
-            }
-        } catch (e:Dynamic) {}
+        switch(status)
+        {
+            case PAUSE:
+                FlxG.sound?.music?.pause();
+                if (FlxG.sound != null && FlxG.sound.list != null) {
+                    for (sound in FlxG.sound.list) {
+                        if (sound != null && sound.playing) {
+                            sound.pause();
+                        }
+                    }
+                }
+            case RESUME:
+                FlxG.sound?.music?.resume();
+                if (FlxG.sound != null && FlxG.sound.list != null) {
+                    for (sound in FlxG.sound.list) {
+                        if (sound != null && sound.playing) {
+                            sound.resume();
+                        }
+                    }
+                }
+            case STOP:
+                FlxG.sound?.music?.stop();
+                if (FlxG.sound != null && FlxG.sound.list != null) {
+                    for (sound in FlxG.sound.list) {
+                        if (sound != null && sound.playing) {
+                            sound.stop();
+                        }
+                    }
+                }
+        }
     }
 
     private static function showErrorPopup(message:String):Void
     {
         try {
-            CoolUtil.showPopUp(message, "Error!", MSG_ERROR);
+            CoolUtil.showPopUp(message, "Error!", #if sl_windows_api MSG_ERROR #end);
         } catch (e:Dynamic) {
             trace("Failed to show error popup: " + e);
         }
@@ -121,14 +189,214 @@ class CrashHandler
                 FileSystem.createDirectory(LOGS_DIR);
             }
             
-            var fileName = LOGS_DIR + Date.now().toString()
-                .replace(" ", "-")
-                .replace(":", "'") + ".txt";
+            var now = Date.now();
+            var timestamp = '${now.getFullYear()}-${lpad(Std.string(now.getMonth() + 1), "0", 2)}'
+                + '-${lpad(Std.string(now.getDate()), "0", 2)}_${lpad(Std.string(now.getHours()), "0", 2)}'
+                + '-${lpad(Std.string(now.getMinutes()), "0", 2)}-${lpad(Std.string(now.getSeconds()), "0", 2)}';
+            
+            var fileName = LOGS_DIR + 'crash_$timestamp.txt';
+            
+            var logContent = new StringBuf();
+            logContent.add('======================= CRASH LOG =======================\n\n');
+            logContent.add('CRASH TIME: ${now.toString()}\n');
+            logContent.add('\n${content}\n');
+            logContent.add('==================== SYSTEM INFORMATION ==================\n\n');
+
+            var osInfo = "Unknown";
+            #if windows
+            try {
+                var windowsCurrentVersionPath = "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion";
+                var buildStr = WindowsRegistry.getKey(HKEY_LOCAL_MACHINE, windowsCurrentVersionPath, "CurrentBuildNumber");
+                var buildNumber:Int = 0;
+                if (buildStr != null) {
+                    var parsed = Std.parseInt(buildStr);
+                    if (parsed != null) buildNumber = parsed;
+                }
+                var edition = WindowsRegistry.getKey(HKEY_LOCAL_MACHINE, windowsCurrentVersionPath, "ProductName");
+                edition ??= "Windows";
                 
-            File.saveContent(fileName, content);
+                if (buildNumber >= 22000) {
+                    edition = edition.replace("Windows 10", "Windows 11");
+                }
+                osInfo = edition;
+            } catch (e:Dynamic) {
+                osInfo = '${System.platformLabel} ${System.platformVersion}';
+            }
+            #else
+            osInfo = '${System.platformLabel} ${System.platformVersion}';
+            #end
+            
+            var arch = "Unknown";
+            try {
+                arch = Sys.getEnv("PROCESSOR_ARCHITECTURE");
+            } catch(e:Dynamic) {}
+            logContent.add('Architecture: ${arch.toString().replace("AMD", "ARM")}\n');
+            
+            logContent.add('Screen: ${FlxG.stage.window.width}x${FlxG.stage.window.height}\n');
+            
+            logContent.add('\n------ HARDWARE INFORMATION ------\n');
+            logContent.add('CPU: ${getCpuInfo()}\n');
+            logContent.add('GPU: ${getGpuInfo()}\n');
+            logContent.add('RAM: ${getRamInfo()}\n');
+            
+            logContent.add('\n------ LIBRARY VERSIONS ------\n');
+            logContent.add('Haxe: ${haxe.macro.Compiler.getDefine("haxe")}\n');
+
+            var flxVer = FlxG.VERSION.toString();
+            logContent.add('Flixel: ${flxVer.replace("HaxeFlixel ", "")}\n');
+            
+            logContent.add('\n------ SYSTEM RESOURCES ------\n');
+            logContent.add('Memory Usage: ${Math.round(#if (openfl >= "9.4.0") OpenFlSystem.totalMemoryNumber #else OpenFlSystem.totalMemory #end / 1024 / 1024 * 100)/100} MB\n');
+            
+            File.saveContent(fileName, logContent.toString());
         } catch (e:Exception) {
             trace('Failed to save crash log: ${e.message}');
         }
+    }
+    
+    private static function lpad(value:String, pad:String, length:Int):String 
+    {
+        while (value.length < length) value = pad + value;
+        return value;
+    }
+    
+    private static function getCpuInfo():String 
+    {
+        try {
+            #if windows
+            try {
+                return WindowsRegistry.getKey(HKEY_LOCAL_MACHINE, "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0", "ProcessorNameString");
+            } catch(e:Dynamic) {}
+            
+            //fallback to WMIC
+            var process = new Process("wmic", ["cpu", "get", "name"]);
+            var result = process.stdout.readAll().toString();
+            process.close();
+            
+            var lines = result.split("\n");
+            for (line in lines) {
+                if (line.trim() != "" && line.indexOf("Name") == -1) {
+                    return line.trim();
+                }
+            }
+            #elseif linux
+            var process = new Process("cat", ["/proc/cpuinfo"]);
+            var result = process.stdout.readAll().toString();
+            process.close();
+            
+            var lines = result.split("\n");
+            for (line in lines) {
+                if (line.indexOf("model name") == 0) {
+                    return line.substring(line.indexOf(":") + 2);
+                }
+            }
+            #elseif mac
+            var process = new Process("sysctl", ["-n", "machdep.cpu.brand_string"]);
+            var result = process.stdout.readAll().toString().trim();
+            process.close();
+            return result;
+            #end
+        } catch (e:Dynamic) {}
+        return "Unknown CPU";
+    }
+    
+    private static function getGpuInfo():String 
+    {
+        try {
+            #if windows
+            try {
+                return WindowsRegistry.getKey(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}\\0000", "DriverDesc");
+            } catch(e:Dynamic) {}
+            
+            //fallback to WMIC
+            var process = new Process("wmic", ["path", "win32_VideoController", "get", "name"]);
+            var result = process.stdout.readAll().toString();
+            process.close();
+            
+            var lines = result.split("\n");
+            for (line in lines) {
+                if (line.trim() != "" && line.indexOf("Name") == -1) {
+                    return line.trim();
+                }
+            }
+            #elseif linux
+            var process = new Process("lspci", []);
+            var result = process.stdout.readAll().toString();
+            process.close();
+            
+            var lines = result.split("\n");
+            for (line in lines) {
+                if (line.indexOf("VGA") != -1 || line.indexOf("3D") != -1) {
+                    var parts = line.split(":");
+                    if (parts.length > 1) return parts[parts.length-1].trim();
+                }
+            }
+            #elseif mac
+            var process = new Process("system_profiler", ["SPDisplaysDataType"]);
+            var result = process.stdout.readAll().toString();
+            process.close();
+            
+            var lines = result.split("\n");
+            for (line in lines) {
+                if (line.indexOf("Chipset Model") != -1) {
+                    var parts = line.split(":");
+                    if (parts.length > 1) return parts[1].trim();
+                }
+            }
+            #end
+        } catch (e:Dynamic) {}
+        return "Unknown GPU";
+    }
+    
+    private static function getRamInfo():String 
+    {
+        try {
+            #if sl_windows_api
+            var totalMemBytes:Float = winapi.WindowsAPI.obtainRAM();
+            if (!Math.isNaN(totalMemBytes)) {
+                var gb = Math.round(totalMemBytes / 1024 * 100) / 100;
+                return '${gb} GB';
+            }
+            #else
+            //fallback to system commands
+            var total = 0.0;
+            
+            if (Sys.systemName() == "Windows") {
+                var process = new Process("wmic", ["computersystem", "get", "totalphysicalmemory"]);
+                var result = process.stdout.readAll().toString();
+                process.close();
+                
+                var lines = result.split("\n");
+                for (line in lines) {
+                    if (line.trim() != "" && line.indexOf("TotalPhysicalMemory") == -1) {
+                        total = Std.parseFloat(line.trim());
+                        break;
+                    }
+                }
+            }
+            else if (Sys.systemName() == "Linux") {
+                var process = new Process("grep", ["MemTotal", "/proc/meminfo"]);
+                var result = process.stdout.readAll().toString();
+                process.close();
+                
+                var tokens = result.split(" ").filter(function(token) return token.trim() != "");
+                if (tokens.length > 1) {
+                    total = Std.parseFloat(tokens[1]) * 1024;
+                }
+            }
+            else if (Sys.systemName() == "Mac") {
+                var process = new Process("sysctl", ["-n", "hw.memsize"]);
+                total = Std.parseFloat(process.stdout.readAll().toString().trim());
+                process.close();
+            }
+            
+            if (!Math.isNaN(total) && total > 0) {
+                var gb = Math.round(total / 1024 / 1024 / 1024 * 100) / 100;
+                return '${gb} GB';
+            }
+            #end
+        } catch (e:Dynamic) {}
+        return "Unknown RAM";
     }
     #end
 }

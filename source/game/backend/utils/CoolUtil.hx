@@ -9,7 +9,7 @@ import sys.FileSystem;
 
 import haxe.io.Bytes;
 
-#if (cpp && windows)
+#if sl_windows_api
 import winapi.WindowsAPI;
 import winapi.WindowsAPI.MessageBoxIcon;
 import winapi.WindowsAPI.MessageBoxType;
@@ -297,13 +297,13 @@ class CoolUtil
 		#end
 	}
 
-	inline public static function showPopUp(message:String, title:String #if (windows && cpp), ?icon:MessageBoxIcon, ?type:MessageBoxType #end, showScrollableMSG:Bool = false):Void
+	inline public static function showPopUp(message:String, title:String #if sl_windows_api, ?icon:MessageBoxIcon, ?type:MessageBoxType #end, showScrollableMSG:Bool = false):Void
 	{
 		#if android
 		AndroidTools.showAlertDialog(title, message, {name: "OK", func: null}, null);
 		#elseif linux
 		Sys.command("zenity", ["--info", "--title=" + title, "--text=" + message]);
-		#elseif (windows && cpp)
+		#elseif sl_windows_api
 		if (showScrollableMSG)
 			WindowsAPI.showScrollableMessage(message, title);
 		else
