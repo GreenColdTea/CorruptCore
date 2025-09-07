@@ -15,7 +15,7 @@ class DiscordClient
 	public static var isInitialized:Bool = false;
 	private static final _defaultID:String = "1412032196260401303";
 	public static var clientID(default, set):String = _defaultID;
-	private static var presence:DiscordRichPresence = DiscordRichPresence.create();
+	private static var presence:DiscordRichPresence = new DiscordRichPresence();
 
 	public static function check()
 	{
@@ -28,9 +28,7 @@ class DiscordClient
 		if (!isInitialized) 
 			initialize();
 
-		Application.current.window.onClose.add(function() {
-			if(isInitialized) shutdown();
-		});
+		Application.current.window.onClose.add(() -> if(isInitialized) shutdown());
 	}
 
 	public dynamic static function shutdown() {
@@ -59,11 +57,11 @@ class DiscordClient
 
 	public static function initialize()
 	{
-		var discordHandlers:DiscordEventHandlers = DiscordEventHandlers.create();
+		var discordHandlers:DiscordEventHandlers = new DiscordEventHandlers();
 		discordHandlers.ready = cpp.Function.fromStaticFunction(onReady);
 		discordHandlers.disconnected = cpp.Function.fromStaticFunction(onDisconnected);
 		discordHandlers.errored = cpp.Function.fromStaticFunction(onError);
-		Discord.Initialize(clientID, cpp.RawPointer.addressOf(discordHandlers), 1, null);
+		Discord.Initialize(clientID, cpp.RawPointer.addressOf(discordHandlers), false, null);
 
 		if(!isInitialized) trace("Discord Client initialized");
 

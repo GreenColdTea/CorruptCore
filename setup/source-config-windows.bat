@@ -17,7 +17,7 @@ haxelib install hxvlc --quiet --skip-dependencies
 haxelib run lime setup flixel
 haxelib set flixel-tools 1.5.1
 haxelib set flixel-addons 3.3.2
-haxelib set hxdiscord_rpc 1.2.4
+haxelib set hxdiscord_rpc 1.3.0
 haxelib git hxcpp https://github.com/FunkinCrew/hxcpp
 haxelib git flxsoundfilters https://github.com/TheZoroForce240/FlxSoundFilters.git
 haxelib git rulescript https://github.com/Kriptel/RuleScript.git dev
