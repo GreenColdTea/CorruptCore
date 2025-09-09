@@ -1079,7 +1079,7 @@ class PlayState extends MusicBeatState
 		if(generatedMusic)
 		{
 			FlxG.sound.list.forEach((sound:FlxSound) -> {
-				if (sound != null && sound != FlxG.sound.music && sound.playing)
+				if (sound != null && sound != FlxG.sound.music)
 					sound.pitch = value;
 			});
 			FlxG.sound.music.pitch = value;
@@ -1715,7 +1715,7 @@ class PlayState extends MusicBeatState
 
 		#if FLX_PITCH
 		FlxG.sound.list.forEach((sound:FlxSound) -> {
-			if (sound != null && sound != FlxG.sound.music && sound.playing)
+			if (sound != null && sound != FlxG.sound.music)
 				sound.pitch = playbackRate;
 		});
 		#end
@@ -3124,25 +3124,21 @@ class PlayState extends MusicBeatState
 		rating.loadGraphic(Paths.image(pixelShitPart1 + daRating.image + pixelShitPart2));
 		rating.cameras = [camHUD];
 		rating.screenCenter();
-		rating.x = coolText.x - 40;
-		rating.y -= 60;
+		rating.x = coolText.x + ClientPrefs.comboOffset[0] + 35;
+		rating.y -= 35 + ClientPrefs.comboOffset[1];
 		rating.acceleration.y = 550 * playbackRate * playbackRate;
 		rating.velocity.y -= FlxG.random.int(140, 175) * playbackRate;
 		rating.velocity.x -= FlxG.random.int(0, 10) * playbackRate;
 		rating.visible = (!ClientPrefs.hideHud && showRating);
-		rating.x += ClientPrefs.comboOffset[0];
-		rating.y -= ClientPrefs.comboOffset[1];
 
 		var comboSpr:FlxSprite = new FlxSprite().loadGraphic(Paths.image(pixelShitPart1 + 'combo' + pixelShitPart2));
 		comboSpr.cameras = [camHUD];
 		comboSpr.screenCenter();
-		comboSpr.x = coolText.x + 40;
-		comboSpr.y += 20;
+		comboSpr.x = coolText.x + ClientPrefs.comboOffset[4] + 125;
+		comboSpr.y += ClientPrefs.comboOffset[5] + 35;
 		comboSpr.acceleration.y = FlxG.random.int(200, 300) * playbackRate * playbackRate;
 		comboSpr.velocity.y -= FlxG.random.int(140, 160) * playbackRate;
-		comboSpr.visible = (!ClientPrefs.hideHud && showCombo && combo > 0 && combo % 10 == 0);
-		comboSpr.x += ClientPrefs.comboOffset[4];
-		comboSpr.y -= ClientPrefs.comboOffset[5];
+		comboSpr.visible = (!ClientPrefs.hideHud && showCombo);
 		comboSpr.velocity.x += FlxG.random.int(1, 10) * playbackRate;
 
 		insert(members.indexOf(strumLineNotes), rating);
@@ -3155,15 +3151,18 @@ class PlayState extends MusicBeatState
 
 		if (!PlayState.isPixelStage)
 		{
-			rating.setGraphicSize(Std.int(rating.width * 0.7));
+			rating.setGraphicSize(Std.int(rating.width * 0.6));
 			rating.antialiasing = ClientPrefs.globalAntialiasing;
-			comboSpr.setGraphicSize(Std.int(comboSpr.width * 0.7));
+			comboSpr.setGraphicSize(Std.int(comboSpr.width * 0.6));
 			comboSpr.antialiasing = ClientPrefs.globalAntialiasing;
 		}
 		else
 		{
-			rating.setGraphicSize(Std.int(rating.width * daPixelZoom * 0.85));
-			comboSpr.setGraphicSize(Std.int(comboSpr.width * daPixelZoom * 0.85));
+			rating.setGraphicSize(Std.int(rating.width * daPixelZoom * 0.7));
+			comboSpr.setGraphicSize(Std.int(comboSpr.width * daPixelZoom * 0.7));
+
+			rating.y -= 50;
+			comboSpr.y -= 50;
 		}
 
 		comboSpr.updateHitbox();
@@ -3180,7 +3179,7 @@ class PlayState extends MusicBeatState
 
 		var daLoop:Int = 0;
 		var xThing:Float = 0;
-		if (showCombo)
+		if (combo > 0 && combo % 10 == 0)
 		{
 			insert(members.indexOf(strumLineNotes), comboSpr);
 		}
@@ -3202,11 +3201,8 @@ class PlayState extends MusicBeatState
 			var numScore:FlxSprite = new FlxSprite().loadGraphic(Paths.image(pixelShitPart1 + 'num' + Std.int(i) + pixelShitPart2));
 			numScore.cameras = [camHUD];
 			numScore.screenCenter();
-			numScore.x = coolText.x + (43 * daLoop) - 90;
-			numScore.y += 80;
-
-			numScore.x += ClientPrefs.comboOffset[2];
-			numScore.y -= ClientPrefs.comboOffset[3];
+			numScore.x = coolText.x + (43 * daLoop) - 15 + ClientPrefs.comboOffset[2];
+			numScore.y += 105 - ClientPrefs.comboOffset[3];
 			
 			if (!ClientPrefs.comboStacking)
 				lastScore.push(numScore);
@@ -3214,11 +3210,12 @@ class PlayState extends MusicBeatState
 			if (!PlayState.isPixelStage)
 			{
 				numScore.antialiasing = ClientPrefs.globalAntialiasing;
-				numScore.setGraphicSize(Std.int(numScore.width * 0.5));
+				numScore.setGraphicSize(Std.int(numScore.width * 0.45));
 			}
 			else
 			{
-				numScore.setGraphicSize(Std.int(numScore.width * daPixelZoom));
+				numScore.setGraphicSize(Std.int(numScore.width * daPixelZoom * 0.75));
+				numScore.y -= 50;
 			}
 			numScore.updateHitbox();
 

@@ -114,7 +114,7 @@ class NoteOffsetState extends MusicBeatState
 
 		rating = new FlxSprite().loadGraphic(Paths.image('sick'));
 		rating.cameras = [camHUD];
-		rating.setGraphicSize(Std.int(rating.width * 0.7));
+		rating.setGraphicSize(Std.int(rating.width * 0.6));
 		rating.updateHitbox();
 		rating.antialiasing = ClientPrefs.globalAntialiasing;
 		
@@ -122,7 +122,7 @@ class NoteOffsetState extends MusicBeatState
 
 		comboSpr.loadGraphic(Paths.image('combo'));
 		comboSpr.cameras = [camHUD];
-		comboSpr.setGraphicSize(Std.int(comboSpr.width * 0.7));
+		comboSpr.setGraphicSize(Std.int(comboSpr.width * 0.6));
 		comboSpr.updateHitbox();
 		comboSpr.antialiasing = ClientPrefs.globalAntialiasing;
 
@@ -143,7 +143,7 @@ class NoteOffsetState extends MusicBeatState
 		{
 			var numScore:FlxSprite = new FlxSprite(43 * daLoop).loadGraphic(Paths.image('num' + i));
 			numScore.cameras = [camHUD];
-			numScore.setGraphicSize(Std.int(numScore.width * 0.5));
+			numScore.setGraphicSize(Std.int(numScore.width * 0.45));
 			numScore.updateHitbox();
 			numScore.antialiasing = ClientPrefs.globalAntialiasing;
 			comboNums.add(numScore);
@@ -387,8 +387,8 @@ class NoteOffsetState extends MusicBeatState
 
 		if(controls.BACK)
 		{
-			if(zoomTween != null) zoomTween.cancel();
-			if(beatTween != null) beatTween.cancel();
+			zoomTween?.cancel();
+			beatTween?.cancel();
 
 			persistentUpdate = false;
 			FlxG.switchState(() -> new OptionsState());
@@ -455,16 +455,16 @@ class NoteOffsetState extends MusicBeatState
 	function repositionCombo()
 	{
 		rating.screenCenter();
-		rating.x = coolText.x - 40 + ClientPrefs.comboOffset[0];
-		rating.y -= 60 + ClientPrefs.comboOffset[1];
+		rating.x = coolText.x + ClientPrefs.comboOffset[0] + 35;
+		rating.y -= 70 + ClientPrefs.comboOffset[1];
 
 		comboNums.screenCenter();
-		comboNums.x = coolText.x - 90 + ClientPrefs.comboOffset[2];
-		comboNums.y += 80 - ClientPrefs.comboOffset[3];
+		comboNums.x = coolText.x - 15 + ClientPrefs.comboOffset[2];
+		comboNums.y += 70 - ClientPrefs.comboOffset[3];
 
 		comboSpr.screenCenter();
-		comboSpr.x = coolText.x + ClientPrefs.comboOffset[4] + 40;
-		comboSpr.y += 20 - ClientPrefs.comboOffset[5];
+		comboSpr.x = coolText.x + ClientPrefs.comboOffset[4] + 125;
+		comboSpr.y += 5 - ClientPrefs.comboOffset[5];
 		reloadTexts();
 	}
 
