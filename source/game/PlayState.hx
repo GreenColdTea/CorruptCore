@@ -3606,7 +3606,8 @@ class PlayState extends MusicBeatState
 			}
 		}
 
-		if (SONG.needsVoices) vocals.volume = 1;
+		if (SONG.needsVoices)
+			if(opponentVocals.length <= 0) vocals.volume = 1;
 
 		iconP2.scale.set(1.15, 1.15);
 
