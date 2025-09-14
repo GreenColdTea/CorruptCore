@@ -1747,9 +1747,10 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		{
 			for (note in selectedNotes)
 			{
-				if (note.noteData > -1)
+				if (note.noteData > -1) // Only normal notes have sustain length
 				{
 					note.rawData[2] = nums.value;
+					note.sustainLength = nums.value; // Update the visual note property too
 				}
 			}
 			updateGrid();
