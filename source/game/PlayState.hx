@@ -553,21 +553,48 @@ class PlayState extends MusicBeatState
 
 		for (folder in foldersToCheck)
 		{
+			#if sys
 			if(FileSystem.exists(folder))
+			#else
+			if(OpenFlAssets.exists(folder))
+			#end
 			{
-				for (file in FileSystem.readDirectory(folder))
-				{
-					#if LUA_ALLOWED
-					if(file.endsWith('.lua') && !filesPushed.contains(file))
-					{
-						luaArray.push(new FunkinLua(folder + file));
-						filesPushed.push(file);
+				for (folder in foldersToCheck) {
+					#if sys
+					if (FileSystem.exists(folder)) {
+						for (file in sys.FileSystem.readDirectory(folder)) {
+							#if LUA_ALLOWED
+							if (file.endsWith('.lua') && !filesPushed.contains(file)) {
+								luaArray.push(new FunkinLua(folder + file));
+								filesPushed.push(file);
+							}
+							#end
+							#if HSCRIPT_ALLOWED
+							if (file.endsWith('.hx') && !filesPushed.contains(file)) {
+								hscriptArray.push(new FunkinHScript(folder + file));
+								filesPushed.push(file);
+							}
+							#end
+						}
 					}
-					#end
-					#if HSCRIPT_ALLOWED
-					if (file.endsWith('.hx') && !filesPushed.contains(file)) {
-						hscriptArray.push(new FunkinHScript(folder + file));
-						filesPushed.push(file);
+					#else
+					if (OpenFlAssets.exists(folder)) {
+						for (file in OpenFlAssets.list()) {
+							if (file.startsWith(folder)) {
+								#if LUA_ALLOWED
+								if (file.endsWith(".lua") && !filesPushed.contains(file)) {
+									luaArray.push(new FunkinLua(file));
+									filesPushed.push(file);
+								}
+								#end
+								#if HSCRIPT_ALLOWED
+								if (file.endsWith(".hx") && !filesPushed.contains(file)) {
+									hscriptArray.push(new FunkinHScript(file));
+									filesPushed.push(file);
+								}
+								#end
+							}
+						}
 					}
 					#end
 				}
@@ -886,21 +913,48 @@ class PlayState extends MusicBeatState
 
 		for (folder in foldersToCheck)
 		{
+			#if sys
 			if(FileSystem.exists(folder))
+			#else
+			if(OpenFlAssets.exists(folder))
+			#end
 			{
-				for (file in FileSystem.readDirectory(folder))
-				{
-					#if LUA_ALLOWED
-					if(file.endsWith('.lua') && !filesPushed.contains(file))
-					{
-						luaArray.push(new FunkinLua(folder + file));
-						filesPushed.push(file);
+				for (folder in foldersToCheck) {
+					#if sys
+					if (FileSystem.exists(folder)) {
+						for (file in sys.FileSystem.readDirectory(folder)) {
+							#if LUA_ALLOWED
+							if (file.endsWith('.lua') && !filesPushed.contains(file)) {
+								luaArray.push(new FunkinLua(folder + file));
+								filesPushed.push(file);
+							}
+							#end
+							#if HSCRIPT_ALLOWED
+							if (file.endsWith('.hx') && !filesPushed.contains(file)) {
+								hscriptArray.push(new FunkinHScript(folder + file));
+								filesPushed.push(file);
+							}
+							#end
+						}
 					}
-					#end
-					#if HSCRIPT_ALLOWED
-					if (file.endsWith('.hx') && !filesPushed.contains(file)) {
-						hscriptArray.push(new FunkinHScript(folder + file));
-						filesPushed.push(file);
+					#else
+					if (OpenFlAssets.exists(folder)) {
+						for (file in OpenFlAssets.list()) {
+							if (file.startsWith(folder)) {
+								#if LUA_ALLOWED
+								if (file.endsWith(".lua") && !filesPushed.contains(file)) {
+									luaArray.push(new FunkinLua(file));
+									filesPushed.push(file);
+								}
+								#end
+								#if HSCRIPT_ALLOWED
+								if (file.endsWith(".hx") && !filesPushed.contains(file)) {
+									hscriptArray.push(new FunkinHScript(file));
+									filesPushed.push(file);
+								}
+								#end
+							}
+						}
 					}
 					#end
 				}
@@ -1025,6 +1079,7 @@ class PlayState extends MusicBeatState
 		
 		for (folder in foldersToCheck)
 		{
+			#if sys
 			if(FileSystem.exists(folder))
 			{
 				var frag:String = folder + name + '.frag';
@@ -1051,6 +1106,7 @@ class PlayState extends MusicBeatState
 					return true;
 				}
 			}
+			#end
 		}
 		FlxG.log.warn('Missing shader $name .frag AND .vert files!');
 		return false;
@@ -1201,8 +1257,13 @@ class PlayState extends MusicBeatState
 		#end
 		{
 			hxFile = Paths.getPreloadPath(hxFile);
+			#if sys
 			if(FileSystem.exists(hxFile))
 				doPush = true;
+			#else
+			if(OpenFlAssets.exists(hxFile))
+				doPush = true;
+			#end
 		}
 
 		if(doPush)

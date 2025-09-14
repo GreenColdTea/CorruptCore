@@ -70,7 +70,7 @@ import winapi.*;
 import sys.*;
 import sys.io.*;
 #end
+#end
 
 using StringTools;
-#end
 

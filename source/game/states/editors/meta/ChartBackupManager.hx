@@ -1,8 +1,6 @@
 package game.states.editors.meta;
 
 import haxe.Json;
-import sys.FileSystem;
-import sys.io.File;
 import openfl.events.Event;
 import openfl.net.FileReference;
 import openfl.events.IOErrorEvent;
@@ -11,6 +9,11 @@ import flixel.FlxG;
 
 import game.objects.Prompt;
 import game.states.editors.ChartEditorState;
+
+#if sys
+import sys.FileSystem;
+import sys.io.File;
+#end
 
 /**
  * Manages backup operations for chart files, including:

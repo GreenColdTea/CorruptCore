@@ -232,6 +232,8 @@
 		<haxedef name="HXCPP_GC_BIG_BLOCKS" />
 	</section>
 
+	<haxeflag name="--macro" value="game.backend.utils.MacroUtil.addScriptResources()" />
+
 	<!-- _________________________________ Custom _______________________________ -->
 
 	<!--Place custom nodes like icons here (higher priority to override the HaxeFlixel icon)-->

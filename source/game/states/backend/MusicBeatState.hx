@@ -27,6 +27,7 @@ import game.scripting.HScriptGlobal;
 #end
 
 import openfl.utils.Assets as OpenFlAssets;
+import openfl.utils.AssetType;
 
 class MusicBeatState extends FlxState
 {

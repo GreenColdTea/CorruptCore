@@ -10,7 +10,9 @@ import rulescript.types.ScriptedTypeUtil;
 import hscript.Expr;
 import hscript.Parser;
 
+#if sys
 import sys.io.File;
+#end
 
 import game.scripting.FunkinRScript.RuleScriptInterpEx;
 
@@ -37,6 +39,8 @@ class HScriptClassManager {
         classes.clear();
         
         var sourceFiles = new Map<String, String>();
+        
+        #if sys
         for (file in CoolUtil.readRecursive("source")) {
             if (file.endsWith(".hx")) {
                 try {
@@ -46,7 +50,21 @@ class HScriptClassManager {
                 }
             }
         }
-
+        #else
+        var resourceNames = haxe.Resource.listNames();
+        for (name in resourceNames) {
+            if (name.startsWith("source_") && name.endsWith("_hx")) {
+                try {
+                    var originalPath = name.substring(7, name.length - 3).replace("_", "/") + ".hx";
+                    var content = haxe.Resource.getString(name);
+                    sourceFiles.set(originalPath, content);
+                } catch (e:haxe.Exception) {
+                    trace('Failed to read resource: $name - ${e.message}');
+                }
+            }
+        }
+        #end
+        
         for (file => content in sourceFiles) {
             processScriptFile(file, content);
         }

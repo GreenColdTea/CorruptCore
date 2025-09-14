@@ -19,6 +19,7 @@ import lime.media.AudioBuffer;
 import lime.media.AudioSource;
 import lime.media.vorbis.VorbisFile;
 import lime.utils.UInt8Array;
+import lime.utils.Assets;
 
 import openfl.media.Sound;
 
@@ -58,7 +59,7 @@ class CoolUtil
 	 * Gets the hscript preprocessors for haxe scripts and runHaxeCode
 	 */
 	public static dynamic function getHScriptPreprocessors() {
-		var preprocessors:Map<String, Dynamic> = game.backend.macros.MacroUtil.defines;
+		var preprocessors:Map<String, Dynamic> = game.backend.utils.MacroUtil.defines;
 		preprocessors.set("CC_ENGINE", true);
 		preprocessors.set("CC_ENGINE_VER", Application.current.meta.get('version'));
 		preprocessors.set("BUILD_TARGET", getBuildTarget());
@@ -223,6 +224,7 @@ class CoolUtil
 
 	//for the future updates
 	inline public static function unzipFile(srcZip:String, dstDir:String, ignoreRootFolder:Bool = false) {
+		#if sys
         trace("Unzipping archive...");
 		
         FileSystem.createDirectory(dstDir);
@@ -267,6 +269,7 @@ class CoolUtil
         } else {
             throw 'No contents found in "${dstDir}"';
         }
+		#end
     }
 
 	//uhhhh does this even work at all? i'm starting to doubt
@@ -351,6 +354,7 @@ class CoolUtil
 
 	public static inline function readRecursive(path:String):Array<String>
 	{
+		#if sys
 		var result:Array<String> = [];
 		for (directory in Paths.listDirectory(path))
 		{
@@ -362,6 +366,9 @@ class CoolUtil
 		}
 
 		return result;
+		#else
+		return [];
+		#end
 	}
 
 	public static function loadHighBitrateWav(key:String, path:String):Sound 

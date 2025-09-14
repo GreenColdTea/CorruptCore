@@ -82,7 +82,7 @@ class DiscordClient
 		isInitialized = true;
 	}
 
-	public static function changePresence(?details:String = 'In the Menus', ?state:Null<String>, ?smallImageKey : String, ?hasStartTimestamp : Bool, ?endTimestamp: Float)
+	public static function changePresence(?details:String = 'In the Menus', ?state:Null<String>, ?smallImageKey:String, ?largeImageKey:String = 'logo', ?hasStartTimestamp:Bool, ?endTimestamp:Float)
 	{
 		var startTimestamp:Float = 0;
 		if (hasStartTimestamp) startTimestamp = Date.now().getTime();
@@ -90,7 +90,7 @@ class DiscordClient
 
 		presence.details = details;
 		presence.state = state;
-		presence.largeImageKey = 'icon';
+		presence.largeImageKey = largeImageKey;
 		presence.largeImageText = 'Engine Version: (${Application.current.meta.get('version')})';
 		presence.smallImageKey = smallImageKey;
 		// Obtained times are in milliseconds so they are divided so Discord can use it

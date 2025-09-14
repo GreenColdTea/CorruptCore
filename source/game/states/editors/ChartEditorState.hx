@@ -1130,6 +1130,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		directories.push(Paths.modFolders('custom_notetypes/'));
 		#end
 
+		#if sys
 		for (i in 0...directories.length) {
 			var directory:String =  directories[i];
 			if(FileSystem.exists(directory)) {
@@ -1147,6 +1148,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 				}
 			}
 		}
+		#end
 		#end
 
 		for (i in 1...displayNameList.length) {
@@ -1212,6 +1214,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		directories.push(Paths.modFolders('custom_events/'));
 		#end
 
+		#if sys
 		for (i in 0...directories.length) {
 			var directory:String =  directories[i];
 			if(FileSystem.exists(directory)) {
@@ -1227,6 +1230,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 				}
 			}
 		}
+		#end
 		eventPushedMap.clear();
 		eventPushedMap = null;
 		#end

@@ -1,5 +1,7 @@
 package game.scripting;
 
+import openfl.utils.Assets as OpenFlAssets;
+
 class HScriptSubstate extends MusicBeatSubstate
 {
 	public static var substate:String = "";

@@ -15,7 +15,7 @@ import lime.app.Application;
 		trace(ndllPath);
 
 		return Reflect.makeVarArgs(function(a:Array<Dynamic>) {
-			return game.backend.macros.MacroUtil.generateReflectionLike(25, "func", "a");
+			return game.backend.utils.MacroUtil.generateReflectionLike(25, "func", "a");
 		});
 	}
 

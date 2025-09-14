@@ -13,6 +13,8 @@ import sys.FileSystem;
 import game.scripting.FunkinHScript;
 #end
 
+import openfl.utils.Assets as OpenFlAssets;
+
 class MusicBeatSubstate extends FlxSubState
 {
 	#if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)

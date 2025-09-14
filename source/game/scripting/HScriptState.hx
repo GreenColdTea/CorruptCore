@@ -5,6 +5,7 @@ import sys.FileSystem;
 #end
 
 import openfl.utils.Assets as OpenFlAssets;
+import openfl.utils.AssetType;
 
 class HScriptState extends MusicBeatState
 {

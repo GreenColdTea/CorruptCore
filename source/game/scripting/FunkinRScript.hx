@@ -1,6 +1,8 @@
 package game.scripting;
 
+#if sys
 import sys.io.File;
+#end
 
 import haxe.ds.StringMap;
 import haxe.io.Path;
@@ -94,12 +96,25 @@ class FunkinRScript {
         rule.errorHandler = onError;
 
         try {
-            var content = File.getContent(path);
+            var content = loadScriptContent(path);
             execute(content, skipCreate);
         } catch (e:haxe.Exception) {
             trace('Failed to load script $path: ${e.message}');
             active = false;
         }
+    }
+
+    private function loadScriptContent(path:String):String {
+        #if sys
+        return File.getContent(path);
+        #else
+        var resourceName = path.replace("/", "_").replace(".", "_").replace(":", "_");
+        var content = haxe.Resource.getString(resourceName);
+        if (content == null) {
+            throw 'HScript not found in resources: $path (resource name: $resourceName)';
+        }
+        return content;
+        #end
     }
 
     function execute(code:String, skipCreate:Bool) {
