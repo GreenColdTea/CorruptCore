@@ -4260,7 +4260,6 @@ class PlayState extends MusicBeatState
                     lyricText.setFormat("VCR OSD Mono", 24, color, CENTER, OUTLINE, FlxColor.BLACK);
 			}
 			lyricText.alpha = 0;
-			lyricText.antialiasing = ClientPrefs.globalAntialiasing;
 			lyricText.screenCenter(XY);
 			lyricText.y += 250;
 			lyricText.cameras = [camOther];
