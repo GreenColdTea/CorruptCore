@@ -84,7 +84,7 @@ class Paths
 			}
 		}						   
 		// run the garbage collector for good measure lmfao
-		MemoryUtil.forceGC();
+		MemoryUtil.forceGC((FlxG.state is PlayState) ? false : true);
 	}
 
 	// define the locally tracked assets
@@ -522,22 +522,9 @@ class Paths
 	public static function fileExists(key:String, type:AssetType, ?ignoreMods:Bool = false, ?library:String = null)
 	{
 		#if MODS_ALLOWED
-		if(!ignoreMods)
-		{
-			for(mod in Paths.getGlobalMods())
-				if (FileSystem.exists(mods('$mod/$key')))
-					return true;
-
-			if (FileSystem.exists(mods(Paths.currentModDirectory + '/' + key)) || FileSystem.exists(mods(key)))
-				return true;
-			
-			if (FileSystem.exists(mods('$key')))
-				return true;
-		}
-		
-		if(FileSystem.exists(getPath(key, type, library, false))) {
+		if(FileSystem.exists(getPath(key, type, library, !ignoreMods))) {
 		#else
-		if(OpenFlAssets.exists(getPath(key, type, library, false))) {
+		if(OpenFlAssets.exists(getPath(key, type, library, !ignoreMods))) {
 		#end
 			return true;
 		}

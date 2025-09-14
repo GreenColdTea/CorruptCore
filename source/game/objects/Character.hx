@@ -164,11 +164,10 @@ class Character extends FlxSprite
 
 		#if flixel_animate
 		#if MODS_ALLOWED
-		var modAnimToFind:String = Paths.modFolders('images/' + json.image + '/Animation.json');
-		var animToFind:String = Paths.getPath('images/' + json.image + '/Animation.json', TEXT);
+		var animToFind:String = Paths.getPath('images/' + json.image + '/Animation.json', TEXT, true);
 
 		isAnimateAtlas = false;
-		if (FileSystem.exists(modAnimToFind) || FileSystem.exists(animToFind) || Assets.exists(animToFind))
+		if (FileSystem.exists(animToFind) || Assets.exists(animToFind))
 		{
 		#else
 		if (Assets.exists(Paths.getPath('images/' + json.image + '/Animation.json', TEXT)))
