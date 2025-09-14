@@ -3,26 +3,33 @@ package flixel;
 import flixel.FlxG;
 import flixel.system.scaleModes.BaseScaleMode;
 
+using game.backend.utils.MathUtil;
+
 /**
  * Scale mode that allows for wide screen support.
- * Rewritten bcuz old code looks weird imo
+ * Uses GCD to normalize aspect ratio
  */
-
 class FlxScaleMode extends BaseScaleMode
 {
     public static var allowWideScreen(default, set):Bool = true;
+
+    public static var allowedRatios:Array<{w:Int, h:Int}> = [
+        {w:16, h:9},
+        {w:21, h:9},
+        {w:32, h:9}
+    ];
     
     override function updateGameSize(Width:Int, Height:Int):Void
     {
-        final targetRatio = FlxG.width / FlxG.height;
-        final screenRatio = Width / Height;
-        
-        if (shouldUseWideScreen())
+        if (shouldUseWideScreen(Width, Height))
         {
-            gameSize.set(Width, Math.floor(Width / targetRatio));
+            super.updateGameSize(Width, Height);
         }
         else
         {
+            final targetRatio = FlxG.width / FlxG.height;
+            final screenRatio = Width / Height;
+            
             if (screenRatio < targetRatio)
                 gameSize.set(Width, Math.floor(Width / targetRatio));
             else
@@ -32,10 +39,10 @@ class FlxScaleMode extends BaseScaleMode
 
     override function updateGamePosition():Void
     {
-        if (shouldUseWideScreen())
+        if (shouldUseWideScreen(FlxG.stage.stageWidth, FlxG.stage.stageHeight))
         {
             FlxG.game.x = 0;
-            FlxG.game.y = Math.round((FlxG.stage.stageHeight - gameSize.y) / 2);
+            FlxG.game.y = 0;
         }
         else
         {
@@ -52,8 +59,24 @@ class FlxScaleMode extends BaseScaleMode
         return value;
     }
 
-    static inline function shouldUseWideScreen():Bool
-        return ClientPrefs.noBordersScreen && allowWideScreen;
+    /**
+     * Checks if current screen resolution matches allowed wide ratios
+     */
+    static function shouldUseWideScreen(w:Int, h:Int):Bool
+    {
+        if (!ClientPrefs.noBordersScreen || !allowWideScreen) return false;
+
+        var d = MathUtil.gcd(w, h);
+        var rw = Math.floor(w / d);
+        var rh = Math.floor(h / d);
+
+        for (ratio in allowedRatios)
+        {
+            if (ratio.w == rw && ratio.h == rh)
+                return true;
+        }
+        return false;
+    }
 
     static function resetScaleMode()
     {
