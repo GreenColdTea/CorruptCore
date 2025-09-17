@@ -71,7 +71,7 @@ class Paths
 	];
 	public static var localTrackedAssets:Array<String> = [];	 
 	/// haya I love you for the base cache dump I took to the max
-	public static function clearUnusedMemory(cleanMajor:Bool = true) {
+	public static function clearUnusedMemory() {
 		// clear non local assets in the tracked assets list
 					  
 		for (key in currentTrackedAssets.keys())
@@ -84,13 +84,13 @@ class Paths
 			}
 		}						   
 		// run the garbage collector for good measure lmfao
-		MemoryUtil.forceGC((FlxG.state is PlayState || FlxG.state is game.states.editors.ChartEditorState) ? false : cleanMajor);
+		MemoryUtil.forceGC((FlxG.state is PlayState) ? false : true);
 	}
 
 	// define the locally tracked assets
 
 	@:access(flixel.system.frontEnds.BitmapFrontEnd._cache)
-	public static function clearStoredMemory() {
+	public static function clearStoredMemory(?cleanUnused:Bool = false) {
 		// clear anything not in the tracked assets list
 		for (key in FlxG.bitmap._cache.keys())
 		{
@@ -109,6 +109,7 @@ class Paths
 		}
 
 		FlxG.bitmap.clearUnused();
+		MemoryUtil.compact();
 		
 		// flags everything to be cleared out next unused memory clear
 		localTrackedAssets.resize(0);
@@ -167,8 +168,7 @@ class Paths
 	inline static function destroyGraphic(graphic:FlxGraphic)
 	{
 		// free some gpu memory
-		if (graphic != null && graphic.bitmap != null && graphic.bitmap.__texture != null)
-			graphic.bitmap.__texture.dispose();
+		graphic?.bitmap?.__texture?.dispose();
 		FlxG.bitmap.remove(graphic);
 	}
 
@@ -522,22 +522,9 @@ class Paths
 	public static function fileExists(key:String, type:AssetType, ?ignoreMods:Bool = false, ?library:String = null)
 	{
 		#if MODS_ALLOWED
-		if(!ignoreMods)
-		{
-			for(mod in Paths.getGlobalMods())
-				if (FileSystem.exists(mods('$mod/$key')))
-					return true;
-
-			if (FileSystem.exists(mods(Paths.currentModDirectory + '/' + key)) || FileSystem.exists(mods(key)))
-				return true;
-			
-			if (FileSystem.exists(mods('$key')))
-				return true;
-		}
-		
-		if(FileSystem.exists(getPath(key, type, library, false))) {
+		if(FileSystem.exists(getPath(key, type, library, !ignoreMods))) {
 		#else
-		if(OpenFlAssets.exists(getPath(key, type, library, false))) {
+		if(OpenFlAssets.exists(getPath(key, type, library, !ignoreMods))) {
 		#end
 			return true;
 		}
@@ -716,7 +703,7 @@ class Paths
 
 	#if MODS_ALLOWED
 	inline static public function mods(key:String = '') {
-		return 'contents/' + key;
+		return 'contents/$key';
 	}
 
 	#if SCRIPTABLE_STATES
@@ -725,15 +712,15 @@ class Paths
 	#end
 
 	inline static public function modsFont(key:String) {
-		return modFolders('fonts/' + key);
+		return modFolders('fonts/$key');
 	}
 
 	inline static public function modsJson(key:String) {
-		return modFolders('data/' + key + '.json');
+		return modFolders('data/$key.json');
 	}
 
 	inline static public function modsVideo(key:String) {
-		return modFolders('videos/' + key + '.' + VIDEO_EXT);
+		return modFolders('videos/$key.$VIDEO_EXT');
 	}
 
 	#if NDLL_ALLOWED
@@ -757,35 +744,35 @@ class Paths
 
 	inline static public function modsSounds(path:String, key:String, ?ext:String = null) {
 		ext ??= SOUND_EXT;
-		return modFolders(path + '/' + key + '.' + ext);
+		return modFolders('$path/$key.$ext');
 	}
 
 	inline static public function modsImages(key:String) {
-		return modFolders('images/' + key + '.png');
+		return modFolders('images/$key.png');
 	}
 
 	inline static public function modsImagesJson(key:String) {
-		return modFolders('images/' + key + '.json');
+		return modFolders('images/$key.json');
 	}
 
 	inline static public function modsXml(key:String) {
-		return modFolders('images/' + key + '.xml');
+		return modFolders('images/$key.xml');
 	}
 
 	inline static public function modsTxt(key:String) {
-		return modFolders('images/' + key + '.txt');
+		return modFolders('images/$key.txt');
 	}
-
-	/* Goes unused for now
 
 	inline static public function modsShaderFragment(key:String, ?library:String)
 	{
-		return modFolders('shaders/'+key+'.frag');
+		return modFolders('shaders/$key.frag');
 	}
 	inline static public function modsShaderVertex(key:String, ?library:String)
 	{
-		return modFolders('shaders/'+key+'.vert');
+		return modFolders('shaders/$key.vert');
 	}
+
+	/* Goes unused for now
 	inline static public function modsAchievements(key:String) {
 		return modFolders('achievements/' + key + '.json');
 	}*/
