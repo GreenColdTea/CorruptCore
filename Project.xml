@@ -49,9 +49,15 @@
 	<define name="HSCRIPT_ALLOWED" if="cpp"/>
 	<!--<define name="MODCHART_ALLOWED" />--> <!-- disabled for now-->
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 	<define name="DISCORD_ALLOWED" if="desktop" />
 	<define name="ACHIEVEMENTS_ALLOWED" />
 	<define name="VIDEOS_ALLOWED" if="desktop || mobile" />
+=======
+	<define name="DISCORD_ALLOWED" if="desktop" unless="hl" />
+	<define name="ACHIEVEMENTS_ALLOWED" />
+	<define name="VIDEOS_ALLOWED" if="desktop || mobile" unless="hl" />
+>>>>>>> Stashed changes
 =======
 	<define name="DISCORD_ALLOWED" if="desktop" unless="hl" />
 	<define name="ACHIEVEMENTS_ALLOWED" />
