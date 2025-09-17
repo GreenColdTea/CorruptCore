@@ -326,7 +326,7 @@ class EditorPlayState extends MusicBeatState
 	}
 
 	private function endSong() {
-		LoadingState.loadAndSwitchState(new game.states.editors.ChartEditorState());
+		LoadingState.loadAndSwitchState(() -> new game.states.editors.ChartEditorState());
 	}
 
 	public var noteKillOffset:Float = 350;
@@ -336,7 +336,7 @@ class EditorPlayState extends MusicBeatState
 		{
 			FlxG.sound.music.pause();
 			vocals.pause();
-			LoadingState.loadAndSwitchState(new game.states.editors.ChartEditorState());
+			LoadingState.loadAndSwitchState(() -> new game.states.editors.ChartEditorState());
 		}
 
 		if (startingSong) {

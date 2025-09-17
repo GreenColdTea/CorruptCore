@@ -51,17 +51,11 @@ class FPSCounterPlugin extends Bitmap
 		addEventListener(Event.ENTER_FRAME, onEnterFrame);
 	}
 
-	#if cpp
 	inline function get_memoryMegas():Float
 	{
-		return cpp.vm.Gc.memInfo64(cpp.vm.Gc.MEM_INFO_USAGE);
+		return MemoryUtil.memoryUsage();
 	}
-	#else
-	inline function get_memoryMegas():Float
-	{
-		return 0.0;
-	}
-	#end
+
 	private function onEnterFrame(event:Event):Void
 	{
 		var currentTime = Timer.stamp() * 1000;

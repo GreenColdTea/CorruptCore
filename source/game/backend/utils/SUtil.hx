@@ -27,7 +27,6 @@ using StringTools;
  */
 class SUtil
 {
-	#if sys
 	// root directory, used for handling the saved storage type and path
 	public static final rootDir:String = LimeSystem.applicationStorageDirectory;
 
@@ -37,6 +36,7 @@ class SUtil
 
 	public static function getPath():String
 	{
+		#if sys
 		#if android
 		if (aDir != null && aDir.length > 0)
 			return aDir;
@@ -45,10 +45,14 @@ class SUtil
 		#else
 		return '';
 		#end
+		#else
+		return '';
+		#end
 	}
 
 	public static function getStorageDirectory(?force:Bool = false):String
 	{
+		#if sys
 		var daPath:String = '';
 		#if android
 		if (!FileSystem.exists(rootDir + 'storagetype.txt'))
@@ -61,10 +65,14 @@ class SUtil
 		#end
 
 		return daPath;
+		#else
+		return '';
+		#end
 	}
 
 	public static function saveContent(fileName:String, fileData:String, ?alert:Bool = true):Void
 	{
+		#if sys
 		try
 		{
 			if (!FileSystem.exists('saves'))
@@ -79,6 +87,7 @@ class SUtil
 				CoolUtil.showPopUp('$fileName couldn\'t be saved.\n(${e.message})', "Error!")
 			else
 				trace('$fileName couldn\'t be saved. (${e.message})');
+		#end
 	}
 
 	#if android
@@ -141,6 +150,5 @@ class SUtil
 		daPath = Path.addTrailingSlash(daPath.endsWith("\n") ? daPath.substr(0, daPath.length - 1) : daPath);
 		return daPath;
 	}
-	#end
 	#end
 }

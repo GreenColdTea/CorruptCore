@@ -501,7 +501,7 @@ class DialogueEditorState extends MusicBeatState implements PsychUIEventHandler.
 		if (data.length > 0)
 		{
 			_file = new FileReference();
-			_file.addEventListener(Event.COMPLETE, onSaveComplete);
+			_file.addEventListener(#if desktop Event.SELECT #else Event.COMPLETE #end, onSaveComplete);
 			_file.addEventListener(Event.CANCEL, onSaveCancel);
 			_file.addEventListener(IOErrorEvent.IO_ERROR, onSaveError);
 			_file.save(data, "dialogue.json");

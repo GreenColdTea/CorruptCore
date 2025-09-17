@@ -281,7 +281,16 @@ class BaseOptionsMenu extends MusicBeatSubstate
 		var val:Dynamic = option.getValue();
 		if(option.type == 'percent') val *= 100;
 		var def:Dynamic = option.defaultValue;
-		option.text = text.replace('%v', val).replace('%d', def);
+		
+		// Another hl thing
+		function formatValue(v:Dynamic):String {
+			if (Std.isOfType(v, Bool)) {
+				return v ? "On" : "Off";
+			}
+			return Std.string(v);
+		}
+		
+		option.text = text.replace('%v', formatValue(val)).replace('%d', formatValue(def));
 	}
 
 	function clearHold()

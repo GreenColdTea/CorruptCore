@@ -25,7 +25,7 @@ class OutdatedState extends MusicBeatState
 
 		warnText = new FlxText(0, 0, FlxG.width,
 			"Sup bro, looks like you're running an   \n
-			outdated version of Psych Engine (" + MainMenuState.ccEngineVersion + "),\n
+			outdated version of CorruptCore Engine (" + Application.current.meta.get('version') + "),\n
 			please update to " + TitleState.updateVersion + "!\n
 			Press ESCAPE to proceed anyway.\n
 			\n

@@ -13,6 +13,8 @@ import sys.FileSystem;
 import game.scripting.FunkinHScript;
 #end
 
+import openfl.utils.Assets as OpenFlAssets;
+
 class MusicBeatSubstate extends FlxSubState
 {
 	#if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
@@ -29,7 +31,9 @@ class MusicBeatSubstate extends FlxSubState
 	{
 		super();
 
+		#if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
 		excludeSubStates = initExcludeSubStates();
+		#end
 		
 		#if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
 		if (!excludeSubStates.contains(Type.getClass(this)))

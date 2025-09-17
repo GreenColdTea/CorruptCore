@@ -583,7 +583,11 @@ class PsychUIInputText extends FlxSpriteGroup
 			if(FlxG.mouse.overlaps(behindText, camera))
 			{
 				focusOn = this;
+				#if (flixel < "5.9.0")
 				var mousePos = FlxG.mouse.getScreenPosition(camera);
+				#else
+				var mousePos = FlxG.mouse.getViewPosition(camera);
+				#end
 				caretIndex = getCaretIndexAtPoint(mousePos.x);
 				_dragStartIndex = caretIndex;
 				selectIndex = -1;
@@ -596,7 +600,11 @@ class PsychUIInputText extends FlxSpriteGroup
 
 		if (_dragging && FlxG.mouse.pressed && focusOn == this)
 		{
+			#if (flixel < "5.9.0")
 			var mousePos = FlxG.mouse.getScreenPosition(camera);
+			#else
+			var mousePos = FlxG.mouse.getViewPosition(camera);
+			#end
 			var newCaretIndex = getCaretIndexAtPoint(mousePos.x);
 			if(newCaretIndex != caretIndex)
 			{

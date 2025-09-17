@@ -40,17 +40,26 @@
 	<set name="BUILD_DIR" value="export/debug" if="debug" />
 	<set name="BUILD_DIR" value="export/release" unless="debug" />
 	<set name="BUILD_DIR" value="export/32bit" if="32bits" />
+	<set name="BUILD_DIR" value="export/tracy" if="FEATURE_DEBUG_TRACY"/>
 
 	<classpath name="source" />
+
+	<section if="FEATURE_DEBUG_TRACY">
+		<haxedef name="HXCPP_TELEMETRY"/>
+		<haxedef name="HXCPP_TRACY"/>
+		<haxedef name="HXCPP_TRACY_MEMORY"/>
+		<haxedef name="HXCPP_TRACY_ON_DEMAND"/>
+		<!-- <haxedef name="HXCPP_TRACY_INCLUDE_CALLSTACKS"/> -->
+	</section>
 
 	<!-- CC ENGINE CUSTOMIZATION -->
 	<define name="MODS_ALLOWED" if="desktop" />
 	<define name="LUA_ALLOWED" if="cpp" />
-	<define name="HSCRIPT_ALLOWED" if="cpp"/>
+	<define name="HSCRIPT_ALLOWED" />
 	<!--<define name="MODCHART_ALLOWED" />--> <!-- disabled for now-->
-	<define name="DISCORD_ALLOWED" if="desktop" unless="hl" />
+	<define name="DISCORD_ALLOWED" if="desktop" unless="hl"/>
 	<define name="ACHIEVEMENTS_ALLOWED" />
-	<define name="VIDEOS_ALLOWED" if="desktop || mobile" unless="hl" />
+	<define name="VIDEOS_ALLOWED" if="desktop || mobile" unless="hl"/>
 	<define name="TITLE_SCREEN_EASTER_EGG" if="officialBuild" /> <!-- DELETE THE if="officialBuild" for enabling this on an unofficial build -->
 	<define name="CRASH_HANDLER" />
 
@@ -128,7 +137,6 @@
 	<haxelib name="linc_luajit" if="LUA_ALLOWED"/>
 	<haxelib name="hxvlc" if="VIDEOS_ALLOWED"/>
 	<haxelib name="hxdiscord_rpc" if="DISCORD_ALLOWED"/>
-	<haxelib name="sl-windows-api" if="windows" />
 	<haxelib name="faxe" if="switch"/>
 	<haxelib name="hxcpp-debug-server" if="desktop debug"/>
 
@@ -136,8 +144,14 @@
 	<haxelib name="hscript" if="HSCRIPT_ALLOWED"/>
 	<haxedef name="hscriptPos" />
 
-	<haxelib name="flixel-animate" />
+	<haxelib name="flixel-animate"/>
+	<haxelib name="flxsoundfilters" unless="flash || html5 || hl"/>
+	<haxelib name="flxgif"/>
 	<haxelib name="hxcpp"/>
+
+	<section if="cpp">
+		<haxelib name="sl-windows-api" if="windows" />
+	</section>
 
 	<haxelib name="funkin-modchart" if="MODCHART_ALLOWED"/>
 
@@ -217,6 +231,8 @@
 		<!--Allow working memory greater than 1 Gig-->
 		<haxedef name="HXCPP_GC_BIG_BLOCKS" />
 	</section>
+
+	<haxeflag name="--macro" value="game.backend.utils.MacroUtil.addScriptResources()" />
 
 	<!-- _________________________________ Custom _______________________________ -->
 

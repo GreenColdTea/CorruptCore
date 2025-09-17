@@ -58,7 +58,7 @@ class MathUtil
 	 * @param n
 	 * @return Int the common divisor between m and n
 	 */
-	inline public static function gcd(m:Int, n:Int):Int
+	public static function gcd(m:Int, n:Int):Int
 	{
 		m = Math.floor(Math.abs(m));
 		n = Math.floor(Math.abs(n));

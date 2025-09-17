@@ -20,6 +20,10 @@ import game.substates.backend.MusicBeatSubstate;
 
 import flixel.animation.PsychAnimationController;
 
+#if flxsoundfilters
+import flixel.sound.filters.*;
+#end
+
 // that too
 #if mobile
 import game.backend.mobile.*;

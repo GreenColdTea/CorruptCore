@@ -27,7 +27,6 @@ using StringTools;
 
 class MainMenuState extends MusicBeatState
 {
-	public static var ccEngineVersion:String = '0.6.3';
 	public static var curSelected:Int = 0;
 
 	var menuItems:FlxTypedGroup<FlxSprite>;
@@ -227,7 +226,7 @@ class MainMenuState extends MusicBeatState
 							case 'credits':
 								FlxG.switchState(() -> new CreditsState());
 							case 'options':
-								LoadingState.loadAndSwitchState(new OptionsState());
+								LoadingState.loadAndSwitchState(() -> new OptionsState());
 								OptionsState.onPlayState = false;
 						}
 					});

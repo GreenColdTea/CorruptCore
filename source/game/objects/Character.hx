@@ -201,11 +201,10 @@ class Character extends FlxSprite
 
 		#if flixel_animate
 		#if MODS_ALLOWED
-		var modAnimToFind:String = Paths.modFolders('images/' + json.image + '/Animation.json');
-		var animToFind:String = Paths.getPath('images/' + json.image + '/Animation.json', TEXT);
+		var animToFind:String = Paths.getPath('images/' + json.image + '/Animation.json', TEXT, true);
 
 		isAnimateAtlas = false;
-		if (FileSystem.exists(modAnimToFind) || FileSystem.exists(animToFind) || Assets.exists(animToFind))
+		if (FileSystem.exists(animToFind) || Assets.exists(animToFind))
 		{
 		#else
 		if (Assets.exists(Paths.getPath('images/' + json.image + '/Animation.json', TEXT)))
@@ -253,7 +252,7 @@ class Character extends FlxSprite
 		healthIcon = json.healthicon;
 		singDuration = json.sing_duration;
 		vocalsFile = json.vocals_file != null ? json.vocals_file : '';
-		flipX = !!json.flip_x;
+		flipX = !!json.flip_x; //bruhhh
 		if (json.no_antialiasing)
 		{
 			antialiasing = false;
@@ -537,10 +536,7 @@ class Character extends FlxSprite
 			{
 				danced = !danced;
 
-				if (danced)
-					playAnim('danceRight' + idleSuffix);
-				else
-					playAnim('danceLeft' + idleSuffix);
+				playAnim(danced ? 'danceRight' + idleSuffix : 'danceLeft' + idleSuffix);
 			}
 			else if (hasAnimation('idle' + idleSuffix))
 			{

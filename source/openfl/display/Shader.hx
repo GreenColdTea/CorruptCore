@@ -102,12 +102,11 @@ import openfl.utils.ByteArray;
 	**Mobile Browser Support:** This feature is not supported in mobile
 	browsers.
 
-	_AIR profile support:_ This feature is supported on all desktop operating
+	_Adobe AIR profile support:_ This feature is supported on all desktop operating
 	systems, but it is not supported on all mobile devices. It is not
-	supported on AIR for TV devices. See <a
-	href="http://help.adobe.com/en_US/air/build/WS144092a96ffef7cc16ddeea2126bb46b82f-8000.html">
-	AIR Profile Support</a> for more information regarding API support across
-	multiple profiles.
+	supported on AIR for TV devices. See
+	[AIR Profile Support](https://help.adobe.com/en_US/air/build/WS144092a96ffef7cc16ddeea2126bb46b82f-8000.html)
+	for more information regarding API support across multiple profiles.
 **/
 #if !openfl_debug
 @:fileXml('tags="haxe,release"')
@@ -140,6 +139,9 @@ class Shader
 		properties of the `data` object, see the ShaderData class description.
 	**/
 	public var data(get, set):ShaderData;
+
+	public var fragPath:String;
+    public var vertPath:String;
 
 	/**
 		Get or set the fragment source used when compiling with GLSL.
@@ -315,57 +317,138 @@ class Shader
 	// }
 	// return shader;
 	// }
-	@:noCompletion private function __createGLShader(source:String, type:Int):GLShader
-	{
+	@:noCompletion private function __createGLShader(source:String, type:Int):GLShader {
 		var gl = __context.gl;
-
+		
 		var shader = gl.createShader(type);
+		if (shader == null) {
+			Log.error("Failed to create shader object. Possible WebGL context loss.");
+			return null;
+		}
+		
 		gl.shaderSource(shader, source);
 		gl.compileShader(shader);
 		var shaderInfoLog = gl.getShaderInfoLog(shader);
 		var hasInfoLog = shaderInfoLog != null && StringTools.trim(shaderInfoLog) != "";
 		var compileStatus = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
 
-		if (shaderInfoLog != null || compileStatus == 0)
-		{
-			var message = (compileStatus == 0) ? "Error" : "Info";
-			message += (type == gl.VERTEX_SHADER) ? " compiling vertex shader" : " compiling fragment shader";
+		if (hasInfoLog || compileStatus == 0) {
+			final shaderType = (type == gl.VERTEX_SHADER) ? "vertex" : "fragment";
+			final status = (compileStatus == 0) ? "Error" : "Warning";
+			
+			var fileName = "N/A";
+			
+			if (type == gl.VERTEX_SHADER && vertPath != null && vertPath != "") {
+				var pathParts = vertPath.split("/");
+				fileName = pathParts[pathParts.length - 1];
+			} 
+			else if (type == gl.FRAGMENT_SHADER && fragPath != null && fragPath != "") {
+				var pathParts = fragPath.split("/");
+				fileName = pathParts[pathParts.length - 1];
+			} else {
+				var lineRegex = ~/#line \d+ "([^"]+)"/;
+				if (lineRegex.match(source)) {
+					var fullPath = lineRegex.matched(1);
+					var pathParts = fullPath.split("/");
+					fileName = pathParts[pathParts.length - 1];
+				} else {
+					var commentRegex = ~/\/\/.*[\/\\]([^\/\\]+\.(vert|frag))/;
+					if (commentRegex.match(source)) {
+						fileName = commentRegex.matched(1);
+					}
+				}
+			}
+			
+			var message = '$status compiling $shaderType shader "${fileName}":';
 			message += "\n" + shaderInfoLog;
-			message += "\n" + source;
-			#if sys
-			if (compileStatus == 0)
-			{
-				try
-				{
+			
+			if (fileName == "N/A")
+				message += "\nNote: Could not determine shader file name from source code.";
+			
+			var lines = source.split('\n');
+			var numberedSource = [];
+			for (i in 0...lines.length) {
+				numberedSource.push('${i+1}: ${lines[i]}');
+			}
+			message += "\nSource code:\n" + numberedSource.join("\n");
+			
+			if (compileStatus == 0) {
+				#if sys
+				try {
 					if (!sys.FileSystem.exists('logs'))
 						sys.FileSystem.createDirectory('logs');
-
-					sys.io.File.saveContent('logs/' + 'ShaderCompileError.txt', '$message');
+					sys.io.File.saveContent('logs/ShaderCompileError.txt', message);
+				} catch (e:Dynamic) {
+					Log.warn("Couldn't save error message: " + e);
 				}
-				catch (e:haxe.Exception)
-					Log.warn('Couldn\'t save error message. (${e.message})', null);
+				#end
+				
+				var userMessage = 'SHADER COMPILATION FAILED\n';
+				userMessage += '=========================\n\n';
+				userMessage += 'Shader file: $fileName\n';
+				userMessage += 'Shader type: $shaderType\n\n';
+				
+				userMessage += 'ERROR LOG:\n';
+				userMessage += '==========\n';
+				userMessage += shaderInfoLog + '\n\n';
+				
+				userMessage += 'SOURCE CODE:\n';
+				userMessage += '============\n';
+				
+				var lines = source.split('\n');
+				for (i in 0...lines.length) {
+					userMessage += '${i+1}: ${lines[i]}\n';
+				}
+
+				#if !macro
+				FlxG.sound?.music?.stop();
+				FlxG.sound.list.forEach((sound:FlxSound) -> {
+					if (sound != null && sound != FlxG.sound.music && sound.playing)
+						sound.stop();
+				});
+				
+				try {
+					game.backend.utils.CoolUtil.showPopUp(userMessage, 'SHADER COMPILATION ERROR', true);
+				} catch (e:Dynamic) {
+					Log.error("Failed to show error popup: " + e);
+				}
+				#end
+			} else {
+				Log.warn(message);
 			}
-			#end
-			if (compileStatus == 0)
-				#if (android && !macro)
-				android.Tools.showAlertDialog("Shader Compile Error!", message, {name: "OK", func: null}, null)
-				#else
-				Log.error(message)
-				#end;
-			else if (hasInfoLog)
-				Log.debug(message);
 		}
+
 		return shader;
 	}
 
 	@:noCompletion private function __createGLProgram(vertexSource:String, fragmentSource:String):GLProgram
 	{
+		if (__context == null) {
+			Log.error("OpenGL context is null, cannot create shader program", null);
+			return null;
+		}
+		
 		var gl = __context.gl;
+		
+		if (gl == null) {
+			Log.error("WebGL context is null, cannot create shader program", null);
+			return null;
+		}
 
 		var vertexShader = __createGLShader(vertexSource, gl.VERTEX_SHADER);
 		var fragmentShader = __createGLShader(fragmentSource, gl.FRAGMENT_SHADER);
 
+		if (vertexShader == null || fragmentShader == null) {
+			Log.error("Failed to create vertex or fragment shader", null);
+			return null;
+		}
+
 		var program = gl.createProgram();
+		
+		if (program == null) {
+			Log.error("Failed to create shader program", null);
+			return null;
+		}
 
 		// Fix support for drivers that don't draw if attribute 0 is disabled
 		for (param in __paramFloat)
@@ -385,7 +468,10 @@ class Shader
 		{
 			var message = "Unable to initialize the shader program";
 			message += "\n" + gl.getProgramInfoLog(program);
-			Log.error(message);
+			Log.error(message, null);
+			
+			gl.deleteProgram(program);
+			return null;
 		}
 
 		return program;
@@ -501,7 +587,13 @@ class Shader
 		if (__context != null && program == null)
 		{
 			var gl = __context.gl;
-			var _glslesVersion:Int = 100;
+			
+			if (gl == null) {
+				Log.error("WebGL context is not available for shader initialization");
+				return;
+			}
+
+			var _glslesVersion:Int = 120;
 			var prefix = '#version ${_glslesVersion}\n';
 			#if (js && html5)
 			prefix += (precisionHint == FULL ? "precision mediump float;\n" : "precision lowp float;\n");
@@ -528,14 +620,24 @@ class Shader
 			{
 				program = __context.createProgram(GLSL);
 
-				// TODO
-				// program.uploadSources (vertex, fragment);
-				program.__glProgram = __createGLProgram(vertex, fragment);
-
-				__context.__programs.set(id, program);
+				if (program != null) {
+					var glProgram = __createGLProgram(vertex, fragment);
+					
+					if (glProgram != null) {
+						program.__glProgram = glProgram;
+						__context.__programs.set(id, program);
+					} else {
+						program = null;
+						Log.error("Failed to create GL program for shader");
+						return;
+					}
+				} else {
+					Log.error("Failed to create Program3D for shader");
+					return;
+				}
 			}
 
-			if (program != null)
+			if (program != null && program.__glProgram != null)
 			{
 				glProgram = program.__glProgram;
 
@@ -980,5 +1082,5 @@ class Shader
 	}
 }
 #else
-typedef Shader = openfl.display.Shader;
+typedef Shader = flash.display.Shader;
 #end

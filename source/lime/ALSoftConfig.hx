@@ -17,7 +17,7 @@ import sys.FileSystem;
  * A class that simply points OpenALSoft to a custom configuration file when the game starts up.
  * The config overrides a few global OpenALSoft settings with the aim of improving audio quality on desktop targets.
  */
-#if !macro
+#if (!macro && !web)
 @:build(lime.ALSoftConfig.setupConfig())
 #end
 class ALSoftConfig

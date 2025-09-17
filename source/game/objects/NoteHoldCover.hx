@@ -111,7 +111,8 @@ class NoteHoldCover extends FlxSprite {
         
         animation.onFinish.removeAll();
         
-        animation.play('holdCoverStart', true);
+        if(strumNote.alpha > 0)
+            animation.play('holdCoverStart', true);
         
         animation.onFinish.add((name:String) -> {
             if (name == 'holdCoverStart' && exists && visible) {

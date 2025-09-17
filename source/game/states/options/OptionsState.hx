@@ -50,7 +50,7 @@ class OptionsState extends MusicBeatState
 			case 'Misc':
 				openSubState(new game.substates.options.MiscSettingsSubState());
 			case 'Adjust Delay and Combo':
-				LoadingState.loadAndSwitchState(new game.states.options.NoteOffsetState());
+				LoadingState.loadAndSwitchState(() -> new game.states.options.NoteOffsetState());
 		}
 	}
 
@@ -117,7 +117,7 @@ class OptionsState extends MusicBeatState
 			if (onPlayState) 
 			{
 				StageData.loadDirectory(PlayState.SONG);
-				LoadingState.loadAndSwitchState(new PlayState());
+				LoadingState.loadAndSwitchState(() -> new PlayState());
 				FlxG.sound.music.volume = 0;
 			}
 			else 

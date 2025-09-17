@@ -9,7 +9,7 @@ import sys.FileSystem;
 
 import haxe.io.Bytes;
 
-#if (cpp && windows)
+#if sl_windows_api
 import winapi.WindowsAPI;
 import winapi.WindowsAPI.MessageBoxIcon;
 import winapi.WindowsAPI.MessageBoxType;
@@ -19,6 +19,7 @@ import lime.media.AudioBuffer;
 import lime.media.AudioSource;
 import lime.media.vorbis.VorbisFile;
 import lime.utils.UInt8Array;
+import lime.utils.Assets;
 
 import openfl.media.Sound;
 
@@ -58,7 +59,7 @@ class CoolUtil
 	 * Gets the hscript preprocessors for haxe scripts and runHaxeCode
 	 */
 	public static dynamic function getHScriptPreprocessors() {
-		var preprocessors:Map<String, Dynamic> = game.backend.macros.MacroUtil.defines;
+		var preprocessors:Map<String, Dynamic> = game.backend.utils.MacroUtil.defines;
 		preprocessors.set("CC_ENGINE", true);
 		preprocessors.set("CC_ENGINE_VER", Application.current.meta.get('version'));
 		preprocessors.set("BUILD_TARGET", getBuildTarget());
@@ -70,7 +71,7 @@ class CoolUtil
 	
 	public static function getDifficultyFilePath(num:Null<Int> = null)
 	{
-		if(num == null) num = PlayState.storyDifficulty;
+		num ??= PlayState.storyDifficulty;
 
 		var fileSuffix:String = difficulties[num];
 		if(fileSuffix != defaultDifficulty)
@@ -223,6 +224,7 @@ class CoolUtil
 
 	//for the future updates
 	inline public static function unzipFile(srcZip:String, dstDir:String, ignoreRootFolder:Bool = false) {
+		#if sys
         trace("Unzipping archive...");
 		
         FileSystem.createDirectory(dstDir);
@@ -267,6 +269,7 @@ class CoolUtil
         } else {
             throw 'No contents found in "${dstDir}"';
         }
+		#end
     }
 
 	//uhhhh does this even work at all? i'm starting to doubt
@@ -292,19 +295,22 @@ class CoolUtil
 
 	inline public static function setDarkMode(title:String, enable:Bool) {
 		#if windows
-		if(title == null) title = lime.app.Application.current.window.title;
+		title ??= lime.app.Application.current.window.title;
 		lime.Native.setDarkMode(title, enable);
 		#end
 	}
 
-	inline public static function showPopUp(message:String, title:String #if (windows && cpp), ?icon:MessageBoxIcon, ?type:MessageBoxType #end):Void
+	inline public static function showPopUp(message:String, title:String #if sl_windows_api, ?icon:MessageBoxIcon, ?type:MessageBoxType #end, showScrollableMSG:Bool = false):Void
 	{
 		#if android
 		AndroidTools.showAlertDialog(title, message, {name: "OK", func: null}, null);
 		#elseif linux
 		Sys.command("zenity", ["--info", "--title=" + title, "--text=" + message]);
-		#elseif (windows && cpp)
-		WindowsAPI.showMessageBox(message, title, icon, type);
+		#elseif sl_windows_api
+		if (showScrollableMSG)
+			WindowsAPI.showScrollableMessage(message, title);
+		else
+			WindowsAPI.showMessageBox(message, title, icon, type);
 		#else
 		lime.app.Application.current.window.alert(message, title);
 		#end
@@ -348,6 +354,7 @@ class CoolUtil
 
 	public static inline function readRecursive(path:String):Array<String>
 	{
+		#if sys
 		var result:Array<String> = [];
 		for (directory in Paths.listDirectory(path))
 		{
@@ -359,6 +366,9 @@ class CoolUtil
 		}
 
 		return result;
+		#else
+		return [];
+		#end
 	}
 
 	public static function loadHighBitrateWav(key:String, path:String):Sound 

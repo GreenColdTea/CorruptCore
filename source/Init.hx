@@ -21,15 +21,22 @@ class Init extends FlxState
 
         FlxG.save.bind('ccengine', CoolUtil.getSavePath());
 
+		#if GLOBAL_SCRIPTS
+		if(!game.scripting.HScriptGlobal.globalScriptActive) game.scripting.HScriptGlobal.addGlobalScript();
+		#end
+
 		ClientPrefs.init();
 
 		game.backend.Highscore.load();
 
-		if(FlxG.save.data != null && FlxG.save.data.fullscreen)
-			FlxG.fullscreen = FlxG.save.data.fullscreen;
+		if (FlxG.save.data != null)
+		{
+			if(FlxG.save.data.fullscreen)
+				FlxG.fullscreen = FlxG.save.data.fullscreen;
 
-		if (FlxG.save.data.weekCompleted != null)
-			StoryMenuState.weekCompleted = FlxG.save.data.weekCompleted;
+			if (FlxG.save.data.weekCompleted != null)
+				StoryMenuState.weekCompleted = FlxG.save.data.weekCompleted;
+		}
 			
         #if (LUA_ALLOWED && MODS_ALLOWED)
 		Paths.pushGlobalMods();
@@ -45,8 +52,11 @@ class Init extends FlxState
 		FlxG.mouse.visible = false;
 		#end
 
-        #if GLOBAL_SCRIPTS
-		if(!game.scripting.HScriptGlobal.globalScriptActive) game.scripting.HScriptGlobal.addGlobalScript();
+		#if FEATURE_DEBUG_TRACY
+		openfl.Lib.current.stage.addEventListener(openfl.events.Event.EXIT_FRAME, (e:openfl.events.Event) ->
+			cpp.vm.tracy.TracyProfiler.frameMark());
+		
+		cpp.vm.tracy.TracyProfiler.setThreadName("main");
 		#end
 
 		FlxG.switchState(() -> new game.states.TitleState());

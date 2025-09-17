@@ -1,6 +1,7 @@
 package game.objects;
 
 import game.backend.Conductor.BPMChangeEvent;
+
 import flixel.FlxG;
 import flixel.math.FlxRect;
 import flixel.util.FlxTimer;
@@ -13,6 +14,7 @@ import flixel.FlxSubState;
 import flixel.FlxSprite;
 import flixel.FlxCamera;
 
+@:access(game.states.LoadingState)
 class CustomFadeTransition extends MusicBeatSubstate {
 
     public static var finishCallback:Void->Void;
@@ -29,9 +31,13 @@ class CustomFadeTransition extends MusicBeatSubstate {
 		super();
 	}
 
+    static var lastDuration:Float;
+
     override function create() {
         // connecting to camera
         cameras = [FlxG.cameras.list[FlxG.cameras.list.length - 1]];
+
+        lastDuration = duration;
 
         var zoom:Float = MathUtil.boundTo(FlxG.camera.zoom, 0.05, 1);
         var width:Int = Std.int(FlxG.width / zoom);
@@ -52,21 +58,17 @@ class CustomFadeTransition extends MusicBeatSubstate {
         // fade in/out anim script
         if (isTransIn) {
             transGradient.alpha = transBlack.alpha = 1;
-            FlxTween.tween(transGradient, {alpha: 0}, duration + 0.3, {
-                onComplete: function(twn:FlxTween) {
-                    close();
-                },
+            FlxTween.tween(transGradient, {alpha: 0}, duration, {
+                onComplete: _ -> close(),
                 ease: FlxEase.linear
             });
-            FlxTween.tween(transBlack, {alpha: 0}, duration + 0.3, {ease: FlxEase.linear});
+            FlxTween.tween(transBlack, {alpha: 0}, duration, {ease: FlxEase.linear});
         } else {
             transGradient.alpha = transBlack.alpha = 0;
             leTween = FlxTween.tween(transGradient, {alpha: 1}, duration, {
-                onComplete: function(twn:FlxTween) {
+                onComplete: (_) -> {
                     if (finishCallback != null) {
-                        if (finishCallback != null) {
-                            finishCallback();
-                        }
+                        finishCallback();
                     }
                 },
                 ease: FlxEase.linear

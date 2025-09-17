@@ -41,10 +41,19 @@ import psych.ui.*;
 
 import game.backend.ClientPrefs;
 import game.backend.utils.CoolUtil;
+import game.backend.utils.MemoryUtil;
 
 #if flixel_animate
 import animate.*;
 import animate.FlxAnimate;
+#end
+
+#if flxgif
+import flxgif.*;
+#end
+
+#if flxsoundfilters
+import flixel.sound.filters.*;
 #end
 
 //mb lol
@@ -53,7 +62,7 @@ import haxe.ui.backend.flixel.UIState;
 #end
 
 // Windows API
-#if (cpp && windows)
+#if sl_windows_api
 import winapi.*;
 #end
 
@@ -61,7 +70,7 @@ import winapi.*;
 import sys.*;
 import sys.io.*;
 #end
+#end
 
 using StringTools;
-#end
 

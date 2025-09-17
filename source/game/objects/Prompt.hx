@@ -229,7 +229,7 @@ class ExitConfirmationPrompt extends Prompt
 		var exitCallback = function()
 		{
 			FlxG.mouse.visible = false;
-			FlxG.switchState(new game.states.editors.MasterEditorMenu());
+			FlxG.switchState(() -> new game.states.editors.MasterEditorMenu());
 			FlxG.sound.playMusic(Paths.music('freakyMenu'));
 			if(finishCallback != null) finishCallback();
 		};

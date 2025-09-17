@@ -978,7 +978,7 @@ class FunkinLua {
 			PlayState.SONG = Song.loadFromJson(poop, name);
 			PlayState.storyDifficulty = difficultyNum;
 			PlayState.instance.persistentUpdate = false;
-			LoadingState.loadAndSwitchState(new PlayState());
+			LoadingState.loadAndSwitchState(() -> new PlayState());
 
 			FlxG.sound.music.pause();
 			FlxG.sound.music.volume = 0;
@@ -2507,11 +2507,11 @@ class FunkinLua {
 		});
 
 		Lua_helper.add_callback(lua, "debugPrint", function(text1:Dynamic = '', text2:Dynamic = '', text3:Dynamic = '', text4:Dynamic = '', text5:Dynamic = '') {
-			if (text1 == null) text1 = '';
-			if (text2 == null) text2 = '';
-			if (text3 == null) text3 = '';
-			if (text4 == null) text4 = '';
-			if (text5 == null) text5 = '';
+			text1 ??= '';
+			text2 ??= '';
+			text3 ??= '';
+			text4 ??= '';
+			text5 ??= '';
 			luaTrace('' + text1 + text2 + text3 + text4 + text5, true, false);
 		});
 		
@@ -2979,7 +2979,7 @@ class FunkinLua {
 		Lua_helper.add_callback(lua, "setOnHScript", PlayState.instance.setOnHScript);
 
 		Lua_helper.add_callback(lua, "callOnHScript", function(funcName:String, ?args:Array<Dynamic> = null, ?ignoreStops=false, ?ignoreSelf:Bool = true, ?excludeScripts:Array<String> = null, ?excludeValues:Array<Dynamic> = null) {
-			if(excludeScripts == null) excludeScripts = [];
+			excludeScripts ??= [];
 			if(ignoreSelf && !excludeScripts.contains(scriptName)) excludeScripts.push(scriptName);
 			return PlayState.instance.callOnHScript(funcName, args, ignoreStops, excludeScripts, excludeValues);
 		});
@@ -3005,7 +3005,9 @@ class FunkinLua {
 	public function addLocalCallback(name:String, func:Dynamic)
 	{
 		callbacks.set(name, func);
+		#if LUA_ALLOWED
 		Lua_helper.add_callback(lua, name, func); //just so that it gets called
+		#end
 	}
 
 	#if HSCRIPT_ALLOWED
@@ -3118,7 +3120,11 @@ class FunkinLua {
 
 			for (i in 1...shit.length)
 			{
-				var leNum:Dynamic = shit[i].substr(0, shit[i].length - 1);
+				var leNumStr:Dynamic = shit[i].substr(0, shit[i].length - 1);
+				//fucking hl fix
+				var leNum:Dynamic = try Std.parseInt(leNumStr) catch (_) null;
+            	leNum ??= leNumStr;
+				
 				blah = blah[leNum];
 			}
 			return blah;
@@ -3485,7 +3491,7 @@ class FunkinLua {
 
 			// If successful, pass and then return the result.
 			var result:Dynamic = cast Convert.fromLua(lua, -1);
-			if (result == null) result = Function_Continue;
+			result ??= Function_Continue;
 
 			Lua.pop(lua, 1);
 			return result;

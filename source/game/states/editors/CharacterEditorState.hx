@@ -20,6 +20,8 @@ import openfl.net.FileReference;
 import openfl.events.Event;
 import openfl.events.IOErrorEvent;
 
+import openfl.utils.Assets as OpenFLAssets;
+
 import haxe.Json;
 import lime.system.Clipboard;
 
@@ -460,7 +462,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			#if MODS_ALLOWED
 			if (FileSystem.exists(path))
 			#else
-			if (Assets.exists(path))
+			if (OpenFLAssets.exists(path))
 			#end
 			{
 				daAnim = intended;
@@ -1882,9 +1884,11 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 
 	function saveBackup() {
 		try {
+			#if sys
 			var backupDir = 'backups/characters/';
 			if (!sys.FileSystem.exists(backupDir))
 				sys.FileSystem.createDirectory(backupDir);
+			#end
 
 			var shadowData:ShadowData = {
 				visible: char.shadowVisible,
@@ -1914,7 +1918,9 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			};
 
 			var data:String = Json.stringify(json, "\t");
+			#if sys
 			sys.io.File.saveContent(backupDir + daAnim + '_backup.json', data);
+			#end
 		} catch(e) {
 			trace('Failed to create backup: ' + e.message);
 		}
@@ -1956,7 +1962,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			if (data.length > 0)
 			{
 				_file = new FileReference();
-				_file.addEventListener(Event.COMPLETE, onSaveComplete);
+				_file.addEventListener(#if desktop Event.SELECT #else Event.COMPLETE #end, onSaveComplete);
 				_file.addEventListener(Event.CANCEL, onSaveCancel);
 				_file.addEventListener(IOErrorEvent.IO_ERROR, onSaveError);
 				_file.save(data, daAnim + ".json");

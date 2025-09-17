@@ -116,9 +116,7 @@ class Note extends FlxSprite
 	}
 
 	private function set_texture(value:String):String {
-		if(texture != value) {
-			reloadNote('', value);
-		}
+		if(texture != value) reloadNote('', value);
 		texture = value;
 		return value;
 	}
@@ -145,11 +143,8 @@ class Note extends FlxSprite
 					colorSwap.brightness = 0;
 					lowPriority = true;
 
-					if(isSustainNote) {
-						missHealth = 0.1;
-					} else {
-						missHealth = 0.3;
-					}
+					missHealth = isSustainNote ? 0.1 : 0.3;
+					
 					hitCausesMiss = true;
 				case 'Alt Animation':
 					animSuffix = '-alt';
@@ -173,8 +168,7 @@ class Note extends FlxSprite
 
 		animation = new PsychAnimationController(this);
 
-		if (prevNote == null)
-			prevNote = this;
+		prevNote ??= this;
 
 		this.prevNote = prevNote;
 		isSustainNote = sustainNote;
@@ -204,7 +198,7 @@ class Note extends FlxSprite
 
 		// trace(prevNote);
 
-		if(prevNote!=null)
+		if(prevNote != null)
 			prevNote.nextNote = this;
 
 		if (isSustainNote && prevNote != null)
@@ -212,7 +206,7 @@ class Note extends FlxSprite
 			/*alpha = 0.6;
 			multAlpha = 0.6;*/
 			hitsoundDisabled = true;
-			if(ClientPrefs.downScroll) flipY = true;
+			flipY = ClientPrefs.downScroll;
 
 			offsetX += width / 2;
 			copyAngle = false;
@@ -258,9 +252,9 @@ class Note extends FlxSprite
 	var lastNoteScaleToo:Float = 1;
 	public var originalHeightForCalcs:Float = 6;
 	function reloadNote(?prefix:String = '', ?texture:String = '', ?suffix:String = '') {
-		if(prefix == null) prefix = '';
-		if(texture == null) texture = '';
-		if(suffix == null) suffix = '';
+		prefix ??= '';
+		texture ??= '';
+		suffix ??= '';
 
 		var skin:String = texture;
 		if(texture.length < 1) {

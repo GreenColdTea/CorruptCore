@@ -5,6 +5,7 @@ import sys.FileSystem;
 #end
 
 import openfl.utils.Assets as OpenFlAssets;
+import openfl.utils.AssetType;
 
 class HScriptState extends MusicBeatState
 {
@@ -21,6 +22,7 @@ class HScriptState extends MusicBeatState
     }
 
     override function create() {
+        #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
         if (stateName != null && stateName != "") {
             var scriptFiles:Array<String> = [];
             var folders:Array<String> = Paths.getStateScripts(stateName);
@@ -68,6 +70,7 @@ class HScriptState extends MusicBeatState
                 }
             }
         }
+        #end
 
         super.create();
     }

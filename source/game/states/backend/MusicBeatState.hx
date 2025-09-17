@@ -27,6 +27,7 @@ import game.scripting.HScriptGlobal;
 #end
 
 import openfl.utils.Assets as OpenFlAssets;
+import openfl.utils.AssetType;
 
 class MusicBeatState extends FlxState
 {
@@ -87,7 +88,6 @@ class MusicBeatState extends FlxState
 			game.states.editors.MasterEditorMenu,
 			game.states.editors.MenuCharacterEditorState,
 			game.states.editors.WeekEditorState,
-			game.states.CrashHandlerState
 		];
 	}
 
@@ -391,11 +391,13 @@ class MusicBeatState extends FlxState
 	}
 	
 	override function destroy() {
+		#if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
 		for (sc in menuScriptArray) {
 			sc.call("onDestroy", []);
 			sc.stop();
 		}
 		menuScriptArray = [];
+		#end
 		
 		super.destroy();
 	}
@@ -412,22 +414,22 @@ class MusicBeatState extends FlxState
 
 	public function quickCallMenuScript(func:String, ?args:Dynamic):Dynamic
 	{
-		#if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
 		var returnThing:Dynamic = FunkinLua.Function_Continue;
+		#if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
 		for (script in menuScriptArray)
 		{
 			var scriptThing = script.call(func, args);
 			if (scriptThing == FunkinLua.Function_Stop) returnThing = scriptThing;
 		}
-		return returnThing;
 		#end
+		return returnThing;
 	}
 
 	public function callOnMenuScript(event:String, args:Array<Dynamic>, ignoreStops = true, exclusions:Array<String> = null, excludeValues:Array<Dynamic> = null):Dynamic {
 		var returnVal = FunkinLua.Function_Continue;
 		#if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
-		if(exclusions == null) exclusions = [];
-		if(excludeValues == null) excludeValues = [];
+		exclusions ??= [];
+		excludeValues ??= [];
 
 		for (sc in menuScriptArray) {
 			if(exclusions.contains(sc.scriptName))

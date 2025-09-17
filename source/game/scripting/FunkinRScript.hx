@@ -1,6 +1,8 @@
 package game.scripting;
 
+#if sys
 import sys.io.File;
+#end
 
 import haxe.ds.StringMap;
 import haxe.io.Path;
@@ -8,6 +10,8 @@ import haxe.io.Path;
 import rulescript.*;
 import rulescript.parsers.*;
 import rulescript.RuleScript;
+
+import rulescript.interps.RuleScriptInterp;
 
 import game.scripting.HScriptClassManager.ScriptClassRef;
 
@@ -32,6 +36,15 @@ class FunkinRScript {
         "FunkinVideoSprite" => game.objects.FunkinVideoSprite,
         #end
 
+        #if flxsoundfilters
+        "FlxFilteredSound" => FlxFilteredSound,
+        #end
+
+        #if flxgif
+        "FlxGifSprite" => FlxGifSprite,
+        "FlxGifBackdrop" => FlxGifBackdrop,
+        #end
+
         "Paths" => game.Paths,
         "Character" => game.objects.Character,
         "CoolUtil" => game.backend.utils.CoolUtil,
@@ -42,6 +55,20 @@ class FunkinRScript {
         "BGSprite" => game.objects.BGSprite,
         "FunkinRScript" => FunkinRScript,
         "FunkinLua" => FunkinLua,
+
+        'StringMap' => haxe.ds.StringMap,
+		'IntMap' => haxe.ds.IntMap,
+		'ObjectMap' => haxe.ds.ObjectMap,
+    ];
+
+    static final ABSTRACT_IMPORTS:Array<String> = [
+        "flixel.util.FlxColor",
+        "flixel.input.keyboard.FlxKey",
+        "haxe.ds.Map",
+        #if flxgif
+        "flxgif.FlxGifAsset",
+        #end
+        "openfl.display.BlendMode"
     ];
 
     public var scriptType:String = "N/A"; //yeah
@@ -69,12 +96,25 @@ class FunkinRScript {
         rule.errorHandler = onError;
 
         try {
-            var content = File.getContent(path);
+            var content = loadScriptContent(path);
             execute(content, skipCreate);
         } catch (e:haxe.Exception) {
             trace('Failed to load script $path: ${e.message}');
             active = false;
         }
+    }
+
+    private function loadScriptContent(path:String):String {
+        #if sys
+        return File.getContent(path);
+        #else
+        var resourceName = path.replace("/", "_").replace(".", "_").replace(":", "_");
+        var content = haxe.Resource.getString(resourceName);
+        if (content == null) {
+            throw 'HScript not found in resources: $path (resource name: $resourceName)';
+        }
+        return content;
+        #end
     }
 
     function execute(code:String, skipCreate:Bool) {
@@ -86,6 +126,9 @@ class FunkinRScript {
     function presetVariables() {
         for (key => value in PRESET_VARS)
             set(key, value);
+
+        for (get in ABSTRACT_IMPORTS)
+            rulescript.types.Abstracts.resolveAbstract(get);
             
         if (parentInstance != null)
             set("parent", parentInstance);
@@ -213,8 +256,8 @@ class FunkinRScript {
                 try {
                     Reflect.callMethod(null, cb, args != null ? args : []);
                 } catch (e:Dynamic) {
-                    /*@:privateAccess
-                    onError(haxe.Exception.caught(e));*/
+                    @:privateAccess
+                    onError(haxe.Exception.caught(e));
                 }
             }
         }
@@ -224,8 +267,8 @@ class FunkinRScript {
         try {
             return Reflect.callMethod(null, get(event), args != null ? args : []);
         } catch (e:Dynamic) {
-            /*@:privateAccess
-            onError(haxe.Exception.caught(e));*/
+            @:privateAccess
+            onError(haxe.Exception.caught(e));
             return null;
         }
     }

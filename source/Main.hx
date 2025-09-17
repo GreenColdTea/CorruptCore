@@ -19,7 +19,7 @@ import openfl.events.UncaughtErrorEvent;
 import openfl.errors.Error;
 
 //crash handler stuff
-#if !CRASH_HANDLER
+#if CRASH_HANDLER
 import game.backend.CrashHandler;
 #end
 
@@ -59,23 +59,17 @@ class Main extends Sprite
 	public static function main():Void
 	{
 		Lib.current.addChild(new Main());
-		#if cpp
-        cpp.NativeGc.enable(true);
-        cpp.vm.Gc.run(true);
-        #elseif hl
-        hl.Gc.enable(true);
-        #end
+
+		MemoryUtil.enableGC();
 	}
 
 	public function new()
 	{
 		super();
 
-		#if !CRASH_HANDLER
+		#if CRASH_HANDLER
 	    CrashHandler.init();
-	    #else
-		Lib.current.loaderInfo.uncaughtErrorEvents.addEventListener(UncaughtErrorEvent.UNCAUGHT_ERROR, onUncaughtError);
-		#end
+	    #end
 
 		if (stage != null)
 		{
@@ -126,10 +120,8 @@ class Main extends Sprite
         }
 	    #end
 
-        #if (cpp && windows)
 		lime.Native.fixScaling();
 		lime.Native.disableWinReport();
-		#end
 
 		#if LUA_ALLOWED llua.Lua.set_callbacks_function(cpp.Callable.fromStaticFunction(LuaCallbackHandler.call)); #end
 
@@ -137,11 +129,7 @@ class Main extends Sprite
 		hxvlc.util.Handle.init(#if (hxvlc >= "1.8.0")  ['--no-lua'] #end);
 		#end
 
-		#if CRASH_HANDLER
-		addChild(new FunkinGame(game.width, game.height, Init, #if (flixel < "5.0.0") game.zoom, #end game.framerate, game.framerate, game.skipSplash, game.startFullscreen));
-		#else
 		addChild(new FlxGame(game.width, game.height, Init, #if (flixel < "5.0.0") game.zoom, #end game.framerate, game.framerate, game.skipSplash, game.startFullscreen));
-		#end
 
 		pluginsLessGo();
 
@@ -200,106 +188,6 @@ class Main extends Sprite
 			}
 		}
     }
-
-    #if (cpp || hl)
-    private static function onError(message:Dynamic):Void
-    {
-        throw Std.string(message);
-    }
-    #end
-	
-    public function getFPS():Float {
-	    return fpsVar.currentFPS;	
-    }
-
-	/**
-	 * Crash handler stuff
-	 * 
-	 * Better instead of causing a dialog window appearing and crashing the game 
-	 */
-	private function onUncaughtError(e:UncaughtErrorEvent):Void
-    {
-        e.preventDefault();
-        handleCrash(e.error);
-    }
-
-	/**
-	 * Handles the crash and displays the crash log in the crash handler state.
-	 * @param e - The error that caused the crash. 
-	 */
-	public static function handleCrash(e:Dynamic):Void
-    {
-        var errorMsg = "Unknown error";
-    
-		if (e != null) {
-			if (Std.isOfType(e, haxe.Exception))
-				errorMsg = cast(e, haxe.Exception).message;
-			else if (Std.isOfType(e, String))
-				errorMsg = e;
-			else if (Reflect.hasField(e, "message"))
-				errorMsg = Reflect.field(e, "message");
-			else
-				errorMsg = Std.string(e);
-		}
-		
-		var stack = haxe.CallStack.exceptionStack();
-		var stackTrace = formatExceptionStack(stack);
-		
-		final crashReport = 'CRASH DETAILS:\n$errorMsg\n\nSTACK TRACE:\n$stackTrace';
-		
-		try {
-			FlxTransitionableState.skipNextTransOut = true;
-			FlxTransitionableState.skipNextTransIn = true;
-			
-			FlxG.switchState(() -> new game.states.CrashHandlerState(crashReport, () -> FlxG.switchState(() -> new game.states.MainMenuState())));
-		} catch (e:Dynamic) {
-			// If the crash handler fails, we log the error to console
-			trace("CRITICAL CRASH IN HANDLER:", e);
-		}
-    }
-
-	/**
-	 * Formats the exception stack trace into a readable string.
-	 * Better than using "Called from " prefix.
-	 * @param stack - The stack trace to format.
-	 */
-	private static function formatExceptionStack(stack:Array<haxe.CallStack.StackItem>):String {
-		var result = "";
-		for (item in stack) {
-			switch(item) {
-				case FilePos(item, file, line):
-					result += 'at ${formatStackItem(item)} ($file: $line line)\n';
-					
-				case Method(classname, method):
-					result += 'in ${classname}.$method\n';
-					
-				case Module(module):
-					result += 'in module $module\n';
-					
-				case CFunction:
-					result += "in C function\n";
-					
-				case _:
-					result += 'in ${Std.string(item)}\n';
-			}
-		}
-		return result;
-	}
-
-	/**
-	 * Formats a stack item to a string.
-	 * @param item - The stack item to format.
-	 * @return A string representation of the stack item.
-	 */
-	private static function formatStackItem(item:haxe.CallStack.StackItem):String {
-		return switch(item) {
-			case Method(classname, method): '$classname.$method';
-			case Module(module): 'module $module';
-			case CFunction: "C function";
-			case FilePos(_, file, line): '$file:$line';
-			case _: Std.string(item);
-		}
-	}
 
 	/**
 	 * Colorblind mode stuff
@@ -417,122 +305,3 @@ class Main extends Sprite
 		CMDEnablingPlugin.init();
 	}
 }
-
-#if CRASH_HANDLER
-//Big thanks for NVE
-class FunkinGame extends FlxGame
-{
-	private static function crashGame()
-	{
-		null
-		.draw();
-	}
-	
-	/**
-	 * Used to instantiate the guts of the flixel game object once we have a valid reference to the root.
-	 */
-	override function create(_):Void
-	{
-		try
-		{
-			_skipSplash = true;
-			super.create(_);
-		}
-		catch (e)
-		{
-			onCrash(e);
-		}
-	}
-	
-	override function onFocus(_):Void
-	{
-		try
-		{
-			super.onFocus(_);
-		}
-		catch (e)
-		{
-			onCrash(e);
-		}
-	}
-	
-	override function onFocusLost(_):Void
-	{
-		try
-		{
-			super.onFocusLost(_);
-		}
-		catch (e)
-		{
-			onCrash(e);
-		}
-	}
-
-	/**
-	 * Handles the `onResize` call and updates the game state.
-	 */
-	override function onResize(_):Void
-	{
-		try
-		{
-			super.onResize(_);
-		}
-		catch (e)
-		{
-			onCrash(e);
-		}
-	}
-	
-	/**
-	 * Handles the `onEnterFrame` call and figures out how many updates and draw calls to do.
-	 */
-	override function onEnterFrame(_):Void
-	{
-		try
-		{
-			super.onEnterFrame(_);
-		}
-		catch (e)
-		{
-			onCrash(e);
-		}
-	}
-	
-	/**
-	 * This function is called by `step()` and updates the actual game state.
-	 * May be called multiple times per "frame" or draw call.
-	 */
-	override function update():Void
-	{
-		#if WANNA_TEST_CH if (FlxG.keys.justPressed.F9) crashGame(); #end
-		try
-		{
-			super.update();
-		}
-		catch (e)
-		{
-			onCrash(e);
-		}
-	}
-	
-	/**
-	 * Goes through the game state and draws all the game objects and special effects.
-	 */
-	override function draw():Void
-	{
-		try
-		{
-			super.draw();
-		}
-		catch (e)
-		{
-			onCrash(e);
-		}
-	}
-	
-	private final function onCrash(e:haxe.Exception):Void
-    {
-        Main.handleCrash(e);
-    }
-}
-#end
