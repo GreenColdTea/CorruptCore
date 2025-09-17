@@ -84,20 +84,7 @@ class Paths
 			}
 		}						   
 		// run the garbage collector for good measure lmfao
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-		openfl.system.System.gc();
-		#if cpp
-		cpp.NativeGc.run(true);
-		#end
-=======
-		// minor clear for playstate & chart editor cuz lags
 		MemoryUtil.forceGC((FlxG.state is PlayState || FlxG.state is game.states.editors.ChartEditorState) ? false : cleanMajor);
->>>>>>> Stashed changes
-=======
-		// minor clear for playstate & chart editor cuz lags
-		MemoryUtil.forceGC((FlxG.state is PlayState || FlxG.state is game.states.editors.ChartEditorState) ? false : cleanMajor);
->>>>>>> Stashed changes
 	}
 
 	// define the locally tracked assets

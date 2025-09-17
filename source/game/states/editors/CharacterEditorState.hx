@@ -682,7 +682,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		animationNameFramerate = new PsychUINumericStepper(animationInputText.x + 170, animationInputText.y, 1, 24, 0, 240, 0);
 		animationLoopCheckBox = new PsychUICheckBox(animationNameInputText.x + 170, animationNameInputText.y - 1, "Should it Loop?", 100);
 
-		shadowAnimOffsetXStepper = new PsychUINumericStepper(animationInputText.x + 180, animationIndicesInputText.y + 40, 1, 0, -1000, 1000, 0);
+		shadowAnimOffsetXStepper = new PsychUINumericStepper(animationInputText.x + 180, animationIndicesInputText.y - 40, 1, 0, -1000, 1000, 0);
 		shadowAnimOffsetYStepper = new PsychUINumericStepper(shadowAnimOffsetXStepper.x + 60, shadowAnimOffsetXStepper.y, 1, 0, -1000, 1000, 0);
 
 		animationDropDown = new PsychUIDropDownMenu(15, animationInputText.y - 55, null, (selectedAnimation:Int, pressed:String) -> {
@@ -834,7 +834,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		tab_group.add(new FlxText(animationNameFramerate.x, animationNameFramerate.y - 18, 0, 'Framerate:'));
 		tab_group.add(new FlxText(animationNameInputText.x, animationNameInputText.y - 18, 0, 'Animation on .XML/.TXT file:'));
 		tab_group.add(new FlxText(animationIndicesInputText.x, animationIndicesInputText.y - 18, 0, 'ADVANCED - Animation Indices:'));
-		tab_group.add(new FlxText(shadowAnimOffsetXStepper.x, shadowAnimOffsetXStepper.y - 18, 0, 'Shadow X/Y:'));
+		tab_group.add(new FlxText(shadowAnimOffsetXStepper.x, shadowAnimOffsetXStepper.y - 18, 0, 'Shadow Anim X/Y:'));
 
 		tab_group.add(animationInputText);
 		tab_group.add(animationNameInputText);
