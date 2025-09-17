@@ -11,7 +11,6 @@ import flixel.FlxCamera;
 import flixel.input.keyboard.FlxKey;
 import openfl.Assets;
 import openfl.Lib;
-import openfl.display.FPS;
 import openfl.display.Sprite;
 import openfl.events.Event;
 import openfl.display.StageScaleMode;
@@ -28,8 +27,7 @@ import game.backend.CrashHandler;
 import game.scripting.LuaCallbackHandler;
 #end
 
-import game.backend.plugins.HotReloadPlugin;
-import game.backend.plugins.CMDEnablingPlugin;
+import game.backend.plugins.*;
 
 using StringTools;
 
@@ -51,7 +49,7 @@ class Main extends Sprite
 		startFullscreen: false // if the game should start at fullscreen mode
 	};
 
-	public static var fpsVar:FPS;
+	public static var fpsVar:FPSCounterPlugin;
 
 	//for colorblind mode
 	public static var colorblindMode:Int = -1;
@@ -157,7 +155,7 @@ class Main extends Sprite
 		#end
 
 		#if !mobile
-		fpsVar = new FPS(10, 3, 0xFFFFFF);
+		fpsVar = new FPSCounterPlugin(10, 3, 0xFFFFFF);
 		addChild(fpsVar);
 		Lib.current.stage.align = "tl";
 		Lib.current.stage.scaleMode = StageScaleMode.NO_SCALE;

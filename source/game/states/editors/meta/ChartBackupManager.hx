@@ -144,7 +144,7 @@ class ChartBackupManager
      */
     inline public function loadBackup():Void {
         #if desktop
-        var fileFilter = new FileFilter('Chart Backup Files', '*.$BACKUP_EXTENSION;*.json');
+        var fileFilter = new FileFilter('Chart Backup Files', '*.$BACKUP_EXTENSION');
         var fileRef = new FileReference();
         fileRef.addEventListener(Event.SELECT, function onFileSelected(e:Event) {
             fileRef.removeEventListener(Event.SELECT, onFileSelected);

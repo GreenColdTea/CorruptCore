@@ -1,4 +1,4 @@
-package openfl.display;
+package game.backend.plugins;
 
 import haxe.Timer;
 import openfl.events.Event;
@@ -16,7 +16,7 @@ import openfl.display._internal.stats.Context3DStats;
 import openfl.display._internal.stats.DrawCallContext;
 #end
 
-class FPS extends Bitmap
+class FPSCounterPlugin extends Bitmap
 {
 	public var currentFPS(default, null):Int;
 

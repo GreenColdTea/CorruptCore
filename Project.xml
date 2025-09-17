@@ -48,11 +48,17 @@
 	<define name="LUA_ALLOWED" if="cpp" />
 	<define name="HSCRIPT_ALLOWED" if="cpp"/>
 	<!--<define name="MODCHART_ALLOWED" />--> <!-- disabled for now-->
+<<<<<<< Updated upstream
 	<define name="DISCORD_ALLOWED" if="desktop" />
 	<define name="ACHIEVEMENTS_ALLOWED" />
 	<define name="VIDEOS_ALLOWED" if="desktop || mobile" />
+=======
+	<define name="DISCORD_ALLOWED" if="desktop" unless="hl" />
+	<define name="ACHIEVEMENTS_ALLOWED" />
+	<define name="VIDEOS_ALLOWED" if="desktop || mobile" unless="hl" />
+>>>>>>> Stashed changes
 	<define name="TITLE_SCREEN_EASTER_EGG" if="officialBuild" /> <!-- DELETE THE if="officialBuild" for enabling this on an unofficial build -->
-	<define name="CRASH_HANDLER" unless="debug" />
+	<define name="CRASH_HANDLER" />
 
 	<section if="HSCRIPT_ALLOWED">
 		<define name="SCRIPTABLE_STATES" /> <!-- Adds haxe scripting support to the menus (need to enable HSCRIPT_ALLOWED)! -->
