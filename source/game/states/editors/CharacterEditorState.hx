@@ -684,9 +684,6 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		animationNameFramerate = new PsychUINumericStepper(animationInputText.x + 170, animationInputText.y, 1, 24, 0, 240, 0);
 		animationLoopCheckBox = new PsychUICheckBox(animationNameInputText.x + 170, animationNameInputText.y - 1, "Should it Loop?", 100);
 
-		shadowAnimOffsetXStepper = new PsychUINumericStepper(animationInputText.x + 180, animationIndicesInputText.y - 40, 1, 0, -1000, 1000, 0);
-		shadowAnimOffsetYStepper = new PsychUINumericStepper(shadowAnimOffsetXStepper.x + 60, shadowAnimOffsetXStepper.y, 1, 0, -1000, 1000, 0);
-
 		animationDropDown = new PsychUIDropDownMenu(15, animationInputText.y - 55, null, (selectedAnimation:Int, pressed:String) -> {
 			var anim:AnimArray = char.animationsArray[selectedAnimation];
 			animationInputText.text = anim.anim;
@@ -709,6 +706,9 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 				
 			genBoyOffsets();
 		});
+
+		shadowAnimOffsetXStepper = new PsychUINumericStepper(animationDropDown.x + 170, animationDropDown.y, 1, 0, -1000, 1000, 0);
+		shadowAnimOffsetYStepper = new PsychUINumericStepper(shadowAnimOffsetXStepper.x + 70, shadowAnimOffsetXStepper.y, 1, 0, -1000, 1000, 0);
 
 		var addUpdateButton:PsychUIButton = new PsychUIButton(70, animationIndicesInputText.y + 30, "Add/Update", () -> {
 			var indices:Array<Int> = [];

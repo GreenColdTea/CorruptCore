@@ -153,7 +153,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	 * Usually rounded up??
 	 */
 	public static var curSec:Int = 0;
-	public static var lastSection:Int = 0;
 	private static var lastSong:String = '';
 
 	var followPoint:FlxPoint;
@@ -317,6 +316,14 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		gridLayer = new FlxTypedGroup<FlxSprite>();
 		add(gridLayer);
 
+		gridBG = new FlxSprite();
+		prevGridBG = new FlxSprite();
+		nextGridBG = new FlxSprite();
+
+		gridLayer.add(gridBG);
+		gridLayer.add(prevGridBG);
+		gridLayer.add(nextGridBG);
+
 		waveformSprite = new FlxSprite().makeGraphic(FlxG.width, FlxG.height, 0x00FFFFFF);
 		add(waveformSprite);
 
@@ -446,7 +453,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		add(prevRenderedSustains);
 		add(prevRenderedNotes);
 
-		if(lastSong != currentSongName) changeSection();
+		if(lastSong != currentSongName) changeSection(0, false);
 		lastSong = currentSongName;
 
 		zoomTxt = new FlxText(10, 10, 0, "Zoom: 1 / 1", 16);
@@ -454,7 +461,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		zoomTxt.scrollFactor.set();
 		add(zoomTxt);
 
-		updateGrid();
+		//updateGrid();
 
 		createSongSlider();
 
@@ -2185,7 +2192,11 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	{
 		FlxG.sound.music.pause();
 		if (!mouseQuant)
-			FlxG.sound.music.time -= (FlxG.mouse.wheel * Conductor.stepCrochet*0.8);
+		{
+			var newTime = FlxG.sound.music.time - (FlxG.mouse.wheel * Conductor.stepCrochet * 0.8);
+			if (newTime <= 0) newTime = 0;
+			FlxG.sound.music.time = newTime;
+		}
 		else
 		{
 			var time:Float = FlxG.sound.music.time;
@@ -2195,6 +2206,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			if (FlxG.mouse.wheel > 0)
 			{
 				var fuck:Float = MathUtil.quantize(beat, snap) - increase;
+				if (fuck <= 0) fuck = 0;
 				FlxG.sound.music.time = Conductor.beatToSeconds(fuck);
 			} else {
 				var fuck:Float = MathUtil.quantize(beat, snap) + increase;
@@ -2604,13 +2616,10 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	var lastSecBeats:Float = 0;
 	var lastSecBeatsNext:Float = 0;
 	function reloadGridLayer() {
-		//gridLayer.clear();
-		gridBG = FlxGridOverlay.create(GRID_SIZE, GRID_SIZE, GRID_SIZE * 9, Std.int(GRID_SIZE * getSectionBeats() * 4 * zoomList[curZoom]));
-    	gridBG?.screenCenter(X); //? due to hl
-
-		#if hl
-		if (gridBG != null)
-		#end
+		gridBG.makeGraphic(GRID_SIZE * 9, Std.int(GRID_SIZE * getSectionBeats() * 4 * zoomList[curZoom]), 0xFF222222);
+		FlxGridOverlay.overlay(gridBG, GRID_SIZE, GRID_SIZE, GRID_SIZE * 9, Std.int(GRID_SIZE * getSectionBeats() * 4 * zoomList[curZoom]));
+		gridBG.screenCenter(X);
+		
 		waveformSprite.x = gridBG.x + GRID_SIZE / 2;
 
 		if(chartEditorSave.data.chart_waveformInst || chartEditorSave.data.chart_waveformVoices || chartEditorSave.data.chart_waveformOppVoices)
@@ -2624,58 +2633,70 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		var leHeight:Int = Std.int(gridBG.height) * -1;
 		if(curSec > 0 && sectionStartTime(-1) >= 0)
 		{
-			prevGridBG = FlxGridOverlay.create(GRID_SIZE, GRID_SIZE, GRID_SIZE * 9, Std.int(GRID_SIZE * getSectionBeats(curSec - 1) * 4 * zoomList[curZoom]));
+			prevGridBG.makeGraphic(GRID_SIZE * 9, Std.int(GRID_SIZE * getSectionBeats(curSec - 1) * 4 * zoomList[curZoom]), 0xFF222222);
+			FlxGridOverlay.overlay(prevGridBG, GRID_SIZE, GRID_SIZE, GRID_SIZE * 9, Std.int(GRID_SIZE * getSectionBeats(curSec - 1) * 4 * zoomList[curZoom]));
 			prevGridBG.screenCenter(X);
 			leHeight = Std.int(gridBG.y - prevGridBG.height);
 			foundPrevSec = true;
 		}
-		else prevGridBG = new FlxSprite().makeGraphic(1, 1, FlxColor.TRANSPARENT);
+		else 
+		{
+			prevGridBG.makeGraphic(1, 1, FlxColor.TRANSPARENT);
+		}
 		prevGridBG.y = gridBG.y - prevGridBG.height;
 
 		var leHeight2:Int = Std.int(gridBG.height);
-		nextGridBG = FlxGridOverlay.create(GRID_SIZE, GRID_SIZE, GRID_SIZE * 9, Std.int(GRID_SIZE * getSectionBeats(curSec + 1) * 4 * zoomList[curZoom]));
-		nextGridBG.screenCenter(X);
 		if(sectionStartTime(1) <= FlxG.sound.music.length)
 		{
+			nextGridBG.makeGraphic(GRID_SIZE * 9, Std.int(GRID_SIZE * getSectionBeats(curSec + 1) * 4 * zoomList[curZoom]), 0xFF222222);
+			FlxGridOverlay.overlay(nextGridBG, GRID_SIZE, GRID_SIZE, GRID_SIZE * 9, Std.int(GRID_SIZE * getSectionBeats(curSec + 1) * 4 * zoomList[curZoom]));
+			nextGridBG.screenCenter(X);
 			leHeight2 = Std.int(gridBG.height + nextGridBG.height);
 			foundNextSec = true;
 			nextGridBG.visible = true;
 		}
 		else
 		{
+			nextGridBG.makeGraphic(1, 1, FlxColor.TRANSPARENT);
 			nextGridBG.visible = false;
 			leHeight2 = Std.int(gridBG.height);
 		}
 		nextGridBG.y = gridBG.height;
 
-		gridLayer.add(prevGridBG);
-		gridLayer.add(nextGridBG);
-		gridLayer.add(gridBG);
+		for (sprite in gridLayer) {
+			if (sprite != gridBG && sprite != prevGridBG && sprite != nextGridBG) {
+				sprite?.destroy();
+			}
+		}
+		gridLayer?.clear();
+		gridLayer?.add(prevGridBG);
+		gridLayer?.add(nextGridBG);
+		gridLayer?.add(gridBG);
 
 		if(foundPrevSec)
 		{
 			var gridBlackPrev:FlxSprite = new FlxSprite(prevGridBG.x, prevGridBG.y).makeGraphic(Std.int(GRID_SIZE * 9), Std.int(prevGridBG.height), FlxColor.BLACK);
 			gridBlackPrev.alpha = 0.4;
-			gridLayer.add(gridBlackPrev);
+			gridLayer?.add(gridBlackPrev);
 		}
 
 		if(foundNextSec)
 		{
 			var gridBlackNext:FlxSprite = new FlxSprite(nextGridBG.x, gridBG.height).makeGraphic(Std.int(GRID_SIZE * 9), Std.int(nextGridBG.height), FlxColor.BLACK);
 			gridBlackNext.alpha = 0.4;
-			gridLayer.add(gridBlackNext);
+			gridLayer?.add(gridBlackNext);
 		}
 
 		var topY = prevGridBG.y;
 		var totalHeight = (foundNextSec ? nextGridBG.y + nextGridBG.height : gridBG.y + gridBG.height) - topY;
 
 		var gridBlackLineLeft = new FlxSprite(gridBG.x + GRID_SIZE).makeGraphic(2, Std.int(totalHeight), FlxColor.BLACK);
-        gridBlackLineLeft.y = topY;
-        gridLayer.add(gridBlackLineLeft);
+		gridBlackLineLeft.y = topY;
+		gridLayer.add(gridBlackLineLeft);
 
-        var gridBlackLineRight = new FlxSprite(gridBG.x + gridBG.width - (GRID_SIZE * 4)).makeGraphic(2, Std.int(totalHeight), FlxColor.BLACK);
-        gridBlackLineRight.y = topY;
-        gridLayer.add(gridBlackLineRight);
+		var gridBlackLineRight = new FlxSprite(gridBG.x + gridBG.width - (GRID_SIZE * 4)).makeGraphic(2, Std.int(totalHeight), FlxColor.BLACK);
+		gridBlackLineRight.y = topY;
+		gridLayer.add(gridBlackLineRight);
 
 		for (i in 1...Std.int(getSectionBeats())) {
 			var beatsep:FlxSprite = new FlxSprite(gridBG.x, (GRID_SIZE * (4 * zoomList[curZoom])) * i).makeGraphic(1, 1, 0x44FF0000);
@@ -2691,7 +2712,11 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 	function strumLineUpdateY()
 	{
-		strumLine.y = getYfromStrum((Conductor.songPosition - sectionStartTime()) / zoomList[curZoom] % (Conductor.stepCrochet * 16)) / (getSectionBeats() / 4);
+		var secBPM:Float = _song.notes[curSec].changeBPM ? _song.notes[curSec].bpm : _song.bpm;
+		var stepCrochet:Float = (60 / secBPM) * 1000 / 4;
+		var beats:Float = getSectionBeats();
+		
+		strumLine.y = getYfromStrum((Conductor.songPosition - sectionStartTime()) / zoomList[curZoom] % (stepCrochet * beats * 4), false);
 	}
 
 	var waveformPrinted:Bool = true;
@@ -3750,14 +3775,24 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	{
 		var leZoom:Float = zoomList[curZoom];
 		if(!doZoomCalc) leZoom = 1;
-		return FlxMath.remapToRange(yPos, gridBG.y, gridBG.y + gridBG.height * leZoom, 0, 16 * Conductor.stepCrochet);
+
+		var secBPM:Float = _song.notes[curSec].changeBPM ? _song.notes[curSec].bpm : _song.bpm;
+		var stepCrochet:Float = (60 / secBPM) * 1000 / 4;
+		var beats:Float = getSectionBeats();
+
+		return FlxMath.remapToRange(yPos, gridBG.y, gridBG.y + gridBG.height * leZoom, 0, beats * 4 * stepCrochet);
 	}
 
 	function getYfromStrum(strumTime:Float, doZoomCalc:Bool = true):Float
 	{
 		var leZoom:Float = zoomList[curZoom];
 		if(!doZoomCalc) leZoom = 1;
-		return FlxMath.remapToRange(strumTime, 0, 16 * Conductor.stepCrochet, gridBG.y, gridBG.y + gridBG.height * leZoom);
+
+		var secBPM:Float = _song.notes[curSec].changeBPM ? _song.notes[curSec].bpm : _song.bpm;
+		var stepCrochet:Float = (60 / secBPM) * 1000 / 4;
+		var beats:Float = getSectionBeats();
+
+		return FlxMath.remapToRange(strumTime, 0, beats * 4 * stepCrochet, gridBG.y, gridBG.y + gridBG.height * leZoom);
 	}
 	
 	function getYfromStrumNotes(strumTime:Float, beats:Float):Float
