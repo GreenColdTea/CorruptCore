@@ -234,6 +234,9 @@
 
 	<haxeflag name="--macro" value="game.backend.utils.MacroUtil.addScriptResources()" />
 
+	<!-- Disable Dead Code Elimination -->
+	<haxeflag name="-dce" value="no"/>
+
 	<!-- _________________________________ Custom _______________________________ -->
 
 	<!--Place custom nodes like icons here (higher priority to override the HaxeFlixel icon)-->
