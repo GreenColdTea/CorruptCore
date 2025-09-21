@@ -350,7 +350,6 @@ class PlayState extends MusicBeatState
 	override public function create()
 	{
 		//trace('Playback Rate: ' + playbackRate);
-		Paths.clearStoredMemory();
 
 		// for lua
 		instance = this;
@@ -1033,9 +1032,8 @@ class PlayState extends MusicBeatState
 					Paths.music(key);
 			}
 		}
+		
 		super.create();
-
-		Paths.clearUnusedMemory();
 	}
 
 	#if (!flash && sys)

@@ -234,8 +234,8 @@
 
 	<haxeflag name="--macro" value="game.backend.utils.MacroUtil.addScriptResources()" />
 
-	<!-- Disable Dead Code Elimination -->
-	<haxeflag name="-dce" value="no"/>
+	<!-- Disable Dead Code Elimination, because it breaks some stuff for scripting -->
+	<haxeflag name="-dce" value="no" if="HSCRIPT_ALLOWED || LUA_ALLOWED"/>
 
 	<!-- _________________________________ Custom _______________________________ -->
 

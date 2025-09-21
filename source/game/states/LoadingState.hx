@@ -2,6 +2,7 @@ package game.states;
 
 import lime.app.Promise;
 import lime.app.Future;
+
 import flixel.FlxG;
 import flixel.FlxSprite;
 import flixel.FlxState;
@@ -20,6 +21,12 @@ import lime.utils.AssetManifest;
 
 import haxe.io.Path;
 
+import sys.thread.FixedThreadPool;
+import sys.thread.Thread;
+import sys.thread.Mutex;
+
+import game.backend.StageData.StageFile;
+
 class LoadingState extends MusicBeatState
 {
     static final MIN_TIME = 1.0;
@@ -30,6 +37,8 @@ class LoadingState extends MusicBeatState
     var callbacks:MultiCallback;
     var targetShit:Float = 0;
 
+    static var threadPool:FixedThreadPool;
+    
     #if sys
     static var loadMutex = new sys.thread.Mutex();
     #end
@@ -40,12 +49,19 @@ class LoadingState extends MusicBeatState
     var loadingStarted:Bool = false;
     var startTimer:FlxTimer;
 
+    public var maxThreadPools:Int = 2;
+
     public function new(target:NextState, stopMusic:Bool, directory:String)
     {
         super();
         this.target = target;
         this.stopMusic = stopMusic;
         this.directory = directory;
+        
+        if (threadPool == null) {
+            threadPool = new FixedThreadPool(maxThreadPools);
+            trace('Thread pool initialized with $maxThreadPools threads');
+        }
     }
 
     var funkay:FlxSprite;
@@ -55,8 +71,12 @@ class LoadingState extends MusicBeatState
     
     override function create()
     {
+        Paths.clearStoredMemory();
+        Paths.clearUnusedMemory(false);
+
         var bg:FlxSprite = new FlxSprite(0, 0).makeGraphic(FlxG.width, FlxG.height, 0xffcaff4d);
         add(bg);
+        
         funkay = new FlxSprite(0, 0).loadGraphic(Paths.getPath('images/funkay.png', IMAGE));
         funkay.setGraphicSize(0, FlxG.height);
         funkay.updateHitbox();
@@ -132,13 +152,25 @@ class LoadingState extends MusicBeatState
                     });
                 }
             }
-        }
-        
-        if (PlayState.SONG != null)
-        {
+
             loadQueue.push(() -> checkLoadSong(getSongPath()));
             if (PlayState.SONG.needsVoices)
                 loadQueue.push(() -> checkLoadSong(getVocalPath()));
+
+            var stage = PlayState.SONG.stage;
+            stage ??= StageData.vanillaSongStage(PlayState.SONG.song);
+            
+            var stageFile:StageFile = StageData.getStageFile(stage);
+            if (stageFile != null && stageFile.loadingImages != null)
+            {
+                for (image in stageFile.loadingImages)
+                {
+                    loadQueue.push(() -> {
+                        var callback = callbacks.add("stageImage:" + image);
+                        loadStageImage(image, () -> callback());
+                    });
+                }
+            }
         }
         
         loadQueue.push(() -> checkLibrary("shared"));
@@ -189,40 +221,48 @@ class LoadingState extends MusicBeatState
         #if MODS_ALLOWED
         if (sys.FileSystem.exists(path))
         {
-            try {
-                var rawJson = sys.io.File.getContent(path);
-                var json:Dynamic = haxe.Json.parse(rawJson);
-                
-                if (json.image != null) {
-                    loadCharacterImage(json.image, onComplete);
-                } else {
-                    loadCharacterImage('characters/' + character, onComplete);
+            threadPool.run(function() {
+                try {
+                    var rawJson = sys.io.File.getContent(path);
+                    var json:Dynamic = haxe.Json.parse(rawJson);
+                    
+                    haxe.Timer.delay(function() {
+                        if (json.image != null) {
+                            loadCharacterImage(json.image, onComplete);
+                        } else {
+                            loadCharacterImage('characters/' + character, onComplete);
+                        }
+                    }, 0);
+                } catch (e:Dynamic) {
+                    trace('Error loading character JSON: $character, error: $e');
+                    haxe.Timer.delay(function() {
+                        loadCharacterImage('characters/' + character, onComplete);
+                    }, 0);
                 }
-            } catch (e:Dynamic) {
-                trace('Error loading character JSON: $character, error: $e');
-                loadCharacterImage('characters/' + character, onComplete);
-            }
+            });
         }
         else
         #end
         if (Assets.exists(path))
         {
-            Assets.loadText(path).onComplete(function(rawJson:String) {
+            threadPool.run(function() {
                 try {
+                    var rawJson = Assets.getText(path);
                     var json:Dynamic = haxe.Json.parse(rawJson);
                     
-                    if (json.image != null) {
-                        loadCharacterImage(json.image, onComplete);
-                    } else {
-                        loadCharacterImage('characters/' + character, onComplete);
-                    }
+                    haxe.Timer.delay(function() {
+                        if (json.image != null) {
+                            loadCharacterImage(json.image, onComplete);
+                        } else {
+                            loadCharacterImage('characters/' + character, onComplete);
+                        }
+                    }, 0);
                 } catch (e:Dynamic) {
                     trace('Error parsing character JSON: $character, error: $e');
-                    loadCharacterImage('characters/' + character, onComplete);
+                    haxe.Timer.delay(function() {
+                        loadCharacterImage('characters/' + character, onComplete);
+                    }, 0);
                 }
-            }).onError(function(e) {
-                trace('Error loading character JSON: $character, error: $e');
-                loadCharacterImage('characters/' + character, onComplete);
             });
         }
         else
@@ -274,6 +314,64 @@ class LoadingState extends MusicBeatState
             return;
         }
         
+        trace('WARNING: Character image not found: $image');
+        callback();
+        onComplete();
+    }
+
+    function loadStageImage(image:String, onComplete:Void->Void)
+    {
+        var callback = callbacks.add("stageImage:" + image);
+
+        #if flixel_animate
+        var animatePath:String = Paths.getPath('images/$image/Animation.json', TEXT, null, true);
+
+        if (#if MODS_ALLOWED sys.FileSystem.exists(animatePath) || #end Assets.exists(animatePath))
+        {
+            Paths.getAnimateAtlas(image);
+            callback();
+            onComplete();
+            return;
+        }
+        #end
+        
+        var xmlPath = Paths.getPath('images/$image.xml', TEXT, null, true);
+        if (Assets.exists(xmlPath) #if MODS_ALLOWED || sys.FileSystem.exists(xmlPath) #end)
+        {
+            Paths.getSparrowAtlas(image, null, true);
+            callback();
+            onComplete();
+            return;
+        }
+        
+        var jsonPath = Paths.getPath('images/$image.json', TEXT, null, true);
+        if (Assets.exists(jsonPath) #if MODS_ALLOWED || sys.FileSystem.exists(jsonPath) #end)
+        {
+            Paths.getAsepriteAtlas(image, null, true);
+            callback();
+            onComplete();
+            return;
+        }
+        
+        var txtPath = Paths.getPath('images/$image.txt', TEXT, null, true);
+        if (Assets.exists(txtPath) #if MODS_ALLOWED || sys.FileSystem.exists(txtPath) #end)
+        {
+            Paths.getPackerAtlas(image, null, true);
+            callback();
+            onComplete();
+            return;
+        }
+        
+        var imagePath = Paths.getPath('images/$image.png', IMAGE, null, true);
+        if (Assets.exists(imagePath) #if MODS_ALLOWED || sys.FileSystem.exists(imagePath) #end)
+        {
+            Paths.image(image);
+            callback();
+            onComplete();
+            return;
+        }
+        
+        trace('WARNING: Stage image not found: $image');
         callback();
         onComplete();
     }
@@ -284,19 +382,20 @@ class LoadingState extends MusicBeatState
             var callback = callbacks.add("modSong:" + path);
             
             #if MODS_ALLOWED
-            if (sys.FileSystem.exists(path)) {
+            threadPool.run(function() {
                 try {
                     var sound = Sound.fromFile(path);
-                    Paths.currentTrackedSounds.set(path, sound);
-                    callback();
+                    haxe.Timer.delay(function() {
+                        Paths.currentTrackedSounds.set(path, sound);
+                        callback();
+                    }, 0);
                 } catch (e:Dynamic) {
                     trace('Error loading mod sound: $path, error: $e');
-                    callback();
+                    haxe.Timer.delay(function() {
+                        callback();
+                    }, 0);
                 }
-            } else {
-                trace('Mod sound not found: $path');
-                callback();
-            }
+            });
             #else
             callback();
             #end
@@ -362,7 +461,9 @@ class LoadingState extends MusicBeatState
     
     function onLoad()
     {
-        trace('Loading complete!');
+        trace('Loading complete! Loaded ${callbacks.getFired().length} items');
+        trace('Fired callbacks: ${callbacks.getFired().join(", ")}');
+
         if (stopMusic)
             FlxG.sound?.music?.stop();
         
@@ -471,6 +572,19 @@ class LoadingState extends MusicBeatState
                 if (char != null && !isCharacterLoaded(char))
                     return false;
             }
+
+            var stage = PlayState.SONG.stage;
+            stage ??= StageData.vanillaSongStage(PlayState.SONG.song);
+            
+            var stageFile:StageFile = StageData.getStageFile(stage);
+            if (stageFile != null && stageFile.loadingImages != null)
+            {
+                for (image in stageFile.loadingImages)
+                {
+                    if (!isStageImageLoaded(image))
+                        return false;
+                }
+            }
         }
         return true;
     }
@@ -483,6 +597,26 @@ class LoadingState extends MusicBeatState
             Paths.getPath('images/characters/$character.xml', TEXT, null, true),
             Paths.getPath('images/characters/$character.json', TEXT, null, true),
             Paths.getPath('images/characters/$character.txt', TEXT, null, true)
+        ];
+        
+        for (path in pathsToCheck)
+        {
+            #if MODS_ALLOWED
+            if (sys.FileSystem.exists(path)) return true;
+            #end
+            if (Assets.exists(path)) return true;
+        }
+        
+        return false;
+    }
+
+    static function isStageImageLoaded(image:String):Bool
+    {
+        var pathsToCheck = [
+            Paths.getPath('images/$image.png', IMAGE, null, true),
+            Paths.getPath('images/$image.xml', TEXT, null, true),
+            Paths.getPath('images/$image.json', TEXT, null, true),
+            Paths.getPath('images/$image.txt', TEXT, null, true)
         ];
         
         for (path in pathsToCheck)
@@ -527,7 +661,9 @@ class LoadingState extends MusicBeatState
         
         callbacks = null;
         percentText?.destroy();
-        if (startTimer != null) startTimer.destroy();
+        startTimer?.destroy();
+
+        threadPool = null;
     }
     
     static function initSongsManifest()

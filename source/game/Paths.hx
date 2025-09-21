@@ -71,7 +71,9 @@ class Paths
 	];
 	public static var localTrackedAssets:Array<String> = [];	 
 	/// haya I love you for the base cache dump I took to the max
-	public static function clearUnusedMemory() {
+	public static function clearUnusedMemory(cleanMajor:Bool = true) {
+		if (FlxG.state is PlayState) cleanMajor = false; // dont do major cleans ingame
+
 		// clear non local assets in the tracked assets list
 					  
 		for (key in currentTrackedAssets.keys())
@@ -84,13 +86,13 @@ class Paths
 			}
 		}						   
 		// run the garbage collector for good measure lmfao
-		MemoryUtil.forceGC((FlxG.state is PlayState) ? false : true);
+		MemoryUtil.forceGC(cleanMajor);
 	}
 
 	// define the locally tracked assets
 
 	@:access(flixel.system.frontEnds.BitmapFrontEnd._cache)
-	public static function clearStoredMemory(?cleanUnused:Bool = false) {
+	public static function clearStoredMemory() {
 		// clear anything not in the tracked assets list
 		for (key in FlxG.bitmap._cache.keys())
 		{
@@ -442,7 +444,7 @@ class Paths
 		
 	// completely rewritten asset loading? fuck!
 	public static var currentTrackedAssets:Map<String, FlxGraphic> = [];
-	static public function image(key:String, ?library:String = null, ?allowGPU:Bool = true):FlxGraphic
+	static public function image(key:String, ?library:String = null, ?allowGPU:Bool = true, ?imgFormat:String = "png"):FlxGraphic
 	{
 		var bitmap:BitmapData = null;
 		if (currentTrackedAssets.exists(key))
@@ -450,17 +452,17 @@ class Paths
 			localTrackedAssets.push(key);
 			return currentTrackedAssets.get(key);
 		}
-		return cacheBitmap(key, library, bitmap, allowGPU);
+		return cacheBitmap(key, library, bitmap, allowGPU, imgFormat);
 
 		trace('oh no its returning null NOOOO ($file)');
 		return null;
 	}
 
-	static public function cacheBitmap(key:String, ?library:String = null, ?bitmap:BitmapData = null, ?allowGPU:Bool = true)
+	static public function cacheBitmap(key:String, ?library:String = null, ?bitmap:BitmapData = null, ?allowGPU:Bool = true, ?imgFormat:String)
 	{
 		if (bitmap == null)
 		{
-			var file:String = getPath('images/$key.png', IMAGE, library, true);
+			var file:String = getPath('images/$key.$imgFormat', IMAGE, library, true);
 			#if MODS_ALLOWED
 			if (FileSystem.exists(file))
 				bitmap = BitmapData.fromFile(file);
@@ -747,8 +749,8 @@ class Paths
 		return modFolders('$path/$key.$ext');
 	}
 
-	inline static public function modsImages(key:String) {
-		return modFolders('images/$key.png');
+	inline static public function modsImages(key:String, ?imgFormat:String = "png") {
+		return modFolders('images/$key.$imgFormat');
 	}
 
 	inline static public function modsImagesJson(key:String) {

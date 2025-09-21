@@ -275,8 +275,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	
 	override function create()
 	{
-		//yep, this shit causes lags
-		MemoryUtil.forceGC(false);
+		Paths.clearStoredMemory();
 
 		if (PlayState.SONG != null)
 			_song = PlayState.SONG;
@@ -453,15 +452,13 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		add(prevRenderedSustains);
 		add(prevRenderedNotes);
 
-		if(lastSong != currentSongName) changeSection(0, false);
+		if(lastSong != currentSongName) changeSection();
 		lastSong = currentSongName;
 
 		zoomTxt = new FlxText(10, 10, 0, "Zoom: 1 / 1", 16);
 		zoomTxt.y -= 500;
 		zoomTxt.scrollFactor.set();
 		add(zoomTxt);
-
-		//updateGrid();
 
 		createSongSlider();
 
@@ -490,6 +487,8 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			backupManager.createAutoBackup(_song);
 			tmr.reset(backupInterval);
 		}, 0);
+
+		Paths.clearUnusedMemory();
 
 		super.create();
 	}
@@ -1849,7 +1848,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		strumLineNotes.visible = quant.visible = vortex;
 		
 		updateNoteSelectionAndColors(elapsed);
-		updateWaveformIfNeeded();
 		updatePlaybackSpeed();
 		updateMetronome(conductorTime);
 
@@ -2622,8 +2620,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		
 		waveformSprite.x = gridBG.x + GRID_SIZE / 2;
 
-		if(chartEditorSave.data.chart_waveformInst || chartEditorSave.data.chart_waveformVoices || chartEditorSave.data.chart_waveformOppVoices)
-			updateWaveform();
+		updateWaveformIfNeeded();
 
 		updateGrid();
 
