@@ -259,9 +259,7 @@ class LoadingState extends MusicBeatState
                     }, 0);
                 } catch (e:Dynamic) {
                     trace('Error parsing character JSON: $character, error: $e');
-                    haxe.Timer.delay(function() {
-                        loadCharacterImage('characters/' + character, onComplete);
-                    }, 0);
+                    haxe.Timer.delay(() -> loadCharacterImage('characters/' + character, onComplete), 0);
                 }
             });
         }
