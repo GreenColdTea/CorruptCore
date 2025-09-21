@@ -250,13 +250,7 @@ class LoadingState extends MusicBeatState
                     var rawJson = Assets.getText(path);
                     var json:Dynamic = haxe.Json.parse(rawJson);
                     
-                    haxe.Timer.delay(function() {
-                        if (json.image != null) {
-                            loadCharacterImage(json.image, onComplete);
-                        } else {
-                            loadCharacterImage('characters/' + character, onComplete);
-                        }
-                    }, 0);
+                    haxe.Timer.delay(() -> loadCharacterImage(json.image ?? 'characters/' + character, onComplete), 0);
                 } catch (e:Dynamic) {
                     trace('Error parsing character JSON: $character, error: $e');
                     haxe.Timer.delay(() -> loadCharacterImage('characters/' + character, onComplete), 0);
