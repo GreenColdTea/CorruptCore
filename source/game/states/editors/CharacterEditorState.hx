@@ -115,7 +115,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 
 		FlxG.cameras.add(camHUD, false);
 
-		grid = FlxGridOverlay.create(10, 10, FlxG.width * 4, FlxG.height * 4, true, 0x22FFFFFF, 0x55FFFFFF);
+		grid = FlxGridOverlay.create(15, 15, FlxG.width * 6, FlxG.height * 6, true, 0x22FFFFFF, 0x55FFFFFF); //42 БРАТУХА
 		grid.screenCenter();
 		grid.visible = gridVisible;
 		grid.cameras = [camEditor];
@@ -541,7 +541,6 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			reloadCharacterDropDown();
 			reloadCharacterOptions();
 			reloadShadowCharOptions();
-			resetHealthBarColor();
 			updatePointerPos();
 			genBoyOffsets();
 			saveHistoryStuff();
@@ -600,7 +599,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 
 		healthIconInputText = new PsychUIInputText(15, imageInputText.y + 35, 75, leHealthIcon.getCharacter(), 8);
 
-		vocalsInputText = new PsychUIInputText(15, healthIconInputText.y + 35, 75, char.vocalsFile != null ? char.vocalsFile : '', 8);
+		vocalsInputText = new PsychUIInputText(15, healthIconInputText.y + 35, 75, char.vocalsFile ?? '', 8);
 
 		singDurationStepper = new PsychUINumericStepper(15, healthIconInputText.y + 75, 0.1, 4, 0, 999, 1);
 
@@ -684,6 +683,9 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		animationNameFramerate = new PsychUINumericStepper(animationInputText.x + 170, animationInputText.y, 1, 24, 0, 240, 0);
 		animationLoopCheckBox = new PsychUICheckBox(animationNameInputText.x + 170, animationNameInputText.y - 1, "Should it Loop?", 100);
 
+		shadowAnimOffsetXStepper = new PsychUINumericStepper(animationInputText.x + 170, animationInputText.y - 55, 1, 0, -1000, 1000, 0);
+		shadowAnimOffsetYStepper = new PsychUINumericStepper(shadowAnimOffsetXStepper.x + 70, shadowAnimOffsetXStepper.y, 1, 0, -1000, 1000, 0);
+
 		animationDropDown = new PsychUIDropDownMenu(15, animationInputText.y - 55, null, (selectedAnimation:Int, pressed:String) -> {
 			var anim:AnimArray = char.animationsArray[selectedAnimation];
 			animationInputText.text = anim.anim;
@@ -699,16 +701,17 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			char.playAnim(anim.anim, true);
 
 			var shadowOffsets = char.shadowOffsets.get(anim.anim);
-			shadowAnimOffsetXStepper.value = shadowOffsets[0] ?? 0;
-			shadowAnimOffsetYStepper.value = shadowOffsets[1] ?? 0;
+			if (shadowOffsets == null) {
+				shadowOffsets = [0, 0];
+				char.shadowOffsets.set(anim.anim, shadowOffsets);
+			}
+			shadowAnimOffsetXStepper.value = shadowOffsets[0];
+			shadowAnimOffsetYStepper.value = shadowOffsets[1];
 				
 			if (ghostChar.visible) ghostChar.playAnim(anim.anim, true);
 				
 			genBoyOffsets();
 		});
-
-		shadowAnimOffsetXStepper = new PsychUINumericStepper(animationDropDown.x + 170, animationDropDown.y, 1, 0, -1000, 1000, 0);
-		shadowAnimOffsetYStepper = new PsychUINumericStepper(shadowAnimOffsetXStepper.x + 70, shadowAnimOffsetXStepper.y, 1, 0, -1000, 1000, 0);
 
 		var addUpdateButton:PsychUIButton = new PsychUIButton(70, animationIndicesInputText.y + 30, "Add/Update", () -> {
 			var indices:Array<Int> = [];
@@ -766,6 +769,8 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			if(!char.hasAnimation(newAnim.anim)) char.addOffset(newAnim.anim, 0, 0);
 			char.animationsArray.push(newAnim);
 
+			char.shadowOffsets?.set(newAnim.anim, [0, 0]);
+
 			if(lastAnim == animationInputText.text) {
 				var leAnim = !char.isAnimateAtlas ? char.animation.getByName(lastAnim) : char.atlas.anim.getByName(lastAnim);
 				if(leAnim != null && leAnim.frames.length > 0) {
@@ -807,6 +812,8 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 						char.animOffsets.remove(anim.anim);
 						char.animationsArray.remove(anim);
 					}
+
+					char.shadowOffsets?.remove(anim.anim);
 
 					if(resetAnim && char.animationsArray.length > 0) {
                 		char.playAnim(char.animationsArray[0].anim, true);
@@ -868,21 +875,18 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 	function addShadowsUI() {
 		var tab_group = UI_characterbox.getTab('Shadows').menu;
 
-		shadowVisibleCheck = new PsychUICheckBox(10, 15, "Shadow Visible", 100);
+		shadowVisibleCheck = new PsychUICheckBox(10, 10, "Shadow Visible", 100);
 		shadowVisibleCheck.checked = char.shadowVisible;
-		shadowVisibleCheck.onClick = function() {
+		shadowVisibleCheck.onClick = () -> {
 			char.shadowVisible = !char.shadowVisible;
-			if(char.shadowSprite != null) char.shadowSprite.visible = char.shadowVisible;
-			#if flixel_animate
-			if(char.shadowAtlas != null) char.shadowAtlas.visible = char.shadowVisible;
-			#end
+			char.updateShadow();
 		};
 
-		shadowColorStepperR = new PsychUINumericStepper(10, 45, 20, char.shadowColor.red, 0, 255, 0);
+		shadowColorStepperR = new PsychUINumericStepper(70, 35, 20, char.shadowColor.red, 0, 255, 0);
 		shadowColorStepperG = new PsychUINumericStepper(shadowColorStepperR.x + 70, shadowColorStepperR.y, 20, char.shadowColor.green, 0, 255, 0);
 		shadowColorStepperB = new PsychUINumericStepper(shadowColorStepperG.x + 70, shadowColorStepperG.y, 20, char.shadowColor.blue, 0, 255, 0);
 		
-		shadowAlphaSlider = new PsychUISlider(10, 75, function(v:Float) {
+		shadowAlphaSlider = new PsychUISlider(75, 50, (v:Float) -> {
 			char.shadowAlpha = v;
 			if(char.shadowSprite != null) char.shadowSprite.alpha = char.shadowAlpha;
 			#if flixel_animate
@@ -890,55 +894,50 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			#end
 		}, char.shadowAlpha, 0, 1);
 		shadowAlphaSlider.label = 'Alpha:';
+		shadowAlphaSlider.labelText.y += 2.5;
 
-		shadowOffsetXStepper = new PsychUINumericStepper(10, 105, 1, char.shadowOffset.x);
-		shadowOffsetYStepper = new PsychUINumericStepper(80, 105, 1, char.shadowOffset.y);
+		shadowOffsetXStepper = new PsychUINumericStepper(shadowAlphaSlider.x + 35, 112.5, 1, char.shadowOffset.x, -9999, 9999);
+		shadowOffsetYStepper = new PsychUINumericStepper(shadowOffsetXStepper.x + 70, shadowOffsetXStepper.y, 1, char.shadowOffset.y, -9999, 9999);
 
-		shadowSkewXStepper = new PsychUINumericStepper(10, 135, 1, char.shadowSkew.x, -180, 180, 0);
-		shadowSkewYStepper = new PsychUINumericStepper(80, 135, 1, char.shadowSkew.y, -180, 180, 0);
+		shadowSkewXStepper = new PsychUINumericStepper(shadowAlphaSlider.x + 35, 142.5, 1, char.shadowSkew.x, -180, 180, 0);
+		shadowSkewYStepper = new PsychUINumericStepper(shadowSkewXStepper.x + 70, shadowSkewXStepper.y, 1, char.shadowSkew.y, -180, 180, 0);
 
-		shadowScaleXStepper = new PsychUINumericStepper(10, 165, 0.1, char.shadowScale.x, 0.05, 10, 2);
-		shadowScaleYStepper = new PsychUINumericStepper(80, 165, 0.1, char.shadowScale.y, 0.05, 10, 2);
+		shadowScaleXStepper = new PsychUINumericStepper(shadowAlphaSlider.x + 35, 172.5, 0.1, char.shadowScale.x, 0.05, 10, 2);
+		shadowScaleYStepper = new PsychUINumericStepper(shadowScaleXStepper.x + 70, shadowScaleXStepper.y, 0.1, char.shadowScale.y, 0.05, 10, 2);
 
-		shadowScrollXStepper = new PsychUINumericStepper(10, 195, 0.1, char.shadowScrollFactor.x, 0, 2, 1);
-		shadowScrollYStepper = new PsychUINumericStepper(80, 195, 0.1, char.shadowScrollFactor.y, 0, 2, 1);
+		shadowScrollXStepper = new PsychUINumericStepper(shadowAlphaSlider.x + 35, 202.5, 0.1, char.shadowScrollFactor.x, 0, 2, 1);
+		shadowScrollYStepper = new PsychUINumericStepper(shadowScrollXStepper.x + 70, shadowScrollXStepper.y, 0.1, char.shadowScrollFactor.y, 0, 2, 1);
 
-		shadowFlipXCheckBox = new PsychUICheckBox(10, 225, "Flip X", 100);
+		shadowFlipXCheckBox = new PsychUICheckBox(shadowAlphaSlider.x - 2.5, 230, "Flip X", 100);
 		shadowFlipXCheckBox.checked = char.shadowFlipX;
 		shadowFlipXCheckBox.onClick = () -> {
 			char.shadowFlipX = !char.shadowFlipX;
-			if(char.shadowSprite != null) char.shadowSprite.flipX = char.shadowFlipX;
-			#if flixel_animate
-			if(char.shadowAtlas != null) char.shadowAtlas.flipX = char.shadowFlipX;
-			#end
+			char.updateShadow();
 		};
 
-		shadowFlipYCheckBox = new PsychUICheckBox(80, 225, "Flip Y", 100);
+		shadowFlipYCheckBox = new PsychUICheckBox(shadowFlipXCheckBox.x + 155, shadowFlipXCheckBox.y, "Flip Y", 100);
 		shadowFlipYCheckBox.checked = char.shadowFlipY;
 		shadowFlipYCheckBox.onClick = () -> {
 			char.shadowFlipY = !char.shadowFlipY;
-			if(char.shadowSprite != null) char.shadowSprite.flipY = char.shadowFlipY;
-			#if flixel_animate
-			if(char.shadowAtlas != null) char.shadowAtlas.flipY = char.shadowFlipY;
-			#end
+			char.updateShadow();
 		};
 
 		tab_group.add(shadowVisibleCheck);
-		tab_group.add(new FlxText(10, 25, 0, 'Shadow Color R/G/B:'));
+		tab_group.add(new FlxText(shadowColorStepperG.x - 15, shadowColorStepperG.y - 15, 0, 'Shadow Color R/G/B:'));
 		tab_group.add(shadowColorStepperR);
 		tab_group.add(shadowColorStepperG);
 		tab_group.add(shadowColorStepperB);
 		tab_group.add(shadowAlphaSlider);
-		tab_group.add(new FlxText(10, 95, 0, 'Shadow Offset X/Y:'));
+		tab_group.add(new FlxText(shadowOffsetXStepper.x + 15, 100, 0, 'Shadow Offset X/Y:'));
 		tab_group.add(shadowOffsetXStepper);
 		tab_group.add(shadowOffsetYStepper);
-		tab_group.add(new FlxText(10, 125, 0, 'Shadow Skew X/Y:'));
+		tab_group.add(new FlxText(shadowSkewXStepper.x + 15, 130, 0, 'Shadow Skew X/Y:'));
 		tab_group.add(shadowSkewXStepper);
 		tab_group.add(shadowSkewYStepper);
-		tab_group.add(new FlxText(10, 155, 0, 'Shadow Scale X/Y:'));
+		tab_group.add(new FlxText(shadowScaleXStepper.x + 15, 160, 0, 'Shadow Scale X/Y:'));
 		tab_group.add(shadowScaleXStepper);
 		tab_group.add(shadowScaleYStepper);
-		tab_group.add(new FlxText(10, 185, 0, 'Shadow Scroll X/Y:'));
+		tab_group.add(new FlxText(shadowScrollXStepper.x + 15, 190, 0, 'Shadow Scroll X/Y:'));
 		tab_group.add(shadowScrollXStepper);
 		tab_group.add(shadowScrollYStepper);
 		tab_group.add(shadowFlipXCheckBox);
@@ -1033,65 +1032,41 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			//shadow thingies
 			else if(sender == shadowColorStepperR) {
 				char.shadowColor.red = Math.round(shadowColorStepperR.value);
-				char.shadowSprite.color = char.shadowColor;
+				char.updateShadow();
 				saveHistoryStuff();
 			}
 			else if(sender == shadowColorStepperG) {
 				char.shadowColor.green = Math.round(shadowColorStepperG.value);
-				char.shadowSprite.color = char.shadowColor;
+				char.updateShadow();
 				saveHistoryStuff();
 			}
 			else if(sender == shadowColorStepperB) {
 				char.shadowColor.blue = Math.round(shadowColorStepperB.value);
-				char.shadowSprite.color = char.shadowColor;
+				char.updateShadow();
 				saveHistoryStuff();
 			}
 			else if(sender == shadowOffsetXStepper)
 			{
 				char.shadowOffset.x = shadowOffsetXStepper.value;
-				if(char.shadowSprite != null) char.shadowSprite.offset.x = shadowOffsetXStepper.value;
-				#if flixel_animate
-				if(char.shadowAtlas != null) char.shadowAtlas.offset.x = shadowOffsetXStepper.value;
-				#end
+				char.updateShadow();
 				saveHistoryStuff();
 			}
 			else if(sender == shadowOffsetYStepper)
 			{
 				char.shadowOffset.y = shadowOffsetYStepper.value;
-				if(char.shadowSprite != null) char.shadowSprite.offset.y = shadowOffsetYStepper.value;
-				#if flixel_animate
-				if(char.shadowAtlas != null) char.shadowAtlas.offset.y = shadowOffsetYStepper.value;
-				#end
+				char.updateShadow();
 				saveHistoryStuff();
 			}
 			else if(sender == shadowScaleXStepper)
 			{
 				char.shadowScale.x = shadowScaleXStepper.value;
-				if(char.shadowSprite != null) {
-					char.shadowSprite.scale.x = shadowScaleXStepper.value;
-					char.shadowSprite.updateHitbox();
-				}
-				#if flixel_animate
-				if(char.shadowAtlas != null) {
-					char.shadowAtlas.scale.x = shadowScaleXStepper.value;
-					char.shadowAtlas.updateHitbox();
-				}
-				#end
+				char.updateShadow();
 				saveHistoryStuff();
 			}
 			else if(sender == shadowScaleYStepper)
 			{
-				char.shadowScale.y = shadowScaleYStepper.value;
-				if(char.shadowSprite != null) {
-					char.shadowSprite.scale.y = shadowScaleYStepper.value;
-					char.shadowSprite.updateHitbox();
-				}
-				#if flixel_animate
-				if(char.shadowAtlas != null) {
-					char.shadowAtlas.scale.y = shadowScaleYStepper.value;
-					char.shadowAtlas.updateHitbox();
-				}
-				#end
+				char.shadowScale.x = shadowScaleXStepper.value;
+				char.updateShadow();
 				saveHistoryStuff();
 			}
 			else if(sender == shadowSkewXStepper) {
@@ -1119,10 +1094,10 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 					char.shadowOffsets.set(animName, offsets);
 					
 					if(animName == char.getAnimationName()) {
-						char.shadowOffset.x = shadowAnimOffsetXStepper.value;
-						if(char.shadowSprite != null) char.shadowSprite.offset.x = char.offset.x + shadowAnimOffsetXStepper.value;
+						char.shadowSprite.offset.x = shadowAnimOffsetXStepper.value;
+						if(char.shadowSprite != null) char.shadowSprite.offset.x = char.shadowOffset.x + shadowAnimOffsetXStepper.value;
 						#if flixel_animate
-						if(char.shadowAtlas != null) char.shadowAtlas.offset.x = char.offset.x + shadowAnimOffsetXStepper.value;
+						if(char.shadowAtlas != null) char.shadowAtlas.offset.x = char.shadowOffset.x + shadowAnimOffsetXStepper.value;
 						#end
 					}
 				}
@@ -1263,31 +1238,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			}
 		}
 		
-		#if flixel_animate
-		if(char.isAnimateAtlas && char.shadowAtlas != null) {
-			char.shadowAtlas.visible = char.shadowVisible;
-			char.shadowAtlas.alpha = char.shadowAlpha;
-			char.shadowAtlas.color = char.shadowColor;
-			char.shadowAtlas.skew.x = char.shadowSkew.x;
-			char.shadowAtlas.skew.y = char.shadowSkew.y;
-			char.shadowAtlas.scale.x = char.shadowScale.x;
-			char.shadowAtlas.scale.y = char.shadowScale.y;
-			char.shadowAtlas.scrollFactor.x = char.shadowScrollFactor.x;
-			char.shadowAtlas.scrollFactor.y = char.shadowScrollFactor.y;
-		} else if(char.shadowSprite != null) {
-		#else
-		if(char.shadowSprite != null) {
-		#end
-			char.shadowSprite.visible = char.shadowVisible;
-			char.shadowSprite.alpha = char.shadowAlpha;
-			char.shadowSprite.color = char.shadowColor;
-			char.shadowSprite.skew.x = char.shadowSkew.x;
-			char.shadowSprite.skew.y = char.shadowSkew.y;
-			char.shadowSprite.scale.x = char.shadowScale.x;
-			char.shadowSprite.scale.y = char.shadowScale.y;
-			char.shadowSprite.scrollFactor.x = char.shadowScrollFactor.x;
-			char.shadowSprite.scrollFactor.y = char.shadowScrollFactor.y;
-		}
+		char.updateShadow();
 	}
 
 	function genBoyOffsets():Void
@@ -1450,7 +1401,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		if(UI_characterbox != null) {
 			imageInputText.text = char.imageFile;
 			healthIconInputText.text = char.healthIcon;
-			vocalsInputText.text = char.vocalsFile != null ? char.vocalsFile : '';
+			vocalsInputText.text = char.vocalsFile ?? '';
 			singDurationStepper.value = char.singDuration;
 			scaleStepper.value = char.jsonScale;
 			flipXCheckBox.checked = char.originalFlipX;
@@ -1464,10 +1415,6 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 
 	inline function reloadShadowCharOptions() {
 		if(UI_characterbox != null) {
-			positionXStepper.value = char.positionArray[0];
-			positionYStepper.value = char.positionArray[1];
-			positionCameraXStepper.value = char.cameraPosition[0];
-			positionCameraYStepper.value = char.cameraPosition[1];
 			shadowVisibleCheck.checked = char.shadowVisible;
 			shadowColorStepperR.value = char.shadowColor.red;
 			shadowColorStepperG.value = char.shadowColor.green;
@@ -1481,6 +1428,8 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			shadowScaleYStepper.value = char.shadowScale.y;
 			shadowScrollXStepper.value = char.shadowScrollFactor.x;
 			shadowScrollYStepper.value = char.shadowScrollFactor.y;
+			shadowFlipXCheckBox.checked = char.shadowFlipX;
+			shadowFlipYCheckBox.checked = char.shadowFlipY;
 		}
 	}
 
@@ -1609,6 +1558,16 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		healthBarBG.color = FlxColor.fromRGB(char.healthColorArray[0], char.healthColorArray[1], char.healthColorArray[2]);
 	}
 
+	inline function resetShadowCharColor() {
+		shadowColorStepperR.value = char.shadowColor.red;
+		shadowColorStepperG.value = char.shadowColor.green;
+		shadowColorStepperB.value = char.shadowColor.blue;
+		if(char.shadowSprite != null) char.shadowSprite.color = char.shadowColor;
+		#if flixel_animate
+		if(char.shadowAtlas != null) char.shadowAtlas.color = char.shadowColor;
+		#end
+	}
+
 	function updatePresence() {
 		#if DISCORD_ALLOWED
 		// Updating Discord Rich Presence
@@ -1728,27 +1687,30 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			if(FlxG.camera.zoom <= 0.1) FlxG.camera.zoom = 0.1;
 		}
 
-		if (FlxG.mouse.pressed && FlxG.mouse.justPressed && PsychUIInputText.focusOn == null)
+		if (!(FlxG.mouse.overlaps(UI_box.bg) || FlxG.mouse.overlaps(UI_characterbox.bg) || FlxG.mouse.overlaps(UI_box) || FlxG.mouse.overlaps(UI_characterbox)))
 		{
-			draggingCamera = true;
-			cameraScrollTarget.set(FlxG.camera.scroll.x, FlxG.camera.scroll.y);
-		}
-		
-		if (FlxG.mouse.justReleased)
-		{
-			draggingCamera = false;
-		}
-		
-		if (draggingCamera && FlxG.mouse.pressed)
-		{
-			var deltaX = FlxG.mouse.deltaScreenX * cameraDragSensitivity;
-			var deltaY = FlxG.mouse.deltaScreenY * cameraDragSensitivity;
+			if (FlxG.mouse.pressed && FlxG.mouse.justPressed && PsychUIInputText.focusOn == null)
+			{
+				draggingCamera = true;
+				cameraScrollTarget.set(FlxG.camera.scroll.x, FlxG.camera.scroll.y);
+			}
 			
-			cameraScrollTarget.x -= deltaX;
-			cameraScrollTarget.y -= deltaY;
+			if (FlxG.mouse.justReleased)
+			{
+				draggingCamera = false;
+			}
+			
+			if (draggingCamera && FlxG.mouse.pressed)
+			{
+				var deltaX = FlxG.mouse.deltaScreenX * cameraDragSensitivity;
+				var deltaY = FlxG.mouse.deltaScreenY * cameraDragSensitivity;
+				
+				cameraScrollTarget.x -= deltaX;
+				cameraScrollTarget.y -= deltaY;
 
-			FlxG.camera.scroll.x += (cameraScrollTarget.x - FlxG.camera.scroll.x) * cameraSmoothness;
-			FlxG.camera.scroll.y += (cameraScrollTarget.y - FlxG.camera.scroll.y) * cameraSmoothness;
+				FlxG.camera.scroll.x += (cameraScrollTarget.x - FlxG.camera.scroll.x) * cameraSmoothness;
+				FlxG.camera.scroll.y += (cameraScrollTarget.y - FlxG.camera.scroll.y) * cameraSmoothness;
+			}
 		}
 
 		if(char.animationsArray.length > 0) {
@@ -2127,8 +2089,8 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 				char.shadowAtlas.alpha = char.shadowAlpha;
 				char.shadowAtlas.skew.x = char.shadowSkew.x;
 				char.shadowAtlas.skew.y = char.shadowSkew.y;
-				char.shadowAtlas.scale.x = char.shadowScale.x;
-				char.shadowAtlas.scale.y = char.shadowScale.y;
+				char.shadowAtlas.scale.x = char.scale.x * char.shadowScale.x;
+				char.shadowAtlas.scale.y = char.scale.y * char.shadowScale.y;
 				char.shadowAtlas.scrollFactor.x = char.shadowScrollFactor.x;
 				char.shadowAtlas.scrollFactor.y = char.shadowScrollFactor.y;
 				char.shadowAtlas.flipX = char.shadowFlipX;
@@ -2142,8 +2104,8 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 				char.shadowSprite.alpha = char.shadowAlpha;
 				char.shadowSprite.skew.x = char.shadowSkew.x;
 				char.shadowSprite.skew.y = char.shadowSkew.y;
-				char.shadowSprite.scale.x = char.shadowScale.x;
-				char.shadowSprite.scale.y = char.shadowScale.y;
+				char.shadowSprite.scale.x = char.scale.x * char.shadowScale.x;
+				char.shadowSprite.scale.y = char.scale.y * char.shadowScale.y;
 				char.shadowSprite.scrollFactor.x = char.shadowScrollFactor.x;
 				char.shadowSprite.scrollFactor.y = char.shadowScrollFactor.y;
 				char.shadowSprite.flipX = char.shadowFlipX;

@@ -128,7 +128,8 @@ class Character extends FlxSprite
 	public var shadowScrollFactor:FlxPoint = FlxPoint.get(1, 1);
 	public var shadowSprite:FlxSkewedSprite;
 	public var shadowFlipX:Bool = false;
-	public var shadowFlipY:Bool = false;
+	public var shadowFlipY:Bool = true;
+	public var shadowAntialiasing:Bool = true;
 	#if flixel_animate
 	public var shadowAtlas:FlxAnimate;
 	#end
@@ -255,7 +256,7 @@ class Character extends FlxSprite
 		flipX = !!json.flip_x; //bruhhh
 		if (json.no_antialiasing)
 		{
-			antialiasing = false;
+			antialiasing = shadowAntialiasing = false;
 			noAntialiasing = true;
 		}
 
@@ -275,9 +276,9 @@ class Character extends FlxSprite
 			shadowFlipY = json.shadow.flip_y;
 		}
 
-		antialiasing = !noAntialiasing;
+		antialiasing = shadowAntialiasing = !noAntialiasing;
 		if (!ClientPrefs.globalAntialiasing)
-			antialiasing = false;
+			antialiasing = shadowAntialiasing = false;
 
 		animationsArray = json.animations;
 		if (animationsArray != null && animationsArray.length > 0)
@@ -343,12 +344,13 @@ class Character extends FlxSprite
 			shadowAtlas.color = shadowColor;
 			shadowAtlas.skew.x = shadowSkew.x;
 			shadowAtlas.skew.y = shadowSkew.y;
-			shadowAtlas.scale.x = shadowScale.x;
-			shadowAtlas.scale.y = shadowScale.y;
+			shadowAtlas.scale.x = scale.x * shadowScale.x;
+			shadowAtlas.scale.y = scale.y * shadowScale.y;
 			shadowAtlas.scrollFactor.x = shadowScrollFactor.x;
 			shadowAtlas.scrollFactor.y = shadowScrollFactor.y;
 			shadowAtlas.flipX = shadowFlipX;
 			shadowAtlas.flipY = shadowFlipY;
+			shadowAtlas.antialiasing = shadowAntialiasing;
 			
 			shadowAtlas.frames = Paths.getAnimateAtlas(json.image);
 			
@@ -375,12 +377,13 @@ class Character extends FlxSprite
 			shadowSprite.color = shadowColor;
 			shadowSprite.skew.x = shadowSkew.x;
 			shadowSprite.skew.y = shadowSkew.y;
-			shadowSprite.scale.x = shadowScale.x;
-			shadowSprite.scale.y = shadowScale.y;
+			shadowSprite.scale.x = scale.x * shadowScale.x;
+			shadowSprite.scale.y = scale.y * shadowScale.y;
 			shadowSprite.scrollFactor.x = shadowScrollFactor.x;
 			shadowSprite.scrollFactor.y = shadowScrollFactor.y;
 			shadowSprite.flipX = shadowFlipX;
 			shadowSprite.flipY = shadowFlipY;
+			shadowSprite.antialiasing = shadowAntialiasing;
 			
 			if(Paths.fileExists('images/' + json.image + '.txt', TEXT))
 				shadowSprite.frames = Paths.getPackerAtlas(json.image);
@@ -566,22 +569,11 @@ class Character extends FlxSprite
 		else
 			offset.set(0, 0);
 
-		if(shadowOffsets.exists(AnimName)) {
-			var shOffset = shadowOffsets.get(AnimName);
-			shadowOffset.x = shOffset[0];
-			shadowOffset.y = shOffset[1];
-		} else {
+		var shOffset = shadowOffsets.get(AnimName);
+		if(shadowOffsets.exists(AnimName))
+			shadowOffset.set(shOffset[0], shOffset[1]);
+		else
 			shadowOffset.set(0, 0);
-		}
-		
-		if (shadowSprite != null) {
-			shadowSprite.offset.set(offset.x + shadowOffset.x, offset.y + shadowOffset.y);
-		}
-		#if flixel_animate
-		if (shadowAtlas != null) {
-			shadowAtlas.offset.set(offset.x + shadowOffset.x, offset.y + shadowOffset.y);
-		}
-		#end
 
 		// play shadow anim
 		if (shadowVisible)
@@ -595,7 +587,7 @@ class Character extends FlxSprite
 			else
 			#end
 			{
-				shadowSprite?.animation.play(AnimName, Force, Reversed, Frame);
+				shadowSprite?.animation?.play(AnimName, Force, Reversed, Frame);
 			}
 		}
 
@@ -754,12 +746,10 @@ class Character extends FlxSprite
 
 	public function updateShadow():Void
 	{
-		if (!shadowVisible) return;
-		
 		#if flixel_animate
 		if (isAnimateAtlas && shadowAtlas != null)
 		{
-			if (!isAnimationNull())
+			if (!isAnimationNull() && shadowAtlas.anim.curAnim != null)
 			{
 				var animName = getAnimationName();
 				if (shadowAtlas.anim.getByName(animName) != null)
@@ -771,15 +761,16 @@ class Character extends FlxSprite
 			shadowAtlas.setPosition(x + shadowOffset.x, y + shadowOffset.y);
 			shadowAtlas.flipX = flipX;
 			shadowAtlas.flipY = flipY;
-			shadowAtlas.offset.set(offset.x, offset.y);
+			shadowAtlas.offset.set(shadowOffset.x, shadowOffset.y);
 			shadowAtlas.skew.x = shadowSkew.x;
 			shadowAtlas.skew.y = shadowSkew.y;
-			shadowAtlas.scale.x = scale.x * shadowScale.x;
-			shadowAtlas.scale.y = scale.y * shadowScale.y;
+			shadowAtlas.scale.x = scale.x *  shadowScale.x;
+        	shadowAtlas.scale.y = scale.y * shadowScale.y;
 			shadowAtlas.scrollFactor.x = scrollFactor.x * shadowScrollFactor.x;
 			shadowAtlas.scrollFactor.y = scrollFactor.y * shadowScrollFactor.y;
 			shadowAtlas.flipX = shadowFlipX;
 			shadowAtlas.flipY = shadowFlipY;
+			shadowAtlas.antialiasing = shadowAntialiasing;
 			
 			shadowAtlas.visible = shadowVisible;
 			shadowAtlas.alpha = shadowAlpha;
@@ -788,7 +779,7 @@ class Character extends FlxSprite
 		else if (shadowSprite != null)
 		#end
 		{
-			if (!isAnimationNull())
+			if (!isAnimationNull() && shadowSprite.animation.curAnim != null)
 			{
 				var animName = getAnimationName();
 				if (shadowSprite.animation.getByName(animName) != null)
@@ -800,15 +791,14 @@ class Character extends FlxSprite
 			shadowSprite.setPosition(x + shadowOffset.x, y + shadowOffset.y);
 			shadowSprite.flipX = flipX;
 			shadowSprite.flipY = flipY;
-			shadowSprite.offset.set(offset.x, offset.y);
+			shadowSprite.offset.set(shadowOffset.x, shadowOffset.y);
 			shadowSprite.skew.x = shadowSkew.x;
 			shadowSprite.skew.y = shadowSkew.y;
 			shadowSprite.scale.x = scale.x * shadowScale.x;
 			shadowSprite.scale.y = scale.y * shadowScale.y;
-			shadowSprite.scrollFactor.x = scrollFactor.x * shadowScrollFactor.x;
-			shadowSprite.scrollFactor.y = scrollFactor.y * shadowScrollFactor.y;
 			shadowSprite.flipX = shadowFlipX;
 			shadowSprite.flipY = shadowFlipY;
+			shadowSprite.antialiasing = shadowAntialiasing;
 			
 			shadowSprite.visible = shadowVisible;
 			shadowSprite.alpha = shadowAlpha;

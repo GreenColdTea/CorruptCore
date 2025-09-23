@@ -25,10 +25,12 @@ class PsychUINumericStepper extends PsychUIInputText
 	{
 		super(x, y, wid, '');
 		fieldWidth = Std.int(behindText.width + 2);
-		@:bypassAccessor this.decimals = decimals;
-		@:bypassAccessor this.isPercent = isPercent;
-		@:bypassAccessor this.min = min;
-		@:bypassAccessor this.max = max;
+		@:bypassAccessor {
+			this.decimals = decimals;
+			this.isPercent = isPercent;
+			this.min = min;
+			this.max = max;
+		}
 		this.step = step;
 		_updateFilter();
 

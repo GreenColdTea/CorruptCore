@@ -87,13 +87,17 @@ class CreditsState extends MusicBeatState
 			#end
 
 			var pisspoop:Array<Array<String>> = [ //Name - Icon name - Description - Link - BG Color
+				['CC Engine'],
+				["JustX",                  "gct",           "Creator of this fork",                          "",                           "FF0000"],
+				["localisteer",	            "natella",			"Beta-Tester, Bug Reporter and Big Guy",   "https://x.com/nathanalogie",	"7CA5E9"],
+				["Sea3Plays",                "sea3",             "Active user and Bug reporter",           "https://www.youtube.com/channel/UCtORhyWNUT18Trb4QrZMI0Q", "FF7F00"],
+				[''],
 				['Special Thanks To'],
 				["MAJigsaw77",			"majigsaw",			"GLSL Es 300 and GLSL 330 support\n.MP4 Video Loader Library (hxvlc) and FlxGif",    "https://x.com/MAJigsaw77",	"5F5F5F"],
 				["superpowers04",		"superpowers04",	"LUA JIT Fork",												"https://x.com/superpowers04",		"B957ED"],
 				["MaybeMaru",	           "cheems",			"Creator of Flixel-Animate",									"https://x.com/maybemaru_",	"dDF3DD"],
 				["Slushi",	              "slushi",			"Creator of Slushi Windows API",									"https://https://github.com/Slushi-Github",	"FFCBCF"],
 				["Kriptel",	             "kriptel",			"Creator of Rulescript",									"https://x.com/kriptelpro",	"8D4785"],
-				["localisteer",	            "natella",			"Beta-Tester, Bug Reporter and Big Guy",   "https://x.com/nathanalogie",	"7CA5E9"],
 				["Nkreep",	          "nanokrip",			"That guy who doesn't like Haxe",   "https://x.com/narutokreep",	"77F3FF"],
 				[''],
 				['PE Team'],
