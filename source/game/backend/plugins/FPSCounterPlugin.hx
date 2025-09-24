@@ -1,6 +1,8 @@
 package game.backend.plugins;
 
 import haxe.Timer;
+
+import openfl.Lib;
 import openfl.events.Event;
 import openfl.text.TextField;
 import openfl.text.TextFormat;
@@ -66,41 +68,65 @@ class FPSCounterPlugin extends Bitmap
 
 		var currentCount = times.length;
 		currentFPS = currentCount;
-		if (currentFPS > ClientPrefs.framerate) currentFPS = ClientPrefs.framerate;
+
+		if (currentFPS > ClientPrefs.framerate && ClientPrefs.vsync != 'On') currentFPS = ClientPrefs.framerate;
 
 		if (currentCount != cacheCount)
-		{
-			var output = "FPS: " + currentFPS;
-			#if (openfl >= "9.4.0")
-			var memoryUsage:Float = System.totalMemoryNumber;
-			#else
-			var memoryUsage:UInt = System.totalMemory;
-			#end
-			if (memoryUsage > peakMemory) peakMemory = memoryUsage;
+        {
+            var output = "FPS: " + currentFPS;
+            #if (openfl >= "9.4.0")
+            var memoryUsage:Float = System.totalMemoryNumber;
+            #else
+            var memoryUsage:UInt = System.totalMemory;
+            #end
+            if (memoryUsage > peakMemory) peakMemory = memoryUsage;
 
-			output += "\nRAM: " + getSizeLabel(memoryUsage);
-			output += "\nRAM Peak: " + getSizeLabel(peakMemory);
-			#if debug output += "\nGC Memory: " + getSizeLabel(Std.int(memoryMegas)) + " (" + memoryMegas + " bytes)"; #end
+            output += "\nRAM: " + getSizeLabel(memoryUsage);
+            output += "\nRAM Peak: " + getSizeLabel(peakMemory);
+            #if debug output += "\nGC Memory: " + getSizeLabel(Std.int(memoryMegas)) + " (" + memoryMegas + " bytes)"; #end
 
-			if (memoryUsage > 3000000000 || currentFPS <= ClientPrefs.framerate / 2)
-			{
-				fillColor = 0xFFFF0000;
-			}
-			else
-			{
-				fillColor = 0xFFFFFFFF;
-			}
+            var vsyncEnabled = (ClientPrefs.vsync != 'Off');
+            var targetFPS = vsyncEnabled ? getDisplayRefreshRate() : ClientPrefs.framerate;
+            
+            // performance checker
+            var isLowFPS = currentFPS < targetFPS * 0.7; // less than 70%
+            var isVeryLowFPS = currentFPS < targetFPS * 0.5; // less than 50%
+            var isHighMemory = memoryUsage > 2000000000; // more than 2gb
+            
+            if (isVeryLowFPS || isHighMemory)
+            {
+                fillColor = 0xFFFF0000; //bad
+            }
+            else if (isLowFPS)
+            {
+                fillColor = 0xFFFFFF00; //mid
+            }
+            else
+            {
+                fillColor = 0xFFFFFFFF; //good
+            }
 
-			#if (gl_stats && !disable_cffi && (!html5 || !canvas))
-			output += "\ntotalDC: " + Context3DStats.totalDrawCalls();
-			output += "\nstageDC: " + Context3DStats.contextDrawCalls(DrawCallContext.STAGE);
-			output += "\nstage3DDC: " + Context3DStats.contextDrawCalls(DrawCallContext.STAGE3D);
-			#end
+            #if (gl_stats && !disable_cffi && (!html5 || !canvas))
+            output += "\ntotalDC: " + Context3DStats.totalDrawCalls();
+            output += "\nstageDC: " + Context3DStats.contextDrawCalls(DrawCallContext.STAGE);
+            output += "\nstage3DDC: " + Context3DStats.contextDrawCalls(DrawCallContext.STAGE3D);
+            #end
 
-			updateText(output);
-		}
+            updateText(output);
+        }
 
 		cacheCount = currentCount;
+	}
+
+	private function getDisplayRefreshRate():Int
+	{
+		var window = Lib.application.window;
+		if (window != null && window.display != null && window.display.currentMode != null)
+		{
+			return window.display.currentMode.refreshRate;
+		}
+		
+		return 60;
 	}
 
 	private function getSizeLabel(#if (openfl >= "9.4.0") num:Float #else num:UInt #end):String

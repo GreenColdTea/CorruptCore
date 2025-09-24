@@ -50,6 +50,9 @@ class Option
 	public var description:String = '';
 	public var name:String = 'Unknown';
 
+	public var visible:Bool = true;
+	public var active:Bool = true;
+
 	public function new(name:String, description:String = '', variable:String, type:String = 'bool', defaultValue:Dynamic = 'null variable value', ?options:Array<String> = null)
 	{
 		this.name = name;

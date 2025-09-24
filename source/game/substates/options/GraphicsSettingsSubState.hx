@@ -12,6 +12,7 @@ import flixel.group.FlxGroup.FlxTypedGroup;
 import flixel.math.FlxMath;
 import flixel.text.FlxText;
 import flixel.util.FlxColor;
+import lime.ui.WindowVSyncMode;
 import lime.utils.Assets;
 import flixel.FlxSubState;
 import openfl.text.TextField;
@@ -33,6 +34,10 @@ using StringTools;
 
 class GraphicsSettingsSubState extends BaseOptionsMenu
 {
+	#if !html5
+	private var framerateOption:Option;
+	#end
+
 	public function new()
 	{
 		title = 'Graphics';
@@ -62,13 +67,35 @@ class GraphicsSettingsSubState extends BaseOptionsMenu
 			true); //Default value
 		addOption(option);
 
+		var option:Option = new Option('VSync:',
+			'If checked, enables V-Sync.\nHelps with screen tearing, but can introduce input lag.',
+			'vsync',
+			'string',
+			'Off',
+			['On', 'Off', 'Adaptive']);
+		addOption(option);
+		option.onChange = () -> {
+			var vsyncMode:WindowVSyncMode = switch(ClientPrefs.vsync) {
+				case 'On': WindowVSyncMode.ON;
+				case 'Off': WindowVSyncMode.OFF;
+				case 'Adaptive': WindowVSyncMode.ADAPTIVE;
+				case _: WindowVSyncMode.OFF;
+			}
+			Lib.application.window.setVSyncMode(vsyncMode);
+			
+			#if !html5
+			updateFramerateVisibility();
+			#end
+		}
+
 		#if !html5 //Apparently other framerates isn't correctly supported on Browser? Probably it has some V-Sync shit enabled by default, idk
-		var option:Option = new Option('Framerate',
+		var option:Option = new Option('Framerate:',
 			"Pretty self explanatory, isn't it?",
 			'framerate',
 			'int',
 			60);
 		addOption(option);
+		framerateOption = option;
 
 		option.minValue = 60;
 		option.maxValue = 360;
@@ -77,7 +104,22 @@ class GraphicsSettingsSubState extends BaseOptionsMenu
 		#end
 
 		super();
+		
+		#if !html5
+		updateFramerateVisibility();
+		#end
 	}
+
+	#if !html5
+	private function updateFramerateVisibility():Void
+	{
+		var vsyncEnabled = (ClientPrefs.vsync != 'Off');
+		framerateOption.visible = !vsyncEnabled;
+		framerateOption.active = !vsyncEnabled;
+		
+		refreshOptions();
+	}
+	#end
 
 	//stupid hl fix
 	function onChangeAntiAliasing()
