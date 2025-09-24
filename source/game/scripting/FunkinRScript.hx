@@ -129,79 +129,80 @@ class FunkinRScript {
 
         for (get in ABSTRACT_IMPORTS)
             rulescript.types.Abstracts.resolveAbstract(get);
-            
+                
         if (parentInstance != null)
             set("parent", parentInstance);
 
-        if (FlxG.state is PlayState)
+        var isPlayState = FlxG.state is PlayState;
+        if (isPlayState) {
             set("game", PlayState.instance);
+            
+            set("add", function(basic:flixel.FlxBasic, ?frontOfChars:Bool = false) {
+                if (frontOfChars) {
+                    PlayState.instance.add(basic);
+                    return;
+                }
+
+                var position:Int = PlayState.instance.members.indexOf(PlayState.instance.gfGroup);
+                if(PlayState.instance.members.indexOf(PlayState.instance.boyfriendGroup) < position) 
+                    position = PlayState.instance.members.indexOf(PlayState.instance.boyfriendGroup);
+                else if(PlayState.instance.members.indexOf(PlayState.instance.dadGroup) < position) 
+                    position = PlayState.instance.members.indexOf(PlayState.instance.dadGroup);
+                
+                PlayState.instance.insert(position, basic);
+            });
+            
+            set("insert", PlayState.instance.insert);
+            set("remove", PlayState.instance.remove);
+            set("addBehindGF", PlayState.instance.addBehindGF);
+            set("addBehindDad", PlayState.instance.addBehindDad);
+            set("addBehindBF", PlayState.instance.addBehindBF);
+            
+            set("setVar", (name:String, value:Dynamic) -> {
+                PlayState.instance.variables.set(name, value);
+                return value;
+            });
+            set("getVar", (name:String) -> {
+                var result:Dynamic = null;
+                if(PlayState.instance.variables.exists(name)) 
+                    result = PlayState.instance.variables.get(name);
+                return result;
+            });
+            set("removeVar", (name:String) -> {
+                if(PlayState.instance.variables.exists(name)) {
+                    PlayState.instance.variables.remove(name);
+                    return true;
+                }
+                return false;
+            });
+            
+        } else {
+            var scriptObject = FlxG.state ?? FlxG.state.subState;
+            set("game", scriptObject);
+            
+            set("add", scriptObject.add);
+            set("insert", scriptObject.insert);
+            set("remove", scriptObject.remove);
+            
+            set("setVar", (name:String, value:Dynamic) -> {
+                rule.variables.set(name, value);
+                return value;
+            });
+            set("getVar", (name:String) -> {
+                var result:Dynamic = rule.variables.get(name);
+                return result;
+            });
+            set("removeVar", (name:String) -> {
+                if(rule.variables.exists(name)) {
+                    rule.variables.remove(name);
+                    return true;
+                }
+                return false;
+            });
+        }
         
-        set("add", addObject);
-        set("remove", removeObject);
-        set("insert", insertObject);
         set("getObject", getObject);
         set("getAll", getAllObjects);
-    }
-
-    public function addObject(object:Dynamic, ?group:String):Bool {
-        if (parentInstance == null) return false;
-        
-        try {
-            if (group != null && Reflect.hasField(parentInstance, group)) {
-                var targetGroup = Reflect.field(parentInstance, group);
-                if (Std.isOfType(targetGroup, FlxTypedGroup) || Std.isOfType(targetGroup, FlxGroup)) {
-                    targetGroup.add(object);
-                    return true;
-                }
-            }
-            
-            if (Reflect.hasField(parentInstance, "add")) {
-                Reflect.callMethod(parentInstance, Reflect.field(parentInstance, "add"), [object]);
-                return true;
-            }
-        } catch (e:Dynamic) {
-            trace('Error adding object: ${e.message}');
-        }
-        return false;
-    }
-
-    public function removeObject(object:Dynamic, ?group:String):Bool {
-        if (parentInstance == null) return false;
-        
-        try {
-            if (group != null && Reflect.hasField(parentInstance, group)) {
-                var targetGroup = Reflect.field(parentInstance, group);
-                if (Std.isOfType(targetGroup, FlxTypedGroup) || Std.isOfType(targetGroup, FlxGroup)) {
-                    targetGroup.remove(object);
-                    return true;
-                }
-            }
-            
-            if (Reflect.hasField(parentInstance, "remove")) {
-                Reflect.callMethod(parentInstance, Reflect.field(parentInstance, "remove"), [object]);
-                return true;
-            }
-        } catch (e:Dynamic) {
-            trace('Error removing object: ${e.message}');
-        }
-        return false;
-    }
-
-    public function insertObject(position:Int, object:Dynamic, ?group:String):Bool {
-        if (parentInstance == null) return false;
-        
-        try {
-            if (group != null && Reflect.hasField(parentInstance, group)) {
-                var targetGroup = Reflect.field(parentInstance, group);
-                if (Std.isOfType(targetGroup, FlxTypedGroup)) {
-                    targetGroup.insert(position, object);
-                    return true;
-                }
-            }
-        } catch (e:Dynamic) {
-            trace('Error inserting object: ${e.message}');
-        }
-        return false;
     }
 
     public function getObject(index:Int, group:String):Dynamic {

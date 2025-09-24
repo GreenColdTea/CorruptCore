@@ -78,7 +78,7 @@ class LoadingState extends MusicBeatState
         add(bg);
         
         funkay = new FlxSprite(0, 0).loadGraphic(Paths.getPath('images/funkay.png', IMAGE));
-        funkay.setGraphicSize(0, FlxG.height);
+        funkay.setGraphicSize(FlxG.width, FlxG.height);
         funkay.updateHitbox();
         funkay.antialiasing = ClientPrefs.globalAntialiasing;
         add(funkay);
@@ -194,7 +194,7 @@ class LoadingState extends MusicBeatState
             }
         }
         
-        funkay.setGraphicSize(Std.int(0.88 * FlxG.width + 0.9 * (funkay.width - 0.88 * FlxG.width)));
+        funkay.setGraphicSize(FlxG.width, FlxG.height);
         funkay.updateHitbox();
         
         if(controls.ACCEPT)
