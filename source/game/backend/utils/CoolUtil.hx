@@ -36,38 +36,23 @@ class CoolUtil
 
 	public static var difficulties:Array<String> = [];
 
-	inline static public function getBuildTarget() {
+	public static function getBuildTarget():String {
 		#if windows
-		return 'windows';
+		return "Windows";
 		#elseif linux
-		return 'linux';
+		return "Linux";
 		#elseif mac
-		return 'mac';
-		#elseif html5
-		return 'browser';
+		return "Mac";
 		#elseif android
-		return 'android';
+		return "Android";
 		#elseif ios
-		return 'ios';
+		return "iOS";
+		#elseif html5
+		return "HTML5";
 		#else
-		return 'unknown';
+		return "Unknown";
 		#end
 	}
-
-	#if HSCRIPT_ALLOWED
-	/**
-	 * Gets the hscript preprocessors for haxe scripts and runHaxeCode
-	 */
-	public static dynamic function getHScriptPreprocessors() {
-		var preprocessors:Map<String, Dynamic> = game.backend.utils.MacroUtil.defines;
-		preprocessors.set("CC_ENGINE", true);
-		preprocessors.set("CC_ENGINE_VER", Application.current.meta.get('version'));
-		preprocessors.set("BUILD_TARGET", getBuildTarget());
-		preprocessors.set("INITIAL_STATE", Type.getClassName(Type.getClass(FlxG.state)));
-
-		return preprocessors;
-	}
-	#end
 	
 	public static function getDifficultyFilePath(num:Null<Int> = null)
 	{

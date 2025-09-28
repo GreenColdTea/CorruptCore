@@ -67,21 +67,17 @@ class GraphicsSettingsSubState extends BaseOptionsMenu
 			true); //Default value
 		addOption(option);
 
-		var option:Option = new Option('VSync:',
+		var option:Option = new Option('VSync',
 			'If checked, enables V-Sync.\nHelps with screen tearing, but can introduce input lag.',
 			'vsync',
-			'string',
-			'Off',
-			['On', 'Off', 'Adaptive']);
+			'bool',
+			false);
 		addOption(option);
 		option.onChange = () -> {
-			var vsyncMode:WindowVSyncMode = switch(ClientPrefs.vsync) {
-				case 'On': WindowVSyncMode.ON;
-				case 'Off': WindowVSyncMode.OFF;
-				case 'Adaptive': WindowVSyncMode.ADAPTIVE;
-				case _: WindowVSyncMode.OFF;
-			}
+			var vsyncMode:WindowVSyncMode = ClientPrefs.vsync ? WindowVSyncMode.ON : WindowVSyncMode.OFF;
 			Lib.application.window.setVSyncMode(vsyncMode);
+
+			FlxG.save.flush();
 			
 			#if !html5
 			updateFramerateVisibility();
@@ -113,9 +109,8 @@ class GraphicsSettingsSubState extends BaseOptionsMenu
 	#if !html5
 	private function updateFramerateVisibility():Void
 	{
-		var vsyncEnabled = (ClientPrefs.vsync != 'Off');
-		framerateOption.visible = !vsyncEnabled;
-		framerateOption.active = !vsyncEnabled;
+		framerateOption.visible = !ClientPrefs.vsync;
+		framerateOption.active = !ClientPrefs.vsync;
 		
 		refreshOptions();
 	}

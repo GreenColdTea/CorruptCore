@@ -27,8 +27,6 @@ import game.backend.CrashHandler;
 import game.scripting.LuaCallbackHandler;
 #end
 
-import game.backend.plugins.*;
-
 using StringTools;
 
 // NATIVE API STUFF, YOU CAN IGNORE THIS AND SCROLL //
@@ -48,8 +46,6 @@ class Main extends Sprite
 		skipSplash: true, // if the default flixel splash screen should be skipped
 		startFullscreen: false // if the game should start at fullscreen mode
 	};
-
-	public static var fpsVar:FPSCounterPlugin;
 
 	//for colorblind mode
 	public static var colorblindMode:Int = -1;
@@ -131,44 +127,6 @@ class Main extends Sprite
 
 		addChild(new FlxGame(game.width, game.height, Init, #if (flixel < "5.0.0") game.zoom, #end game.framerate, game.framerate, game.skipSplash, game.startFullscreen));
 
-		pluginsLessGo();
-
-		#if desktop
-		FlxG.mouse.visible = false;
-    	FlxG.mouse.useSystemCursor = true;
-		#end
-
-		#if !html5
-		FlxG.scaleMode = new flixel.FlxScaleMode();
-		#end
-
-		#if !mobile
-		fpsVar = new FPSCounterPlugin(10, 3, 0xFFFFFF);
-		addChild(fpsVar);
-		Lib.current.stage.align = "tl";
-		Lib.current.stage.scaleMode = StageScaleMode.NO_SCALE;
-		if(fpsVar != null) {
-			fpsVar.visible = ClientPrefs.showFPS;
-		}
-		#end
-
-		FlxG.signals.gameResized.add((w, h) -> {
-            if (fpsVar != null)
-                fpsVar.positionFPS(10, 3, Math.min(w / FlxG.width, h / FlxG.height));
-
-			resetSpriteCache(this);
-
-            if (FlxG.cameras != null && FlxG.cameras.list != null) {
-                for (cam in FlxG.cameras.list) {
-                    if (cam != null)
-                        resetSpriteCache(cam.flashSprite);
-                }
-            }
-
-            if (FlxG.game != null)
-                resetSpriteCache(FlxG.game);
-        });
-
 		#if desktop
 		if(CoolUtil.hasVersion("Windows 10")) {
 			FlxG.stage.window.borderless = true;
@@ -176,18 +134,6 @@ class Main extends Sprite
 		}
 		#end
 	}
-
-	private static function resetSpriteCache(sprite:Sprite):Void {
-		@:privateAccess {
-			if (sprite != null)
-			{
-		   		sprite.__cacheBitmapData = null;
-				sprite.__cacheBitmapData2 = null;
-				sprite.__cacheBitmapData3 = null;
-				sprite.__cacheBitmapColorTransform = null;
-			}
-		}
-    }
 
 	/**
 	 * Colorblind mode stuff
@@ -297,11 +243,5 @@ class Main extends Sprite
 		};
 		ClientPrefs.colorBlindIntensity = intensity;
 		ClientPrefs.saveSettings();
-	}
-
-	private function pluginsLessGo()
-	{
-		HotReloadPlugin.init();
-		CMDEnablingPlugin.init();
 	}
 }

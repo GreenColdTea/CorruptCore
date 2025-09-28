@@ -107,6 +107,8 @@ class Option
 		//nothing lol
 		if(onChange != null) {
 			onChange();
+
+			ClientPrefs.saveSettings();
 		}
 	}
 

@@ -1,10 +1,11 @@
-@echo off
-cls
-title Necessary Libraries Installer
-echo.
-echo Installing necessary libraries. Please wait...
-echo.
-haxelib setup C:\haxelib
+#!/bin/bash
+clear
+echo
+echo "Installing necessary libraries. Please wait..."
+echo
+
+haxelib setup ~/haxelib
+
 haxelib install tjson --quiet
 haxelib install hxjsonast --quiet
 haxelib install flxgif --quiet
@@ -23,9 +24,11 @@ haxelib git flxsoundfilters https://github.com/TheZoroForce240/FlxSoundFilters.g
 haxelib git rulescript https://github.com/Kriptel/RuleScript.git dev
 haxelib git hscript https://github.com/HaxeFoundation/hscript.git 92ffe9c519bbccf783df0b3400698c5b3cc645ef
 haxelib git sl-windows-api https://github.com/GreenColdTea/windows-api-improved.git
-haxelib git flixel-animate https://github.com/MaybeMaru/flixel-animate.git ddb2815557a0c6d8248134aa38ab6f0d1f1c0806
+haxelib git flixel-animate https://github.com/MaybeMaru/flixel-animate.git 944dc1b837d6c29881f6a00a7fb586d146777f38
 haxelib git linc_luajit https://github.com/superpowers04/linc_luajit.git
+
 haxelib list
-echo.
-echo Done! Press any key to close the app!
-pause
+
+echo
+read -n 1 -s -r -p "Done! Press any key to close the app!"
+echo

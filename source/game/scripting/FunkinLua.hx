@@ -56,7 +56,7 @@ import game.objects.StrumNote;
 import game.shaders.flixel.FlxShader;
 
 #if HSCRIPT_ALLOWED
-import rulescript.parsers.HxParser;
+import game.scripting.HScriptParser as HxParser;
 import game.scripting.FunkinRScript.RuleScriptInterpEx as Interp;
 #end
 
@@ -3890,8 +3890,8 @@ class HScript
 	}
 
 	function initParser() {
-		parser = new rulescript.parsers.HxParser();
-		parser.preprocesorValues = CoolUtil.getHScriptPreprocessors();
+		parser = new HxParser();
+		parser.preprocesorValues = FunkinHScript.getHScriptPreprocessors();
 	}
 
 	public function execute(codeToRun:String):Dynamic {

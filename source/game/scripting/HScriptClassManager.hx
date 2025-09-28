@@ -3,12 +3,13 @@ package game.scripting;
 import flixel.FlxG;
 
 import rulescript.*;
-import rulescript.parsers.HxParser;
 import rulescript.scriptedClass.*;
 import rulescript.types.ScriptedTypeUtil;
 
 import hscript.Expr;
 import hscript.Parser;
+
+import game.scripting.HScriptParser as HxParser;
 
 #if sys
 import sys.io.File;
@@ -75,6 +76,7 @@ class HScriptClassManager {
             var parser = new HxParser();
             parser.allowAll();
             parser.mode = MODULE;
+            parser.preprocesorValues = FunkinHScript.getHScriptPreprocessors();
             
             var expr = parser.parse(content);
             var ogParser = new Parser();

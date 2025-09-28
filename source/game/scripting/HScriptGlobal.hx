@@ -78,9 +78,11 @@ class HScriptGlobal {
             if (executeMethod != null) {
                 Reflect.callMethod(script, executeMethod, [content, false]);
             } else {
-                var parser = new rulescript.parsers.HxParser();
+                var parser = new HScriptParser();
                 parser.allowAll();
-                var ruleScript = new rulescript.RuleScript(new rulescript.interps.RuleScriptInterp(), parser);
+                parser.preprocesorValues = FunkinHScript.getHScriptPreprocessors();
+
+                var ruleScript = new rulescript.RuleScript(new FunkinRScript.RuleScriptInterpEx(), parser);
                 ruleScript.execute(content);
                 
                 for (key in ruleScript.variables.keys()) {

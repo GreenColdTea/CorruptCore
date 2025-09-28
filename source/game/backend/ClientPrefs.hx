@@ -28,7 +28,7 @@ class ClientPrefs {
     public static var hideHud:Bool = false;
     public static var noteOffset:Int = 0;
     public static var arrowHSV:Array<Array<Int>> = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]];
-    public static var vsync:String = 'Off';
+    public static var vsync:Bool = false;
     public static var ghostTapping:Bool = true;
     public static var timeBarType:String = 'Time Left';
     public static var scoreZoom:Bool = true;
@@ -121,7 +121,7 @@ class ClientPrefs {
         controllerMode = false;
         hitsoundVolume = 0;
         pauseMusic = 'Tea Time';
-        vsync = 'Off';
+        vsync = false;
         checkForUpdates = true;
         comboStacking = true;
         colorBlindMode = 'None';
@@ -251,8 +251,8 @@ class ClientPrefs {
     }
 
     private static function applySettings() {
-        if (Main.fpsVar != null) {
-            Main.fpsVar.visible = showFPS;
+        if (Init.fpsVar != null) {
+            Init.fpsVar.visible = showFPS;
         }
         
         if (framerate > FlxG.drawFramerate) {

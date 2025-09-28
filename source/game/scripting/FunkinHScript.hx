@@ -1,6 +1,6 @@
 package game.scripting;
 
-import rulescript.parsers.HxParser;
+import game.scripting.HScriptParser as HxParser;
 #if sys
 import sys.io.File;
 #end
@@ -14,10 +14,33 @@ class FunkinHScript extends FunkinRScript
 
         set("FunkinHScript", FunkinHScript);
 
-        rule.parser = new HxParser();
-        rule.getParser(HxParser).allowAll();
+        var hxParser = new HxParser();
+        rule.parser = hxParser;
+        
+        hxParser.allowAll();
+        hxParser.setPreprocessorValues(getHScriptPreprocessors());
+        hxParser.setParserParameters({
+            strictMode: true,
+            requireSemicolons: false,
+            reportWarnings: true
+        });
 
         var scriptToRun:String = loadScriptContent(path);
         execute(scriptToRun, skipCreate);
+    }
+
+    public static dynamic function getHScriptPreprocessors() {
+        var preprocessors:Map<String, Dynamic> = new Map();
+        
+        preprocessors.set("ENGINE_VER", Application.current.meta.get('version'));
+        
+        var staticDefines = game.backend.utils.MacroUtil.defines;
+        for (key => value in staticDefines) {
+            if (!preprocessors.exists(key)) {
+                preprocessors.set(key, value);
+            }
+        }
+        
+        return preprocessors;
     }
 }

@@ -12,6 +12,9 @@ import rulescript.parsers.*;
 import rulescript.RuleScript;
 
 import rulescript.interps.RuleScriptInterp;
+import rulescript.types.Property;
+
+import hscript.Expr;
 
 import game.scripting.HScriptClassManager.ScriptClassRef;
 
@@ -303,7 +306,6 @@ class FunkinRScript {
 
     function onError(e:haxe.Exception):Void {
         final text = 'Error in $scriptName: ${e.details()}';
-        trace(text);
         CoolUtil.hxTrace(text, FlxColor.RED);
     }
 
@@ -311,9 +313,9 @@ class FunkinRScript {
         if (!active) return;
         
         active = false;
-        rule.variables.clear();
-        callbacks.clear();
-        importedPackages.clear();
+        rule?.variables?.clear();
+        callbacks?.clear();
+        importedPackages?.clear();
         rule = null;
         parentInstance = null;
     }
@@ -377,6 +379,75 @@ class RuleScriptInterpEx extends RuleScriptInterp {
         }
 
         return super.set(o, f, v);
+    }
+
+    override function assign(e1:Expr, e2:Expr):Dynamic {
+        var v = expr(e2);
+        #if hscriptPos
+        switch(e1.e) {
+        #else
+        switch(e1) {
+        #end
+            case EIdent(id):
+                var l = locals.get(id);
+                if (l == null)
+                    setVar(id, v);
+                else 
+                {
+                    if (l.r != null && Type.getClassName(Type.getClass(l.r)) == "rulescript.types.Property")
+                        cast(l.r, Property).value = v;
+                    else
+                        l.r = v;
+                }
+            case EField(e, f):
+                var obj = expr(e);
+                obj ??= {};
+                Reflect.setField(obj, f, v);
+                return v;
+            case EArray(e, index):
+                var arr:Dynamic = expr(e);
+                var index:Dynamic = expr(index);
+                if (isMap(arr)) {
+                    setMapValue(arr, index, v);
+                } else {
+                    arr[index] = v;
+                }
+            case ETypeVarPath(path):
+                if (path.length < 2) {
+                    throw new haxe.Exception("Invalid ETypeVarPath for assignment: " + path.join("."));
+                }
+                
+                var field = path[path.length - 1];
+                var objPath = path.slice(0, -1);
+                
+                var obj:Dynamic = null;
+                
+                var first = objPath[0];
+                if (locals.exists(first) || variables.exists(first)) {
+                    obj = resolve(first);
+                    for (i in 1...objPath.length) {
+                        obj = get(obj, objPath[i]);
+                    }
+                } else {
+                    var typePath = objPath.join(".");
+                    obj = resolveType(typePath);
+                }
+                
+                if (obj == null) {
+                    throw new haxe.Exception('Cannot resolve object for assignment: ${objPath.join(".")}');
+                }
+                
+                Reflect.setField(obj, field, v);
+                return v;
+            default:
+                #if hscriptPos
+                var exprStr = Std.string(e1.e);
+                #else
+                var exprStr = Std.string(e1);
+                #end
+                throw new haxe.Exception('Invalid assignment target: $exprStr');
+        }
+        return v;
     }
 }
 

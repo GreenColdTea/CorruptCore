@@ -4,16 +4,26 @@ import flixel.FlxG;
 import flixel.FlxState;
 import flixel.input.keyboard.FlxKey;
 
+import openfl.Lib;
+import openfl.display.Sprite;
+import openfl.display.StageScaleMode;
+
+import lime.ui.WindowVSyncMode;
+
 import game.backend.PlayerSettings;
 import game.backend.WeekData;
 import game.backend.utils.CoolUtil;
 import game.states.StoryMenuState;
+
+import game.backend.plugins.*;
 
 class Init extends FlxState
 {
     public static var muteKeys:Array<FlxKey> = [FlxKey.ZERO];
 	public static var volumeDownKeys:Array<FlxKey> = [FlxKey.NUMPADMINUS, FlxKey.MINUS];
 	public static var volumeUpKeys:Array<FlxKey> = [FlxKey.NUMPADPLUS, FlxKey.PLUS];
+
+	public static var fpsVar:FPSCounterPlugin;
 
     override function create()
     {
@@ -37,6 +47,8 @@ class Init extends FlxState
 			if (FlxG.save.data.weekCompleted != null)
 				StoryMenuState.weekCompleted = FlxG.save.data.weekCompleted;
 		}
+
+		applyGraphicsSettings();
 			
         #if (LUA_ALLOWED && MODS_ALLOWED)
 		Paths.pushGlobalMods();
@@ -59,6 +71,65 @@ class Init extends FlxState
 		cpp.vm.tracy.TracyProfiler.setThreadName("main");
 		#end
 
+		pluginsLessGo();
+
+		#if desktop
+		FlxG.mouse.visible = false;
+    	FlxG.mouse.useSystemCursor = true;
+		#end
+
+		#if !html5
+		FlxG.scaleMode = new flixel.FlxScaleMode();
+		#end
+
+		#if !mobile
+		fpsVar = new FPSCounterPlugin(10, 3, 0xFFFFFF);
+		Lib.current.addChild(fpsVar);
+		Lib.current.stage.align = "tl";
+		Lib.current.stage.scaleMode = StageScaleMode.NO_SCALE;
+		if(fpsVar != null) {
+			fpsVar.visible = ClientPrefs.showFPS;
+		}
+		#end
+
+		FlxG.signals.gameResized.add((w, h) -> {
+            if (fpsVar != null)
+                fpsVar.positionFPS(10, 3, Math.min(w / FlxG.width, h / FlxG.height));
+
+            if (FlxG.cameras != null && FlxG.cameras.list != null) {
+                for (cam in FlxG.cameras.list) {
+                    if (cam != null)
+                        resetSpriteCache(cam.flashSprite);
+                }
+            }
+
+            if (FlxG.game != null)
+                resetSpriteCache(FlxG.game);
+        });
+
 		FlxG.switchState(() -> new game.states.TitleState());
     }
+
+	public static function applyGraphicsSettings() {
+		var vsyncMode:WindowVSyncMode = ClientPrefs.vsync ? WindowVSyncMode.ON : WindowVSyncMode.OFF;
+		Lib.application.window.setVSyncMode(vsyncMode);
+	}
+
+	private static function resetSpriteCache(sprite:Sprite):Void {
+		@:privateAccess {
+			if (sprite != null)
+			{
+		   		sprite.__cacheBitmapData = null;
+				sprite.__cacheBitmapData2 = null;
+				sprite.__cacheBitmapData3 = null;
+				sprite.__cacheBitmapColorTransform = null;
+			}
+		}
+    }
+
+	private function pluginsLessGo()
+	{
+		HotReloadPlugin.init();
+		CMDEnablingPlugin.init();
+	}
 }
