@@ -75,6 +75,8 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	public static final GRID_SIZE:Int = 40;
 	public final CAM_OFFSET:Int = 180;
 
+	private var tempBpm:Float = 0;
+
 	var autoBackupTimer:FlxTimer;
 	var backupInterval:Float = 30; // half minute per seconds
 
@@ -191,8 +193,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	 * WILL BE THE CURRENT / LAST PLACED NOTE
 	**/
 	var curSelectedNote:Array<Dynamic> = null;
-
-	var tempBpm:Float = 0;
 
 	var playbackSpeed:Float = 1;
 
@@ -1844,6 +1844,8 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		} else {
 			ClientPrefs.toggleVolumeKeys(false);
 		}
+
+		_song.bpm = tempBpm;
 
 		strumLineNotes.visible = quant.visible = vortex;
 		
@@ -3784,12 +3786,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	{
 		var leZoom:Float = zoomList[curZoom];
 		if(!doZoomCalc) leZoom = 1;
-
-		var secBPM:Float = _song.notes[curSec].changeBPM ? _song.notes[curSec].bpm : _song.bpm;
-		var stepCrochet:Float = (60 / secBPM) * 1000 / 4;
-		var beats:Float = getSectionBeats();
-
-		return FlxMath.remapToRange(strumTime, 0, beats * 4 * stepCrochet, gridBG.y, gridBG.y + gridBG.height * leZoom);
+		return FlxMath.remapToRange(strumTime, 0, 16 * Conductor.stepCrochet, gridBG.y, gridBG.y + gridBG.height * leZoom);
 	}
 	
 	function getYfromStrumNotes(strumTime:Float, beats:Float):Float
