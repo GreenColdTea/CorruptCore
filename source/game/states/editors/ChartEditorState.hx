@@ -622,17 +622,13 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 			var songName:String = Paths.formatToSongPath(_song.song);
 			var file:String = Paths.json(songName + '/events');
-			#if sys
-			if (#if MODS_ALLOWED FileSystem.exists(Paths.modsJson(songName + '/events')) || #end FileSystem.exists(SUtil.getPath() + file))
-			#else
-			if (OpenFlAssets.exists(file))
-			#end
+			try
 			{
 				clearEvents();
 				var events:SwagSong = Song.loadFromJson('events', songName);
 				_song.events = events.events;
 				changeSection(curSec);
-			}
+			} catch (e) {}
 		});
 
 		var saveEvents:PsychUIButton = new PsychUIButton(saveButton.x, reloadSongJson.y, 'Save Events', function ()
@@ -3264,7 +3260,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	
 			if(i[3] != null && note.noteType != null && note.noteType.length > 0) {
 				var typeInt:Null<Int> = noteTypeMap.get(i[3]);
-				var theType:String = '' + typeInt ?? '?';
+				var theType:String = '$typeInt' ?? '?';
 	
 				daNoteType = new AttachedFlxText(0, 0, 100, theType, 18);
 				daNoteType.setFormat(Paths.font("pixel-latin.ttf"), 18, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);

@@ -4,8 +4,11 @@ import flixel.FlxG;
 import flixel.FlxSprite;
 import flixel.graphics.frames.FlxAtlasFrames;
 import flixel.math.FlxMath;
+import flixel.math.FlxRect;
 import flixel.util.FlxColor;
+
 import openfl.display.BitmapData;
+
 import game.states.editors.ChartEditorState;
 
 using StringTools;
@@ -19,6 +22,8 @@ typedef EventNote = {
 
 class Note extends FlxSprite
 {
+	public static final SUSTAIN_SIZE:Int = 44;
+
 	public var extraData:Map<String,Dynamic> = [];
 
 	public var rawData:Dynamic;
@@ -224,14 +229,14 @@ class Note extends FlxSprite
 			{
 				prevNote.animation.play(colArray[prevNote.noteData % 4] + 'hold');
 
-				prevNote.scale.y *= Conductor.stepCrochet / 191.84;
+				prevNote.scale.y *= Conductor.stepCrochet / 102 * 1.05;
 				if(PlayState.instance != null)
 				{
 					prevNote.scale.y *= PlayState.instance.songSpeed;
 				}
 
 				if(PlayState.isPixelStage) {
-					prevNote.scale.y *= 2.44;
+					prevNote.scale.y *= 1.22;
 					prevNote.scale.y *= (6 / height); //Auto adjust note size
 				}
 				prevNote.updateHitbox();
@@ -248,13 +253,14 @@ class Note extends FlxSprite
 		x += offsetX;
 	}
 
+	var _lastNoteOffX:Float = 0;
 	var lastNoteOffsetXForPixelAutoAdjusting:Float = 0;
-	var lastNoteScaleToo:Float = 1;
 	public var originalHeightForCalcs:Float = 6;
-	function reloadNote(?prefix:String = '', ?texture:String = '', ?suffix:String = '') {
+	public var correctionOffset:Float = 0; //dont mess with this
+	public function reloadNote(prefix:String = '', texture:String = '', postfix:String = '') {
 		prefix ??= '';
 		texture ??= '';
-		suffix ??= '';
+		postfix ??= '';
 
 		var skin:String = texture;
 		if(texture.length < 1) {
@@ -265,49 +271,43 @@ class Note extends FlxSprite
 		}
 
 		var animName:String = null;
-		if(animation.curAnim != null) {
+		if(animation?.curAnim != null) {
 			animName = animation.curAnim.name;
 		}
 
 		var arraySkin:Array<String> = skin.split('/');
-		arraySkin[arraySkin.length-1] = prefix + arraySkin[arraySkin.length-1] + suffix;
+		arraySkin[arraySkin.length-1] = prefix + arraySkin[arraySkin.length-1] + postfix;
 
 		var lastScaleY:Float = scale.y;
-		var blahblah:String = arraySkin.join('/');
+		var skinName:String = arraySkin.join('/');
 		if(PlayState.isPixelStage) {
 			if(isSustainNote) {
-				loadGraphic(Paths.image('pixelUI/' + blahblah + 'ENDS'));
-				width = width / 4;
-				height = height / 2;
-				originalHeightForCalcs = height;
-				loadGraphic(Paths.image('pixelUI/' + blahblah + 'ENDS'), true, Math.floor(width), Math.floor(height));
+				var graphic = Paths.image('pixelUI/' + skinName + 'ENDS');
+				loadGraphic(graphic, true, Math.floor(graphic.width / 4), Math.floor(graphic.height / 2));
 			} else {
-				loadGraphic(Paths.image('pixelUI/' + blahblah));
-				width = width / 4;
-				height = height / 5;
-				loadGraphic(Paths.image('pixelUI/' + blahblah), true, Math.floor(width), Math.floor(height));
+				var graphic = Paths.image('pixelUI/' + skinName);
+				loadGraphic(graphic, true, Math.floor(graphic.width / 4), Math.floor(graphic.height / 5));
 			}
 			setGraphicSize(Std.int(width * PlayState.daPixelZoom));
 			loadPixelNoteAnims();
 			antialiasing = false;
 
 			if(isSustainNote) {
-				offsetX += lastNoteOffsetXForPixelAutoAdjusting;
-				lastNoteOffsetXForPixelAutoAdjusting = (width - 7) * (PlayState.daPixelZoom / 2);
-				offsetX -= lastNoteOffsetXForPixelAutoAdjusting;
-
-				/*if(animName != null && !animName.endsWith('end'))
-				{
-					lastScaleY /= lastNoteScaleToo;
-					lastNoteScaleToo = (6 / height);
-					lastScaleY *= lastNoteScaleToo;
-				}*/
+				offsetX += _lastNoteOffX;
+				_lastNoteOffX = (width - 7) * (PlayState.daPixelZoom / 2);
+				offsetX -= _lastNoteOffX;
 			}
 		} else {
-			frames = Paths.getSparrowAtlas(blahblah);
+			frames = Paths.getSparrowAtlas(skinName);
 			loadNoteAnims();
 			antialiasing = ClientPrefs.globalAntialiasing;
+			if(!isSustainNote)
+			{
+				centerOffsets();
+				centerOrigin();
+			}
 		}
+
 		if(isSustainNote) {
 			scale.y = lastScaleY;
 		}
@@ -315,11 +315,6 @@ class Note extends FlxSprite
 
 		if(animName != null)
 			animation.play(animName, true);
-
-		if(inEditor) {
-			setGraphicSize(ChartEditorState.GRID_SIZE, ChartEditorState.GRID_SIZE);
-			updateHitbox();
-		}
 	}
 
 	function loadNoteAnims() {
@@ -377,5 +372,22 @@ class Note extends FlxSprite
 			if (alpha > 0.3)
 				alpha = 0.3;
 		}
+	}
+
+	@:noCompletion
+	override function set_clipRect(rect:FlxRect):FlxRect
+	{
+		clipRect = rect;
+
+		if (frames != null)
+			frame = frames.frames[animation.frameIndex];
+
+		return rect;
+	}
+
+	override function destroy()
+	{
+		super.destroy();
+		texture = '';
 	}
 }

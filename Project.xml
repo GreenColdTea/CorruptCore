@@ -149,6 +149,8 @@
 	<haxelib name="flxgif"/>
 	<haxelib name="hxcpp"/>
 
+	<haxelib name="away3d" />
+
 	<section if="cpp">
 		<haxelib name="sl-windows-api" if="windows" />
 	</section>

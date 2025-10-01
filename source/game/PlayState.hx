@@ -1796,16 +1796,12 @@ class PlayState extends MusicBeatState
 		noteData = songData.notes;
 
 		var playerCounter:Int = 0;
-
 		var daBeats:Int = 0; // Not exactly representative of 'daBeats' lol, just how much it has looped
+		var daBpm:Float = Conductor.bpm;
 
 		var songName:String = Paths.formatToSongPath(SONG.song);
 		var file:String = Paths.json(songName + '/events');
-		#if MODS_ALLOWED
-		if (FileSystem.exists(Paths.modsJson(songName + '/events')) || FileSystem.exists(file)) {
-		#else
-		if (OpenFlAssets.exists(file)) {
-		#end
+		try {
 			var eventsData:Array<Dynamic> = Song.loadFromJson('events', songName).events;
 			for (event in eventsData) //Event Notes
 			{
@@ -1823,10 +1819,14 @@ class PlayState extends MusicBeatState
 					eventPushed(subEvent);
 				}
 			}
-		}
+		} 
+		catch (e) {}
 
 		for (section in noteData)
 		{
+			if (section.changeBPM && daBpm != section.bpm)
+				daBpm = section.bpm;
+
 			for (songNotes in section.sectionNotes)
 			{
 				var daStrumTime:Float = songNotes[0];
@@ -1865,25 +1865,42 @@ class PlayState extends MusicBeatState
 				susLength = susLength / Conductor.stepCrochet;
 				unspawnNotes.push(swagNote);
 
-				var floorSus:Int = Math.floor(susLength);
+				var curStepCrochet:Float = 60 / daBpm * 1000 / 4.0;
+				final floorSus:Int = Math.round(swagNote.sustainLength / curStepCrochet);
 				if(floorSus > 0) {
-					for (susNote in 0...floorSus+1)
+					for (susNote in 0...floorSus)
 					{
 						oldNote = unspawnNotes[Std.int(unspawnNotes.length - 1)];
 
-						var sustainNote:Note = new Note(daStrumTime + (Conductor.stepCrochet * susNote) + (Conductor.stepCrochet / FlxMath.roundDecimal(songSpeed, 2)), daNoteData, oldNote, true);
-						sustainNote.mustPress = gottaHitNote;
-						sustainNote.gfNote = (section.gfSection && (songNotes[1]<4));
+						var sustainNote:Note = new Note(daStrumTime + (curStepCrochet * susNote), daNoteData, oldNote, true);
+						sustainNote.mustPress = swagNote.mustPress;
+						sustainNote.gfNote = swagNote.gfNote;
 						sustainNote.noteType = swagNote.noteType;
 						sustainNote.scrollFactor.set();
-						swagNote.tail.push(sustainNote);
 						sustainNote.parent = swagNote;
 						unspawnNotes.push(sustainNote);
+						swagNote.tail.push(sustainNote);
 
-						if (sustainNote.mustPress)
+						sustainNote.correctionOffset = swagNote.height / 2;
+						if(!PlayState.isPixelStage)
 						{
-							sustainNote.x += FlxG.width / 2; // general offset
+							if(oldNote.isSustainNote)
+							{
+								oldNote.scale.y *= Note.SUSTAIN_SIZE / oldNote.frameHeight;
+								oldNote.scale.y /= playbackRate;
+								oldNote.resizeByRatio(curStepCrochet / Conductor.stepCrochet);
+							}
+
+							if(ClientPrefs.downScroll)
+								sustainNote.correctionOffset = 0;
 						}
+						else if(oldNote.isSustainNote)
+						{
+							oldNote.scale.y /= playbackRate;
+							oldNote.resizeByRatio(curStepCrochet / Conductor.stepCrochet);
+						}
+
+						if (sustainNote.mustPress) sustainNote.x += FlxG.width / 2; // general offset
 						else if(ClientPrefs.middleScroll)
 						{
 							sustainNote.x += 310;
@@ -2212,11 +2229,11 @@ class PlayState extends MusicBeatState
 		//for health bar smoothing
 		displayHealth = FlxMath.lerp(displayHealth, health, 0.1 * playbackRate);
 
-		var mult:Float = FlxMath.lerp(1, iconP1.scale.x, Math.exp(-elapsed * 9 * playbackRate));
+		final mult:Float = FlxMath.lerp(1, iconP1.scale.x, Math.exp(-elapsed * 9 * playbackRate));
 		iconP1.scale.set(mult, mult);
 		iconP1.updateHitbox();
 
-		var mult:Float = FlxMath.lerp(1, iconP2.scale.x, Math.exp(-elapsed * 9 * playbackRate));
+		final mult:Float = FlxMath.lerp(1, iconP2.scale.x, Math.exp(-elapsed * 9 * playbackRate));
 		iconP2.scale.set(mult, mult);
 		iconP2.updateHitbox();
 
@@ -2366,16 +2383,9 @@ class PlayState extends MusicBeatState
 							strumAngle += daNote.offsetAngle;
 							strumAlpha *= daNote.multAlpha;
 
-							if (strumScroll) //Downscroll
-							{
-								//daNote.y = (strumY + 0.45 * (Conductor.songPosition - daNote.strumTime) * songSpeed);
-								daNote.distance = (0.45 * (Conductor.songPosition - daNote.strumTime) * songSpeed * daNote.multSpeed);
-							}
-							else //Upscroll
-							{
-								//daNote.y = (strumY - 0.45 * (Conductor.songPosition - daNote.strumTime) * songSpeed);
-								daNote.distance = (-0.45 * (Conductor.songPosition - daNote.strumTime) * songSpeed * daNote.multSpeed);
-							}
+							daNote.distance = (0.45 * (Conductor.songPosition - daNote.strumTime) * songSpeed * daNote.multSpeed);
+							if (!strumScroll) //Downscroll
+								daNote.distance *= -1;
 
 							var angleDir = strumDirection * Math.PI / 180;
 							if (daNote.copyAngle)
@@ -2389,21 +2399,15 @@ class PlayState extends MusicBeatState
 
 							if(daNote.copyY)
 							{
-								daNote.y = strumY + Math.sin(angleDir) * daNote.distance;
+								daNote.y = strumY + daNote.correctionOffset + Math.sin(angleDir) * daNote.distance;
 
 								if(strumScroll && daNote.isSustainNote)
 								{
-									if (daNote.animation.curAnim.name.endsWith('end')) {
-										daNote.y += 10.5 * (fakeCrochet / 400) * 1.5 * songSpeed + (46 * (songSpeed - 1));
-										daNote.y -= 46 * (1 - (fakeCrochet / 600)) * songSpeed;
-										if(PlayState.isPixelStage) {
-											daNote.y += (7 + (6 - daNote.originalHeightForCalcs) * PlayState.daPixelZoom) * songSpeed;
-										} else {
-											daNote.y -= 19.25 + (songSpeed - 1);
-										}
+									if(PlayState.isPixelStage)
+									{
+										daNote.y -= daPixelZoom * 9.5;
 									}
-									daNote.y += (Note.swagWidth / 2) - (60.5 * (songSpeed - 1));
-									daNote.y += 27.5 * ((SONG.bpm / 100) - 1) * (songSpeed - 1);
+									daNote.y -= (daNote.frameHeight * daNote.scale.y) - (Note.swagWidth / 2);
 								}
 							}
 

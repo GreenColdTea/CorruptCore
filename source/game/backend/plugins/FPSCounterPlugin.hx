@@ -52,7 +52,7 @@ class FPSCounterPlugin extends Bitmap
 	private var fillColor:Int = 0xFFFFFFFF;
 	private var fontSize:Int = 12;
 	private var fontCustom = "_sans";
-	private var dataTexts = ["B", "KB", "MB", "GB", "TB", "PB"];
+	private var dataTexts = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
 
 	private var minFPS:Int = 9999;
 	private var maxFPS:Int = 0;
@@ -368,7 +368,6 @@ class FPSCounterPlugin extends Bitmap
 		tf.textColor = fillColor;
 		bmd.draw(tf, new Matrix(1, 0, 0, 1, strokeSize, strokeSize));
 
-		// Убрана проверка debug флага
 		if (showDebugInfo && graphHistory.length > 1) {
 			drawGraph(bmd, strokeSize, Std.int(textHeight + 5));
 		}
