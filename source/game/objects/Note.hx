@@ -1,5 +1,7 @@
 package game.objects;
 
+import math.Vector3;
+
 import flixel.FlxG;
 import flixel.FlxSprite;
 import flixel.graphics.frames.FlxAtlasFrames;
@@ -23,6 +25,9 @@ typedef EventNote = {
 class Note extends FlxSprite
 {
 	public static final SUSTAIN_SIZE:Int = 44;
+
+	public var vec3Cache:Vector3 = new Vector3(1, 1, 0); // for vector3 operations in modchart code
+	public var defScale:FlxPoint = FlxPoint.get(1, 1); // for modcharts to keep the scaling
 
 	public var extraData:Map<String,Dynamic> = [];
 
@@ -51,6 +56,11 @@ class Note extends FlxSprite
 	public var sustainLength:Float = 0;
 	public var isSustainNote:Bool = false;
 	public var noteType(default, set):String = null;
+
+	public var mAngle:Float = 0;
+	public var bAngle:Float = 0;
+	public var typeOffsetX:Float = 0; // used to offset notes, mainly for note types. use in place of offset.x and offset.y when offsetting notetypes
+	public var typeOffsetY:Float = 0;
 
 	public var eventName:String = '';
 	public var eventLength:Int = 0;
@@ -116,6 +126,7 @@ class Note extends FlxSprite
 		if(isSustainNote && !animation.curAnim.name.endsWith('end'))
 		{
 			scale.y *= ratio;
+			defScale.y = scale.y;
 			updateHitbox();
 		}
 	}
@@ -211,13 +222,14 @@ class Note extends FlxSprite
 			/*alpha = 0.6;
 			multAlpha = 0.6;*/
 			hitsoundDisabled = true;
-			flipY = ClientPrefs.downScroll;
+			flipX = ClientPrefs.downScroll;
 
 			offsetX += width / 2;
 			copyAngle = false;
 
 			animation.play(colArray[noteData % 4] + 'holdend');
 
+			defScale.copyFrom(scale);
 			updateHitbox();
 
 			offsetX -= width / 2;
@@ -239,8 +251,9 @@ class Note extends FlxSprite
 					prevNote.scale.y *= 1.22;
 					prevNote.scale.y *= (6 / height); //Auto adjust note size
 				}
+
+				prevNote.defScale?.copyFrom(prevNote.scale);
 				prevNote.updateHitbox();
-				// prevNote.setGraphicSize();
 			}
 
 			if(PlayState.isPixelStage) {
@@ -250,6 +263,8 @@ class Note extends FlxSprite
 		} else if(!isSustainNote) {
 			earlyHitMult = 1;
 		}
+
+		defScale?.copyFrom(scale);
 		x += offsetX;
 	}
 
@@ -311,6 +326,8 @@ class Note extends FlxSprite
 		if(isSustainNote) {
 			scale.y = lastScaleY;
 		}
+
+		defScale?.copyFrom(scale);
 		updateHitbox();
 
 		if(animName != null)
@@ -387,7 +404,11 @@ class Note extends FlxSprite
 
 	override function destroy()
 	{
-		super.destroy();
 		texture = '';
+		vec3Cache = null;
+		defScale?.put();
+		clipRect = flixel.util.FlxDestroyUtil.put(clipRect);
+
+		super.destroy();
 	}
 }

@@ -97,15 +97,16 @@ import hxvlc.flixel.FlxVideo as MP4Handler;
 #end
 
 #if MODCHART_ALLOWED
-import modchart.Manager as ModManager;
+import game.modchart.*;
+import game.modchart.ModManager;
 #end
 
 using StringTools;
 
 class PlayState extends MusicBeatState
 {
-	public static var STRUM_X = 42;
-	public static var STRUM_X_MIDDLESCROLL = -278;
+	public static final STRUM_X = 42;
+	public static final STRUM_X_MIDDLESCROLL = -278;
 
 	var noteRows:Array<Array<Array<Note>>> = [[],[],[]];
 
@@ -723,7 +724,7 @@ class PlayState extends MusicBeatState
 		generateSong(SONG.song);
 
 		#if MODCHART_ALLOWED
-		modManager = new ModManager();
+		modManager = new ModManager(this);
 		#end
 
 		// After all characters being loaded, it makes then invisible 0.01s later so that the player won't freeze when you change characters
@@ -1460,8 +1461,13 @@ class PlayState extends MusicBeatState
 
 			//modchart calling func
 			#if MODCHART_ALLOWED
-			callOnScripts('onModchartCall', [modManager]);
-            addModManager(modManager);
+			modManager.receptors = [playerStrums.members, opponentStrums.members];
+
+			callOnScripts('onModchartCall', []);
+			modManager.registerDefaultModifiers();
+
+			callOnScripts('onModchartCallPost', []);
+			Modcharts.loadModchart(modManager, SONG.song);
 			#end
 
 			startTimer = new FlxTimer().start(Conductor.crochet / 1000 / playbackRate, function(tmr:FlxTimer)
@@ -1567,15 +1573,6 @@ class PlayState extends MusicBeatState
 		}
 		return true;
 	}
-
-	#if MODCHART_ALLOWED
-	public function addModManager(obj:ModManager)
-	{
-		if (obj.playfields == null || obj.playfields.length == 0) return;
-		
-		add(obj);
-	}
-	#end
 
 	public function addBehindGF(obj:FlxObject)
 	{
@@ -2322,6 +2319,11 @@ class PlayState extends MusicBeatState
 		}
 		doDeathCheck();
 
+		#if MODCHART_ALLOWED
+		modManager.updateTimeline(curDecStep);
+		modManager.update(elapsed);
+		#end
+
 		if (unspawnNotes[0] != null)
 		{
 			var time:Float = spawnTime;
@@ -2344,6 +2346,24 @@ class PlayState extends MusicBeatState
 				unspawnNotes.splice(index, 1);
 			}
 		}
+
+		#if MODCHART_ALLOWED
+		opponentStrums.forEachAlive((strum:StrumNote) ->
+		{
+			var pos = modManager.getPos(0, 0, 0, curDecBeat, strum.noteData, 1, strum, [], strum.vec3Cache);
+			modManager.updateObject(curDecBeat, strum, pos, 1);
+			strum.x = pos.x;
+			strum.y = pos.y;
+		});
+
+		playerStrums.forEachAlive((strum:StrumNote) ->
+		{
+			var pos = modManager.getPos(0, 0, 0, curDecBeat, strum.noteData, 0, strum, [], strum.vec3Cache);
+			modManager.updateObject(curDecBeat, strum, pos, 0);
+			strum.x = pos.x;
+			strum.y = pos.y;
+		});
+		#end
 
 		if (generatedMusic)
 		{
@@ -2383,6 +2403,37 @@ class PlayState extends MusicBeatState
 							strumAngle += daNote.offsetAngle;
 							strumAlpha *= daNote.multAlpha;
 
+							#if MODCHART_ALLOWED
+							var pN:Int = daNote.mustPress ? 0 : 1;
+							var pos = modManager.getPos(daNote.strumTime, modManager.getVisPos(Conductor.songPosition, daNote.strumTime, songSpeed),
+								daNote.strumTime - Conductor.songPosition, curDecBeat, daNote.noteData, pN, daNote, [], daNote.vec3Cache);
+							
+							modManager.updateObject(curDecBeat, daNote, pos, pN);
+
+							pos.x += daNote.offsetX;
+							pos.y += daNote.offsetY;
+							daNote.x = pos.x;
+							daNote.y = pos.y;
+
+							if (daNote.isSustainNote)
+							{
+								var futureSongPos = Conductor.songPosition + 75;
+								var diff = daNote.strumTime - futureSongPos;
+								var vDiff = modManager.getVisPos(futureSongPos, daNote.strumTime, songSpeed);
+
+								var nextPos = modManager.getPos(daNote.strumTime, vDiff, diff, Conductor.getStep(futureSongPos) / 4, daNote.noteData, pN, daNote, [],
+									daNote.vec3Cache);
+								nextPos.x += daNote.offsetX;
+								nextPos.y += daNote.offsetY;
+								var diffX = (nextPos.x - pos.x);
+								var diffY = (nextPos.y - pos.y);
+								var rad = Math.atan2(diffY, diffX);
+								var deg = rad * (180 / Math.PI);
+
+								daNote.mAngle = (deg != 0 ? deg + 90 : 0);
+							}
+							#end
+
 							daNote.distance = (0.45 * (Conductor.songPosition - daNote.strumTime) * songSpeed * daNote.multSpeed);
 							if (!strumScroll) //Downscroll
 								daNote.distance *= -1;
@@ -2410,6 +2461,24 @@ class PlayState extends MusicBeatState
 									daNote.y -= (daNote.frameHeight * daNote.scale.y) - (Note.swagWidth / 2);
 								}
 							}
+
+							#if MODCHART_ALLOWED
+							/*if (!daNote.mustPress && ClientPrefs.middleScroll)
+							{
+								daNote.active = true;
+								daNote.visible = false;
+							}
+							else if (daNote.y > FlxG.height)
+							{
+								daNote.active = false;
+								daNote.visible = false;
+							}
+							else
+							{
+								daNote.visible = true;
+								daNote.active = true;
+							}*/
+							#end
 
 							if (!daNote.mustPress && daNote.wasGoodHit && !daNote.hitByOpponent && !daNote.ignoreNote)
 							{
@@ -2445,7 +2514,11 @@ class PlayState extends MusicBeatState
 								{
 									if (daNote.y + daNote.offset.y * daNote.scale.y <= center)
 									{
+										#if !MODCHART_ALLOWED
 										var swagRect = new FlxRect(0, 0, daNote.width / daNote.scale.x, daNote.height / daNote.scale.y);
+										#else
+										var swagRect = new FlxRect(0, 0, daNote.frameWidth, daNote.frameHeight);
+										#end
 										swagRect.y = (center - daNote.y) / daNote.scale.y;
 										swagRect.height -= swagRect.y;
 
