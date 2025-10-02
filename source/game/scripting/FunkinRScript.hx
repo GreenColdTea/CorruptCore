@@ -48,6 +48,10 @@ class FunkinRScript {
         "FlxGifBackdrop" => FlxGifBackdrop,
         #end
 
+        #if MODCHART_ALLOWED
+        "ModManager" => game.modchart.ModManager,
+        #end
+
         "Paths" => game.Paths,
         "Character" => game.objects.Character,
         "CoolUtil" => game.backend.utils.CoolUtil,
@@ -108,6 +112,8 @@ class FunkinRScript {
     }
 
     private function loadScriptContent(path:String):String {
+        if (path == null || path.length == 0) return "// Empty script";
+
         #if sys
         return File.getContent(path);
         #else

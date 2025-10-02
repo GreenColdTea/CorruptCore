@@ -1,6 +1,7 @@
 package game.scripting;
 
 import game.scripting.HScriptParser as HxParser;
+import game.scripting.FunkinRScript.RuleScriptInterpEx as Interp;
 #if sys
 import sys.io.File;
 #end
@@ -27,6 +28,19 @@ class FunkinHScript extends FunkinRScript
 
         var scriptToRun:String = loadScriptContent(path);
         execute(scriptToRun, skipCreate);
+    }
+
+    public function executeString(code:String):Dynamic {
+        try {
+            rule.execute(code);
+            return null;
+        } catch (e:Dynamic) {
+            if (rule.errorHandler != null)
+                rule.errorHandler(e);
+            else
+                trace('Error in executeString: ${e.message}');
+            return null;
+        }
     }
 
     public static dynamic function getHScriptPreprocessors() {

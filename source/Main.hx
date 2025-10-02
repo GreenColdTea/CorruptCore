@@ -117,6 +117,7 @@ class Main extends Sprite
 	    #end
 
 		lime.Native.fixScaling();
+		lime.Native.registerAsGame();
 		lime.Native.disableWinReport();
 
 		#if LUA_ALLOWED llua.Lua.set_callbacks_function(cpp.Callable.fromStaticFunction(LuaCallbackHandler.call)); #end

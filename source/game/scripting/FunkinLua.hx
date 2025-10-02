@@ -87,7 +87,7 @@ class FunkinLua {
 	public var modFolder:String = null;
 
 	#if HSCRIPT_ALLOWED
-	public static var hscript:HScript = null;
+	public static var hscript:FunkinHScript = null;
 	#end
 
 	public static var useCustomFunctions:Bool = false;
@@ -938,7 +938,8 @@ class FunkinLua {
 			#if HSCRIPT_ALLOWED
 			initHaxeModule();
 			try {
-				retVal = hscript.execute(codeToRun);
+				if (hscript != null)
+					retVal = hscript.executeString(codeToRun);
 			}
 			catch (e:Dynamic) {
 				luaTrace(scriptName + ":" + lastCalledFunction + " - " + e, false, false, FlxColor.RED);
@@ -960,7 +961,8 @@ class FunkinLua {
 				if(libPackage.length > 0)
 					str = libPackage + '.';
 
-				hscript.variables.set(libName, Type.resolveClass(str + libName));
+				// Use a public method to set variables instead of accessing private field
+				hscript.set(libName, Type.resolveClass(str + libName));
 			}
 			catch (e:Dynamic) {
 				luaTrace(scriptName + ":" + lastCalledFunction + " - " + e, false, false, FlxColor.RED);
@@ -3016,7 +3018,7 @@ class FunkinLua {
 		if(hscript == null)
 		{
 			trace('initializing haxe interp for: $scriptName');
-			hscript = new HScript(); //TO DO: Fix issue with 2 scripts not being able to use the same variable names
+			hscript = new FunkinHScript("", PlayState.instance, true);
 		}
 	}
 	#end
@@ -3788,116 +3790,3 @@ class CustomSubstate extends MusicBeatSubstate
 		super.destroy();
 	}
 }
-
-#if HSCRIPT_ALLOWED
-class HScript
-{
-    public static var parser:HxParser;
-	public var interp:Interp;
-	public var parentLua:FunkinLua;
-
-	public var variables(get, never):Map<String, Dynamic>;
-	public function get_variables() return interp.variables;
-
-	public var defaultClasses:Map<String, Dynamic> = [
-		'FlxG' => flixel.FlxG,
-		'FlxCamera' => flixel.FlxCamera,
-		'FlxObject' => flixel.FlxObject,
-		'FlxSprite' => flixel.FlxSprite,
-		'FlxTimer' => flixel.util.FlxTimer,
-		'FlxTween' => flixel.tweens.FlxTween,
-		'FlxEase' => flixel.tweens.FlxEase,
-		"FlxMath" => flixel.math.FlxMath,
-		"FlxGroup" => flixel.group.FlxGroup,
-		"FlxTypedGroup" => flixel.group.FlxGroup.FlxTypedGroup,
-		"FlxSpriteGroup" => flixel.group.FlxSpriteGroup,
-		"FlxBackdrop" => flixel.addons.display.FlxBackdrop,
-		"FlxTiledSprite" => flixel.addons.display.FlxTiledSprite,
-
-		'PlayState' => PlayState,
-		'game' => PlayState.instance,
-		
-		'Paths' => Paths,
-		'Conductor' => game.backend.Conductor,
-		'ClientPrefs' => game.backend.ClientPrefs,
-		"BGSprite" => BGSprite,
-
-		#if VIDEOS_ALLOWED
-		"FunkinVideoSprite" => game.objects.FunkinVideoSprite,
-		#end
-
-		#if flixel_animate "FlxAnimate" => FlxAnimate, #end
-		
-		'Character' => Character,
-		'Alphabet' => game.objects.Alphabet,
-		'CustomSubstate' => CustomSubstate,
-		#if (!flash && sys) 'FlxRuntimeShader' => flixel.addons.display.FlxRuntimeShader, #end
-		'ShaderFilter' => openfl.filters.ShaderFilter,
-		'StringTools' => StringTools,
-		'Lambda' => Lambda
-	];
-	
-	public var defaultFunctions:Map<String, Dynamic> = [
-		'setVar' => function(name:String, value:Dynamic) {
-			PlayState.instance.variables.set(name, value);
-		},
-		'getVar' => function(name:String) {
-			var result:Dynamic = null;
-			if(PlayState.instance.variables.exists(name)) result = PlayState.instance.variables.get(name);
-			return result;
-		},
-		'removeVar' => function(name:String) {
-			if(PlayState.instance.variables.exists(name))
-			{
-				PlayState.instance.variables.remove(name);
-				return true;
-			}
-			return false;
-		},
-		'add' => function(basic:flixel.FlxBasic, ?frontOfChars:Bool = false) {
-			if (frontOfChars) {
-				PlayState.instance.add(basic);
-				return;
-			}
-
-			var position:Int = PlayState.instance.members.indexOf(PlayState.instance.gfGroup);
-			if(PlayState.instance.members.indexOf(PlayState.instance.boyfriendGroup) < position) position = PlayState.instance.members.indexOf(PlayState.instance.boyfriendGroup);
-			else if(PlayState.instance.members.indexOf(PlayState.instance.dadGroup) < position) position = PlayState.instance.members.indexOf(PlayState.instance.dadGroup);
-			PlayState.instance.insert(position, basic);
-		},
-		'insert' => PlayState.instance.insert,
-		'remove' => PlayState.instance.remove,
-		'addBehindGF' => PlayState.instance.addBehindGF,
-		'addBehindDad' => PlayState.instance.addBehindDad,
-		'addBehindBF' => PlayState.instance.addBehindBF,
-		'buildTarget' => CoolUtil.getBuildTarget()
-	];
-
-	public function new(?parent:FunkinLua) {
-		initParser();
-		interp = new Interp();
-
-		for(key => value in defaultClasses) interp.variables.set(key, value);
-		for(key => func in defaultFunctions) interp.variables.set(key, func);
-		
-		if(FlxG.state is PlayState) interp.variables.set('game', PlayState.instance);
-		if(parent != null) {
-			this.parentLua = parent;
-			interp.variables.set('this', this);
-			interp.variables.set('parentLua', parent);
-			interp.variables.set('scriptName', parent.scriptName);
-		}
-	}
-
-	function initParser() {
-		parser = new HxParser();
-		parser.preprocesorValues = FunkinHScript.getHScriptPreprocessors();
-	}
-
-	public function execute(codeToRun:String):Dynamic {
-		HScript.parser.parser.line = 1;
-		HScript.parser.parser.allowTypes = true;
-		return interp.execute(HScript.parser.parser.parseString(codeToRun, 'HScript', 0));
-	}
-}
-#end

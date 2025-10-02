@@ -18,6 +18,7 @@ import flixel.util.FlxColor;
 #include <dwmapi.h>
 #include <winuser.h>
 #include <wingdi.h>
+#include <shobjidl.h>
 
 #define attributeDarkMode 20
 #define attributeDarkModeFallback 19
@@ -25,6 +26,8 @@ import flixel.util.FlxColor;
 #define attributeCaptionColor 34
 #define attributeTextColor 35
 #define attributeBorderColor 36
+
+typedef HRESULT (WINAPI *SetGameDVRRecordableWindow_t)(HWND hwnd);
 
 struct HandleData {
 	DWORD pid = 0;
@@ -52,6 +55,19 @@ void getHandle() {
 		EnumWindows(findByPID, (LPARAM)&data);
 		curHandle = data.handle;
 	}
+}
+
+void markAsGame(HWND hwnd) {
+    if (hwnd != (HWND)0) {
+        HMODULE hDVR = LoadLibraryA("GameBarPresenceWriter.dll");
+        if (hDVR) {
+            auto fn = (SetGameDVRRecordableWindow_t)GetProcAddress(hDVR, "SetGameDVRRecordableWindow");
+            if (fn) {
+                fn(hwnd);
+            }
+            FreeLibrary(hDVR);
+        }
+    }
 }
 ')
 #end
@@ -132,6 +148,14 @@ class Native
 		');
 		#end
 	}
+
+	@:functionCode('
+		getHandle();
+		if (curHandle != (HWND)0) {
+			markAsGame(curHandle);
+		}
+	')
+	public static function registerAsGame():Void {}
 
 	/**
     * Turns off that annoying "Report to Microsoft" dialog that pops up when the game crashes.

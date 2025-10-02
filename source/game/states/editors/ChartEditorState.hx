@@ -139,7 +139,9 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		['Set Property', "Value 1: Variable name\nValue 2: New value"]
 	];
 
-	private var _file:FileReference;
+	var noteTextMap:Map<Note, FlxText> = new Map();
+
+	var _file:FileReference;
     var postfix:String = '';
     
 	var mainBox:PsychUIBox;
@@ -1768,21 +1770,21 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	{
 		if (curSelectedNote == null) return;
 
-		switch(input)
-		{
-			case value1InputText if(curSelectedNote[1][curEventSelected] != null):
-				curSelectedNote[1][curEventSelected][1] = input.text;
-				updateGrid();
+		if (input == value1InputText) {
+			if (curSelectedNote[1][curEventSelected] == null) return;
 
-			case value2InputText if(curSelectedNote[1][curEventSelected] != null):
-				curSelectedNote[1][curEventSelected][2] = input.text;
-				updateGrid();
+			curSelectedNote[1][curEventSelected][1] = input.text;
+			updateGrid();
+		} else if (input == value2InputText) {
+			if (curSelectedNote[1][curEventSelected] == null) return;
 
-			case strumTimeInputText:
-				var value:Float = Std.parseFloat(input.text);
-				if (Math.isNaN(value)) value = 0;
-				curSelectedNote[0] = value;
-				updateGrid();
+			curSelectedNote[1][curEventSelected][2] = input.text;
+			updateGrid();
+		} else if (input == strumTimeInputText) {
+			var value:Float = Std.parseFloat(input.text);
+			if (Math.isNaN(value)) value = 0;
+			curSelectedNote[0] = value;
+			updateGrid();
 		}
 	}
 
@@ -1900,9 +1902,25 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			strumLineNotes.members[i].alpha = FlxG.sound.music.playing ? 1 : 0.35;
 		}
 
-		if (quant != null && quant.exists) quant?.update(elapsed);
-		if (daNoteType != null && daNoteType.exists) daNoteType.update(elapsed);
-		if (daEventText != null && daEventText.exists) daEventText.update(elapsed);
+		if (quant != null && quant.exists) quant.update(elapsed);
+
+		for (note => text in noteTextMap) {
+			if (note != null && note.exists && text != null && text.exists) {
+				if (note.noteData > -1) {
+					// default nutes
+					text.x = note.x - 32;
+					text.y = note.y + 6;
+				} else {
+					// event nutes
+					text.x = note.x - 410;
+					text.y = note.y;
+					if (note.eventLength > 1) text.y += 8;
+				}
+				
+				text.angle = note.angle;
+				text.alpha = note.alpha;
+			}
+		}
 	}
 
 	function handleKeyboardInput():Void
@@ -3159,19 +3177,34 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 				}
 			}
 
-			if (firstNote.noteData > -1) // nomal nutes
+			if (firstNote.noteData > -1) // normal notes
 			{
 				stepperSusLength.value = allSameSustain ? firstNote.rawData[2] : 0;
 				currentType = allSameType ? noteTypeMap.get(firstNote.rawData[3]) : 0;
 				noteTypeDropDown.selectedLabel = allSameType ? currentType + '. ' + firstNote.rawData[3] : '[Multiple]';
 				strumTimeInputText.text = '';
 			}
-			else // eventus
+			else // events
 			{
 				eventDropDown.selectedLabel = allSameEvent ? firstNote.eventName : '[Multiple]';
 				value1InputText.text = allSameEvent ? firstNote.eventVal1 : '';
 				value2InputText.text = allSameEvent ? firstNote.eventVal2 : '';
 				strumTimeInputText.text = '';
+				
+				if (allSameEvent) {
+					var selectedEventIndex = -1;
+					for (i in 0...eventStuff.length) {
+						if (eventStuff[i][0] == firstNote.eventName) {
+							selectedEventIndex = i;
+							break;
+						}
+					}
+					if (selectedEventIndex != -1) {
+						descText.text = eventStuff[selectedEventIndex][1];
+					}
+				} else {
+					descText.text = "Multiple Events Selected";
+				}
 			}
 		}
 		else if (curSelectedNote != null)
@@ -3214,6 +3247,15 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		for (i in 0...group.length) {
 			var obj = group.members[i];
 			if (obj != null) {
+				if (Std.isOfType(obj, FlxText)) {
+					var textObj:FlxText = cast obj;
+					for (note => text in noteTextMap) {
+						if (text == textObj) {
+							noteTextMap.remove(note);
+							break;
+						}
+					}
+				}
 				obj.destroy();
 				group.remove(obj, true);
 			}
@@ -3221,8 +3263,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		group.clear();
 	}
 
-	var daNoteType:AttachedFlxText;
-	var daEventText:AttachedFlxText;
 	function updateGrid():Void
 	{
 		clearGroup(curRenderedNotes);
@@ -3232,6 +3272,9 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		clearGroup(nextRenderedSustains);
 		clearGroup(prevRenderedNotes);
 		clearGroup(prevRenderedSustains);
+
+		for (text in noteTextMap) text?.destroy();
+    	noteTextMap?.clear();
 	
 		if (_song.notes[curSec].changeBPM && _song.notes[curSec].bpm > 0) {
 			Conductor.changeBPM(_song.notes[curSec].bpm);
@@ -3260,16 +3303,14 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	
 			if(i[3] != null && note.noteType != null && note.noteType.length > 0) {
 				var typeInt:Null<Int> = noteTypeMap.get(i[3]);
-				var theType:String = '$typeInt' ?? '?';
-	
-				daNoteType = new AttachedFlxText(0, 0, 100, theType, 18);
+				var theType:String = typeInt != null ? '$typeInt' : '?';
+
+				var daNoteType = new FlxText(0, 0, 100, theType, 18);
 				daNoteType.setFormat(Paths.font("pixel-latin.ttf"), 18, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 				daNoteType.borderStyle = NONE;
-				daNoteType.xAdd = -32;
-				daNoteType.yAdd = 6;
 				daNoteType.borderSize = 1;
 				curRenderedNoteType.add(daNoteType);
-				daNoteType.sprTracker = note;
+				noteTextMap.set(note, daNoteType);
 			}
 			note.mustPress = _song.notes[curSec].mustHitSection;
 			if(i[1] > 3) note.mustPress = !note.mustPress;
@@ -3285,17 +3326,15 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 				var note:Note = setupNoteData(i, false);
 				curRenderedNotes.add(note);
 	
-				var text:String = 'Event: ${note.eventName} (${Math.floor(note.strumTime)} ms)\nValue 1: ${note.eventVal1}\nValue 2: ${note.eventVal2}';
+				 var text:String = 'Event: ${note.eventName} (${Math.floor(note.strumTime)} ms)\nValue 1: ${note.eventVal1}\nValue 2: ${note.eventVal2}';
 				if(note.eventLength > 1) text = '${note.eventLength} Events:\n${note.eventName}';
-	
-				daEventText = new AttachedFlxText(0, 0, 400, text, 8);
+
+				var daEventText = new FlxText(0, 0, 400, text, 8);
 				daEventText.setFormat(Paths.font("pixel-latin.ttf"), 8, FlxColor.WHITE, RIGHT, FlxTextBorderStyle.OUTLINE_FAST, FlxColor.BLACK);
 				daEventText.borderStyle = NONE;
-				daEventText.xAdd = -410;
 				daEventText.borderSize = 1;
-				if(note.eventLength > 1) daEventText.yAdd += 8;
 				curRenderedNoteType.add(daEventText);
-				daEventText.sprTracker = note;
+				noteTextMap.set(note, daEventText);
 			}
 		}
 	
@@ -3360,52 +3399,70 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 	function setupNoteData(i:Array<Dynamic>, isNextSection:Bool, isPrevSection:Bool = false):Note
 	{
-		var daNoteInfo = i[1];
 		var daStrumTime = i[0];
 		var daSus:Dynamic = i[2];
 
-		var note:Note = new Note(daStrumTime, daNoteInfo % 4, null, null, true);
-		if(note.noteData < 0) daSus == null;
-		if(daSus != null) { //Common note
-			if(!Std.isOfType(i[3], String)) //Convert old note type to new note type format
-			{
-				i[3] = noteTypeIntMap.get(i[3]);
-			}
-			if(i.length > 3 && (i[3] == null || i[3].length < 1))
-			{
-				i.remove(i[3]);
-			}
-			note.sustainLength = daSus;
-			note.noteType = i[3];
-		} else { //Event note
+		var note:Note;
+		
+		// Another fix for hl target
+		if (Std.isOfType(i[1], Array))
+		{
+			// Event note
+			var eventData:Array<Dynamic> = i[1];
+			note = new Note(daStrumTime, -1, null, null, true);
 			note.loadGraphic(Paths.image('eventArrow'));
-			note.eventName = getEventName(i[1]);
-			note.eventLength = i[1].length;
-			if(i[1].length < 2)
+			note.eventName = getEventName(eventData);
+			note.eventLength = eventData.length;
+			if(eventData.length < 2)
 			{
-				note.eventVal1 = i[1][0][1];
-				note.eventVal2 = i[1][0][2];
+				note.eventVal1 = eventData[0][1];
+				note.eventVal2 = eventData[0][2];
 			}
-			note.eventName = getEventName(i[1]);
 			note.noteData = -1;
-			daNoteInfo = -1;
+			
+			note.setGraphicSize(GRID_SIZE, GRID_SIZE);
+			note.updateHitbox();
+			
+			// for event notes, position them in a special column
+			note.x = gridBG.x + GRID_SIZE; // pos in first column
 		}
-
-		note.setGraphicSize(GRID_SIZE, GRID_SIZE);
-		note.updateHitbox();
-		note.x = Math.floor(daNoteInfo * GRID_SIZE) + gridBG.x + GRID_SIZE;
-		if(isNextSection && _song.notes[curSec].mustHitSection != _song.notes[curSec+1].mustHitSection) {
-			if(daNoteInfo > 3) {
-				note.x -= GRID_SIZE * 4;
-			} else if(daSus != null) {
-				note.x += GRID_SIZE * 4;
+		else
+		{
+			// Regular note
+			var noteDataInt:Int = i[1];
+			note = new Note(daStrumTime, noteDataInt % 4, null, null, true);
+			if(daSus != null) { //Common note
+				if(!Std.isOfType(i[3], String)) //Convert old note type to new note type format
+				{
+					i[3] = noteTypeIntMap.get(i[3]);
+				}
+				if(i.length > 3 && (i[3] == null || i[3].length < 1))
+				{
+					i.remove(i[3]);
+				}
+				note.sustainLength = daSus;
+				note.noteType = i[3];
 			}
-		}
-		if(isPrevSection && _song.notes[curSec].mustHitSection != _song.notes[curSec-1].mustHitSection) {
-			if(daNoteInfo > 3) {
-				note.x -= GRID_SIZE * 4;
-			} else if(daSus != null) {
-				note.x += GRID_SIZE * 4;
+			
+			note.setGraphicSize(GRID_SIZE, GRID_SIZE);
+			note.updateHitbox();
+			
+			// For regular notes, use the actual note data for positioning
+			note.x = Math.floor(noteDataInt * GRID_SIZE) + gridBG.x + GRID_SIZE;
+			
+			if(isNextSection && _song.notes[curSec].mustHitSection != _song.notes[curSec+1].mustHitSection) {
+				if(noteDataInt > 3) {
+					note.x -= GRID_SIZE * 4;
+				} else if(daSus != null) {
+					note.x += GRID_SIZE * 4;
+				}
+			}
+			if(isPrevSection && _song.notes[curSec].mustHitSection != _song.notes[curSec-1].mustHitSection) {
+				if(noteDataInt > 3) {
+					note.x -= GRID_SIZE * 4;
+				} else if(daSus != null) {
+					note.x += GRID_SIZE * 4;
+				}
 			}
 		}
 
@@ -3415,8 +3472,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		var beats:Float = getSectionBeats(curSec + num);
 		note.y = getYfromStrumNotes(daStrumTime - sectionStartTime(), beats);
 		note.rawData = i;
-		//if(isNextSection) note.y += gridBG.height;
-		//if(note.y < -150) note.y = -150;
 		return note;
 	}
 
@@ -4106,28 +4161,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		super.destroy();
 	}
 
-}
-
-class AttachedFlxText extends FlxText
-{
-	public var sprTracker:FlxSprite;
-	public var xAdd:Float = 0;
-	public var yAdd:Float = 0;
-
-	public function new(X:Float = 0, Y:Float = 0, FieldWidth:Float = 0, ?Text:String, Size:Int = 8, EmbeddedFont:Bool = true) {
-		super(X, Y, FieldWidth, Text, Size, EmbeddedFont);
-	}
-
-	override public function update(elapsed:Float)
-	{
-		super.update(elapsed);
-
-		if (sprTracker != null) {
-			setPosition(sprTracker.x + xAdd, sprTracker.y + yAdd);
-			angle = sprTracker.angle;
-			alpha = sprTracker.alpha;
-		}
-	}
 }
 
 class ChartingTipsSubstate extends MusicBeatSubstate
