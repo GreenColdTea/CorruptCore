@@ -262,16 +262,32 @@ class ModManager {
      * Gets the base X position for a note based on direction and player
      */
     public function getBaseX(direction:Int, player:Int):Float {
-        var baseX:Float = (FlxG.width / 2) - Note.swagWidth - 54 + Note.swagWidth * direction;
+        var baseX:Float = PlayState.STRUM_X_MIDDLESCROLL + Note.swagWidth * direction;
         
-        switch (player) {
-            case 0:
-                baseX += FlxG.width / 2 - Note.swagWidth * 2 - 100;
-            case 1:
-                baseX -= FlxG.width / 2 - Note.swagWidth * 2 - 100;
+        if (ClientPrefs.middleScroll) {
+            if (player == 1) { // opponent strums
+                baseX += 360;
+                if (direction > 1) {
+                    baseX += FlxG.width / 2 + 25;
+                }
+            } else { // player strums
+                var totalWidth = Note.swagWidth * 4;
+                var screenCenter = FlxG.width / 2;
+                baseX = screenCenter - totalWidth / 2 + Note.swagWidth * direction;
+            }
+        } else {
+            baseX = (FlxG.width / 2) - Note.swagWidth - 54 + Note.swagWidth * direction;
+            
+            switch (player) {
+                case 0: // player strums
+                    baseX += FlxG.width / 2 - Note.swagWidth * 2 - 100;
+                case 1: // opponent strums
+                    baseX -= FlxG.width / 2 - Note.swagWidth * 2 - 100;
+            }
+            baseX -= 56;
         }
         
-        return baseX - 56;
+        return baseX;
     }
 
     /**
