@@ -102,8 +102,10 @@
 	<assets path="assets/shared"        library="shared"        exclude="*.ogg" if="web"/>
 	<assets path="assets/shared"        library="shared"        exclude="*.mp3" unless="web"/>
 
-	<assets path="assets/week6_sfx" rename="assets" exclude="*.ogg" if="web"/>
-	<assets path="assets/week6_sfx" rename="assets" exclude="*.mp3" unless="web"/>
+	<section if="INCLUDE_BASE_GAME">
+		<assets path="base_game" rename="assets" exclude="*.ogg" if="web"/>
+		<assets path="base_game" rename="assets" exclude="*.mp3" unless="web"/>
+	</section>
 
 	<section if="MODS_ALLOWED">
 		<assets path='contents_file' rename='contents' embed='false'/>
@@ -145,7 +147,8 @@
 	<haxedef name="hscriptPos" />
 
 	<haxelib name="flixel-animate"/>
-	<haxelib name="flxsoundfilters" unless="flash || html5 || hl"/>
+	<haxelib name="flxsoundfilters" if="cpp"/>
+	<haxelib name="json2object" />
 	<haxelib name="flxgif"/>
 	<haxelib name="hxcpp"/>
 

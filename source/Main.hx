@@ -23,6 +23,8 @@ import openfl.errors.Error;
 import game.backend.CrashHandler;
 #end
 
+import game.objects.FunkinSoundTray;
+
 #if LUA_ALLOWED
 import game.scripting.LuaCallbackHandler;
 #end
@@ -126,7 +128,27 @@ class Main extends Sprite
 		hxvlc.util.Handle.init(#if (hxvlc >= "1.8.0")  ['--no-lua'] #end);
 		#end
 
-		addChild(new FlxGame(game.width, game.height, Init, #if (flixel < "5.0.0") game.zoom, #end game.framerate, game.framerate, game.skipSplash, game.startFullscreen));
+		var push:FlxGame = new FlxGame(game.width, game.height, Init, #if (flixel < "5.0.0") game.zoom, #end game.framerate, game.framerate, game.skipSplash, game.startFullscreen);
+		@:privateAccess
+        push._customSoundTray = FunkinSoundTray;
+
+		addChild(push);
+
+		FlxG.signals.gameResized.add((w, h) -> {
+            Init.fpsVar?.positionFPS(10, 3, Math.min(w / FlxG.width, h / FlxG.height));
+
+			resetSpriteCache(this);
+
+            if (FlxG.cameras != null && FlxG.cameras.list != null) {
+                for (cam in FlxG.cameras.list) {
+                    if (cam != null)
+                        resetSpriteCache(cam.flashSprite);
+                }
+            }
+
+            if (FlxG.game != null)
+                resetSpriteCache(FlxG.game);
+        });
 
 		#if desktop
 		if(CoolUtil.hasVersion("Windows 10")) {
@@ -135,6 +157,19 @@ class Main extends Sprite
 		}
 		#end
 	}
+
+	@:noCompletion
+	private static function resetSpriteCache(sprite:Sprite):Void {
+		@:privateAccess {
+			if (sprite != null)
+			{
+		   		sprite.__cacheBitmapData = null;
+				sprite.__cacheBitmapData2 = null;
+				sprite.__cacheBitmapData3 = null;
+				sprite.__cacheBitmapColorTransform = null;
+			}
+		}
+    }
 
 	/**
 	 * Colorblind mode stuff

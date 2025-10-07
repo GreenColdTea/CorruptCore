@@ -107,19 +107,19 @@ class ModManager {
         modArray.sort((a, b) -> Std.int(a.getOrder() - b.getOrder()));
     }
 
-    public inline function get(modName:String):Modifier {
+    public function get(modName:String):Modifier {
         return register.get(modName);
     }
 
-    public inline function getPercent(modName:String, player:Int):Float {
+    inline public function getPercent(modName:String, player:Int):Float {
         return register.get(modName).getPercent(player);
     }
 
-    public inline function getValue(modName:String, player:Int):Float {
+    inline public function getValue(modName:String, player:Int):Float {
         return register.get(modName).getValue(player);
     }
 
-    public inline function setPercent(modName:String, percent:Float, player:Int = -1) {
+    inline public function setPercent(modName:String, percent:Float, player:Int = -1) {
         setValue(modName, percent / 100, player);
     }
 
@@ -181,7 +181,8 @@ class ModManager {
         player:Int, 
         modifier:Modifier, 
         parentMod:Modifier
-    ) {
+    ) 
+    {
         // Remove the specific modifier
         if (modifier != parentMod) {
             activeMods[player].remove(modifier.getName());
@@ -293,7 +294,7 @@ class ModManager {
     /**
      * Calculates visual position based on song timing
      */
-    public inline function getVisPos(songPos:Float = 0, strumTime:Float = 0, songSpeed:Float = 1):Float {
+    inline public function getVisPos(songPos:Float = 0, strumTime:Float = 0, songSpeed:Float = 1):Float {
         return -(0.45 * (songPos - strumTime) * songSpeed);
     }
 
@@ -372,7 +373,8 @@ class ModManager {
     /**
      * Gets easing function by name, defaults to linear
      */
-    private function getEaseFunction(style:String):Float->Float {
+    private function getEaseFunction(style:String):Float->Float 
+    {
         var easeFunc:Float->Float = FlxEase.linear;
         
         try {

@@ -1794,6 +1794,7 @@ class PlayState extends MusicBeatState
 
 		var playerCounter:Int = 0;
 		var daBeats:Int = 0; // Not exactly representative of 'daBeats' lol, just how much it has looped
+		var oldNote:Note = null;
 		var daBpm:Float = Conductor.bpm;
 
 		var songName:String = Paths.formatToSongPath(SONG.song);
@@ -1824,27 +1825,27 @@ class PlayState extends MusicBeatState
 			if (section.changeBPM && daBpm != section.bpm)
 				daBpm = section.bpm;
 
-			for (songNotes in section.sectionNotes)
+			for (i in 0...section.sectionNotes.length)
 			{
+				final songNotes:Array<Dynamic> = section.sectionNotes[i];
+
 				var daStrumTime:Float = songNotes[0];
 				var daNoteData:Int = Std.int(songNotes[1] % 4);
+				var holdLength:Float = songNotes[2];
 
 				var gottaHitNote:Bool = section.mustHitSection;
+
+				if (Math.isNaN(holdLength))
+					holdLength = 0.0;
 
 				if (songNotes[1] > 3)
 				{
 					gottaHitNote = !section.mustHitSection;
 				}
 
-				var oldNote:Note;
-				if (unspawnNotes.length > 0)
-					oldNote = unspawnNotes[Std.int(unspawnNotes.length - 1)];
-				else
-					oldNote = null;
-
 				var swagNote:Note = new Note(daStrumTime, daNoteData, oldNote);
 				swagNote.mustPress = gottaHitNote;
-				swagNote.sustainLength = songNotes[2];
+				swagNote.sustainLength = holdLength;
 				swagNote.gfNote = (section.gfSection && (songNotes[1]<4));
 				swagNote.row = Conductor.secsToRow(daStrumTime);
 				swagNote.noteType = songNotes[3];
@@ -1856,16 +1857,13 @@ class PlayState extends MusicBeatState
 				noteRows[idx][swagNote.row].push(swagNote);
 
 				swagNote.scrollFactor.set();
-
-				var susLength:Float = swagNote.sustainLength;
-
-				susLength = susLength / Conductor.stepCrochet;
+				
 				unspawnNotes.push(swagNote);
 
 				var curStepCrochet:Float = 60 / daBpm * 1000 / 4.0;
-				final floorSus:Int = Math.round(swagNote.sustainLength / curStepCrochet);
+				final floorSus:Int = Math.floor(swagNote.sustainLength / curStepCrochet);
 				if(floorSus > 0) {
-					for (susNote in 0...floorSus)
+					for (susNote in 0...floorSus+1)
 					{
 						oldNote = unspawnNotes[Std.int(unspawnNotes.length - 1)];
 
@@ -1925,6 +1923,8 @@ class PlayState extends MusicBeatState
 				if(!noteTypeMap.exists(swagNote.noteType)) {
 					noteTypeMap.set(swagNote.noteType, true);
 				}
+
+				oldNote = swagNote;
 			}
 			daBeats += 1;
 		}
@@ -2454,31 +2454,13 @@ class PlayState extends MusicBeatState
 
 								if(strumScroll && daNote.isSustainNote)
 								{
-									if(PlayState.isPixelStage)
+									if(isPixelStage)
 									{
 										daNote.y -= daPixelZoom * 9.5;
 									}
 									daNote.y -= (daNote.frameHeight * daNote.scale.y) - (Note.swagWidth / 2);
 								}
 							}
-
-							#if MODCHART_ALLOWED
-							/*if (!daNote.mustPress && ClientPrefs.middleScroll)
-							{
-								daNote.active = true;
-								daNote.visible = false;
-							}
-							else if (daNote.y > FlxG.height)
-							{
-								daNote.active = false;
-								daNote.visible = false;
-							}
-							else
-							{
-								daNote.visible = true;
-								daNote.active = true;
-							}*/
-							#end
 
 							if (!daNote.mustPress && daNote.wasGoodHit && !daNote.hitByOpponent && !daNote.ignoreNote)
 							{
@@ -2499,32 +2481,27 @@ class PlayState extends MusicBeatState
 							if(strumGroup.members[daNote.noteData].sustainReduce && daNote.isSustainNote && (daNote.mustPress || !daNote.ignoreNote) &&
 								(!daNote.mustPress || (daNote.wasGoodHit || (daNote.prevNote.wasGoodHit && !daNote.canBeHit))))
 							{
+								var swagRect = new FlxRect(0, 0, daNote.frameWidth, daNote.frameHeight);
 								if (strumScroll)
 								{
 									if(daNote.y - daNote.offset.y * daNote.scale.y + daNote.height >= center)
 									{
-										var swagRect = new FlxRect(0, 0, daNote.frameWidth, daNote.frameHeight);
 										swagRect.height = (center - daNote.y) / daNote.scale.y;
 										swagRect.y = daNote.frameHeight - swagRect.height;
-
-										daNote.clipRect = swagRect;
 									}
 								}
 								else
 								{
 									if (daNote.y + daNote.offset.y * daNote.scale.y <= center)
 									{
-										#if !MODCHART_ALLOWED
-										var swagRect = new FlxRect(0, 0, daNote.width / daNote.scale.x, daNote.height / daNote.scale.y);
-										#else
-										var swagRect = new FlxRect(0, 0, daNote.frameWidth, daNote.frameHeight);
-										#end
+										/*swagRect = new FlxRect(0, 0, daNote.width / daNote.scale.x, daNote.height / daNote.scale.y);
+										swagRect = new FlxRect(0, 0, daNote.frameWidth, daNote.frameHeight);*/
 										swagRect.y = (center - daNote.y) / daNote.scale.y;
 										swagRect.height -= swagRect.y;
-
-										daNote.clipRect = swagRect;
 									}
 								}
+
+								daNote.clipRect = swagRect;
 							}
 
 							// Kill extremely late notes and cause misses
