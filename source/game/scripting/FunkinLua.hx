@@ -145,7 +145,7 @@ class FunkinLua {
 		scriptName = script;
 		var myFolder:Array<String> = this.scriptName.trim().split('/');
 		#if MODS_ALLOWED
-		if(myFolder[0] + '/' == Paths.mods() && (Paths.currentModDirectory == myFolder[1] || Paths.getGlobalMods().contains(myFolder[1]))) //is inside mods folder
+		if(myFolder[0] + '/' == Mods.getModPath() && (Mods.currentModDirectory == myFolder[1] || Mods.getGlobalMods().contains(myFolder[1]))) //is inside mods folder
 			this.modFolder = myFolder[1];
 		#end
 
@@ -258,7 +258,7 @@ class FunkinLua {
 		set('lowQuality', ClientPrefs.lowQuality);
 		set('shadersEnabled', ClientPrefs.shaders);
 		set('scriptName', scriptName);
-		set('currentModDirectory', Paths.currentModDirectory);
+		set('currentModDirectory', Mods.currentModDirectory);
 
 		set('buildTarget', CoolUtil.getBuildTarget());
 
@@ -559,9 +559,9 @@ class FunkinLua {
 			if(luaFile.endsWith(".lua"))cervix=luaFile;
 			var doPush = false;
 			#if MODS_ALLOWED
-			if(FileSystem.exists(Paths.modFolders(cervix)))
+			if(FileSystem.exists(Mods.modFolders(cervix)))
 			{
-				cervix = Paths.modFolders(cervix);
+				cervix = Mods.modFolders(cervix);
 				doPush = true;
 			}
 			else if(FileSystem.exists(cervix))
@@ -629,9 +629,9 @@ class FunkinLua {
 			if(luaFile.endsWith(".lua"))cervix=luaFile;
 			var doPush = false;
 			#if MODS_ALLOWED
-			if(FileSystem.exists(Paths.modFolders(cervix)))
+			if(FileSystem.exists(Mods.modFolders(cervix)))
 			{
-				cervix = Paths.modFolders(cervix);
+				cervix = Mods.modFolders(cervix);
 				doPush = true;
 			}
 			else if(FileSystem.exists(cervix))
@@ -682,9 +682,9 @@ class FunkinLua {
 			if(luaFile.endsWith(".lua"))cervix=luaFile;
 			var doPush = false;
 			#if MODS_ALLOWED
-			if(FileSystem.exists(Paths.modFolders(cervix)))
+			if(FileSystem.exists(Mods.modFolders(cervix)))
 			{
-				cervix = Paths.modFolders(cervix);
+				cervix = Mods.modFolders(cervix);
 				doPush = true;
 			}
 			else if(FileSystem.exists(cervix))
@@ -721,9 +721,9 @@ class FunkinLua {
 			if(luaFile.endsWith(".lua"))cervix=luaFile;
 			var doPush = false;
 			#if MODS_ALLOWED
-			if(FileSystem.exists(Paths.modFolders(cervix)))
+			if(FileSystem.exists(Mods.modFolders(cervix)))
 			{
-				cervix = Paths.modFolders(cervix);
+				cervix = Mods.modFolders(cervix);
 				doPush = true;
 			}
 			else if(FileSystem.exists(cervix))
@@ -805,9 +805,9 @@ class FunkinLua {
 			if(luaFile.endsWith(".lua"))cervix=luaFile;
 			var doPush = false;
 			#if MODS_ALLOWED
-			if(FileSystem.exists(Paths.modFolders(cervix)))
+			if(FileSystem.exists(Mods.modFolders(cervix)))
 			{
-				cervix = Paths.modFolders(cervix);
+				cervix = Mods.modFolders(cervix);
 				doPush = true;
 			}
 			else if(FileSystem.exists(cervix))
@@ -845,9 +845,9 @@ class FunkinLua {
 			if(luaFile.endsWith(".lua"))cervix=luaFile;
 			var doPush = false;
 			#if MODS_ALLOWED
-			if(FileSystem.exists(Paths.modFolders(cervix)))
+			if(FileSystem.exists(Mods.modFolders(cervix)))
 			{
-				cervix = Paths.modFolders(cervix);
+				cervix = Mods.modFolders(cervix);
 				doPush = true;
 			}
 			else if(FileSystem.exists(cervix))
@@ -890,9 +890,9 @@ class FunkinLua {
 			if(luaFile.endsWith(".lua"))cervix=luaFile;
 			var doPush = false;
 			#if MODS_ALLOWED
-			if(FileSystem.exists(Paths.modFolders(cervix)))
+			if(FileSystem.exists(Mods.modFolders(cervix)))
 			{
-				cervix = Paths.modFolders(cervix);
+				cervix = Mods.modFolders(cervix);
 				doPush = true;
 			}
 			else if(FileSystem.exists(cervix))
@@ -2364,7 +2364,7 @@ class FunkinLua {
 		Lua_helper.add_callback(lua, "startDialogue", function(dialogueFile:String, music:String = null) {
 			var path:String;
 			#if MODS_ALLOWED
-			path = Paths.modsJson(Paths.formatToSongPath(PlayState.SONG.song) + '/' + dialogueFile);
+			path = Mods.modsJson(Paths.formatToSongPath(PlayState.SONG.song) + '/' + dialogueFile);
 			if(!FileSystem.exists(path))
 			#end
 				path = Paths.json(Paths.formatToSongPath(PlayState.SONG.song) + '/' + dialogueFile);
@@ -2748,7 +2748,7 @@ class FunkinLua {
 				return FileSystem.exists(filename);
 			}
 
-			var path:String = Paths.modFolders(filename);
+			var path:String = Mods.modFolders(filename);
 			if(FileSystem.exists(path))
 			{
 				return true;
@@ -2767,7 +2767,7 @@ class FunkinLua {
 			try {
 				if(!absolute)
 					#if MODS_ALLOWED
-					File.saveContent(Paths.mods(path), content);
+					File.saveContent(Mods.getModPath(path), content);
 					#else
 					File.saveContent(Paths.getPreloadPath(path), content);
 					#end
@@ -2786,7 +2786,7 @@ class FunkinLua {
 				#if MODS_ALLOWED
 				if(!ignoreModFolders)
 				{
-					var lePath:String = Paths.modFolders(path);
+					var lePath:String = Mods.modFolders(path);
 					if(FileSystem.exists(lePath))
 					{
 						FileSystem.deleteFile(lePath);
@@ -3199,14 +3199,14 @@ class FunkinLua {
 			return true;
 		}
 
-		var foldersToCheck:Array<String> = [Paths.getPreloadPath('shaders/') #if MODS_ALLOWED , Paths.mods('shaders/') #end];
+		var foldersToCheck:Array<String> = [Paths.getPreloadPath('shaders/') #if MODS_ALLOWED , Mods.getModPath('shaders/') #end];
 
 		#if MODS_ALLOWED
-		if(Paths.currentModDirectory != null && Paths.currentModDirectory.length > 0)
-			foldersToCheck.insert(0, Paths.mods(Paths.currentModDirectory + '/shaders/'));
+		if(Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0)
+			foldersToCheck.insert(0, Mods.getModPath(Mods.currentModDirectory + '/shaders/'));
 
-		for(mod in Paths.getGlobalMods())
-			foldersToCheck.insert(0, Paths.mods(mod + '/shaders/'));
+		for(mod in Mods.getGlobalMods())
+			foldersToCheck.insert(0, Mods.getModPath(mod + '/shaders/'));
 		#end
 		
 		for (folder in foldersToCheck)

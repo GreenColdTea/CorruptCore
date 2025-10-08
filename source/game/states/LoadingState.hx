@@ -21,9 +21,11 @@ import lime.utils.AssetManifest;
 
 import haxe.io.Path;
 
+#if target.threaded
 import sys.thread.FixedThreadPool;
 import sys.thread.Thread;
 import sys.thread.Mutex;
+#end
 
 import game.backend.StageData.StageFile;
 
@@ -37,9 +39,8 @@ class LoadingState extends MusicBeatState
     var callbacks:MultiCallback;
     var targetShit:Float = 0;
 
+    #if target.threaded
     static var threadPool:FixedThreadPool;
-    
-    #if sys
     static var loadMutex = new sys.thread.Mutex();
     #end
 
@@ -58,10 +59,12 @@ class LoadingState extends MusicBeatState
         this.stopMusic = stopMusic;
         this.directory = directory;
         
+        #if target.threaded
         if (threadPool == null) {
             threadPool = new FixedThreadPool(maxThreadPools);
             trace('Thread pool initialized with $maxThreadPools threads');
         }
+        #end
     }
 
     var funkay:FlxSprite;
@@ -193,15 +196,6 @@ class LoadingState extends MusicBeatState
                 count++;
             }
         }
-        
-        funkay.setGraphicSize(FlxG.width, FlxG.height);
-        funkay.updateHitbox();
-        
-        if(controls.ACCEPT)
-        {
-            funkay.setGraphicSize(Std.int(funkay.width + 60));
-            funkay.updateHitbox();
-        }
 
         if(callbacks != null) {
             var progress:Float = 1 - (callbacks.numRemaining / callbacks.length);
@@ -221,6 +215,7 @@ class LoadingState extends MusicBeatState
         #if MODS_ALLOWED
         if (sys.FileSystem.exists(path))
         {
+            #if target.threaded
             threadPool.run(function() {
                 try {
                     var rawJson = sys.io.File.getContent(path);
@@ -240,11 +235,31 @@ class LoadingState extends MusicBeatState
                     }, 0);
                 }
             });
+            #else
+            try {
+                var rawJson = sys.io.File.getContent(path);
+                var json:Dynamic = haxe.Json.parse(rawJson);
+                
+                haxe.Timer.delay(function() {
+                    if (json.image != null) {
+                        loadCharacterImage(json.image, onComplete);
+                    } else {
+                        loadCharacterImage('characters/' + character, onComplete);
+                    }
+                }, 0);
+            } catch (e:Dynamic) {
+                trace('Error loading character JSON: $character, error: $e');
+                haxe.Timer.delay(function() {
+                    loadCharacterImage('characters/' + character, onComplete);
+                }, 0);
+            }
+            #end
         }
         else
         #end
         if (Assets.exists(path))
         {
+            #if target.threaded
             threadPool.run(function() {
                 try {
                     var rawJson = Assets.getText(path);
@@ -256,6 +271,17 @@ class LoadingState extends MusicBeatState
                     haxe.Timer.delay(() -> loadCharacterImage('characters/' + character, onComplete), 0);
                 }
             });
+            #else
+            try {
+                var rawJson = Assets.getText(path);
+                var json:Dynamic = haxe.Json.parse(rawJson);
+                
+                haxe.Timer.delay(() -> loadCharacterImage(json.image ?? 'characters/' + character, onComplete), 0);
+            } catch (e:Dynamic) {
+                trace('Error parsing character JSON: $character, error: $e');
+                haxe.Timer.delay(() -> loadCharacterImage('characters/' + character, onComplete), 0);
+            }
+            #end
         }
         else
         {
@@ -370,10 +396,11 @@ class LoadingState extends MusicBeatState
     
     function checkLoadSong(path:String)
     {
-        if (path.startsWith('contents/')) {
+        if (path.startsWith('${Mods.MODS_FOLDER}/')) {
             var callback = callbacks.add("modSong:" + path);
             
             #if MODS_ALLOWED
+            #if target.threaded
             threadPool.run(function() {
                 try {
                     var sound = Sound.fromFile(path);
@@ -388,6 +415,20 @@ class LoadingState extends MusicBeatState
                     }, 0);
                 }
             });
+            #else
+            try {
+                var sound = Sound.fromFile(path);
+                haxe.Timer.delay(function() {
+                    Paths.currentTrackedSounds.set(path, sound);
+                    callback();
+                }, 0);
+            } catch (e:Dynamic) {
+                trace('Error loading mod sound: $path, error: $e');
+                haxe.Timer.delay(function() {
+                    callback();
+                }, 0);
+            }
+            #end
             #else
             callback();
             #end
@@ -410,7 +451,9 @@ class LoadingState extends MusicBeatState
     
     function checkLibrary(library:String) {
         #if sys
+        #if target.threaded
         loadMutex.acquire();
+        #end
         #end
         try {
             if (Assets.getLibrary(library) == null)
@@ -420,7 +463,9 @@ class LoadingState extends MusicBeatState
                 {
                     trace('Library $library not found, but continuing anyway');
                     #if sys
+                    #if target.threaded
                     loadMutex.release();
+                    #end
                     #end
                     var callback = callbacks.add("missing_library:" + library);
                     callback();
@@ -441,13 +486,17 @@ class LoadingState extends MusicBeatState
         } catch (e) {
             trace('Exception in checkLibrary: $e');
             #if sys
+            #if target.threaded
             loadMutex.release();
+            #end
             #end
             var callback = callbacks.add("error_library:" + library);
             callback();
         }
         #if sys
+        #if target.threaded
         loadMutex.release();
+        #end
         #end
     }
     
@@ -487,7 +536,7 @@ class LoadingState extends MusicBeatState
     #if MODS_ALLOWED
     static function modsSongs(key:String)
     {
-        return Paths.mods('songs/$key.${Paths.SOUND_EXT}');
+        return Mods.getModPath('songs/$key.${Paths.SOUND_EXT}');
     }
     #end
 
@@ -495,7 +544,7 @@ class LoadingState extends MusicBeatState
     {
         var songKey:String = '${Paths.formatToSongPath(song)}/Inst';
         #if MODS_ALLOWED
-        var modPath = Paths.mods('songs/$songKey.${Paths.SOUND_EXT}');
+        var modPath = Mods.getModPath('songs/$songKey.${Paths.SOUND_EXT}');
         if (sys.FileSystem.exists(modPath)) {
             return modPath;
         }
@@ -508,7 +557,7 @@ class LoadingState extends MusicBeatState
         var songKey:String = '${Paths.formatToSongPath(song)}/Voices';
         if (postfix != null) songKey += '-' + postfix;
         #if MODS_ALLOWED
-        var modPath = Paths.mods('songs/$songKey.${Paths.SOUND_EXT}');
+        var modPath = Mods.getModPath('songs/$songKey.${Paths.SOUND_EXT}');
         if (sys.FileSystem.exists(modPath)) {
             return modPath;
         }
@@ -625,13 +674,13 @@ class LoadingState extends MusicBeatState
     #if MODS_ALLOWED
     static function isModsLoaded():Bool
     {
-        return Paths.getGlobalMods().length > 0;
+        return Mods.getGlobalMods().length > 0;
     }
     #end
     
     static function isSoundLoaded(path:String):Bool
     {
-        if (path.startsWith('contents/')) {
+        if (path.startsWith('${Mods.MODS_FOLDER}/')) {
             #if MODS_ALLOWED
             return sys.FileSystem.exists(path);
             #else
@@ -655,7 +704,9 @@ class LoadingState extends MusicBeatState
         percentText?.destroy();
         startTimer?.destroy();
 
+        #if target.threaded
         threadPool = null;
+        #end
     }
     
     static function initSongsManifest()

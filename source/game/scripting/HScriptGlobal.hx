@@ -17,12 +17,12 @@ class HScriptGlobal {
         var scriptPath:String = null;
         
         #if sys
-        var foldersToCheck:Array<String> = [Paths.getPreloadPath('scripts/') #if MODS_ALLOWED , Paths.mods('scripts/') #end];
+        var foldersToCheck:Array<String> = [Paths.getPreloadPath('scripts/') #if MODS_ALLOWED , Mods.getModPath('scripts/') #end];
         #if MODS_ALLOWED
-        if(Paths.currentModDirectory != null && Paths.currentModDirectory.length > 0) 
-            foldersToCheck.insert(0, Paths.mods('${Paths.currentModDirectory}/scripts/'));
-        for(mod in Paths.getGlobalMods()) 
-            foldersToCheck.insert(0, Paths.mods('$mod/scripts/states/'));
+        if(Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0) 
+            foldersToCheck.insert(0, Mods.getModPath('${Mods.currentModDirectory}/scripts/'));
+        for(mod in Mods.getGlobalMods()) 
+            foldersToCheck.insert(0, Mods.getModPath('$mod/scripts/states/'));
         #end
         
         for (folder in foldersToCheck) {

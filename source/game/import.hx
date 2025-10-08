@@ -2,6 +2,7 @@
 import game.*;
 import game.backend.*;
 import game.backend.utils.*;
+import game.backend.system.*;
 import game.states.*;
 import game.states.options.*;
 import game.substates.*;
@@ -17,6 +18,10 @@ import game.stages.backend.BaseStage;
 
 import game.states.backend.MusicBeatState;
 import game.substates.backend.MusicBeatSubstate;
+
+#if MODS_ALLOWED
+import game.backend.system.Mods;
+#end
 
 import flixel.animation.PsychAnimationController;
 

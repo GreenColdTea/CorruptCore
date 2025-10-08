@@ -89,15 +89,15 @@ class ModsMenuState extends MusicBeatState
 		noModsTxt.screenCenter();
 		visibleWhenNoMods.push(noModsTxt);
 
-		var path:String = 'modsList.txt';
+		var path:String = 'modsList';
 		if(FileSystem.exists(path))
 		{
-			var leMods:Array<String> = CoolUtil.coolTextFile(path);
+			var leMods:Array<String> = CoolUtil.coolTextFile(Paths.txt(path));
 			for (i in 0...leMods.length)
 			{
 				if(leMods.length > 1 && leMods[0].length > 0) {
 					var modSplit:Array<String> = leMods[i].split('|');
-					if(!Paths.ignoreModFolders.contains(modSplit[0].toLowerCase()))
+					if(!Mods.ignoreModFolders.contains(modSplit[0].toLowerCase()))
 					{
 						addToModsList([modSplit[0], (modSplit[1] == '1')]);
 						//trace(modSplit[1]);
@@ -108,10 +108,10 @@ class ModsMenuState extends MusicBeatState
 
 		// FIND MOD FOLDERS
 		var boolshit = true;
-		if (FileSystem.exists("modsList.txt")){
-			for (folder in Paths.getModDirectories())
+		if (FileSystem.exists(Paths.txt("modsList"))){
+			for (folder in Mods.getModDirectories())
 			{
-				if(!Paths.ignoreModFolders.contains(folder))
+				if(!Mods.ignoreModFolders.contains(folder))
 				{
 					addToModsList([folder, true]); //i like it false by default. -bb //Well, i like it True! -Shadow
 				}
@@ -270,7 +270,7 @@ class ModsMenuState extends MusicBeatState
 
 		removeButton = new FlxButton(startX, 620, "Delete Selected Mod", function()
 		{
-			var path = haxe.io.Path.join([Paths.mods(), modsList[curSelected][0]]);
+			var path = haxe.io.Path.join([Mods.getModPath(), modsList[curSelected][0]]);
 			if(FileSystem.exists(path) && FileSystem.isDirectory(path))
 			{
 				trace('Trying to delete directory ' + path);
@@ -317,7 +317,7 @@ class ModsMenuState extends MusicBeatState
 		while (i < modsList.length)
 		{
 			var values:Array<Dynamic> = modsList[i];
-			if(!FileSystem.exists(Paths.mods(values[0])))
+			if(!FileSystem.exists(Mods.getModPath(values[0])))
 			{
 				modsList.remove(modsList[i]);
 				continue;
@@ -335,7 +335,7 @@ class ModsMenuState extends MusicBeatState
 			add(newMod.alphabet);
 			//Don't ever cache the icons, it's a waste of loaded memory
 			var loadedIcon:BitmapData = null;
-			var iconToUse:String = Paths.mods(values[0] + '/pack.png');
+			var iconToUse:String = Mods.getModPath(values[0] + '/pack.png');
 			if(FileSystem.exists(iconToUse))
 			{
 				loadedIcon = BitmapData.fromFile(iconToUse);
@@ -454,9 +454,9 @@ class ModsMenuState extends MusicBeatState
 			fileStr += values[0] + '|' + (values[1] ? '1' : '0');
 		}
 
-		var path:String = 'modsList.txt';
-		File.saveContent(path, fileStr);
-		Paths.pushGlobalMods();
+		var path:String = 'modsList';
+		File.saveContent(Paths.txt(path), fileStr);
+		Mods.pushGlobalMods();
 	}
 
 	var noModsSine:Float = 0;
@@ -709,7 +709,7 @@ class ModMetadata
 		this.restart = false;
 
 		//Try loading json
-		var path = Paths.mods(folder + '/pack.json');
+		var path = Mods.getModPath(folder + '/pack.json');
 		if(FileSystem.exists(path)) {
 			var rawJson:String = File.getContent(path);
 			if(rawJson != null && rawJson.length > 0) {

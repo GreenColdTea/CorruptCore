@@ -545,12 +545,12 @@ class PlayState extends MusicBeatState
 		var foldersToCheck:Array<String> = [Paths.getPreloadPath('scripts/')];
 
 		#if MODS_ALLOWED
-		foldersToCheck.insert(0, Paths.mods('scripts/'));
-		if(Paths.currentModDirectory != null && Paths.currentModDirectory.length > 0)
-			foldersToCheck.insert(0, Paths.mods(Paths.currentModDirectory + '/scripts/'));
+		foldersToCheck.insert(0, Mods.getModPath('scripts/'));
+		if(Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0)
+			foldersToCheck.insert(0, Mods.getModPath(Mods.currentModDirectory + '/scripts/'));
 
-		for(mod in Paths.getGlobalMods())
-			foldersToCheck.insert(0, Paths.mods(mod + '/scripts/'));
+		for(mod in Mods.getGlobalMods())
+			foldersToCheck.insert(0, Mods.getModPath(mod + '/scripts/'));
 		#end
 
 		for (folder in foldersToCheck)
@@ -852,7 +852,7 @@ class PlayState extends MusicBeatState
 		for (event in eventPushedMap.keys())
 		{
 			#if (LUA_ALLOWED && MODS_ALLOWED)
-			var luaToLoad:String = Paths.modFolders('custom_events/' + event + '.lua');
+			var luaToLoad:String = Mods.modFolders('custom_events/' + event + '.lua');
 			if(FileSystem.exists(luaToLoad))
 			{
 				luaArray.push(new FunkinLua(luaToLoad));
@@ -874,7 +874,7 @@ class PlayState extends MusicBeatState
 			#end
 
 			#if (HSCRIPT_ALLOWED && MODS_ALLOWED)
-			var hxToLoad:String = Paths.modFolders('custom_events/' + event + '.hx');
+			var hxToLoad:String = Mods.modFolders('custom_events/' + event + '.hx');
 			if(FileSystem.exists(hxToLoad))
 			{
 				hscriptArray.push(new FunkinHScript(hxToLoad));
@@ -905,12 +905,12 @@ class PlayState extends MusicBeatState
 		var foldersToCheck:Array<String> = [Paths.getPreloadPath('data/' + Paths.formatToSongPath(SONG.song) + '/')];
 
 		#if MODS_ALLOWED
-		foldersToCheck.insert(0, Paths.mods('data/' + Paths.formatToSongPath(SONG.song) + '/'));
-		if(Paths.currentModDirectory != null && Paths.currentModDirectory.length > 0)
-			foldersToCheck.insert(0, Paths.mods(Paths.currentModDirectory + '/data/' + Paths.formatToSongPath(SONG.song) + '/'));
+		foldersToCheck.insert(0, Mods.getModPath('data/' + Paths.formatToSongPath(SONG.song) + '/'));
+		if(Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0)
+			foldersToCheck.insert(0, Mods.getModPath(Mods.currentModDirectory + '/data/' + Paths.formatToSongPath(SONG.song) + '/'));
 
-		for(mod in Paths.getGlobalMods())
-			foldersToCheck.insert(0, Paths.mods(mod + '/data/' + Paths.formatToSongPath(SONG.song) + '/' ));// using push instead of insert because these should run after everything else
+		for(mod in Mods.getGlobalMods())
+			foldersToCheck.insert(0, Mods.getModPath(mod + '/data/' + Paths.formatToSongPath(SONG.song) + '/' ));// using push instead of insert because these should run after everything else
 		#end
 
 		for (folder in foldersToCheck)
@@ -1068,14 +1068,14 @@ class PlayState extends MusicBeatState
 			return true;
 		}
 
-		var foldersToCheck:Array<String> = [Paths.getPreloadPath('shaders/') #if MODS_ALLOWED , Paths.mods('shaders/')#end];
+		var foldersToCheck:Array<String> = [Paths.getPreloadPath('shaders/') #if MODS_ALLOWED , Mods.getModPath('shaders/')#end];
 
 		#if MODS_ALLOWED
-		if(Paths.currentModDirectory != null && Paths.currentModDirectory.length > 0)
-			foldersToCheck.insert(0, Paths.mods(Paths.currentModDirectory + '/shaders/'));
+		if(Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0)
+			foldersToCheck.insert(0, Mods.getModPath(Mods.currentModDirectory + '/shaders/'));
 
-		for(mod in Paths.getGlobalMods())
-			foldersToCheck.insert(0, Paths.mods(mod + '/shaders/'));
+		for(mod in Mods.getGlobalMods())
+			foldersToCheck.insert(0, Mods.getModPath(mod + '/shaders/'));
 		#end
 		
 		for (folder in foldersToCheck)
@@ -1218,8 +1218,8 @@ class PlayState extends MusicBeatState
 		var doPush:Bool = false;
 		var luaFile:String = 'characters/' + name + '.lua';
 		#if MODS_ALLOWED
-		if(FileSystem.exists(Paths.modFolders(luaFile))) {
-			luaFile = Paths.modFolders(luaFile);
+		if(FileSystem.exists(Mods.modFolders(luaFile))) {
+			luaFile = Mods.modFolders(luaFile);
 			doPush = true;
 		} else {
 			luaFile = Paths.getPreloadPath(luaFile);
@@ -1248,7 +1248,7 @@ class PlayState extends MusicBeatState
 		var doPush:Bool = false;
 		var hxFile:String = 'characters/' + name + '.hx';
 		#if MODS_ALLOWED
-		var replacePath:String = Paths.modFolders(hxFile);
+		var replacePath:String = Mods.modFolders(hxFile);
 		if(FileSystem.exists(replacePath))
 		{
 			hxFile = replacePath;
@@ -4138,7 +4138,7 @@ class PlayState extends MusicBeatState
 		}
 
 		#if MODS_ALLOWED
-		var luaToLoad:String = Paths.modFolders(luaFile);
+		var luaToLoad:String = Mods.modFolders(luaFile);
 		if(FileSystem.exists(luaToLoad))
 		{
 			luaArray.push(new FunkinLua(luaToLoad));
@@ -4174,7 +4174,7 @@ class PlayState extends MusicBeatState
 		}
 
 		#if MODS_ALLOWED
-		var hscriptToLoad:String = Paths.modFolders(hscriptFile);
+		var hscriptToLoad:String = Mods.modFolders(hscriptFile);
 		if(FileSystem.exists(hscriptToLoad))
 		{
 			hscriptArray.push(new FunkinHScript(hscriptToLoad));

@@ -708,10 +708,10 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		var stepperSpeed:PsychUINumericStepper = new PsychUINumericStepper(10, stepperBPM.y + 35, 0.1, 1, 0.1, 10, 1);
 		stepperSpeed.value = _song.speed;
 		stepperSpeed.name = 'song_speed';
-		var directories:Array<String> = [#if MODS_ALLOWED Paths.mods('characters/'), Paths.mods(Paths.currentModDirectory + '/characters/'), #end SUtil.getPath() + Paths.getPreloadPath('characters/')];
+		var directories:Array<String> = [#if MODS_ALLOWED Mods.getModPath('characters/'), Mods.getModPath(Mods.currentModDirectory + '/characters/'), #end SUtil.getPath() + Paths.getPreloadPath('characters/')];
 		#if MODS_ALLOWED
-		for(mod in Paths.getGlobalMods())
-			directories.push(Paths.mods(mod + '/characters/'));
+		for(mod in Mods.getGlobalMods())
+			directories.push(Mods.getModPath(mod + '/characters/'));
 		#else
 		var directories:Array<String> = [Paths.getPreloadPath('characters/')];
 		#end
@@ -767,9 +767,9 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		player2DropDown.selectedLabel = _song.player2;
 
 		#if MODS_ALLOWED
-		var directories:Array<String> = [Paths.mods('stages/'), Paths.mods(Paths.currentModDirectory + '/stages/'), SUtil.getPath() + Paths.getPreloadPath('stages/')];
-		for(mod in Paths.getGlobalMods())
-			directories.push(Paths.mods(mod + '/stages/'));
+		var directories:Array<String> = [Mods.getModPath('stages/'), Mods.getModPath(Mods.currentModDirectory + '/stages/'), SUtil.getPath() + Paths.getPreloadPath('stages/')];
+		for(mod in Mods.getGlobalMods())
+			directories.push(Mods.getModPath(mod + '/stages/'));
 		#else
 		var directories:Array<String> = [Paths.getPreloadPath('stages/')];
 		#end
@@ -1150,7 +1150,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 		directories.push(Paths.getPreloadPath('custom_notetypes/'));
 		#if MODS_ALLOWED
-		directories.push(Paths.modFolders('custom_notetypes/'));
+		directories.push(Mods.modFolders('custom_notetypes/'));
 		#end
 
 		#if sys
@@ -1234,7 +1234,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 		directories.push(Paths.getPreloadPath('custom_events/'));
 		#if MODS_ALLOWED
-		directories.push(Paths.modFolders('custom_events/'));
+		directories.push(Mods.modFolders('custom_events/'));
 		#end
 
 		#if sys
@@ -2889,7 +2889,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		characterFailed = false;
 		var characterPath:String = 'characters/' + char + '.json';
 		#if MODS_ALLOWED
-		var path:String = Paths.modFolders(characterPath);
+		var path:String = Mods.modFolders(characterPath);
 		if (!FileSystem.exists(path)) {
 			path = Paths.getPreloadPath(characterPath);
 		}

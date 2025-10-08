@@ -162,7 +162,7 @@ class Character extends FlxSprite
 		var characterPath:String = 'characters/' + curCharacter + '.json';
 
 		#if MODS_ALLOWED
-		var path:String = Paths.modFolders(characterPath);
+		var path:String = Mods.modFolders(characterPath);
 		if (!FileSystem.exists(path))
 		{
 			path = Paths.getPreloadPath(characterPath);
@@ -189,7 +189,7 @@ class Character extends FlxSprite
 		// packer
 		// texture
 		#if MODS_ALLOWED
-		var modTxtToFind:String = Paths.modsTxt(json.image);
+		var modTxtToFind:String = Mods.modsTxt(json.image);
 		var txtToFind:String = Paths.getPath('images/' + json.image + '.txt', TEXT);
 
 		if (FileSystem.exists(modTxtToFind) || FileSystem.exists(txtToFind) || Assets.exists(txtToFind))

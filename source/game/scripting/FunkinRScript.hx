@@ -63,6 +63,10 @@ class FunkinRScript {
         "FunkinRScript" => FunkinRScript,
         "FunkinLua" => FunkinLua,
 
+        #if MODS_ALLOWED
+        "Mods" => game.backend.system.Mods,
+        #end
+
         'StringMap' => haxe.ds.StringMap,
 		'IntMap' => haxe.ds.IntMap,
 		'ObjectMap' => haxe.ds.ObjectMap,

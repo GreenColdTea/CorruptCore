@@ -1514,10 +1514,10 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 
 		#if sys
 		characterList = [];
-		var directories:Array<String> = [#if MODS_ALLOWED Paths.mods('characters/'), Paths.mods(Paths.currentModDirectory + '/characters/'), #end Paths.getPreloadPath('characters/')];
+		var directories:Array<String> = [#if MODS_ALLOWED Mods.getModPath('characters/'), Mods.getModPath(Mods.currentModDirectory + '/characters/'), #end Paths.getPreloadPath('characters/')];
 		#if MODS_ALLOWED
-		for(mod in Paths.getGlobalMods())
-			directories.push(Paths.mods(mod + '/characters/'));
+		for(mod in Mods.getGlobalMods())
+			directories.push(Mods.getModPath(mod + '/characters/'));
 		#end
 		for (i in 0...directories.length) {
 			var directory:String = directories[i];

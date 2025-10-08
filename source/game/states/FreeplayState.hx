@@ -114,7 +114,7 @@ class FreeplayState extends MusicBeatState
 				if (songText.width > maxWidth) songText.scaleX = maxWidth / songText.width;
 				songText.snapToPosition();
 
-				Paths.currentModDirectory = songs[i].folder;
+				Mods.currentModDirectory = songs[i].folder;
 				var icon:HealthIcon = new HealthIcon(songs[i].songCharacter);
 				icon.sprTracker = songText;
 
@@ -302,7 +302,7 @@ class FreeplayState extends MusicBeatState
 					#if PRELOAD_ALL
 					destroyFreeplayVocals();
 					FlxG.sound.music.volume = 0;
-					Paths.currentModDirectory = songs[curSelected].folder;
+					Mods.currentModDirectory = songs[curSelected].folder;
 					var poop:String = Highscore.formatSong(songs[curSelected].songName.toLowerCase(), curDifficulty);
 					PlayState.SONG = Song.loadFromJson(poop, songs[curSelected].songName.toLowerCase());
 					vocals = PlayState.SONG.needsVoices ? new FlxSound().loadEmbedded(Paths.voices(PlayState.SONG.song)) : new FlxSound();
@@ -437,7 +437,7 @@ class FreeplayState extends MusicBeatState
 			}
 		}
 		
-		Paths.currentModDirectory = songs[curSelected].folder;
+		Mods.currentModDirectory = songs[curSelected].folder;
 		PlayState.storyWeek = songs[curSelected].week;
 
 		CoolUtil.difficulties = CoolUtil.defaultDifficulties.copy();
@@ -503,7 +503,7 @@ class SongMetadata
 		this.week = week;
 		this.songCharacter = songCharacter;
 		this.color = color;
-		this.folder = Paths.currentModDirectory;
+		this.folder = Mods.currentModDirectory;
 		if(this.folder == null) this.folder = '';
 	}
 }
