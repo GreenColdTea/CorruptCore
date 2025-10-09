@@ -59,10 +59,10 @@ class CreditsState extends MusicBeatState
 			add(grpOptions);
 
 			#if MODS_ALLOWED
-			var path:String = 'modsList';
+			var path:String = Paths.txt('modsList');
 			if(FileSystem.exists(path))
 			{
-				var leMods:Array<String> = CoolUtil.coolTextFile(Paths.txt(path));
+				var leMods:Array<String> = CoolUtil.coolTextFile(path);
 				for (i in 0...leMods.length)
 				{
 					if(leMods.length > 1 && leMods[0].length > 0) {
