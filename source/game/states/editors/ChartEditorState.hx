@@ -53,8 +53,6 @@ import game.objects.Note;
 import game.objects.StrumNote;
 import game.objects.Prompt;
 
-import game.objects.audio.Waveform;
-
 import game.states.editors.meta.ChartBackupManager;
 
 using StringTools;
@@ -263,7 +261,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 	var clipboardNotes:Array<Dynamic> = [];
 
-	var waveformSprite:Waveform;
+	var waveformSprite:FlxSprite;
 	var gridLayer:FlxTypedGroup<FlxSprite>;
 
 	public static var quantization:Int = 16;
@@ -349,8 +347,9 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 		var waveformWidth:Int = Std.int(gridBG.width);
 		var waveformHeight:Int = Std.int(gridBG.height);
-		waveformSprite = new Waveform(gridBG.x, gridBG.y, waveformWidth, waveformHeight);
-		waveformSprite.setOrientation(Waveform.VERTICAL);
+		waveformSprite = new FlxSprite(gridBG.x + GRID_SIZE, 0).makeGraphic(1, 1, 0xFF4A3C88);
+		waveformSprite.scrollFactor.x = 0;
+		waveformSprite.visible = false;
 		add(waveformSprite);
 
 		var eventIcon:FlxSprite = new FlxSprite(GRID_SIZE + 375).loadGraphic(Paths.image('eventArrow'));

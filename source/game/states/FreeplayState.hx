@@ -165,7 +165,6 @@ class FreeplayState extends MusicBeatState
 		}
 		else
 		{
-			// Для softcoded состояний просто загружаем песни
 			for (i in 0...WeekData.weeksList.length) {
 				if(weekIsLocked(WeekData.weeksList[i])) continue;
 
@@ -300,19 +299,13 @@ class FreeplayState extends MusicBeatState
 				if(instPlaying != curSelected)
 				{
 					#if PRELOAD_ALL
-					destroyFreeplayVocals();
+					//destroyFreeplayVocals();
 					FlxG.sound.music.volume = 0;
 					Mods.currentModDirectory = songs[curSelected].folder;
 					var poop:String = Highscore.formatSong(songs[curSelected].songName.toLowerCase(), curDifficulty);
 					PlayState.SONG = Song.loadFromJson(poop, songs[curSelected].songName.toLowerCase());
-					vocals = PlayState.SONG.needsVoices ? new FlxSound().loadEmbedded(Paths.voices(PlayState.SONG.song)) : new FlxSound();
 
-					FlxG.sound?.list.add(vocals);
 					FlxG.sound?.playMusic(Paths.inst(PlayState.SONG.song), 0.7);
-					vocals?.play();
-					vocals.persist = true;
-					vocals.looped = true;
-					vocals.volume = 0.7;
 					instPlaying = curSelected;
 					#end
 				}
@@ -343,7 +336,7 @@ class FreeplayState extends MusicBeatState
 
 				FlxG.sound.music.volume = 0;
 						
-				destroyFreeplayVocals();
+				//destroyFreeplayVocals();
 			}
 			else if(controls.RESET)
 			{
@@ -356,12 +349,12 @@ class FreeplayState extends MusicBeatState
 		super.update(elapsed);
 	}
 
-	public static function destroyFreeplayVocals() {
+	/*public static function destroyFreeplayVocals() {
 		vocals?.stop();
 		vocals?.destroy();
 
 		vocals = null;
-	}
+	}*/
 
 	function changeDiff(change:Int = 0)
 	{

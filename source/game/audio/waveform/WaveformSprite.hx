@@ -283,7 +283,6 @@ class WaveformSprite extends MeshRender
 		}
 	}
 
-	// Создает визуализацию когда нет waveform данных
 	function createEmptyWaveformVisualization():Void
 	{
 		var centerY = Std.int(this.height / 2);

@@ -139,7 +139,6 @@ class MainMenuState extends MusicBeatState
 				if(!Achievements.isAchievementUnlocked(Achievements.achievementsStuff[achieveID][2])) {
 					Achievements.achievementsMap.set(Achievements.achievementsStuff[achieveID][2], true);
 					giveAchievement();
-					ClientPrefs.saveSettings();
 				}
 			}
 			#end

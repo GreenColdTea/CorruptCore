@@ -513,56 +513,72 @@ class LoadingState extends MusicBeatState
     
     static function getSongPath():String
     {
-        #if MODS_ALLOWED
-        var modPath = modsSongs('${Paths.formatToSongPath(PlayState.SONG.song)}/Inst');
-        if (sys.FileSystem.exists(modPath)) {
-            return modPath;
-        }
-        #end
         return instPath(PlayState.SONG.song);
     }
 
     static function getVocalPath():String
     {
-        #if MODS_ALLOWED
-        var modPath = modsSongs('${Paths.formatToSongPath(PlayState.SONG.song)}/Voices');
-        if (sys.FileSystem.exists(modPath)) {
-            return modPath;
-        }
-        #end
         return voicesPath(PlayState.SONG.song);
     }
 
-    #if MODS_ALLOWED
-    static function modsSongs(key:String)
+    static function instPath(song:String):String
     {
-        return Mods.getModPath('songs/$key.${Paths.SOUND_EXT}');
-    }
-    #end
-
-    static public function instPath(song:String):String
-    {
-        var songKey:String = '${Paths.formatToSongPath(song)}/Inst';
-        #if MODS_ALLOWED
-        var modPath = Mods.getModPath('songs/$songKey.${Paths.SOUND_EXT}');
-        if (sys.FileSystem.exists(modPath)) {
-            return modPath;
+        var songKey:String = '${Paths.formatToSongPath(song)}/inst';
+        
+        var path = getSoundFilePath(null, songKey, 'songs');
+        if (path == null) {
+            songKey = '${Paths.formatToSongPath(song)}/Inst';
+            path = getSoundFilePath(null, songKey, 'songs');
         }
-        #end
-        return Paths.getPath('$songKey.${Paths.SOUND_EXT}', SOUND, 'songs', true);
+
+        return path;
     }
 
-    static public function voicesPath(song:String, postfix:String = null):String
+    static function voicesPath(song:String, postfix:String = null):String
     {
-        var songKey:String = '${Paths.formatToSongPath(song)}/Voices';
+        var songKey:String = '${Paths.formatToSongPath(song)}/voices';
         if (postfix != null) songKey += '-' + postfix;
+
+        var path = getSoundFilePath(null, songKey, 'songs');
+        if (path == null) {
+            songKey = '${Paths.formatToSongPath(song)}/Voices';
+            if (postfix != null) songKey += '-' + postfix;
+            path = getSoundFilePath(null, songKey, 'songs');
+        }
+        return path;
+    }
+
+    @:noCompletion
+    private static function getSoundFilePath(path:Null<String>, key:String, ?library:String):String
+    {
         #if MODS_ALLOWED
-        var modPath = Mods.getModPath('songs/$songKey.${Paths.SOUND_EXT}');
-        if (sys.FileSystem.exists(modPath)) {
-            return modPath;
+        var modLibPath:String = '';
+        if (library != null) modLibPath = '$library/';
+        if (path != null) modLibPath += '$path/';
+
+        var file:String = Mods.modsSounds(modLibPath, key, Paths.WAV_EXT);
+        if(FileSystem.exists(file)) {
+            return file;
+        }
+
+        file = Mods.modsSounds(modLibPath, key);
+        if(FileSystem.exists(file)) {
+            return file;
         }
         #end
-        return Paths.getPath('$songKey.${Paths.SOUND_EXT}', SOUND, 'songs', true);
+
+        var fullKey = (path != null ? '$path/' : '') + key;
+        var wavPath:String = Paths.getPath('$fullKey.${Paths.WAV_EXT}', SOUND, library);
+        if(Assets.exists(wavPath, SOUND)) {
+            return wavPath;
+        }
+
+        var standardPath:String = Paths.getPath('$fullKey.${Paths.SOUND_EXT}', SOUND, library);
+        if(Assets.exists(standardPath, SOUND)) {
+            return standardPath;
+        }
+
+        return null;
     }
     
     public static function loadAndSwitchState(targetFactory:Void->NextState, stopMusic = false)

@@ -48,8 +48,6 @@ class Paths
     public static var dumpExclusions:Array<String> =
     [
         'assets/music/freakyMenu.$SOUND_EXT',
-        'assets/shared/music/breakfast.$SOUND_EXT',
-        'assets/shared/music/tea-time.$SOUND_EXT',
     ];
     public static var localTrackedAssets:Array<String> = [];     
 
@@ -139,11 +137,11 @@ class Paths
     inline static function destroyGraphic(graphic:FlxGraphic)
     {
         graphic?.bitmap?.__texture?.dispose();
-        FlxG.bitmap.remove(graphic);
+        FlxG.bitmap?.remove(graphic);
     }
 
-    static public var currentLevel:String;
-    static public function setCurrentLevel(name:String)
+    public static var currentLevel:String;
+    public static function setCurrentLevel(name:String)
     {
         currentLevel = name.toLowerCase();
     }
@@ -599,7 +597,7 @@ class Paths
         if (cleanPath.indexOf("assets/") == 0) {
             cleanPath = cleanPath.substring(7);
         }
-        return Sys.getCwd() + "assets/" + cleanPath;
+        return Sys.getCwd() + getPreloadPath(cleanPath);
         #else
         return assetPath;
         #end

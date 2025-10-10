@@ -101,7 +101,7 @@ class HScriptParser extends HxParser
                                             origin: expr.origin,
                                             line: expr.line
                                         },
-                                        "setField"
+                                        "setProperty"
                                     ),
                                     pmin: expr.pmin,
                                     pmax: expr.pmax,
@@ -270,7 +270,7 @@ class HScriptParser extends HxParser
                 switch(e1) {
                     case EField(obj, field):
                         ECall(
-                            EField(EIdent("Reflect"), "setField"),
+                            EField(EIdent("Reflect"), "setProperty"),
                             [transformFieldAssignments(obj), EConst(CString(field)), transformFieldAssignments(e2)]
                         );
                     default:

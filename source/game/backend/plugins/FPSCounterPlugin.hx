@@ -30,6 +30,12 @@ class FPSCounterPlugin extends Bitmap
 	public var currentMemory(get, never):Float;
 	public var showDebugInfo:Bool = false;
 
+	public var strokeSize:Int = 1;
+	public var strokeColor:Int = 0xFF000000;
+	public var fillColor:Int = 0xFFFFFFFF;
+	public var fontSize:Int = 11;
+	public var fontCustom = "_sans";
+
 	// Warning system
 	public var performanceWarnings(default, null):Array<String> = [];
 	public var warningLevel(default, null):Int = 0; // 0 = normal, 1 = warning, 2 = dangerous, 3 = critical
@@ -67,12 +73,7 @@ class FPSCounterPlugin extends Bitmap
 	private var frameTimes:Array<Float> = [];
 	private var maxFrameTimeHistory:Int = 20;
 
-	private var strokeSize:Int = 1;
-	private var strokeColor:Int = 0xFF000000;
-	private var fillColor:Int = 0xFFFFFFFF;
-	private var fontSize:Int = 11;
-	private var fontCustom = "_sans";
-	private var dataTexts = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+	private final dataTexts = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
 
 	private var minFPS:Int = 9999;
 	private var maxFPS:Int = 0;
@@ -172,11 +173,8 @@ class FPSCounterPlugin extends Bitmap
 		while (times[0] < currentTime - 1000)
 			times.shift();
 
-		var currentCount = times.length;
+		var currentCount = times.length < FlxG.updateFramerate ? times.length : FlxG.updateFramerate;
 		currentFPS = Math.round(currentCount);
-
-		if (currentFPS > ClientPrefs.framerate && !ClientPrefs.vsync) 
-			currentFPS = ClientPrefs.framerate;
 
 		if (currentTimeStamp - lastUpdateTime >= updateInterval) {
 			updateMemoryStats(currentTimeStamp);

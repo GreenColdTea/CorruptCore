@@ -57,6 +57,7 @@ class Init extends FlxState
 
         FlxG.fixedTimestep = false;
 	    FlxG.game.focusLostFramerate = #if mobile 30 #else 60 #end;
+		FlxG.cameras.useBufferLocking = true;
         FlxG.keys.preventDefaultKeys = [TAB];
 
         #if html5
@@ -64,7 +65,7 @@ class Init extends FlxState
 		FlxG.mouse.visible = false;
 		#end
 
-		#if FEATURE_DEBUG_TRACY
+		#if (FEATURE_DEBUG_TRACY && !macro)
 		openfl.Lib.current.stage.addEventListener(openfl.events.Event.EXIT_FRAME, (e:openfl.events.Event) ->
 			cpp.vm.tracy.TracyProfiler.frameMark());
 		

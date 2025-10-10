@@ -391,7 +391,8 @@ class RuleScriptInterpEx extends RuleScriptInterp {
         return super.set(o, f, v);
     }
 
-    override function assign(e1:Expr, e2:Expr):Dynamic {
+    override function assign(e1:Expr, e2:Expr):Dynamic 
+    {
         var v = expr(e2);
         #if hscriptPos
         switch(e1.e) {
@@ -412,7 +413,12 @@ class RuleScriptInterpEx extends RuleScriptInterp {
             case EField(e, f):
                 var obj = expr(e);
                 obj ??= {};
-                Reflect.setField(obj, f, v);
+                
+                try {
+                    Reflect.setProperty(obj, f, v);
+                } catch (e:Dynamic) {
+                    Reflect.setField(obj, f, v);
+                }
                 return v;
             case EArray(e, index):
                 var arr:Dynamic = expr(e);
@@ -447,7 +453,11 @@ class RuleScriptInterpEx extends RuleScriptInterp {
                     throw new haxe.Exception('Cannot resolve object for assignment: ${objPath.join(".")}');
                 }
                 
-                Reflect.setField(obj, field, v);
+                try {
+                    Reflect.setProperty(obj, field, v);
+                } catch (e:Dynamic) {
+                    Reflect.setField(obj, field, v);
+                }
                 return v;
             default:
                 #if hscriptPos

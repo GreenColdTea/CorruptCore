@@ -73,9 +73,15 @@
 
 	<assets path="assets/preload" rename="assets" exclude="*.ogg" if="web"/>
 	<assets path="assets/preload" rename="assets" exclude="*.mp3"  unless="web"/>
+
 	<section if="TITLE_SCREEN_EASTER_EGG">
 		<assets path="assets/secrets" rename="assets" exclude="*.ogg" if="web"/>
 		<assets path="assets/secrets" rename="assets" exclude="*.mp3"  unless="web"/>
+	</section>
+
+	<section if="INCLUDE_BASE_GAME">
+		<assets path="base_game" rename="assets" exclude="*.ogg" if="web"/>
+		<assets path="base_game" rename="assets" exclude="*.mp3" unless="web"/>
 	</section>
 
 	<!-- DONT ENABLE THIS -->
@@ -102,11 +108,6 @@
 	<assets path="assets/shared"        library="shared"        exclude="*.ogg" if="web"/>
 	<assets path="assets/shared"        library="shared"        exclude="*.mp3" unless="web"/>
 
-	<section if="INCLUDE_BASE_GAME">
-		<assets path="base_game" rename="assets" exclude="*.ogg" if="web"/>
-		<assets path="base_game" rename="assets" exclude="*.mp3" unless="web"/>
-	</section>
-
 	<section if="MODS_ALLOWED">
 		<assets path='contents_file' rename='contents' embed='false'/>
 	</section>
@@ -126,7 +127,7 @@
 	<assets path="assets/embed/sounds" rename="assets/sounds" embed='true'/>
 	<!-- _______________________________ Libraries ______________________________ -->
 
-	<haxelib name="flixel" version="6.1.0"/>
+	<haxelib name="flixel" version="6.1.1"/>
 	<haxedev set='webgl'/>
 
 	<!--<haxelib name="flixel-ui" /> fuck this shit ass creation-->
@@ -148,7 +149,6 @@
 
 	<haxelib name="flixel-animate"/>
 	<haxelib name="flxsoundfilters" if="cpp"/>
-	<haxelib name="json2object" />
 	<haxelib name="flxgif"/>
 	<haxelib name="hxcpp"/>
 
@@ -184,6 +184,8 @@
 
 	<!-- Basically Allows Videos To Render In Higher Quality On Higher Resoluttions -->
 	<haxedef name="openfl_dpi_aware" unless="web" />
+
+	<haxedef name='lime_disable_assets_version'/>
 
 	<!--Enable the Flixel core recording system-->
 	<!--<haxedef name="FLX_RECORD" />-->
