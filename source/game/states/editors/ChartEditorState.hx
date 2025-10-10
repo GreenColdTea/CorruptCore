@@ -1422,6 +1422,13 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		chartEditorSave.data.chart_waveformVoices ??= false;
 		chartEditorSave.data.chart_waveformOppVoices ??= false;
 
+		if (chartEditorSave.data.chart_waveformInst)
+			waveformTarget = INST;
+		else if (chartEditorSave.data.chart_waveformVoices)
+			waveformTarget = PLAYER;
+		else if (chartEditorSave.data.chart_waveformOppVoices)
+			waveformTarget = OPPONENT;
+
 		waveformUseInstrumental = new PsychUICheckBox(10, 90, "Waveform (Instrumental)", 100);
 		waveformUseInstrumental.checked = chartEditorSave.data.chart_waveformInst;
 		waveformUseInstrumental.onClick = function()
@@ -1826,6 +1833,8 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	override function update(elapsed:Float)
 	{
 		super.update(elapsed);
+
+		FlxG.mouse.visible = true;
 
 		curStep = recalculateSteps();
 		final conductorTime = Conductor.songPosition;
