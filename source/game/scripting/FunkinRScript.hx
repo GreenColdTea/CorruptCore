@@ -10,13 +10,19 @@ import haxe.io.Path;
 import rulescript.*;
 import rulescript.parsers.*;
 import rulescript.RuleScript;
-
+import rulescript.scriptedClass.RuleScriptedClassUtil.*;
+import rulescript.scriptedClass.RuleScriptedClassUtil;
+import rulescript.scriptedClass.RuleScriptedClass.*;
+import rulescript.scriptedClass.RuleScriptedClass;
+import rulescript.types.ScriptedTypeUtil;
+import rulescript.types.ScriptedAbstract;
 import rulescript.interps.RuleScriptInterp;
-import rulescript.types.Property;
+import rulescript.types.ScriptedModule;
+import rulescript.types.Abstracts;
 
 import hscript.Expr;
 
-import game.scripting.HScriptClassManager.ScriptClassRef;
+import game.scripting.HScriptParser as HxParser;
 
 import flixel.group.FlxGroup.FlxTypedGroup;
 import flixel.group.FlxGroup;
@@ -25,7 +31,7 @@ using StringTools;
 using Lambda;
 
 class FunkinRScript {
-    static final PRESET_VARS:Map<String, Dynamic> = [
+    static final PRESET_VARS:haxe.ds.Map<String, Dynamic> = [
         // Flixel Classes
         "FlxG" => flixel.FlxG,
         "FlxSprite" => flixel.FlxSprite,
@@ -61,7 +67,10 @@ class FunkinRScript {
         "PlayState" => game.PlayState,
         "BGSprite" => game.objects.BGSprite,
         "FunkinRScript" => FunkinRScript,
+
+        #if LUA_ALLOWED
         "FunkinLua" => FunkinLua,
+        #end
 
         #if MODS_ALLOWED
         "Mods" => game.backend.system.Mods,
@@ -69,38 +78,32 @@ class FunkinRScript {
 
         'StringMap' => haxe.ds.StringMap,
 		'IntMap' => haxe.ds.IntMap,
-		'ObjectMap' => haxe.ds.ObjectMap,
+		'ObjectMap' => haxe.ds.ObjectMap
     ];
 
     static final ABSTRACT_IMPORTS:Array<String> = [
         "flixel.util.FlxColor",
         "flixel.input.keyboard.FlxKey",
-        "haxe.ds.Map",
         #if flxgif
         "flxgif.FlxGifAsset",
         #end
         "openfl.display.BlendMode"
     ];
 
-    public var scriptType:String = "N/A"; //yeah
+    public var scriptType:String = "N/A";
     public var scriptName:String;
     public var active(default, null):Bool = true;
     
     private var rule:RuleScript;
     private var parentInstance:Dynamic;
-    private var callbacks:Map<String, Array<Dynamic>> = new Map();
-    private var importedPackages:Map<String, Bool> = new Map();
-
-    public static function fromFile(file:String, ?instance:Dynamic, skipCreate:Bool = false):Null<FunkinRScript> {
-        return switch Path.extension(file).toLowerCase() {
-            case "hx": new FunkinRScript(file, instance, skipCreate);
-            case _: null;
-        }
-    }
+    private var callbacks:haxe.ds.Map<String, Array<Dynamic>> = new haxe.ds.Map();
+    private var importedPackages:haxe.ds.Map<String, Bool> = new haxe.ds.Map();
 
     public function new(path:String, parentInstance:Dynamic = null, skipCreate:Bool = false) {
         this.parentInstance = parentInstance;
         scriptName = path;
+
+        initScriptedClasses();
 
         rule = new RuleScript(new RuleScriptInterpEx(this));
         rule.scriptName = path;
@@ -115,11 +118,124 @@ class FunkinRScript {
         }
     }
 
+    private function initScriptedClasses() {
+        ScriptedTypeUtil.resolveModule = function(name:String):Array<ModuleDecl>
+        {
+            var path = parseTypePath(name);
+            if (path.name == null || path.name.length == 0) {
+                trace('Invalid module path: $name');
+                return null;
+            }
+
+            var filePath = 'source/${path.name.replace('.', '/')}.hx';
+
+            if (!Paths.fileExists(filePath, TEXT)) {
+                //trace('Module not found: $filePath');
+                return null;
+            }
+
+            var content = Paths.getTextFromFile(filePath);
+            if (content == null) {
+                trace('Failed to load module content: $filePath');
+                return null;
+            }
+
+            var parser = new HxParser();
+            parser.allowAll();
+            parser.mode = MODULE;
+
+            try {
+                return parser.parseModule(content);
+            } catch (e:Dynamic) {
+                trace('Failed to parse module $filePath: $e');
+                return null;
+            }
+        }
+
+        RuleScriptedClassUtil.buildBridge = function(typePath:String, superInstance:Dynamic):RuleScript
+        {
+            var type:ScriptedClassType = ScriptedTypeUtil.resolveScript(typePath);
+            if (type == null) {
+                trace('Failed to resolve script type: $typePath');
+                return null;
+            }
+
+            var script = new RuleScript(new RuleScriptInterp());
+            script.scriptName = typePath;
+
+            script.getParser(HxParser).allowAll();
+            script.superInstance = superInstance;
+            script.getInterp(RuleScriptInterp).skipNextRestore = true;
+
+            if (type.isExpr) {
+                script.execute(cast type);
+                return script;
+            } else {
+                var cl:ScriptedClass = cast type;
+                RuleScriptedClassUtil.buildScriptedClass(cl, script);
+            }
+
+            return script;
+        };
+
+        ScriptedTypeUtil.resolveScript = function(name:String):Dynamic
+        {
+            var path = parseTypePath(name);
+            if (path.name == null || path.name.length == 0) {
+                trace('Invalid script path: $name');
+                return null;
+            }
+
+            final module:Array<ModuleDecl> = ScriptedTypeUtil.resolveModule(path.name);
+            if (module == null) {
+                //trace('Module not found for script: $name');
+                return null;
+            }
+
+            try {
+                @:privateAccess
+                var scriptedModule = new ScriptedModule(path.name, module, ScriptedTypeUtil._currentContext);
+                return scriptedModule.types[path.typeName];
+            } catch (e:Dynamic) {
+                trace('Failed to create scripted module for $name: $e');
+                return null;
+            }
+        };
+    }
+
+    private function parseTypePath(name:String):{name:String, typeName:String} {
+        if (name == null || name.length == 0) {
+            return {name: "", typeName: ""};
+        }
+
+        var path:Array<String> = name.split('.');
+        if (path.length == 0) {
+            return {name: "", typeName: ""};
+        }
+
+        var typeName = path.pop();
+        var moduleName = path.join('.');
+        
+        //If no package, use the type name as module name
+        if (moduleName.length == 0) {
+            moduleName = typeName;
+        }
+        
+        return {
+            name: moduleName,
+            typeName: typeName
+        };
+    }
+
     private function loadScriptContent(path:String):String {
-        if (path == null || path.length == 0) return "// Empty script";
+        if (path == null || path.length == 0) return "// Empty script lol";
 
         #if sys
-        return File.getContent(path);
+        if (FileSystem.exists(path)) {
+            return File.getContent(path);
+        } else {
+            throw 'Script file not found: $path';
+        }
         #else
         var resourceName = path.replace("/", "_").replace(".", "_").replace(":", "_");
         var content = haxe.Resource.getString(resourceName);
@@ -140,8 +256,11 @@ class FunkinRScript {
         for (key => value in PRESET_VARS)
             set(key, value);
 
-        for (get in ABSTRACT_IMPORTS)
-            rulescript.types.Abstracts.resolveAbstract(get);
+        for (abstractType in ABSTRACT_IMPORTS) {
+            var abstractInstance = Abstracts.resolveAbstract(abstractType);
+            var typeName = abstractType.split('.').pop();
+            set(typeName, abstractInstance);
+        }
                 
         if (parentInstance != null)
             set("parent", parentInstance);
@@ -259,6 +378,14 @@ class FunkinRScript {
             if (cl != null) return cl;
         }
         
+        // Try to resolve as scripted class
+        try {
+            var scriptedType = ScriptedTypeUtil.resolveScript(typeName);
+            if (scriptedType != null) return scriptedType;
+        } catch (e:Dynamic) {
+            trace('Failed to resolve scripted type $typeName: $e');
+        }
+        
         return null;
     }
 
@@ -331,7 +458,8 @@ class FunkinRScript {
     }
 }
 
-class RuleScriptInterpEx extends RuleScriptInterp {
+class RuleScriptInterpEx extends RuleScriptInterp 
+{
     public static var resolveScriptState:ResolveScriptState;
     public var ref:ScriptClassRef;
     public var funkScript:FunkinRScript;
@@ -406,7 +534,7 @@ class RuleScriptInterpEx extends RuleScriptInterp {
                 else 
                 {
                     if (l.r != null && Type.getClassName(Type.getClass(l.r)) == "rulescript.types.Property")
-                        cast(l.r, Property).value = v;
+                        cast(l.r, rulescript.types.Property).value = v;
                     else
                         l.r = v;
                 }
@@ -469,6 +597,14 @@ class RuleScriptInterpEx extends RuleScriptInterp {
         }
         return v;
     }
+}
+
+@:structInit class ScriptClassRef {
+    public var path:String;
+    public var extend:Null<Class<Dynamic>>;
+    public var scriptedClass:Class<Dynamic>;
+    public var expr:Expr;
+    public var staticFields:haxe.ds.Map<String, Dynamic>;
 }
 
 typedef ResolveScriptState = {

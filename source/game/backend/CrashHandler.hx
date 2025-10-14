@@ -202,29 +202,7 @@ class CrashHandler
             logContent.add('\n${content}\n');
             logContent.add('==================== SYSTEM INFORMATION ==================\n\n');
 
-            var osInfo = "Unknown";
-            #if windows
-            try {
-                var windowsCurrentVersionPath = "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion";
-                var buildStr = WindowsRegistry.getKey(HKEY_LOCAL_MACHINE, windowsCurrentVersionPath, "CurrentBuildNumber");
-                var buildNumber:Int = 0;
-                if (buildStr != null) {
-                    var parsed = Std.parseInt(buildStr);
-                    if (parsed != null) buildNumber = parsed;
-                }
-                var edition = WindowsRegistry.getKey(HKEY_LOCAL_MACHINE, windowsCurrentVersionPath, "ProductName");
-                edition ??= "Windows";
-                
-                if (buildNumber >= 22000) {
-                    edition = edition.replace("Windows 10", "Windows 11");
-                }
-                osInfo = edition;
-            } catch (e:Dynamic) {
-                osInfo = '${System.platformLabel} ${System.platformVersion}';
-            }
-            #else
-            osInfo = '${System.platformLabel} ${System.platformVersion}';
-            #end
+            var osInfo = '${System.platformLabel} ${System.platformVersion}';
             
             var arch = "Unknown";
             try {
@@ -303,48 +281,20 @@ class CrashHandler
     private static function getGpuInfo():String 
     {
         try {
-            #if windows
-            try {
-                return WindowsRegistry.getKey(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}\\0000", "DriverDesc");
-            } catch(e:Dynamic) {}
-            
-            //fallback to WMIC
-            var process = new Process("wmic", ["path", "win32_VideoController", "get", "name"]);
-            var result = process.stdout.readAll().toString();
-            process.close();
-            
-            var lines = result.split("\n");
-            for (line in lines) {
-                if (line.trim() != "" && line.indexOf("Name") == -1) {
-                    return line.trim();
+            var gpuName:String = "N/A";
+            @:privateAccess {
+                if (FlxG.stage?.context3D?.gl != null) {
+                    var renderer = FlxG.stage.context3D.gl.getParameter(FlxG.stage.context3D.gl.RENDERER);
+                    if (renderer != null) {
+                        gpuName = Std.string(renderer).split("/")[0].trim();
+                        if (gpuName != "N/A" && gpuName != "") {
+                            return gpuName;
+                        }
+                    }
                 }
             }
-            #elseif linux
-            var process = new Process("lspci", []);
-            var result = process.stdout.readAll().toString();
-            process.close();
-            
-            var lines = result.split("\n");
-            for (line in lines) {
-                if (line.indexOf("VGA") != -1 || line.indexOf("3D") != -1) {
-                    var parts = line.split(":");
-                    if (parts.length > 1) return parts[parts.length-1].trim();
-                }
-            }
-            #elseif mac
-            var process = new Process("system_profiler", ["SPDisplaysDataType"]);
-            var result = process.stdout.readAll().toString();
-            process.close();
-            
-            var lines = result.split("\n");
-            for (line in lines) {
-                if (line.indexOf("Chipset Model") != -1) {
-                    var parts = line.split(":");
-                    if (parts.length > 1) return parts[1].trim();
-                }
-            }
-            #end
         } catch (e:Dynamic) {}
+
         return "Unknown GPU";
     }
     

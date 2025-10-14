@@ -1811,7 +1811,6 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 	}
 
 	var _file:FileReference;
-
 	function onSaveComplete(_):Void
 	{
 		_file.removeEventListener(Event.COMPLETE, onSaveComplete);

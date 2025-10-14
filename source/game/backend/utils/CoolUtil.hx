@@ -278,13 +278,6 @@ class CoolUtil
 		#end
 	}
 
-	inline public static function setDarkMode(title:String, enable:Bool) {
-		#if windows
-		title ??= lime.app.Application.current.window.title;
-		lime.Native.setDarkMode(title, enable);
-		#end
-	}
-
 	inline public static function showPopUp(message:String, title:String #if sl_windows_api, ?icon:MessageBoxIcon, ?type:MessageBoxType #end, showScrollableMSG:Bool = false):Void
 	{
 		#if android

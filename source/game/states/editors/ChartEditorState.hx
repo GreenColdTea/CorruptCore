@@ -1834,6 +1834,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	{
 		super.update(elapsed);
 
+		// i figured out that some people have invisible mouse cursors for some reason
 		FlxG.mouse.visible = true;
 
 		curStep = recalculateSteps();

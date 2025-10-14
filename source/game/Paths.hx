@@ -292,6 +292,13 @@ class Paths
     {
         #if MODS_ALLOWED
         var file:String = Mods.modsVideo(key);
+        if(file.startsWith('zip://')) {
+            var parts = file.substr(6).split('/');
+            var mod = parts[0];
+            var filePath = parts.slice(1).join('/');
+            var tempPath = Mods.extractFileFromZipMod(mod, filePath, 'videos');
+            if(tempPath != null) return tempPath;
+        }
         if(FileSystem.exists(file)) {
             return file;
         }
@@ -424,10 +431,20 @@ class Paths
         if (bitmap == null)
         {
             var file:String = getPath('images/$key.$imgFormat', IMAGE, library, true);
+            
             #if MODS_ALLOWED
-            if (FileSystem.exists(file))
+            if (file.startsWith('zip://')) {
+                var parts = file.substr(6).split('/');
+                var mod = parts[0];
+                var filePath = parts.slice(1).join('/');
+                var content = Mods.getFileFromMod(mod, filePath);
+                if (content != null) {
+                    bitmap = BitmapData.fromBytes(content);
+                }
+            }
+            else #end if (FileSystem.exists(file))
                 bitmap = BitmapData.fromFile(file);
-            else #end if (OpenFlAssets.exists(file, IMAGE))
+            else if (OpenFlAssets.exists(file, IMAGE))
                 bitmap = OpenFlAssets.getBitmapData(file);
 
             if (bitmap == null)
@@ -465,16 +482,30 @@ class Paths
     {
         var path:String = getPath(key, TEXT, !ignoreMods);
         #if MODS_ALLOWED
+        if (path.startsWith('zip://')) {
+            var parts = path.substr(6).split('/');
+            var mod = parts[0];
+            var filePath = parts.slice(1).join('/');
+            var content = Mods.getFileFromMod(mod, filePath);
+            return (content != null) ? content.toString() : null;
+        }
         return (FileSystem.exists(path)) ? File.getContent(path) : null;
         #else
         return (OpenFlAssets.exists(path, TEXT)) ? Assets.getText(path) : null;
         #end
     }
 
-    inline static public function font(key:String)
+    static public function font(key:String)
     {
         #if MODS_ALLOWED
         var file:String = Mods.modsFont(key);
+        if(file.startsWith('zip://')) {
+            var parts = file.substr(6).split('/');
+            var mod = parts[0];
+            var filePath = parts.slice(1).join('/');
+            var tempPath = Mods.extractFileFromZipMod(mod, filePath, 'fonts');
+            if(tempPath != null) return tempPath;
+        }
         if(FileSystem.exists(file)) {
             return file;
         }
@@ -484,10 +515,15 @@ class Paths
 
     public static function fileExists(key:String, type:AssetType, ?ignoreMods:Bool = false, ?library:String = null)
     {
+        var path:String = getPath(key, type, library, !ignoreMods);
+        
         #if MODS_ALLOWED
-        if(FileSystem.exists(getPath(key, type, library, !ignoreMods))) {
+        if (path.startsWith('zip://')) {
+            return true;
+        }
+        if(FileSystem.exists(path)) {
         #else
-        if(OpenFlAssets.exists(getPath(key, type, library, !ignoreMods))) {
+        if(OpenFlAssets.exists(path, type)) {
         #end
             return true;
         }
@@ -500,7 +536,17 @@ class Paths
         var imageLoaded:FlxGraphic = image(key, library, allowGPU);
 
         var myXml:Dynamic = getPath('images/$key.xml', TEXT, library, true);
-        if(OpenFlAssets.exists(myXml) #if MODS_ALLOWED || (FileSystem.exists(myXml) && (useMod = true)) #end )
+        #if MODS_ALLOWED
+        if(myXml.startsWith('zip://')) {
+            var parts = myXml.substr(6).split('/');
+            var mod = parts[0];
+            var filePath = parts.slice(1).join('/');
+            var content = Mods.getFileFromMod(mod, filePath);
+            if (content != null) {
+                return FlxAtlasFrames.fromSparrow(imageLoaded, content.toString());
+            }
+        }
+        else #end if(OpenFlAssets.exists(myXml) #if MODS_ALLOWED || (FileSystem.exists(myXml) && (useMod = true)) #end )
         {
             #if MODS_ALLOWED
             return FlxAtlasFrames.fromSparrow(imageLoaded, (useMod ? File.getContent(myXml) : myXml));
@@ -511,7 +557,17 @@ class Paths
         else
         {
             var myJson:Dynamic = getPath('images/$key.json', TEXT, library, true);
-            if(OpenFlAssets.exists(myJson) #if MODS_ALLOWED || (FileSystem.exists(myJson) && (useMod = true)) #end )
+            #if MODS_ALLOWED
+            if(myJson.startsWith('zip://')) {
+                var parts = myJson.substr(6).split('/');
+                var mod = parts[0];
+                var filePath = parts.slice(1).join('/');
+                var content = Mods.getFileFromMod(mod, filePath);
+                if (content != null) {
+                    return FlxAtlasFrames.fromTexturePackerJson(imageLoaded, content.toString());
+                }
+            }
+            else #end if(OpenFlAssets.exists(myJson) #if MODS_ALLOWED || (FileSystem.exists(myJson) && (useMod = true)) #end )
             {
                 #if MODS_ALLOWED
                 return FlxAtlasFrames.fromTexturePackerJson(imageLoaded, (useMod ? File.getContent(myJson) : myJson));
@@ -523,7 +579,7 @@ class Paths
         return getPackerAtlas(key, library);
     }
 
-    inline static public function getSparrowAtlas(key:String, ?library:String = null, ?allowGPU:Bool = false):FlxAtlasFrames
+    static public function getSparrowAtlas(key:String, ?library:String = null, ?allowGPU:Bool = false):FlxAtlasFrames
     {
         if (ClientPrefs.cacheOnGPU) {
             allowGPU = true;
@@ -533,7 +589,14 @@ class Paths
         var xmlExists:Bool = false;
 
         var xml:String = Mods.modsXml(key);
-        if(FileSystem.exists(xml)) xmlExists = true;
+        if(xml.startsWith('zip://')) {
+            var parts = xml.substr(6).split('/');
+            var mod = parts[0];
+            var filePath = parts.slice(1).join('/');
+            var content = Mods.getFileFromMod(mod, filePath);
+            if (content != null) return FlxAtlasFrames.fromSparrow(imageLoaded, content.toString());
+        }
+        else if(FileSystem.exists(xml)) xmlExists = true;
 
         return FlxAtlasFrames.fromSparrow(imageLoaded, (xmlExists ? File.getContent(xml) : getPath('images/$key.xml', library)));
         #else
@@ -541,7 +604,7 @@ class Paths
         #end
     }
 
-    inline static public function getPackerAtlas(key:String, ?library:String = null, ?allowGPU:Bool = false):FlxAtlasFrames
+    static public function getPackerAtlas(key:String, ?library:String = null, ?allowGPU:Bool = false):FlxAtlasFrames
     {
         if (ClientPrefs.cacheOnGPU) {
             allowGPU = true;
@@ -553,7 +616,14 @@ class Paths
         var txtExists:Bool = false;
         
         var txt:String = Mods.modsTxt(key);
-        if(FileSystem.exists(txt)) txtExists = true;
+        if(txt.startsWith('zip://')) {
+            var parts = txt.substr(6).split('/');
+            var mod = parts[0];
+            var filePath = parts.slice(1).join('/');
+            var content = Mods.getFileFromMod(mod, filePath);
+            if (content != null) return FlxAtlasFrames.fromSpriteSheetPacker(imageLoaded, content.toString());
+        }
+        else if(FileSystem.exists(txt)) txtExists = true;
 
         return FlxAtlasFrames.fromSpriteSheetPacker(imageLoaded, (txtExists ? File.getContent(txt) : getPath('images/$key.txt', library)));
         #else
@@ -561,14 +631,21 @@ class Paths
         #end
     }
 
-    inline static public function getAsepriteAtlas(key:String, ?library:String = null, ?allowGPU:Bool = true):FlxAtlasFrames
+    static public function getAsepriteAtlas(key:String, ?library:String = null, ?allowGPU:Bool = true):FlxAtlasFrames
     {
         var imageLoaded:FlxGraphic = image(key, library, allowGPU);
         #if MODS_ALLOWED
         var jsonExists:Bool = false;
 
         var json:String = Mods.modsImagesJson(key);
-        if(FileSystem.exists(json)) jsonExists = true;
+        if(json.startsWith('zip://')) {
+            var parts = json.substr(6).split('/');
+            var mod = parts[0];
+            var filePath = parts.slice(1).join('/');
+            var content = Mods.getFileFromMod(mod, filePath);
+            if (content != null) return FlxAtlasFrames.fromTexturePackerJson(imageLoaded, content.toString());
+        }
+        else if(FileSystem.exists(json)) jsonExists = true;
 
         return FlxAtlasFrames.fromTexturePackerJson(imageLoaded, (jsonExists ? File.getContent(json) : getPath('images/$key.json', library)));
         #else
@@ -611,7 +688,27 @@ class Paths
         if (path != null) modLibPath += '$path';
 
         var file:String = Mods.modsSounds(modLibPath, key, WAV_EXT);
-        if(FileSystem.exists(file)) {
+        if(file.startsWith('zip://')) {
+            var parts = file.substr(6).split('/');
+            var mod = parts[0];
+            var filePath = parts.slice(1).join('/');
+            var tempPath = Mods.extractFileFromZipMod(mod, filePath, 'sounds');
+            if(tempPath != null) {
+                if(!currentTrackedSounds.exists(file)) {
+                    #if (sys && !web)
+                    if (FileSystem.exists(tempPath))
+                        currentTrackedSounds.set(file, CoolUtil.loadHighBitrateWav(key, tempPath));
+                    else
+                        currentTrackedSounds.set(file, Sound.fromFile(tempPath));
+                    #else
+                    currentTrackedSounds.set(file, Sound.fromFile(tempPath));
+                    #end
+                }
+                localTrackedAssets.push(file);
+                return currentTrackedSounds.get(file);
+            }
+        }
+        else if(FileSystem.exists(file)) {
             if(!currentTrackedSounds.exists(file)) {
                 currentTrackedSounds.set(file, CoolUtil.loadHighBitrateWav(key, file));
             }
@@ -620,7 +717,20 @@ class Paths
         }
 
         file = Mods.modsSounds(modLibPath, key);
-        if(FileSystem.exists(file)) {
+        if(file.startsWith('zip://')) {
+            var parts = file.substr(6).split('/');
+            var mod = parts[0];
+            var filePath = parts.slice(1).join('/');
+            var tempPath = Mods.extractFileFromZipMod(mod, filePath, 'sounds');
+            if(tempPath != null) {
+                if(!currentTrackedSounds.exists(file)) {
+                    currentTrackedSounds.set(file, Sound.fromFile(tempPath));
+                }
+                localTrackedAssets.push(file);
+                return currentTrackedSounds.get(file);
+            }
+        }
+        else if(FileSystem.exists(file)) {
             if(!currentTrackedSounds.exists(file)) {
                 currentTrackedSounds.set(file, Sound.fromFile(file));
             }
