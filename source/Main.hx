@@ -148,7 +148,7 @@ class Main extends Sprite
 
 			resetSpriteCache(this);
 
-            if (FlxG.cameras != null && FlxG.cameras.list != null) {
+            if (FlxG.cameras?.list != null) {
                 for (cam in FlxG.cameras.list) {
                     if (cam != null)
                         resetSpriteCache(cam.flashSprite);

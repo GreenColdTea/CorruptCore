@@ -1702,8 +1702,8 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			
 			if (draggingCamera && FlxG.mouse.pressed)
 			{
-				var deltaX = FlxG.mouse.deltaScreenX * cameraDragSensitivity;
-				var deltaY = FlxG.mouse.deltaScreenY * cameraDragSensitivity;
+				var deltaX = FlxG.mouse.deltaViewX * cameraDragSensitivity;
+				var deltaY = FlxG.mouse.deltaViewY * cameraDragSensitivity;
 				
 				cameraScrollTarget.x -= deltaX;
 				cameraScrollTarget.y -= deltaY;
