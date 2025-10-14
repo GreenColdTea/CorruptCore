@@ -19,6 +19,7 @@ haxelib set flixel-tools 1.5.1
 haxelib set flixel-addons 3.3.2
 haxelib set hxdiscord_rpc 1.3.0
 haxelib git hxcpp https://github.com/FunkinCrew/hxcpp
+haxelib git away3d https://github.com/openfl/away3d.git
 haxelib git flxsoundfilters https://github.com/TheZoroForce240/FlxSoundFilters.git
 haxelib git rulescript https://github.com/Kriptel/RuleScript.git dev --skip-dependencies
 haxelib git hscript https://github.com/HaxeFoundation/hscript.git 92ffe9c519bbccf783df0b3400698c5b3cc645ef
