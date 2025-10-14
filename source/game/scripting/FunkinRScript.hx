@@ -40,6 +40,11 @@ class FunkinRScript {
         "FlxTween" => flixel.tweens.FlxTween,
         "FlxEase" => flixel.tweens.FlxEase,
         "FlxText" => flixel.text.FlxText,
+        "FlxSound" => flixel.sound.FlxSound,
+        "FlxTextBorderStyle" => flixel.text.FlxText.FlxTextBorderStyle,
+        "FlxCamera" => flixel.FlxCamera,
+        "FlxTextFormat" => flixel.text.FlxText.FlxTextFormat,
+        "FlxTextFormatMarkerPair" => flixel.text.FlxText.FlxTextFormatMarkerPair,
 
         #if VIDEOS_ALLOWED
         "FunkinVideoSprite" => game.objects.FunkinVideoSprite,
@@ -60,8 +65,10 @@ class FunkinRScript {
 
         "Paths" => game.Paths,
         "Character" => game.objects.Character,
+        "PlayerSettings" => game.backend.PlayerSettings,
         "CoolUtil" => game.backend.utils.CoolUtil,
         "MusicBeatState" => MusicBeatState,
+        "MusicBeatSubstate" => MusicBeatSubstate,
         "Conductor" => game.backend.Conductor,
         "ClientPrefs" => game.backend.ClientPrefs,
         "PlayState" => game.PlayState,
@@ -76,6 +83,16 @@ class FunkinRScript {
         "Mods" => game.backend.system.Mods,
         #end
 
+        #if SCRIPTABLE_STATES
+        "TitleState" => game.states.TitleState,
+        "MainMenuState" => game.states.MainMenuState,
+        "OptionsMenu" => game.states.options.OptionsState,
+        "CreditsState" => game.states.CreditsState,
+        "StoryMenuState" => game.states.StoryMenuState,
+        "FreeplayState" => game.states.FreeplayState,
+        "LoadingState" => game.states.LoadingState,
+        #end
+
         'StringMap' => haxe.ds.StringMap,
 		'IntMap' => haxe.ds.IntMap,
 		'ObjectMap' => haxe.ds.ObjectMap
@@ -84,6 +101,8 @@ class FunkinRScript {
     static final ABSTRACT_IMPORTS:Array<String> = [
         "flixel.util.FlxColor",
         "flixel.input.keyboard.FlxKey",
+        "flixel.tweens.FlxTween.FlxTweenType",
+        "flixel.text.FlxText.FlxTextAlign",
         #if flxgif
         "flxgif.FlxGifAsset",
         #end
@@ -298,6 +317,7 @@ class FunkinRScript {
                 var result:Dynamic = null;
                 if(PlayState.instance.variables.exists(name)) 
                     result = PlayState.instance.variables.get(name);
+
                 return result;
             });
             set("removeVar", (name:String) -> {
@@ -305,6 +325,7 @@ class FunkinRScript {
                     PlayState.instance.variables.remove(name);
                     return true;
                 }
+                
                 return false;
             });
             
@@ -332,6 +353,8 @@ class FunkinRScript {
                 return false;
             });
         }
+
+        set("controls", game.backend.PlayerSettings.player1.controls);
         
         set("getObject", getObject);
         set("getAll", getAllObjects);
