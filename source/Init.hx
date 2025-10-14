@@ -31,10 +31,6 @@ class Init extends FlxState
 
         FlxG.save.bind('ccengine', CoolUtil.getSavePath());
 
-		#if GLOBAL_SCRIPTS
-		if(!game.scripting.HScriptGlobal.globalScriptActive) game.scripting.HScriptGlobal.addGlobalScript();
-		#end
-
 		ClientPrefs.init();
 
 		game.backend.Highscore.load();
@@ -54,6 +50,13 @@ class Init extends FlxState
 		game.backend.system.Mods.pushGlobalMods();
 		WeekData.loadTheFirstEnabledMod();
 		#end
+
+		fpsVar = new FPSCounterPlugin(10, 3, 0xFFFFFF);
+		Lib.current.addChild(fpsVar);
+		Lib.current.stage.align = "tl";
+		Lib.current.stage.scaleMode = StageScaleMode.NO_SCALE;
+
+		if(fpsVar != null) fpsVar.visible = ClientPrefs.showFPS;
 
         FlxG.fixedTimestep = false;
 	    FlxG.game.focusLostFramerate = #if mobile 30 #else 60 #end;
@@ -83,14 +86,8 @@ class Init extends FlxState
 		FlxG.scaleMode = new flixel.FlxScaleMode();
 		#end
 
-		#if !mobile
-		fpsVar = new FPSCounterPlugin(10, 3, 0xFFFFFF);
-		Lib.current.addChild(fpsVar);
-		Lib.current.stage.align = "tl";
-		Lib.current.stage.scaleMode = StageScaleMode.NO_SCALE;
-		if(fpsVar != null) {
-			fpsVar.visible = ClientPrefs.showFPS;
-		}
+		#if GLOBAL_SCRIPTS
+		if(!game.scripting.HScriptGlobal.globalScriptActive) game.scripting.HScriptGlobal.addGlobalScript();
 		#end
 
 		FlxG.switchState(() -> new game.states.TitleState());

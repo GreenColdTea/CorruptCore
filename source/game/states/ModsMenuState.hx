@@ -701,7 +701,7 @@ class ModsMenuState extends MusicBeatState
                 extractInfoTxt.y = mod.alphabet.y + 290;
                 for (button in buttonsArray)
                 {
-                    button.y = mod.alphabet.y + 350;
+                    button.y = mod.alphabet.y + 310;
                 }
             }
             i++;

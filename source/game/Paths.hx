@@ -204,11 +204,11 @@ class Paths
 
         #if MODS_ALLOWED
         if (Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0) {
-            foldersToCheck.unshift(Mods.getModPath('${Mods.currentModDirectory}/scripts/states/$statePath/'));
+            foldersToCheck.insert(0, Mods.getModPath('${Mods.currentModDirectory}/scripts/states/$statePath/'));
         }
         
         for (mod in Mods.getGlobalMods()) {
-            foldersToCheck.unshift(Mods.getModPath('$mod/scripts/states/$statePath/'));
+            foldersToCheck.insert(0, Mods.getModPath('$mod/scripts/states/$statePath/'));
         }
         #end
 
@@ -234,11 +234,11 @@ class Paths
 
         #if MODS_ALLOWED
         if (Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0) {
-            foldersToCheck.unshift(Mods.getModPath('${Mods.currentModDirectory}/scripts/substates/$statePath/'));
+            foldersToCheck.insert(0, Mods.getModPath('${Mods.currentModDirectory}/scripts/substates/$statePath/'));
         }
         
         for (mod in Mods.getGlobalMods()) {
-            foldersToCheck.unshift(Mods.getModPath('$mod/scripts/substates/$statePath/'));
+            foldersToCheck.insert(0, Mods.getModPath('$mod/scripts/substates/$statePath/'));
         }
         #end
 
