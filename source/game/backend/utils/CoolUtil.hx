@@ -257,6 +257,13 @@ class CoolUtil
 		#end
     }
 
+	inline public static function setWindowDarkMode(title:String, enable:Bool) {
+		#if windows
+		title ??= lime.app.Application.current.window.title;
+		lime.Native.setWindowDarkMode(title, enable);
+		#end
+	}
+
 	//uhhhh does this even work at all? i'm starting to doubt
 	inline public static function precacheSound(sound:String, ?library:String = null):Void {
 		Paths.sound(sound, library);

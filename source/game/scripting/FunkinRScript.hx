@@ -46,6 +46,8 @@ class FunkinRScript {
         "FlxTextFormat" => flixel.text.FlxText.FlxTextFormat,
         "FlxTextFormatMarkerPair" => flixel.text.FlxText.FlxTextFormatMarkerPair,
 
+        "FixedScaleAdjustSizeScaleMode" => flixel.system.scaleModes.FixedScaleAdjustSizeScaleMode,
+
         #if VIDEOS_ALLOWED
         "FunkinVideoSprite" => game.objects.FunkinVideoSprite,
         #end
