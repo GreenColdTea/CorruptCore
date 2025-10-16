@@ -46,7 +46,14 @@ class FunkinRScript {
         "FlxTextFormat" => flixel.text.FlxText.FlxTextFormat,
         "FlxTextFormatMarkerPair" => flixel.text.FlxText.FlxTextFormatMarkerPair,
 
+        "BaseScaleMode" => flixel.system.scaleModes.BaseScaleMode,
+        "FillScaleMode" => flixel.system.scaleModes.FillScaleMode,
         "FixedScaleAdjustSizeScaleMode" => flixel.system.scaleModes.FixedScaleAdjustSizeScaleMode,
+        "FixedScaleMode" => flixel.system.scaleModes.FixedScaleMode,
+        "PixelPerfectScaleMode" => flixel.system.scaleModes.PixelPerfectScaleMode,
+        "RatioScaleMode" => flixel.system.scaleModes.RatioScaleMode,
+        "RelativeScaleMode" => flixel.system.scaleModes.RelativeScaleMode,
+        "StageSizeScaleMode" => flixel.system.scaleModes.StageSizeScaleMode,
 
         #if VIDEOS_ALLOWED
         "FunkinVideoSprite" => game.objects.FunkinVideoSprite,
@@ -93,6 +100,8 @@ class FunkinRScript {
         "StoryMenuState" => game.states.StoryMenuState,
         "FreeplayState" => game.states.FreeplayState,
         "LoadingState" => game.states.LoadingState,
+        "HScriptState" => game.scripting.HScriptState,
+        "HScriptSubstate" => game.scripting.HScriptSubstate,
         #end
 
         'StringMap' => haxe.ds.StringMap,
@@ -111,7 +120,6 @@ class FunkinRScript {
         "openfl.display.BlendMode"
     ];
 
-    public var scriptType:String = "N/A";
     public var scriptName:String;
     public var active(default, null):Bool = true;
     

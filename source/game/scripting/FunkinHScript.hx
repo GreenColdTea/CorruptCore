@@ -11,7 +11,6 @@ class FunkinHScript extends FunkinRScript
 {
     public function new(path:String, parentInstance:Dynamic = null, skipCreate:Bool = false) {
         super(path, parentInstance, skipCreate);
-        scriptType = "HScript";
 
         set("FunkinHScript", FunkinHScript);
 
@@ -19,7 +18,14 @@ class FunkinHScript extends FunkinRScript
         rule.parser = hxParser;
         
         hxParser.allowAll();
-        hxParser.setPreprocessorValues(getHScriptPreprocessors());
+        
+        var preprocessors = getHScriptPreprocessors();
+        trace('HScript Preprocessors for $path:');
+        for (key => value in preprocessors) {
+            trace('  $key = $value (type: ${Type.typeof(value)})');
+        }
+        
+        hxParser.setPreprocessorValues(preprocessors);
         hxParser.setParserParameters({
             strictMode: true,
             requireSemicolons: false,
@@ -46,16 +52,30 @@ class FunkinHScript extends FunkinRScript
     public static dynamic function getHScriptPreprocessors() {
         var preprocessors:Map<String, Dynamic> = new Map();
         
-        preprocessors.set("mobile", #if mobile true #else false #end);
         preprocessors.set("ENGINE_VER", Application.current.meta.get('version'));
         
         var staticDefines = game.backend.utils.MacroUtil.defines;
         for (key => value in staticDefines) {
             if (!preprocessors.exists(key)) {
-                preprocessors.set(key, value);
+                preprocessors.set(key, parseDefineValue(value));
             }
         }
         
         return preprocessors;
+    }
+
+    private static function parseDefineValue(value:String):Dynamic {
+        if (value == "1") return true;
+        if (value == "0") return false;
+        if (value == "true") return true;
+        if (value == "false") return false;
+        
+        var floatVal = Std.parseFloat(value);
+        if (!Math.isNaN(floatVal)) return floatVal;
+        
+        var intVal = Std.parseInt(value);
+        if (intVal != null) return intVal;
+       
+        return value;
     }
 }

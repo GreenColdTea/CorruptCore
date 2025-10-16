@@ -76,7 +76,6 @@ class MusicBeatState extends FlxState
 	// (WStaticInitOrder) Warning : maybe loop in static generation of MusicBeatState
 	private static function initExcludeStates():Array<Dynamic> {
 		return [
-			game.states.LoadingState, 
 			game.PlayState, 
 			game.scripting.HScriptState, 
 			MusicBeatState,
@@ -177,6 +176,8 @@ class MusicBeatState extends FlxState
 		#end
 
 		super.create();
+
+		quickSetOnMenuScripts('this', this);
 
 		quickCallMenuScript("onCreatePost", []);
 	}

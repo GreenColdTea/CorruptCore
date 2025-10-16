@@ -78,6 +78,7 @@ class DebugConsolePlugin extends FlxBasic
     function initializeHScript():Void
     {
         hscript = new FunkinHScript("", FlxG.state, true);
+        hscript.scriptName = "Debug Console[HS]";
         
         hscript.set("console", this);
         hscript.set("print", (v:Dynamic) -> addOutput(Std.string(v), 0xFFFFFF));

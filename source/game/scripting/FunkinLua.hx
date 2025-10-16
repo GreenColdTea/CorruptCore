@@ -1041,6 +1041,7 @@ class FunkinLua {
 		{
 			trace('initializing haxe interp for: $scriptName');
 			hscript = new FunkinHScript("", PlayState.instance, true);
+			hscript.scriptName = scriptName;
 		}
 	}
 	#end
