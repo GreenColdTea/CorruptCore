@@ -17,9 +17,33 @@ class MacroUtil {
 		#if display
 		return macro $v{[]};
 		#else
-		return macro $v{Context.getDefines()};
+		var definesMap = Context.getDefines();
+		var processedDefines = new Map<String, Dynamic>();
+		
+		for (key => value in definesMap) {
+			processedDefines.set(key, parseDefineValueMacro(value));
+		}
+		
+		return macro $v{processedDefines};
 		#end
 	}
+
+	#if macro
+	private static function parseDefineValueMacro(value:String):Dynamic {
+		if (value == "1") return true;
+		if (value == "0") return false;
+		if (value == "true") return true;
+		if (value == "false") return false;
+		
+		var floatVal = Std.parseFloat(value);
+		if (!Math.isNaN(floatVal)) return floatVal;
+		
+		var intVal = Std.parseInt(value);
+		if (intVal != null) return intVal;
+	   
+		return value;
+	}
+	#end
 
     /**
      * Macro for automatically adding scripts to resources
@@ -31,9 +55,9 @@ class MacroUtil {
         var basePaths = ["scripts/"];
         
         #if MODS_ALLOWED
-        if (FileSystem.exists("mods/")) {
-            for (mod in FileSystem.readDirectory("mods/")) {
-                var modPath = Path.join(["mods", mod, "scripts"]);
+        if (FileSystem.exists("contents/")) {
+            for (mod in FileSystem.readDirectory("contents/")) {
+                var modPath = Path.join(["contents", mod, "scripts"]);
                 if (FileSystem.exists(modPath) && FileSystem.isDirectory(modPath)) {
                     basePaths.push(modPath + "/");
                 }

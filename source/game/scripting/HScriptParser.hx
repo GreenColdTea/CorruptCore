@@ -19,10 +19,9 @@ class HScriptParser extends HxParser
     private var currentLine:Int = 1;
     private var currentColumn:Int = 1;
     
-    private var skipMode:Bool = false;
-    private var currentCondition:Bool = true;
-
     public var preprocessorValues:Map<String, Dynamic>;
+    private var preprocStack:Array<{active:Bool, elseFound:Bool}>;
+    private var currentActive:Bool = true;
 
     public function setPreprocessorValues(values:Map<String, Dynamic>):Void {
         this.preprocessorValues = values;
@@ -39,6 +38,7 @@ class HScriptParser extends HxParser
         this.errors = [];
         this.warnings = [];
         this.preprocessorValues = new Map();
+        this.preprocStack = [];
     }
     
     override public function parse(code:String):Expr
@@ -47,8 +47,8 @@ class HScriptParser extends HxParser
         warnings = [];
         currentLine = 1;
         currentColumn = 1;
-        skipMode = false;
-        currentCondition = true;
+        preprocStack = [];
+        currentActive = true;
         
         try {
             var processedCode = preprocessCode(code);
@@ -81,7 +81,7 @@ class HScriptParser extends HxParser
             throw new haxe.Exception(enhancedError);
         }
     }
-    
+
     private function transformFieldAssignments(expr:Expr):Expr {
         #if hscriptPos
         return switch(expr.e) {
@@ -335,9 +335,8 @@ class HScriptParser extends HxParser
     {
         var lines = code.split("\n");
         var output = [];
-        var conditionStack:Array<{condition:Bool, active:Bool, elseFound:Bool}> = [];
-        var currentActive = true;
-        var skipBlock = false;
+        preprocStack = [];
+        currentActive = true;
         
         for (i in 0...lines.length) {
             var line = lines[i];
@@ -349,79 +348,61 @@ class HScriptParser extends HxParser
                     var condition = trimmed.substr(4).trim();
                     var conditionMet = evaluatePreprocessorCondition(condition);
                     
-                    conditionStack.push({
-                        condition: conditionMet, 
+                    preprocStack.push({
                         active: currentActive,
                         elseFound: false
                     });
                     
-                    currentActive = conditionMet && currentActive;
-                    skipBlock = !currentActive;
-                    
-                    output.push(line);
+                    currentActive = currentActive && conditionMet;
                     continue;
                 }
                 else if (trimmed.startsWith("#elseif ")) {
-                    if (conditionStack.length == 0) {
+                    if (preprocStack.length == 0) {
                         addError("Unexpected #elseif without #if", i + 1, 1);
-                        output.push(line);
                         continue;
                     }
                     
-                    var lastCondition = conditionStack[conditionStack.length - 1];
-                    var condition = trimmed.substr(8).trim();
-                    var conditionMet = evaluatePreprocessorCondition(condition);
-                    
-                    if (lastCondition.condition) {
+                    var lastCondition = preprocStack[preprocStack.length - 1];
+                    if (lastCondition.elseFound) {
+                        addError("#elseif after #else", i + 1, 1);
                         currentActive = false;
                     } else {
-                        currentActive = conditionMet && lastCondition.active;
+                        var condition = trimmed.substr(8).trim();
+                        var conditionMet = evaluatePreprocessorCondition(condition);
+                        
+                        if (currentActive) {
+                            currentActive = false;
+                        } else {
+                            currentActive = lastCondition.active && conditionMet;
+                        }
+                        preprocStack[preprocStack.length - 1].elseFound = true;
                     }
-                    
-                    conditionStack[conditionStack.length - 1] = {
-                        condition: conditionMet || lastCondition.condition,
-                        active: lastCondition.active,
-                        elseFound: false
-                    };
-                    
-                    skipBlock = !currentActive;
-                    output.push(line);
                     continue;
                 }
                 else if (trimmed == "#else") {
-                    if (conditionStack.length == 0) {
+                    if (preprocStack.length == 0) {
                         addError("Unexpected #else without #if", i + 1, 1);
-                        output.push(line);
                         continue;
                     }
                     
-                    var lastCondition = conditionStack[conditionStack.length - 1];
-                    
-                    currentActive = !lastCondition.condition && lastCondition.active;
-                    skipBlock = !currentActive;
-                    
-                    conditionStack[conditionStack.length - 1] = {
-                        condition: true,
-                        active: lastCondition.active,
-                        elseFound: true
-                    };
-                    
-                    output.push(line);
+                    var lastCondition = preprocStack[preprocStack.length - 1];
+                    if (lastCondition.elseFound) {
+                        addError("#else after #else", i + 1, 1);
+                        currentActive = false;
+                    } else {
+                        currentActive = lastCondition.active && !currentActive;
+                        preprocStack[preprocStack.length - 1].elseFound = true;
+                    }
                     continue;
                 }
                 else if (trimmed == "#end") {
-                    if (conditionStack.length == 0) {
+                    if (preprocStack.length == 0) {
                         addError("Unexpected #end without #if", i + 1, 1);
-                        output.push(line);
                         continue;
                     }
                     
-                    var lastCondition = conditionStack.pop();
-                    currentActive = conditionStack.length > 0 ? 
-                        conditionStack[conditionStack.length - 1].active : true;
-                    skipBlock = !currentActive;
-                    
-                    output.push(line);
+                    var lastCondition = preprocStack.pop();
+                    currentActive = lastCondition.active;
                     continue;
                 }
                 else if (trimmed.startsWith("#error ")) {
@@ -429,7 +410,6 @@ class HScriptParser extends HxParser
                     if (currentActive) {
                         addError("Preprocessor error: " + message, i + 1, 1);
                     }
-                    output.push(line);
                     continue;
                 }
                 else if (trimmed.startsWith("#warning ")) {
@@ -437,33 +417,111 @@ class HScriptParser extends HxParser
                     if (currentActive) {
                         addWarning("Preprocessor warning: " + message, i + 1, 1);
                     }
-                    output.push(line);
                     continue;
                 }
                 else if (trimmed.startsWith("#set ")) {
                     var setExpr = trimmed.substr(5).trim();
-                    processSetDirective(setExpr, i + 1);
-                    output.push(line);
+                    if (currentActive) {
+                        processSetDirective(setExpr, i + 1);
+                    }
                     continue;
                 }
             }
             
-            if (!skipBlock) {
+            if (currentActive) {
                 output.push(line);
-            } else {
-                output.push("");
             }
         }
         
-        if (conditionStack.length > 0) {
-            for (condition in conditionStack) {
-                addError("Unclosed #if directive", lines.length, 1);
-            }
+        if (preprocStack.length > 0) {
+            addError("Unclosed #if directive", lines.length, 1);
         }
         
         return output.join("\n");
     }
     
+    private function evaluatePreprocessorCondition(condition:String):Bool
+    {
+        condition = condition.trim();
+        
+        while (condition.startsWith("(") && condition.endsWith(")")) {
+            condition = condition.substring(1, condition.length - 1).trim();
+        }
+        
+        if (condition == "true") return true;
+        if (condition == "false") return false;
+        
+        if (condition.startsWith("!")) {
+            var subCondition = condition.substr(1).trim();
+            return !evaluatePreprocessorCondition(subCondition);
+        }
+        
+        var andIndex = condition.indexOf(" && ");
+        if (andIndex != -1) {
+            var left = condition.substring(0, andIndex).trim();
+            var right = condition.substring(andIndex + 4).trim();
+            return evaluatePreprocessorCondition(left) && evaluatePreprocessorCondition(right);
+        }
+        
+        var orIndex = condition.indexOf(" || ");
+        if (orIndex != -1) {
+            var left = condition.substring(0, orIndex).trim();
+            var right = condition.substring(orIndex + 4).trim();
+            return evaluatePreprocessorCondition(left) || evaluatePreprocessorCondition(right);
+        }
+        
+        var eqIndex = condition.indexOf(" == ");
+        if (eqIndex != -1) {
+            var left = condition.substring(0, eqIndex).trim();
+            var right = condition.substring(eqIndex + 4).trim();
+            return evaluatePreprocessorValue(left) == evaluatePreprocessorValue(right);
+        }
+        
+        var neqIndex = condition.indexOf(" != ");
+        if (neqIndex != -1) {
+            var left = condition.substring(0, neqIndex).trim();
+            var right = condition.substring(neqIndex + 4).trim();
+            return evaluatePreprocessorValue(left) != evaluatePreprocessorValue(right);
+        }
+        
+        return evaluatePreprocessorValue(condition) == true;
+    }
+    
+    private function evaluatePreprocessorValue(value:String):Dynamic
+    {
+        value = value.trim();
+        
+        if (value == "true") return true;
+        if (value == "false") return false;
+        
+        var intVal = Std.parseInt(value);
+        if (intVal != null) return intVal != 0;
+        
+        var floatVal = Std.parseFloat(value);
+        if (!Math.isNaN(floatVal)) return floatVal != 0;
+        
+        if (preprocessorValues.exists(value)) {
+            var val = preprocessorValues.get(value);
+
+            if (Std.isOfType(val, Bool)) return val;
+            if (Std.isOfType(val, Int) || Std.isOfType(val, Float)) return val != 0;
+            if (Std.isOfType(val, String)) {
+                var str:String = val;
+                return str != "" && str != "0" && str.toLowerCase() != "false";
+            }
+            return val != null;
+        }
+        
+        if ((value.startsWith('"') && value.endsWith('"')) || 
+            (value.startsWith("'") && value.endsWith("'"))) {
+            var strVal = value.substring(1, value.length - 1);
+            return strVal != "" && strVal != "0" && strVal.toLowerCase() != "false";
+        }
+        
+        addWarning("Unknown preprocessor identifier: " + value, currentLine, currentColumn);
+        return false;
+    }
+
     private function processSetDirective(expr:String, line:Int):Void
     {
         var parts = expr.split("=");
@@ -497,72 +555,6 @@ class HScriptParser extends HxParser
         }
         
         preprocessorValues.set(flag, value);
-    }
-    
-    private function evaluatePreprocessorCondition(condition:String):Bool
-    {
-        condition = condition.trim();
-        
-        while (condition.startsWith("(") && condition.endsWith(")")) {
-            condition = condition.substring(1, condition.length - 1).trim();
-        }
-        
-        if (condition == "true") return true;
-        if (condition == "false") return false;
-        
-        if (condition.startsWith("!")) {
-            var flag = condition.substr(1).trim();
-            return !evaluatePreprocessorCondition(flag);
-        }
-        
-        if (condition.indexOf(" && ") != -1) {
-            var parts = condition.split(" && ");
-            var result = true;
-            for (part in parts) {
-                result = result && evaluatePreprocessorCondition(part.trim());
-                if (!result) break;
-            }
-            return result;
-        }
-        
-        if (condition.indexOf(" || ") != -1) {
-            var parts = condition.split(" || ");
-            var result = false;
-            for (part in parts) {
-                result = result || evaluatePreprocessorCondition(part.trim());
-                if (result) break;
-            }
-            return result;
-        }
-        
-        if (condition.indexOf(" == ") != -1) {
-            var parts = condition.split(" == ");
-            if (parts.length == 2) {
-                return evaluatePreprocessorCondition(parts[0].trim()) == evaluatePreprocessorCondition(parts[1].trim());
-            }
-        }
-        
-        if (condition.indexOf(" != ") != -1) {
-            var parts = condition.split(" != ");
-            if (parts.length == 2) {
-                return evaluatePreprocessorCondition(parts[0].trim()) != evaluatePreprocessorCondition(parts[1].trim());
-            }
-        }
-        
-        if (preprocessorValues.exists(condition)) {
-            var value = preprocessorValues.get(condition);
-            if (Std.isOfType(value, Bool)) {
-                return value;
-            } else if (Std.isOfType(value, Int) || Std.isOfType(value, Float)) {
-                return value != 0;
-            } else if (Std.isOfType(value, String)) {
-                return value != "" && value != "0" && value.toLowerCase() != "false";
-            }
-            return value != null;
-        }
-        
-        addWarning("Unknown preprocessor condition: " + condition, currentLine, currentColumn);
-        return false;
     }
     
     private function validateBasicSyntax(code:String):Bool
