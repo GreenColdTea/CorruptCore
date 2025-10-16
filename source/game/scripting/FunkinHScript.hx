@@ -52,6 +52,7 @@ class FunkinHScript extends FunkinRScript
     public static dynamic function getHScriptPreprocessors() {
         var preprocessors:Map<String, Dynamic> = new Map();
         
+        preprocessors.set("mobile", #if mobile true #else false #end);
         preprocessors.set("ENGINE_VER", Application.current.meta.get('version'));
         
         var staticDefines = game.backend.utils.MacroUtil.defines;
