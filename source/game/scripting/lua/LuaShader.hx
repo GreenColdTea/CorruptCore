@@ -2,6 +2,7 @@ package game.scripting.lua;
 
 #if (!flash && sys)
 import flixel.addons.display.FlxRuntimeShader;
+import openfl.filters.ShaderFilter;
 #end
 
 class LuaShader
@@ -59,6 +60,36 @@ class LuaShader
 				return true;
 			}
 			return false;
+		});
+
+		Lua_helper.add_callback(lua, "setShaderCamera", function(camera:String, shader:String) {
+			if(!ClientPrefs.shaders) {
+				FunkinLua.luaTrace('setShaderCamera: Shaders are disabled!', false, false, FlxColor.RED);
+				return;
+			}
+
+			var cam:FlxCamera = FunkinLua.cameraFromString(camera);
+			if(cam == null) {
+				FunkinLua.luaTrace('setShaderCamera: Camera not found: $camera', false, false, FlxColor.RED);
+				return;
+			}
+
+			if(shader == null || shader.trim() == '') {
+				cam.filters = [];
+				if(PlayState.instance.cameraShaders.exists(camera))
+					PlayState.instance.cameraShaders.remove(camera);
+				return;
+			}
+
+			if(!PlayState.instance.runtimeShaders.exists(shader)) {
+				FunkinLua.luaTrace('setShaderCamera: Shader not found: $shader', false, false, FlxColor.RED);
+				return;
+			}
+
+			var arr:Array<String> = PlayState.instance.runtimeShaders.get(shader);
+			var runtimeShader:FlxRuntimeShader = new FlxRuntimeShader(arr[0], arr[1]);
+			cam.filters = [new ShaderFilter(runtimeShader)];
+			PlayState.instance.cameraShaders.set(camera, runtimeShader);
 		});
 
 
