@@ -707,7 +707,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		var stepperSpeed:PsychUINumericStepper = new PsychUINumericStepper(10, stepperBPM.y + 35, 0.1, 1, 0.1, 10, 1);
 		stepperSpeed.value = _song.speed;
 		stepperSpeed.name = 'song_speed';
-		var directories:Array<String> = [#if MODS_ALLOWED Mods.getModPath('characters/'), Mods.getModPath(Mods.currentModDirectory + '/characters/'), #end SUtil.getPath() + Paths.getPreloadPath('characters/')];
+		var directories:Array<String> = [#if MODS_ALLOWED Mods.getModPath('characters/'), Mods.getModPath(Mods.currentModDirectory + '/characters/'), #end  Paths.getPreloadPath('characters/')];
 		#if MODS_ALLOWED
 		for(mod in Mods.getGlobalMods())
 			directories.push(Mods.getModPath(mod + '/characters/'));
@@ -716,7 +716,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		#end
 
 		var tempMap:Map<String, Bool> = new Map<String, Bool>();
-		var characters:Array<String> = CoolUtil.coolTextFile(SUtil.getPath() + Paths.txt('characterList'));
+		var characters:Array<String> = CoolUtil.coolTextFile( Paths.txt('characterList'));
 		for (i in 0...characters.length) {
 			tempMap.set(characters[i], true);
 		}
@@ -766,7 +766,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		player2DropDown.selectedLabel = _song.player2;
 
 		#if MODS_ALLOWED
-		var directories:Array<String> = [Mods.getModPath('stages/'), Mods.getModPath(Mods.currentModDirectory + '/stages/'), SUtil.getPath() + Paths.getPreloadPath('stages/')];
+		var directories:Array<String> = [Mods.getModPath('stages/'), Mods.getModPath(Mods.currentModDirectory + '/stages/'),  Paths.getPreloadPath('stages/')];
 		for(mod in Mods.getGlobalMods())
 			directories.push(Mods.getModPath(mod + '/stages/'));
 		#else
@@ -774,7 +774,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		#end
 
 		tempMap.clear();
-		var stageFile:Array<String> = CoolUtil.coolTextFile(SUtil.getPath() + Paths.txt('stageList'));
+		var stageFile:Array<String> = CoolUtil.coolTextFile( Paths.txt('stageList'));
 		var stages:Array<String> = [];
 		for (i in 0...stageFile.length) { //Prevent duplicates
 			var stageToCheck:String = stageFile[i];
@@ -2639,26 +2639,28 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	var lastSecBeats:Float = 0;
 	var lastSecBeatsNext:Float = 0;
 	function reloadGridLayer() {
-		gridBG.makeGraphic(GRID_SIZE * 9, Std.int(GRID_SIZE * getSectionBeats() * GRID_COLUMNS_PER_PLAYER * zoomList[curZoom]), 0xFF222222);
-		FlxGridOverlay.overlay(gridBG, GRID_SIZE, GRID_SIZE, GRID_SIZE * 9, Std.int(GRID_SIZE * getSectionBeats() * GRID_COLUMNS_PER_PLAYER * zoomList[curZoom]), true, gridColors.mainLines, gridColors.secondaryLines);
+		for (sprite in gridLayer) {
+			if (sprite != gridBG && sprite != prevGridBG && sprite != nextGridBG) {
+				sprite?.destroy();
+			}
+		}
+		gridLayer?.clear();
+
+		gridBG = FlxGridOverlay.create(GRID_SIZE, GRID_SIZE, GRID_SIZE * 9, Std.int(GRID_SIZE * getSectionBeats() * GRID_COLUMNS_PER_PLAYER * zoomList[curZoom]), true, gridColors.mainLines, gridColors.secondaryLines);
 		gridBG.screenCenter(X);
 		
-		waveformSprite.x = gridBG.x + GRID_SIZE / 2;
+		waveformSprite.x = gridBG.x + GRID_SIZE;
 
 		updateWaveformIfNeeded();
-
 		updateGrid();
 
 		var foundPrevSec:Bool = false;
 		var foundNextSec:Bool = false;
 
-		var leHeight:Int = Std.int(gridBG.height) * -1;
 		if(curSec > 0 && sectionStartTime(-1) >= 0)
 		{
-			prevGridBG.makeGraphic(GRID_SIZE * (GRID_COLUMNS_PER_PLAYER * GRID_PLAYERS + 1), Std.int(GRID_SIZE * getSectionBeats(curSec - 1) * GRID_COLUMNS_PER_PLAYER * zoomList[curZoom]), 0xFF222222);
-			FlxGridOverlay.overlay(prevGridBG, GRID_SIZE, GRID_SIZE, GRID_SIZE * (GRID_COLUMNS_PER_PLAYER * GRID_PLAYERS + 1), Std.int(GRID_SIZE * getSectionBeats(curSec - 1) * GRID_COLUMNS_PER_PLAYER * zoomList[curZoom]), true, gridColors.background, gridColors.mainLines);
+			prevGridBG = FlxGridOverlay.create(GRID_SIZE, GRID_SIZE, GRID_SIZE * (GRID_COLUMNS_PER_PLAYER * GRID_PLAYERS + 1), Std.int(GRID_SIZE * getSectionBeats(curSec - 1) * GRID_COLUMNS_PER_PLAYER * zoomList[curZoom]), true, gridColors.background, gridColors.mainLines);
 			prevGridBG.screenCenter(X);
-			leHeight = Std.int(gridBG.y - prevGridBG.height);
 			foundPrevSec = true;
 		}
 		else 
@@ -2667,30 +2669,18 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		}
 		prevGridBG.y = gridBG.y - prevGridBG.height;
 
-		var leHeight2:Int = Std.int(gridBG.height);
 		if(sectionStartTime(1) < FlxG.sound.music.length)
 		{
-			nextGridBG.makeGraphic(GRID_SIZE * (GRID_COLUMNS_PER_PLAYER * GRID_PLAYERS + 1), Std.int(GRID_SIZE * getSectionBeats(curSec + 1) * GRID_COLUMNS_PER_PLAYER * zoomList[curZoom]), 0xFF222222);
-			FlxGridOverlay.overlay(nextGridBG, GRID_SIZE, GRID_SIZE, GRID_SIZE * (GRID_COLUMNS_PER_PLAYER * GRID_PLAYERS + 1), Std.int(GRID_SIZE * getSectionBeats(curSec + 1) * GRID_COLUMNS_PER_PLAYER * zoomList[curZoom]), true, gridColors.background, gridColors.mainLines);
+			nextGridBG = FlxGridOverlay.create(GRID_SIZE, GRID_SIZE, GRID_SIZE * (GRID_COLUMNS_PER_PLAYER * GRID_PLAYERS + 1), Std.int(GRID_SIZE * getSectionBeats(curSec + 1) * GRID_COLUMNS_PER_PLAYER * zoomList[curZoom]), true, gridColors.background, gridColors.mainLines);
 			nextGridBG.screenCenter(X);
-			leHeight2 = Std.int(gridBG.height + nextGridBG.height);
 			foundNextSec = true;
-			nextGridBG.visible = true;
 		}
 		else
 		{
 			nextGridBG.makeGraphic(1, 1, FlxColor.TRANSPARENT);
-			nextGridBG.visible = false;
-			leHeight2 = Std.int(gridBG.height);
 		}
 		nextGridBG.y = gridBG.height;
 
-		for (sprite in gridLayer) {
-			if (sprite != gridBG && sprite != prevGridBG && sprite != nextGridBG) {
-				sprite?.destroy();
-			}
-		}
-		gridLayer?.clear();
 		gridLayer?.add(prevGridBG);
 		gridLayer?.add(nextGridBG);
 		gridLayer?.add(gridBG);
@@ -2729,7 +2719,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 		lastSecBeats = getSectionBeats();
 		if(sectionStartTime(1) > FlxG.sound.music.length) lastSecBeatsNext = 0;
-		else getSectionBeats(curSec + 1);
+		else lastSecBeatsNext = getSectionBeats(curSec + 1);
 	}
 
 	function strumLineUpdateY()

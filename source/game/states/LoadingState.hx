@@ -1,8 +1,5 @@
 package game.states;
 
-import lime.app.Promise;
-import lime.app.Future;
-
 import flixel.FlxG;
 import flixel.FlxSprite;
 import flixel.FlxState;
@@ -15,19 +12,34 @@ import flixel.math.FlxMath;
 import openfl.utils.Assets;
 import openfl.media.Sound;
 
+import lime.app.Promise;
+import lime.app.Future;
+import lime.system.ThreadPool;
+import lime.system.WorkOutput;
+import lime.system.WorkOutput.ThreadMode;
+
 import lime.utils.Assets as LimeAssets;
 import lime.utils.AssetLibrary;
 import lime.utils.AssetManifest;
 
+import haxe.Exception;
 import haxe.io.Path;
 
-#if target.threaded
-import sys.thread.FixedThreadPool;
-import sys.thread.Thread;
-import sys.thread.Mutex;
-#end
-
 import game.backend.StageData.StageFile;
+
+enum LoadTaskType {
+    FILE_IO;
+    IMAGE_PROCESSING;
+    AUDIO_PROCESSING;
+    JSON_PROCESSING;
+    MAIN_THREAD;
+}
+
+typedef LoadTask = {
+    type:LoadTaskType,
+    execute:Void->Void,
+    ?description:String
+}
 
 class LoadingState extends MusicBeatState
 {
@@ -39,18 +51,21 @@ class LoadingState extends MusicBeatState
     var callbacks:MultiCallback;
     var targetShit:Float = 0;
 
-    #if target.threaded
-    static var threadPool:FixedThreadPool;
-    static var loadMutex = new sys.thread.Mutex();
-    #end
-
-    var loadQueue:Array<Void->Void> = [];
+    static var fileIOPool:ThreadPool;
+    static var imageProcessingPool:ThreadPool;
+    static var audioProcessingPool:ThreadPool;
+    static var jsonProcessingPool:ThreadPool;
+    
+    var loadQueue:Array<LoadTask> = [];
     var queueIndex:Int = 0;
-    var tasksPerFrame:Int = 3;
+    var tasksPerFrame:Int = 2;
     var loadingStarted:Bool = false;
     var startTimer:FlxTimer;
 
-    public var maxThreadPools:Int = 2;
+    public final maxFileIOThreads:Int = 2;
+    public final maxImageThreads:Int = 2;
+    public final maxAudioThreads:Int = 1;
+    public final maxJSONThreads:Int = 2;
 
     public function new(target:NextState, stopMusic:Bool, directory:String)
     {
@@ -59,12 +74,46 @@ class LoadingState extends MusicBeatState
         this.stopMusic = stopMusic;
         this.directory = directory;
         
-        #if target.threaded
-        if (threadPool == null) {
-            threadPool = new FixedThreadPool(maxThreadPools);
-            trace('Thread pool initialized with $maxThreadPools threads');
+        initializeMultiChannelPools();
+    }
+
+    function initializeMultiChannelPools()
+    {
+        if (fileIOPool == null) {
+            fileIOPool = new ThreadPool(0, maxFileIOThreads);
+            fileIOPool.onComplete.add(onFileIOComplete);
+            fileIOPool.onError.add(onFileIOError);
+            #if (haxe_ver >= 4.1)
+            fileIOPool.onUncaughtError.add(onFileIOUncaughtError);
+            #end
         }
-        #end
+
+        if (imageProcessingPool == null) {
+            imageProcessingPool = new ThreadPool(0, maxImageThreads);
+            imageProcessingPool.onComplete.add(onImageProcessingComplete);
+            imageProcessingPool.onError.add(onImageProcessingError);
+            #if (haxe_ver >= 4.1)
+            imageProcessingPool.onUncaughtError.add(onImageProcessingUncaughtError);
+            #end
+        }
+
+        if (audioProcessingPool == null) {
+            audioProcessingPool = new ThreadPool(0, maxAudioThreads);
+            audioProcessingPool.onComplete.add(onAudioProcessingComplete);
+            audioProcessingPool.onError.add(onAudioProcessingError);
+            #if (haxe_ver >= 4.1)
+            audioProcessingPool.onUncaughtError.add(onAudioProcessingUncaughtError);
+            #end
+        }
+
+        if (jsonProcessingPool == null) {
+            jsonProcessingPool = new ThreadPool(0, maxJSONThreads);
+            jsonProcessingPool.onComplete.add(onJSONProcessingComplete);
+            jsonProcessingPool.onError.add(onJSONProcessingError);
+            #if (haxe_ver >= 4.1)
+            jsonProcessingPool.onUncaughtError.add(onJSONProcessingUncaughtError);
+            #end
+        }
     }
 
     var funkay:FlxSprite;
@@ -104,14 +153,11 @@ class LoadingState extends MusicBeatState
         percentText.borderSize = 2;
         add(percentText);
         
-		@:privateAccess
+        @:privateAccess
         startTimer = new FlxTimer().start(CustomFadeTransition.lastDuration, (_) -> {
             loadingStarted = true;
             startLoading();
         });
-        
-        var fadeTime = 0.5;
-        FlxG.camera.fade(FlxG.camera.bgColor, fadeTime, true);
     }
     
     function startLoading()
@@ -149,16 +195,31 @@ class LoadingState extends MusicBeatState
             {
                 if (char != null)
                 {
-                    loadQueue.push(() -> {
-                        var callback = callbacks.add("character:" + char);
-                        loadCharacterJson(char, () -> callback());
+                    loadQueue.push({
+                        type: MAIN_THREAD, // JSON processing in main thread
+                        execute: () -> {
+                            var callback = callbacks.add("character:" + char);
+                            loadCharacter(char, () -> callback());
+                        },
+                        description: 'Load character: $char'
                     });
                 }
             }
 
-            loadQueue.push(() -> checkLoadSong(getSongPath()));
+            loadQueue.push({
+                type: MAIN_THREAD, // Audio loading in main thread
+                execute: () -> checkLoadSong(getSongPath()),
+                description: 'Load song audio'
+            });
+
             if (PlayState.SONG.needsVoices)
-                loadQueue.push(() -> checkLoadSong(getVocalPath()));
+            {
+                loadQueue.push({
+                    type: MAIN_THREAD, // Audio loading in main thread
+                    execute: () -> checkLoadSong(getVocalPath()),
+                    description: 'Load vocal audio'
+                });
+            }
 
             var stage = PlayState.SONG.stage;
             stage ??= StageData.vanillaSongStage(PlayState.SONG.song);
@@ -168,17 +229,30 @@ class LoadingState extends MusicBeatState
             {
                 for (image in stageFile.loadingImages)
                 {
-                    loadQueue.push(() -> {
-                        var callback = callbacks.add("stageImage:" + image);
-                        loadStageImage(image, () -> callback());
+                    loadQueue.push({
+                        type: MAIN_THREAD, // Image loading in main thread
+                        execute: () -> {
+                            var callback = callbacks.add("stageImage:" + image);
+                            loadStageImage(image, () -> callback());
+                        },
+                        description: 'Load stage image: $image'
                     });
                 }
             }
         }
         
-        loadQueue.push(() -> checkLibrary("shared"));
+        loadQueue.push({
+            type: MAIN_THREAD, // Library operations in main thread
+            execute: () -> checkLibrary("shared"),
+            description: 'Check shared library'
+        });
+
         if(directory != null && directory.length > 0 && directory != 'shared') {
-            loadQueue.push(() -> checkLibrary(directory));
+            loadQueue.push({
+                type: MAIN_THREAD, // Library operations in main thread
+                execute: () -> checkLibrary(directory),
+                description: 'Check directory library: $directory'
+            });
         }
     }
     
@@ -191,7 +265,8 @@ class LoadingState extends MusicBeatState
             var count = 0;
             while (queueIndex < loadQueue.length && count < tasksPerFrame)
             {
-                loadQueue[queueIndex]();
+                var task = loadQueue[queueIndex];
+                executeTask(task);
                 queueIndex++;
                 count++;
             }
@@ -206,229 +281,141 @@ class LoadingState extends MusicBeatState
             percentText.text = '$percent%';
         }
     }
+
+    function executeTask(task:LoadTask)
+    {
+        trace('Executing task: ${task.description}');
+        
+        try {
+            task.execute();
+        } catch (e:Dynamic) {
+            trace('Error executing task ${task.description}: $e');
+        }
+    }
+
+    // for future stuff
+    function onFileIOComplete(state:Dynamic) {}
+    function onImageProcessingComplete(state:Dynamic) {}
+    function onAudioProcessingComplete(state:Dynamic) {}
+    function onJSONProcessingComplete(state:Dynamic) {}
+    function handleTaskError(state:Dynamic) {}
+    function onFileIOError(state:Dynamic) {}
+    function onImageProcessingError(state:Dynamic) {}
+    function onAudioProcessingError(state:Dynamic) {}
+    function onJSONProcessingError(state:Dynamic) {}
+    #if (haxe_ver >= 4.1)
+    function onFileIOUncaughtError(exception:Exception) {}
+    function onImageProcessingUncaughtError(exception:Exception) {}
+    function onAudioProcessingUncaughtError(exception:Exception) {}
+    function onJSONProcessingUncaughtError(exception:Exception) {}
+    #end
     
-    function loadCharacterJson(character:String, onComplete:Void->Void)
+    function loadCharacter(character:String, onComplete:Void->Void)
     {
         var characterPath:String = 'characters/' + character + '.json';
         var path:String = Paths.getPath(characterPath, TEXT, null, true);
         
+        var rawJson:String = null;
         #if MODS_ALLOWED
-        if (sys.FileSystem.exists(path))
-        {
-            #if target.threaded
-            threadPool.run(function() {
-                try {
-                    var rawJson = sys.io.File.getContent(path);
-                    var json:Dynamic = haxe.Json.parse(rawJson);
-                    
-                    haxe.Timer.delay(function() {
-                        if (json.image != null) {
-                            loadCharacterImage(json.image, onComplete);
-                        } else {
-                            loadCharacterImage('characters/' + character, onComplete);
-                        }
-                    }, 0);
-                } catch (e:Dynamic) {
-                    trace('Error loading character JSON: $character, error: $e');
-                    haxe.Timer.delay(function() {
-                        loadCharacterImage('characters/' + character, onComplete);
-                    }, 0);
-                }
-            });
-            #else
+        if (sys.FileSystem.exists(path)) {
+            rawJson = sys.io.File.getContent(path);
+        } else #end if (Assets.exists(path)) {
+            rawJson = Assets.getText(path);
+        }
+
+        if (rawJson != null) {
             try {
-                var rawJson = sys.io.File.getContent(path);
                 var json:Dynamic = haxe.Json.parse(rawJson);
-                
-                haxe.Timer.delay(function() {
-                    if (json.image != null) {
-                        loadCharacterImage(json.image, onComplete);
-                    } else {
-                        loadCharacterImage('characters/' + character, onComplete);
-                    }
-                }, 0);
-            } catch (e:Dynamic) {
-                trace('Error loading character JSON: $character, error: $e');
-                haxe.Timer.delay(function() {
-                    loadCharacterImage('characters/' + character, onComplete);
-                }, 0);
-            }
-            #end
-        }
-        else
-        #end
-        if (Assets.exists(path))
-        {
-            #if target.threaded
-            threadPool.run(function() {
-                try {
-                    var rawJson = Assets.getText(path);
-                    var json:Dynamic = haxe.Json.parse(rawJson);
-                    
-                    haxe.Timer.delay(() -> loadCharacterImage(json.image ?? 'characters/' + character, onComplete), 0);
-                } catch (e:Dynamic) {
-                    trace('Error parsing character JSON: $character, error: $e');
-                    haxe.Timer.delay(() -> loadCharacterImage('characters/' + character, onComplete), 0);
+                if (json != null && json.image != null) {
+                    loadCharacterImage(json.image, onComplete);
+                    return;
                 }
-            });
-            #else
-            try {
-                var rawJson = Assets.getText(path);
-                var json:Dynamic = haxe.Json.parse(rawJson);
-                
-                haxe.Timer.delay(() -> loadCharacterImage(json.image ?? 'characters/' + character, onComplete), 0);
             } catch (e:Dynamic) {
-                trace('Error parsing character JSON: $character, error: $e');
-                haxe.Timer.delay(() -> loadCharacterImage('characters/' + character, onComplete), 0);
+                trace('Error parsing character JSON for $character: $e');
             }
-            #end
         }
-        else
-        {
-            loadCharacterImage('characters/' + character, onComplete);
-        }
+        
+        // fallback to default image path
+        loadCharacterImage('characters/' + character, onComplete);
     }
-    
+
     function loadCharacterImage(image:String, onComplete:Void->Void)
     {
         var callback = callbacks.add("characterImage:" + image);
 
-        #if flixel_animate
-        var animatePath:String = Paths.getPath('images/$image/Animation.json', TEXT, null, true);
-
-        if (#if MODS_ALLOWED sys.FileSystem.exists(animatePath) || #end Assets.exists(animatePath))
-        {
+        var formats = checkImageFormats(image);
+        
+        if (formats.animate)
             Paths.getAnimateAtlas(image);
-            callback();
-            onComplete();
-            return;
-        }
-        #end
-        
-        var xmlPath = Paths.getPath('images/$image.xml', TEXT, null, true);
-        if (Assets.exists(xmlPath) #if MODS_ALLOWED || sys.FileSystem.exists(xmlPath) #end)
-        {
+        else if (formats.xml)
             Paths.getSparrowAtlas(image, null, true);
-            callback();
-            onComplete();
-            return;
-        }
-        
-        var jsonPath = Paths.getPath('images/$image.json', TEXT, null, true);
-        if (Assets.exists(jsonPath) #if MODS_ALLOWED || sys.FileSystem.exists(jsonPath) #end)
-        {
+        else if (formats.json)
             Paths.getAsepriteAtlas(image, null, true);
-            callback();
-            onComplete();
-            return;
-        }
-        
-        var txtPath = Paths.getPath('images/$image.txt', TEXT, null, true);
-        if (Assets.exists(txtPath) #if MODS_ALLOWED || sys.FileSystem.exists(txtPath) #end)
-        {
+        else if (formats.txt)
             Paths.getPackerAtlas(image, null, true);
-            callback();
-            onComplete();
-            return;
-        }
+        else if (formats.png)
+            Paths.image(image);
+        else
+            trace('WARNING: Character image not found: $image');
         
-        trace('WARNING: Character image not found: $image');
         callback();
         onComplete();
+    }
+
+    function checkImageFormats(image:String):Dynamic
+    {
+        return {
+            animate: #if flixel_animate Assets.exists(Paths.getPath('images/$image/Animation.json', TEXT, null, true)) #else false #end,
+            xml: Assets.exists(Paths.getPath('images/$image.xml', TEXT, null, true)),
+            json: Assets.exists(Paths.getPath('images/$image.json', TEXT, null, true)),
+            txt: Assets.exists(Paths.getPath('images/$image.txt', TEXT, null, true)),
+            png: Assets.exists(Paths.getPath('images/$image.png', IMAGE, null, true))
+        };
     }
 
     function loadStageImage(image:String, onComplete:Void->Void)
     {
         var callback = callbacks.add("stageImage:" + image);
 
-        #if flixel_animate
-        var animatePath:String = Paths.getPath('images/$image/Animation.json', TEXT, null, true);
-
-        if (#if MODS_ALLOWED sys.FileSystem.exists(animatePath) || #end Assets.exists(animatePath))
-        {
+        var formats = checkImageFormats(image);
+        
+        if (formats.animate)
             Paths.getAnimateAtlas(image);
-            callback();
-            onComplete();
-            return;
-        }
-        #end
-        
-        var xmlPath = Paths.getPath('images/$image.xml', TEXT, null, true);
-        if (Assets.exists(xmlPath) #if MODS_ALLOWED || sys.FileSystem.exists(xmlPath) #end)
-        {
+        else if (formats.xml)
             Paths.getSparrowAtlas(image, null, true);
-            callback();
-            onComplete();
-            return;
-        }
-        
-        var jsonPath = Paths.getPath('images/$image.json', TEXT, null, true);
-        if (Assets.exists(jsonPath) #if MODS_ALLOWED || sys.FileSystem.exists(jsonPath) #end)
-        {
+        else if (formats.json)
             Paths.getAsepriteAtlas(image, null, true);
-            callback();
-            onComplete();
-            return;
-        }
-        
-        var txtPath = Paths.getPath('images/$image.txt', TEXT, null, true);
-        if (Assets.exists(txtPath) #if MODS_ALLOWED || sys.FileSystem.exists(txtPath) #end)
-        {
+        else if (formats.txt)
             Paths.getPackerAtlas(image, null, true);
-            callback();
-            onComplete();
-            return;
-        }
-        
-        var imagePath = Paths.getPath('images/$image.png', IMAGE, null, true);
-        if (Assets.exists(imagePath) #if MODS_ALLOWED || sys.FileSystem.exists(imagePath) #end)
-        {
+        else if (formats.png)
             Paths.image(image);
-            callback();
-            onComplete();
-            return;
-        }
+        else
+            trace('WARNING: Stage image not found: $image');
         
-        trace('WARNING: Stage image not found: $image');
         callback();
         onComplete();
     }
     
     function checkLoadSong(path:String)
     {
+        if (path == null) {
+            var callback = callbacks.add("null_song_path");
+            callback();
+            return;
+        }
+
         if (path.startsWith('${Mods.MODS_FOLDER}/')) {
             var callback = callbacks.add("modSong:" + path);
             
             #if MODS_ALLOWED
-            #if target.threaded
-            threadPool.run(function() {
-                try {
-                    var sound = Sound.fromFile(path);
-                    haxe.Timer.delay(function() {
-                        Paths.currentTrackedSounds.set(path, sound);
-                        callback();
-                    }, 0);
-                } catch (e:Dynamic) {
-                    trace('Error loading mod sound: $path, error: $e');
-                    haxe.Timer.delay(function() {
-                        callback();
-                    }, 0);
-                }
-            });
-            #else
             try {
                 var sound = Sound.fromFile(path);
-                haxe.Timer.delay(function() {
-                    Paths.currentTrackedSounds.set(path, sound);
-                    callback();
-                }, 0);
+                Paths.currentTrackedSounds.set(path, sound);
+                callback();
             } catch (e:Dynamic) {
                 trace('Error loading mod sound: $path, error: $e');
-                haxe.Timer.delay(function() {
-                    callback();
-                }, 0);
+                callback();
             }
-            #end
             #else
             callback();
             #end
@@ -450,11 +437,6 @@ class LoadingState extends MusicBeatState
     }
     
     function checkLibrary(library:String) {
-        #if sys
-        #if target.threaded
-        loadMutex.acquire();
-        #end
-        #end
         try {
             if (Assets.getLibrary(library) == null)
             {
@@ -462,11 +444,6 @@ class LoadingState extends MusicBeatState
                 if (!LimeAssets.libraryPaths.exists(library))
                 {
                     trace('Library $library not found, but continuing anyway');
-                    #if sys
-                    #if target.threaded
-                    loadMutex.release();
-                    #end
-                    #end
                     var callback = callbacks.add("missing_library:" + library);
                     callback();
                     return;
@@ -485,26 +462,15 @@ class LoadingState extends MusicBeatState
             }
         } catch (e) {
             trace('Exception in checkLibrary: $e');
-            #if sys
-            #if target.threaded
-            loadMutex.release();
-            #end
-            #end
             var callback = callbacks.add("error_library:" + library);
             callback();
         }
-        #if sys
-        #if target.threaded
-        loadMutex.release();
-        #end
-        #end
     }
     
     function onLoad()
     {
         trace('Loading complete! Loaded ${callbacks.getFired().length} items');
-        trace('Fired callbacks: ${callbacks.getFired().join(", ")}');
-
+        
         if (stopMusic)
             FlxG.sound?.music?.stop();
         
@@ -719,10 +685,6 @@ class LoadingState extends MusicBeatState
         callbacks = null;
         percentText?.destroy();
         startTimer?.destroy();
-
-        #if target.threaded
-        threadPool = null;
-        #end
     }
     
     static function initSongsManifest()

@@ -1370,12 +1370,12 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		var offY:Float = 0;
 		if(!char.isPlayer)
 		{
-			offX = char.getMidpoint().x + 150 + char.cameraPosition[0];
+			offX = char.getMidpoint().x + 100 + char.cameraPosition[0];
 			offY = char.getMidpoint().y - 100 + char.cameraPosition[1];
 		}
 		else
 		{
-			offX = char.getMidpoint().x - 100 - char.cameraPosition[0];
+			offX = char.getMidpoint().x - 150 + char.cameraPosition[0];
 			offY = char.getMidpoint().y - 100 + char.cameraPosition[1];
 		}
 		cameraFollowPointer.setPosition(offX, offY);
@@ -1403,6 +1403,10 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			healthIconInputText.text = char.healthIcon;
 			vocalsInputText.text = char.vocalsFile ?? '';
 			singDurationStepper.value = char.singDuration;
+			positionXStepper.value = char.positionArray[0];
+			positionYStepper.value = char.positionArray[1];
+			positionCameraXStepper.value = char.cameraPosition[0];
+			positionCameraYStepper.value = char.cameraPosition[1];
 			scaleStepper.value = char.jsonScale;
 			flipXCheckBox.checked = char.originalFlipX;
 			noAntialiasingCheckBox.checked = char.noAntialiasing;
@@ -1444,7 +1448,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		//reloadGhost();
 	}
 
-	inline function reloadGhost() {
+	function reloadGhost() {
 		var wasVisible = ghostChar.visible;
 		var alpha = ghostChar.alpha;
 		
@@ -1509,7 +1513,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		ghostChar.antialiasing = char.antialiasing;
 	}
 
-	inline function reloadCharacterDropDown() {
+	function reloadCharacterDropDown() {
 		var charsLoaded:Map<String, Bool> = new Map();
 
 		#if sys
