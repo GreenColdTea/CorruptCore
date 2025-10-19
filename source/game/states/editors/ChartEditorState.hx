@@ -1807,6 +1807,8 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 	function sectionStartTime(add:Int = 0):Float
 	{
+		if (cachedSectionTimes == null || cachedSectionTimes.length == 0) _cacheSections();
+		
 		var index = curSec + add;
 		if (index < 0) index = 0;
 		if (index >= cachedSectionTimes.length) index = cachedSectionTimes.length - 1;
@@ -2639,12 +2641,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	var lastSecBeats:Float = 0;
 	var lastSecBeatsNext:Float = 0;
 	function reloadGridLayer() {
-		for (sprite in gridLayer) {
-			if (sprite != gridBG && sprite != prevGridBG && sprite != nextGridBG) {
-				sprite?.destroy();
-			}
-		}
-		gridLayer?.clear();
+		_cacheSections();
 
 		gridBG = FlxGridOverlay.create(GRID_SIZE, GRID_SIZE, GRID_SIZE * 9, Std.int(GRID_SIZE * getSectionBeats() * GRID_COLUMNS_PER_PLAYER * zoomList[curZoom]), true, gridColors.mainLines, gridColors.secondaryLines);
 		gridBG.screenCenter(X);
@@ -2680,6 +2677,12 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			nextGridBG.makeGraphic(1, 1, FlxColor.TRANSPARENT);
 		}
 		nextGridBG.y = gridBG.height;
+
+		for (sprite in gridLayer) {
+			if (sprite != gridBG && sprite != prevGridBG && sprite != nextGridBG) {
+				sprite?.destroy();
+			}
+		}
 
 		gridLayer?.add(prevGridBG);
 		gridLayer?.add(nextGridBG);
@@ -2804,6 +2807,8 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		if (_song.notes[sec] != null)
 		{
 			curSec = sec;
+			_cacheSections();
+
 			if (updateMusic)
 			{
 				FlxG.sound.music.pause();
@@ -2820,27 +2825,13 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 				updateCurStep();
 			}
 
-			var blah1:Float = getSectionBeats();
-			var blah2:Float = getSectionBeats(curSec + 1);
-			if(sectionStartTime(1) > FlxG.sound.music.length) blah2 = 0;
-	
-			if(blah1 != lastSecBeats || blah2 != lastSecBeatsNext)
-				reloadGridLayer();
-			else
-				updateGrid();
-
+			reloadGridLayer();
 			updateSectionUI();
 		}
 		else
 		{
 			changeSection();
 		}
-
-		/*if (player.holdTimer >= Conductor.stepCrochet * 0.001 * player.singDuration)
-			player.dance();
-
-		if (opponent.holdTimer >= Conductor.stepCrochet * 0.001 * opponent.singDuration)
-			opponent.dance();*/
 
 		Conductor.songPosition = FlxG.sound.music.time;
 	}
@@ -3482,6 +3473,8 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			addNote(cs, d, style);
 		}
 	}
+
+	
 	function clearSong():Void
 	{
 		for (daSection in 0..._song.notes.length)
@@ -3913,15 +3906,23 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	private function _cacheSections()
 	{
 		cachedSectionTimes = [];
+		if (_song == null || _song.notes == null || _song.notes.length == 0) {
+			cachedSectionTimes[0] = 0;
+			return;
+		}
+		
 		var time:Float = 0;
 		var bpm:Float = _song.bpm;
 		
 		for (i in 0..._song.notes.length)
 		{
 			var section = _song.notes[i];
-			if(section == null) continue;
+			if(section == null) {
+				cachedSectionTimes[i] = time;
+				continue;
+			}
 			
-			if(section.changeBPM)
+			if(section.changeBPM && section.bpm > 0)
 				bpm = section.bpm;
 				
 			cachedSectionTimes[i] = time;

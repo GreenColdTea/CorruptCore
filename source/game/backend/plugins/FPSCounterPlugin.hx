@@ -434,6 +434,8 @@ class FPSCounterPlugin extends Bitmap
 			output += "\n\n--- DETAILS ---";
 			output += "\nMin/Max/Avg: " + minFPS + "/" + maxFPS + "/" + Math.round(avgFPS);
 			output += "\nVSync: " + (ClientPrefs.vsync ? "ON" : "OFF");
+
+			output += "\nGC RAM: " + flixel.util.FlxStringUtil.formatBytes(#if (openfl >= "9.4.0") System.totalMemoryNumber #else currentMem = System.totalMemory #end);
 			
 			if (frameTimes.length > 0) {
 				var frameStats = getFrameTimingStats();
