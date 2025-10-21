@@ -51,7 +51,7 @@ class ModsMenuState extends MusicBeatState
     var selector:AttachedSprite;
     var needaReset = false;
 
-    public static var defaultColor:FlxColor = 0xFF665AFF;
+    public static final defaultColor:FlxColor = 0xFF665AFF;
 
     var buttonDown:FlxButton;
     var buttonTop:FlxButton;
