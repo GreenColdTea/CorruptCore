@@ -2156,7 +2156,7 @@ class PlayState extends MusicBeatState
 	{
 		if(finishTimer != null) return;
 
-		trace('resynced vocals at ' + Math.floor(Conductor.songPosition));
+		//trace('resynced vocals at ' + Math.floor(Conductor.songPosition));
 
 		FlxG.sound.music.play();
 		#if FLX_PITCH FlxG.sound.music.pitch = playbackRate; #end
