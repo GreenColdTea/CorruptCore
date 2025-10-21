@@ -340,7 +340,7 @@ class FunkinRScript {
             });
             
         } else {
-            var scriptObject = FlxG.state ?? FlxG.state.subState;
+            var scriptObject = FlxG.state.subState ?? FlxG.state;
             set("game", scriptObject);
             
             set("add", scriptObject.add);
