@@ -749,7 +749,9 @@ class FunkinLua {
 		Lua_helper.add_callback(lua, "setProperty", function(variable:String, value:Dynamic) {
 			var killMe:Array<String> = variable.split('.');
 			if(killMe.length > 1) {
-				setVarInArray(getPropertyLoopThingWhatever(killMe), killMe[killMe.length-1], value);
+				var targetObject = getPropertyLoopThingWhatever(killMe);
+				var objectInfo = getObjectInfo(targetObject);
+				setVarInArray(targetObject, killMe[killMe.length-1], value);
 				return true;
 			}
 			setVarInArray(getInstance(), variable, value);
@@ -1048,13 +1050,17 @@ class FunkinLua {
 
 	public static function setVarInArray(instance:Dynamic, variable:String, value:Dynamic):Bool
 	{
-		if (variable == null || variable.length == 0) return false;
+		if (variable == null || variable.length == 0) {
+			if(getBool('luaDebugMode')) trace('ERROR: setVarInArray - variable is null or empty (instance: $instance)');
+			return false;
+		}
 		
 		var shit:Array<String> = variable.split('[');
 		if (shit.length > 1)
 		{
 			var blah:Dynamic = null;
 			var propName:String = shit[0];
+			var instanceInfo:String = getObjectInfo(instance);
 			
 			if (PlayState.instance != null && PlayState.instance.variables.exists(propName))
 			{
@@ -1066,7 +1072,7 @@ class FunkinLua {
 			}
 			
 			if (blah == null) {
-				trace('WARNING: Property not found: ${shit[0]} (object: $instance)');
+				if(getBool('luaDebugMode')) trace('WARNING: Property not found: "${shit[0]}" (object: $instanceInfo, full path: $variable)');
 				return false;
 			}
 			
@@ -1088,11 +1094,13 @@ class FunkinLua {
 							return true;
 						}
 						catch(e:Dynamic) {
-							trace('ERROR: Failed to set property "$variable" on object: $blah (type: ${Type.getClassName(Type.getClass(blah))}) - ${e.message}');
+							var blahInfo:String = getObjectInfo(blah);
+							if(getBool('luaDebugMode')) trace('ERROR: Failed to set property "$variable" on object: $blahInfo - ${e.message}');
 							return false;
 						}
 					}
-					trace('WARNING: Cannot set index on non-array: ${shit[0]} (object: $blah, type: ${Type.getClassName(Type.getClass(blah))})');
+					var blahInfo:String = getObjectInfo(blah);
+					trace('WARNING: Cannot set index on non-array: "${shit[0]}" (object: $blahInfo, type: ${Type.getClassName(Type.getClass(blah))})');
 					return false;
 				}
 				else
@@ -1103,13 +1111,15 @@ class FunkinLua {
 							blah = blah[key];
 						}
 						catch(e:Dynamic) {
-							trace('ERROR: Failed to access index "$key" on object: $blah (type: ${Type.getClassName(Type.getClass(blah))}) while setting "$variable" - ${e.message}');
+							var blahInfo:String = getObjectInfo(blah);
+							if(getBool('luaDebugMode')) trace('ERROR: Failed to access index "$key" on object: $blahInfo while setting "$variable" - ${e.message}');
 							return false;
 						}
 					}
 					else
 					{
-						trace('WARNING: Cannot access index on non-container: ${shit.slice(0, i).join('[')} (object: $blah, type: ${Type.getClassName(Type.getClass(blah))})');
+						var blahInfo:String = getObjectInfo(blah);
+						if(getBool('luaDebugMode')) trace('WARNING: Cannot access index on non-container: ${shit.slice(0, i).join('[')} (object: $blahInfo, type: ${Type.getClassName(Type.getClass(blah))})');
 						return false;
 					}
 				}
@@ -1119,6 +1129,8 @@ class FunkinLua {
 		
 		try
 		{
+			var instanceInfo:String = getObjectInfo(instance);
+			
 			if (PlayState.instance != null && PlayState.instance.variables.exists(variable))
 			{
 				PlayState.instance.variables.set(variable, value);
@@ -1131,12 +1143,13 @@ class FunkinLua {
 				return true;
 			}
 			
-			trace('WARNING: Instance is null for property: $variable');
+			if(getBool('luaDebugMode')) trace('WARNING: Instance is null for property: "$variable" (called from Lua script, object info: $instanceInfo)');
 			return false;
 		}
 		catch(e:Dynamic)
 		{
-			trace('ERROR: Failed to set property "$variable" on object: $instance (type: ${Type.getClassName(Type.getClass(instance))}) - ${e.message}');
+			var instanceInfo:String = getObjectInfo(instance);
+			if(getBool('luaDebugMode')) trace('ERROR: Failed to set property "$variable" on object: $instanceInfo - ${e.message}');
 			return false;
 		}
 	}
@@ -1175,6 +1188,37 @@ class FunkinLua {
 		}
 
 		return Reflect.getProperty(instance, variable);
+	}
+
+	private static function getObjectInfo(obj:Dynamic):String
+	{
+		if (obj == null) return "null";
+		
+		var className:String = Type.getClassName(Type.getClass(obj));
+		var result:String = 'type: $className';
+		
+		// i like if else 👅
+		if (Std.isOfType(obj, FlxSprite)) {
+			var sprite:FlxSprite = cast obj;
+			result += ', x: ${sprite.x}, y: ${sprite.y}, visible: ${sprite.visible}';
+		} else if (Std.isOfType(obj, Character)) {
+			var char:Character = cast obj;
+			result += ', curCharacter: ${char.curCharacter}, x: ${char.x}, y: ${char.y}';
+		} else if (Std.isOfType(obj, FlxText)) {
+			var text:FlxText = cast obj;
+			result += ', text: "${text.text}", x: ${text.x}, y: ${text.y}';
+		} else if (Std.isOfType(obj, FlxCamera)) {
+			var cam:FlxCamera = cast obj;
+			result += ', x: ${cam.scroll.x}, y: ${cam.scroll.y}, zoom: ${cam.zoom}';
+		} else if (Std.isOfType(obj, String)) {
+			result += ', value: "$obj"';
+		} else if (Std.isOfType(obj, Int) || Std.isOfType(obj, Float)) {
+			result += ', value: $obj';
+		} else if (Std.isOfType(obj, Bool)) {
+			result += ', value: $obj';
+		}
+		
+		return result;
 	}
 
 	function getGroupStuff(leArray:Dynamic, variable:String) {
@@ -1300,11 +1344,20 @@ class FunkinLua {
 
 	public static function getPropertyLoopThingWhatever(killMe:Array<String>, ?checkForTextsToo:Bool = true, ?getProperty:Bool=true):Dynamic
 	{
+		if (killMe.length == 0) {
+			trace('ERROR: getPropertyLoopThingWhatever - empty path array');
+			return null;
+		}
+		
 		var coverMeInPiss:Dynamic = getObjectDirectly(killMe[0], checkForTextsToo);
 		var end = killMe.length;
-		if(getProperty)end=killMe.length-1;
+		if(getProperty) end = killMe.length-1;
 
 		for (i in 1...end) {
+			if (coverMeInPiss == null) {
+				trace('WARNING: getPropertyLoopThingWhatever - null object at path: ${killMe.slice(0, i).join(".")} (full path: ${killMe.join(".")})');
+				return null;
+			}
 			coverMeInPiss = getVarInArray(coverMeInPiss, killMe[i]);
 		}
 		return coverMeInPiss;
