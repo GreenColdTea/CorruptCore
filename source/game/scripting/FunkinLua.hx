@@ -1066,7 +1066,7 @@ class FunkinLua {
 			}
 			
 			if (blah == null) {
-				trace('WARNING: Property not found: ${shit[0]}');
+				trace('WARNING: Property not found: ${shit[0]} (object: $instance)');
 				return false;
 			}
 			
@@ -1083,21 +1083,33 @@ class FunkinLua {
 				{
 					if (Std.isOfType(blah, Array) || Reflect.hasField(blah, 'set') || Reflect.isObject(blah))
 					{
-						blah[key] = value;
-						return true;
+						try {
+							blah[key] = value;
+							return true;
+						}
+						catch(e:Dynamic) {
+							trace('ERROR: Failed to set property "$variable" on object: $blah (type: ${Type.getClassName(Type.getClass(blah))}) - ${e.message}');
+							return false;
+						}
 					}
-					trace('WARNING: Cannot set index on non-array: ${shit[0]}');
+					trace('WARNING: Cannot set index on non-array: ${shit[0]} (object: $blah, type: ${Type.getClassName(Type.getClass(blah))})');
 					return false;
 				}
 				else
 				{
 					if (blah != null && (Reflect.isObject(blah) || Std.isOfType(blah, Array)))
 					{
-						blah = blah[key];
+						try {
+							blah = blah[key];
+						}
+						catch(e:Dynamic) {
+							trace('ERROR: Failed to access index "$key" on object: $blah (type: ${Type.getClassName(Type.getClass(blah))}) while setting "$variable" - ${e.message}');
+							return false;
+						}
 					}
 					else
 					{
-						trace('WARNING: Cannot access index on non-container: ${shit.slice(0, i).join('[')}');
+						trace('WARNING: Cannot access index on non-container: ${shit.slice(0, i).join('[')} (object: $blah, type: ${Type.getClassName(Type.getClass(blah))})');
 						return false;
 					}
 				}
@@ -1124,7 +1136,7 @@ class FunkinLua {
 		}
 		catch(e:Dynamic)
 		{
-			trace('ERROR: Failed to set property $variable: ${e.message}');
+			trace('ERROR: Failed to set property "$variable" on object: $instance (type: ${Type.getClassName(Type.getClass(instance))}) - ${e.message}');
 			return false;
 		}
 	}

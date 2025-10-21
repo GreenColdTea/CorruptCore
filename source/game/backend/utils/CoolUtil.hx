@@ -297,7 +297,7 @@ class CoolUtil
 		else
 			WindowsAPI.showMessageBox(message, title, icon, type);
 		#else
-		lime.app.Application.current.window.alert(message, title);
+		FlxG.stage.window.alert(message, title);
 		#end
 	}
 
