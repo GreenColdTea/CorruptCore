@@ -101,6 +101,10 @@ import game.modchart.*;
 import game.modchart.ModManager;
 #end
 
+#if target.threaded
+import sys.thread.Thread;
+#end
+
 using StringTools;
 
 class PlayState extends MusicBeatState
@@ -109,6 +113,11 @@ class PlayState extends MusicBeatState
 	public static final STRUM_X_MIDDLESCROLL = -278;
 
 	var noteRows:Array<Array<Array<Note>>> = [[],[],[]];
+
+	private var shutdownThread:Bool = false;
+	private var gameFroze:Bool = false;
+	private var requiresSyncing:Bool = false;
+	private var lastCorrectSongPos:Float = -1.0;
 
 	public static var ratingStuff:Array<Dynamic> = [
 		['You Suck!', 0.2], //From 0% to 19%
@@ -1733,6 +1742,8 @@ class PlayState extends MusicBeatState
 		#end
 		setOnScripts('songLength', songLength);
 		callOnScripts('onSongStart');
+
+		runSongSyncThread();
 	}
 
 	var debugNum:Int = 0;
@@ -2092,6 +2103,7 @@ class PlayState extends MusicBeatState
 
 			paused = false;
 			callOnScripts('onResume');
+			runSongSyncThread();
 
 			#if DISCORD_ALLOWED
 			if (startTimer != null && startTimer.finished)
@@ -2144,25 +2156,23 @@ class PlayState extends MusicBeatState
 	{
 		if(finishTimer != null) return;
 
-		vocals.pause();
-		opponentVocals.pause();
+		trace('resynced vocals at ' + Math.floor(Conductor.songPosition));
 
 		FlxG.sound.music.play();
-		#if FLX_PITCH FlxG.sound.music.pitch = playbackRate;
-		#end
-		Conductor.songPosition = FlxG.sound.music.time;
-		if (Conductor.songPosition <= vocals.length)
+		#if FLX_PITCH FlxG.sound.music.pitch = playbackRate; #end
+		Conductor.songPosition = FlxG.sound.music.time + Conductor.offset;
+
+		var checkVocals = [vocals, opponentVocals];
+		for (voc in checkVocals)
 		{
-			vocals.time = Conductor.songPosition;
-			#if FLX_PITCH vocals.pitch = playbackRate; #end
+			if (FlxG.sound.music.time < vocals.length)
+			{
+				voc.time = FlxG.sound.music.time;
+				#if FLX_PITCH voc.pitch = playbackRate; #end
+				voc.play();
+			}
+			else voc.pause();
 		}
-		if (Conductor.songPosition <= opponentVocals.length)
-		{
-			opponentVocals.time = Conductor.songPosition;
-			#if FLX_PITCH opponentVocals.pitch = playbackRate; #end
-		}
-		vocals.play();
-		opponentVocals.play();
 	}
 
 	public var paused:Bool = false;
@@ -4011,6 +4021,9 @@ class PlayState extends MusicBeatState
 		FlxG.animationTimeScale = 1;
 		#if FLX_PITCH FlxG.sound.music.pitch = 1; #end
 		instance = null;
+		shutdownThread = true;
+		FlxG.signals.preUpdate.remove(checkForResync);
+
 		super.destroy();
 	}
 
@@ -4158,6 +4171,13 @@ class PlayState extends MusicBeatState
 		}
 		#elseif sys
 		var luaToLoad:String = Paths.getPreloadPath(luaFile);
+		if(FileSystem.exists(luaToLoad))
+		{
+			luaArray.push(new FunkinLua(luaToLoad));
+			return true;
+		}
+		#else
+		var luaToLoad:String = Paths.getPreloadPath(luaFile);
 		if(OpenFlAssets.exists(luaToLoad))
 		{
 			luaArray.push(new FunkinLua(luaToLoad));
@@ -4195,6 +4215,13 @@ class PlayState extends MusicBeatState
 		#elseif sys
 		var hscriptToLoad:String = Paths.getPreloadPath(hscriptFile);
 		if(FileSystem.exists(hscriptToLoad))
+		{
+			hscriptArray.push(new FunkinHScript(hscriptToLoad));
+			return true;
+		}
+		#else
+		var hscriptToLoad:String = Paths.getPreloadPath(hscriptFile);
+		if(OpenFlAssets.exists(hscriptToLoad))
 		{
 			hscriptArray.push(new FunkinHScript(hscriptToLoad));
 			return true;
@@ -4437,6 +4464,40 @@ class PlayState extends MusicBeatState
 	}
 	#end
 
-	var curLight:Int = -1;
-	var curLightEvent:Int = -1;
+	function checkForResync()
+	{
+		if (paused) return;
+
+		if (requiresSyncing)
+		{
+			requiresSyncing = false;
+			setSongTime(lastCorrectSongPos);
+		}
+
+		gameFroze = false;
+	}
+
+	public function runSongSyncThread()
+	{
+		#if target.threaded
+		Thread.create(() -> {
+			while (!endingSong && !paused && !shutdownThread)
+			{
+				if (requiresSyncing) continue;
+
+				if (gameFroze)
+				{
+					lastCorrectSongPos = Conductor.songPosition;
+					requiresSyncing = true;
+					continue;
+				}
+				gameFroze = true;
+
+				Sys.sleep(0.5);
+			}
+		});
+		#end
+
+		if (!FlxG.signals.preUpdate.has(checkForResync)) FlxG.signals.preUpdate.add(checkForResync);
+	}
 }
