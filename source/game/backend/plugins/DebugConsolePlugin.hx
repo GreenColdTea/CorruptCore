@@ -60,6 +60,9 @@ class DebugConsolePlugin extends FlxBasic
     
     var titleBar:Sprite;
     
+    var autoScrollToBottom:Bool = true;
+    var userScrolledManually:Bool = false;
+    
     public static function init()
     {
         if (instance == null) FlxG.plugins.addPlugin(instance = new DebugConsolePlugin());
@@ -85,6 +88,8 @@ class DebugConsolePlugin extends FlxBasic
         hscript.set("clearConsole", () -> {
             consoleText.text = "Debug Console (F12 to toggle)\nDrag title bar to move | Shift+Enter for new line\n" + prompt;
             lastDisplayText = consoleText.text;
+            userScrolledManually = false;
+            autoScrollToBottom = true;
         });
     }
     
@@ -254,6 +259,9 @@ class DebugConsolePlugin extends FlxBasic
         if (consoleText.scrollV < 1) consoleText.scrollV = 1;
         if (consoleText.scrollV > consoleText.maxScrollV) consoleText.scrollV = consoleText.maxScrollV;
         
+        userScrolledManually = true;
+        autoScrollToBottom = (consoleText.scrollV == consoleText.maxScrollV);
+        
         event.stopPropagation();
     }
     
@@ -342,12 +350,6 @@ class DebugConsolePlugin extends FlxBasic
             case Keyboard.ESCAPE:
                 hideConsole();
                 event.preventDefault();
-                
-            /*case Keyboard.F11:
-                consoleText.text = "Debug Console (F12 to toggle, F11 to clear)\nDrag title bar to move | Shift+Enter for new line\n" + prompt;
-                lastDisplayText = consoleText.text;
-                event.preventDefault();
-                resetCursor();*/
                 
             case Keyboard.F10:
                 hscriptMode = !hscriptMode;
@@ -467,6 +469,8 @@ class DebugConsolePlugin extends FlxBasic
     
     private function updateDisplay():Void
     {
+        var wasAtBottom = consoleText.scrollV == consoleText.maxScrollV;
+        
         var lines = lastDisplayText.split("\n");
         
         var lastPromptIndex = -1;
@@ -487,9 +491,9 @@ class DebugConsolePlugin extends FlxBasic
         consoleText.text = newText;
         lastDisplayText = newText;
         
-        var wasAtBottom = consoleText.scrollV == consoleText.maxScrollV;
-
-        if (wasAtBottom) consoleText.scrollV = consoleText.maxScrollV;
+        if (autoScrollToBottom && wasAtBottom) {
+            consoleText.scrollV = consoleText.maxScrollV;
+        }
     }
     
     private function addOutput(message:String, color:Int = 0xE0E0E0):Void
@@ -516,7 +520,9 @@ class DebugConsolePlugin extends FlxBasic
         consoleText.text = formattedText;
         lastDisplayText = formattedText;
         
-        if (wasAtBottom) consoleText.scrollV = consoleText.maxScrollV;
+        if (autoScrollToBottom && wasAtBottom) {
+            consoleText.scrollV = consoleText.maxScrollV;
+        }
     }
     
     private function executeCommand():Void
@@ -534,6 +540,9 @@ class DebugConsolePlugin extends FlxBasic
         cursorPosition = 0;
         
         addOutput((hscriptMode ? "[HS] " : "") + prompt + command, 0x88FF88);
+        
+        userScrolledManually = false;
+        autoScrollToBottom = true;
         
         if (hscriptMode)
         {
@@ -576,6 +585,8 @@ class DebugConsolePlugin extends FlxBasic
             case "clear", "cls":
                 consoleText.text = "Debug Console (F12 to toggle)\nDrag title bar to move | Shift+Enter for new line\n" + prompt;
                 lastDisplayText = consoleText.text;
+                userScrolledManually = false;
+                autoScrollToBottom = true;
                 
             case "objects", "obj":
                 listAvailableObjects();
@@ -888,6 +899,10 @@ class DebugConsolePlugin extends FlxBasic
         FlxG.stage.focus = console;
         currentInput = "";
         cursorPosition = 0;
+        
+        userScrolledManually = false;
+        autoScrollToBottom = true;
+        
         resetCursor();
         updateDisplay();
     }

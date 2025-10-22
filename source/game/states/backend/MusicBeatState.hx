@@ -22,7 +22,7 @@ import sys.FileSystem;
 #end
 #if SCRIPTABLE_STATES
 import game.scripting.FunkinHScript;
-import game.scripting.FunkinRScript;
+import game.scripting.FunkinRuleScript;
 import game.scripting.HScriptGlobal;
 #end
 
@@ -32,7 +32,7 @@ import openfl.utils.AssetType;
 class MusicBeatState extends FlxState
 {
 	#if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
-	public var menuScriptArray:Array<FunkinRScript> = [];
+	public var menuScriptArray:Array<FunkinRuleScript> = [];
 	private var excludeStates:Array<Dynamic>;
 	#end
 

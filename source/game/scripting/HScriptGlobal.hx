@@ -82,7 +82,7 @@ class HScriptGlobal {
                 parser.allowAll();
                 parser.preprocesorValues = FunkinHScript.getHScriptPreprocessors();
 
-                var ruleScript = new rulescript.RuleScript(new FunkinRScript.RuleScriptInterpEx(), parser);
+                var ruleScript = new rulescript.RuleScript(new RuleScriptInterpEx(), parser);
                 ruleScript.execute(content);
                 
                 for (key in ruleScript.variables.keys()) {

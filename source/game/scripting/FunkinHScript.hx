@@ -1,13 +1,13 @@
 package game.scripting;
 
 import game.scripting.HScriptParser as HxParser;
-import game.scripting.FunkinRScript.RuleScriptInterpEx as Interp;
+import game.scripting.RuleScriptInterpEx as Interp;
 #if sys
 import sys.io.File;
 #end
 using StringTools;
 
-class FunkinHScript extends FunkinRScript
+class FunkinHScript extends FunkinRuleScript
 {
     public function new(path:String, parentInstance:Dynamic = null, skipCreate:Bool = false) {
         super(path, parentInstance, skipCreate);

@@ -50,7 +50,7 @@ import game.shaders.flixel.FlxShader;
 
 #if HSCRIPT_ALLOWED
 import game.scripting.HScriptParser as HxParser;
-import game.scripting.FunkinRScript.RuleScriptInterpEx as Interp;
+import game.scripting.RuleScriptInterpEx as Interp;
 #end
 
 #if DISCORD_ALLOWED
@@ -104,7 +104,7 @@ class FunkinLua {
 			if(resultStr != null && result != 0) {
 				trace(isString ? 'Error on lua code! $resultStr' : 'Error on lua script! $resultStr');
 				#if windows
-				if(!isString) CoolUtil.showPopUp(resultStr, 'Error on lua script!', MSG_INFORMATION);
+				if(!isString) CoolUtil.showPopUp(resultStr, 'Error on lua script!' #if sl_windows_api , MSG_INFORMATION #end);
 				#else
 				luaTrace((isString ? 'Error loading lua code: $resultStr' : ('Error loading lua script: "$script"\n' + resultStr)), true, false, FlxColor.RED);
 				#end
@@ -120,7 +120,7 @@ class FunkinLua {
 			if(resultStr != null && result != 0) {
 				trace('Error on lua script! ' + resultStr);
 				#if !mac
-				CoolUtil.showPopUp(resultStr, 'Error on lua script!', MSG_INFORMATION);
+				CoolUtil.showPopUp(resultStr, 'Error on lua script!' #if sl_windows_api , MSG_INFORMATION #end);
 				#else
 				luaTrace('Error loading lua script: "$script"\n' + resultStr, true, false, FlxColor.RED);
 				#end

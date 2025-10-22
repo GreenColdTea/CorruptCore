@@ -37,8 +37,8 @@ import api.Discord;
 using StringTools;
 
 class EditorLua {
-	public static var Function_Stop = 1;
-	public static var Function_Continue = 0;
+	public static final Function_Stop = 1;
+	public static final Function_Continue = 0;
 
 	#if LUA_ALLOWED
 	public var lua:State = null;
@@ -56,7 +56,7 @@ class EditorLua {
 		var result:Dynamic = LuaL.dofile(lua, script);
 		var resultStr:String = Lua.tostring(lua, result);
 		if(resultStr != null && result != 0) {
-			CoolUtil.showPopUp(resultStr, 'Error on .LUA script!', MSG_INFORMATION);
+			CoolUtil.showPopUp(resultStr, 'Error on .LUA script!' #if sl_windows_api , MSG_INFORMATION #end);
 			trace('Error on .LUA script! ' + resultStr);
 			lua = null;
 			return;

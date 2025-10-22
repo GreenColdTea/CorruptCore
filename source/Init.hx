@@ -46,7 +46,7 @@ class Init extends FlxState
 
 		applyGraphicsSettings();
 			
-        #if ((LUA_ALLOWED || HSCRIPT_ALLOWED) && MODS_ALLOWED)
+        #if MODS_ALLOWED
 		game.backend.system.Mods.pushGlobalMods();
 		WeekData.loadTheFirstEnabledMod();
 		#end
