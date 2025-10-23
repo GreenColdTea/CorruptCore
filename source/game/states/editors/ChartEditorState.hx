@@ -543,6 +543,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		sliderBg = new FlxSprite(0, FlxG.height - 60).makeGraphic(FlxG.width, 60, FlxColor.BLACK);
 		sliderBg.alpha = 0.85;
 		sliderBg.scrollFactor.set();
+		sliderBg.updateHitbox();
 		sliderBg.cameras = [camUI];
 		add(sliderBg);
 
@@ -577,6 +578,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 				updateGrid();
 			}
 		}, 0, 0, 1, FlxG.width - 20, FlxColor.fromRGB(194, 62, 201), FlxColor.WHITE);
+		positionSlider.scrollFactor.set();
 		positionSlider.rightColor = FlxColor.fromRGB(57, 23, 59);
 		
 		positionSlider.minText.visible = false;
@@ -2281,7 +2283,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	{
 		var noteDataToCheck:Int = note.noteData;
 		if (noteDataToCheck > -1 && note.mustPress != _song.notes[curSec].mustHitSection) {
-			noteDataToCheck += 4;
+			noteDataToCheck += GRID_COLUMNS_PER_PLAYER;
 		}
 		
 		if (selectedNotes.contains(note)) {
@@ -2302,7 +2304,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			var data:Int = note.noteData % GRID_COLUMNS_PER_PLAYER;
 			var noteDataToCheck:Int = note.noteData;
 			if (noteDataToCheck > -1 && note.mustPress != _song.notes[curSec].mustHitSection) {
-				noteDataToCheck += 4;
+				noteDataToCheck += GRID_COLUMNS_PER_PLAYER;
 			}
 			
 			strumLineNotes.members[noteDataToCheck].playAnim('confirm', true);
@@ -3362,7 +3364,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		if(noteDataToCheck > -1) // Normal note
 		{
 			if(note.mustPress != _song.notes[curSec].mustHitSection) {
-            	noteDataToCheck += 4;
+            	noteDataToCheck += GRID_COLUMNS_PER_PLAYER;
         	}
 			
 			for (i in _song.notes[curSec].sectionNotes)
@@ -3573,7 +3575,11 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	{
 		var leZoom:Float = zoomList[curZoom];
 		if(!doZoomCalc) leZoom = 1;
-		return FlxMath.remapToRange(yPos, gridBG.y, gridBG.y + gridBG.height * leZoom, 0, 16 * Conductor.stepCrochet);
+		
+		var beats:Float = getSectionBeats();
+		var totalTime = beats * Conductor.stepCrochet * GRID_COLUMNS_PER_PLAYER;
+		
+		return FlxMath.remapToRange(yPos, gridBG.y, gridBG.y + gridBG.height * leZoom, 0, totalTime);
 	}
 
 	function getYfromStrum(strumTime:Float, doZoomCalc:Bool = true):Float
@@ -3585,9 +3591,8 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	
 	function getYfromStrumNotes(strumTime:Float, beats:Float):Float
 	{
-		if (beats <= 0) beats = 1;
-		
-		var value:Float = strumTime / (beats * GRID_COLUMNS_PER_PLAYER * Conductor.stepCrochet);
+		var totalTime = beats * Conductor.stepCrochet * GRID_COLUMNS_PER_PLAYER;
+		var value:Float = strumTime / totalTime;
 		return GRID_SIZE * beats * GRID_COLUMNS_PER_PLAYER * zoomList[curZoom] * value + gridBG.y;
 	}
 

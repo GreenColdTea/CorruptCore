@@ -1051,7 +1051,7 @@ class FunkinLua {
 	public static function setVarInArray(instance:Dynamic, variable:String, value:Dynamic):Bool
 	{
 		if (variable == null || variable.length == 0) {
-			if(getBool('luaDebugMode')) trace('ERROR: setVarInArray - variable is null or empty (instance: $instance)');
+			#if LUA_ALLOWED if(getBool('luaDebugMode')) #end trace('ERROR: setVarInArray - variable is null or empty (instance: $instance)');
 			return false;
 		}
 		
@@ -1072,7 +1072,7 @@ class FunkinLua {
 			}
 			
 			if (blah == null) {
-				if(getBool('luaDebugMode')) trace('WARNING: Property not found: "${shit[0]}" (object: $instanceInfo, full path: $variable)');
+				#if LUA_ALLOWED if(getBool('luaDebugMode')) #end trace('WARNING: Property not found: "${shit[0]}" (object: $instanceInfo, full path: $variable)');
 				return false;
 			}
 			
@@ -1095,7 +1095,7 @@ class FunkinLua {
 						}
 						catch(e:Dynamic) {
 							var blahInfo:String = getObjectInfo(blah);
-							if(getBool('luaDebugMode')) trace('ERROR: Failed to set property "$variable" on object: $blahInfo - ${e.message}');
+							#if LUA_ALLOWED if(getBool('luaDebugMode')) #end trace('ERROR: Failed to set property "$variable" on object: $blahInfo - ${e.message}');
 							return false;
 						}
 					}
@@ -1112,14 +1112,14 @@ class FunkinLua {
 						}
 						catch(e:Dynamic) {
 							var blahInfo:String = getObjectInfo(blah);
-							if(getBool('luaDebugMode')) trace('ERROR: Failed to access index "$key" on object: $blahInfo while setting "$variable" - ${e.message}');
+							#if LUA_ALLOWED if(getBool('luaDebugMode')) #end trace('ERROR: Failed to access index "$key" on object: $blahInfo while setting "$variable" - ${e.message}');
 							return false;
 						}
 					}
 					else
 					{
 						var blahInfo:String = getObjectInfo(blah);
-						if(getBool('luaDebugMode')) trace('WARNING: Cannot access index on non-container: ${shit.slice(0, i).join('[')} (object: $blahInfo, type: ${Type.getClassName(Type.getClass(blah))})');
+						#if LUA_ALLOWED if(getBool('luaDebugMode')) #end trace('WARNING: Cannot access index on non-container: ${shit.slice(0, i).join('[')} (object: $blahInfo, type: ${Type.getClassName(Type.getClass(blah))})');
 						return false;
 					}
 				}
@@ -1143,13 +1143,13 @@ class FunkinLua {
 				return true;
 			}
 			
-			if(getBool('luaDebugMode')) trace('WARNING: Instance is null for property: "$variable" (called from Lua script, object info: $instanceInfo)');
+			#if LUA_ALLOWED if(getBool('luaDebugMode')) #end trace('WARNING: Instance is null for property: "$variable" (called from Lua script, object info: $instanceInfo)');
 			return false;
 		}
 		catch(e:Dynamic)
 		{
 			var instanceInfo:String = getObjectInfo(instance);
-			if(getBool('luaDebugMode')) trace('ERROR: Failed to set property "$variable" on object: $instanceInfo - ${e.message}');
+			#if LUA_ALLOWED if(getBool('luaDebugMode')) #end trace('ERROR: Failed to set property "$variable" on object: $instanceInfo - ${e.message}');
 			return false;
 		}
 	}
