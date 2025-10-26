@@ -44,7 +44,6 @@ import game.PlayState;
 
 import game.backend.Controls;
 import game.objects.Character;
-import game.objects.DialogueBoxPsych;
 import game.objects.StrumNote;
 import game.shaders.flixel.FlxShader;
 
@@ -62,8 +61,13 @@ import game.scripting.lua.*;
 using StringTools;
 
 class FunkinLua {
+	@:unreflective
 	public static final Function_Stop:Dynamic = 1;
+
+	@:unreflective
 	public static final Function_Continue:Dynamic = 0;
+
+	@:unreflective
 	public static final Function_StopLua:Dynamic = 2;
 
 	//public var errorHandler:String->Void;
@@ -849,7 +853,7 @@ class FunkinLua {
 
 		//shitass stuff for epic coders like me B)  *image of obama giving himself a medal*
 
-		var luaFuncs:Array<Dynamic> = [
+		final luaFuncs:Array<Dynamic> = [
 			LuaColor,
 			LuaControls,
 			LuaFileManager,
@@ -900,55 +904,6 @@ class FunkinLua {
 				return Reflect.setProperty(leClass, variables[variables.length-1], value);
 			}
 		});*/
-
-		Lua_helper.add_callback(lua, "startDialogue", function(dialogueFile:String, music:String = null) {
-			var path:String;
-			#if MODS_ALLOWED
-			path = Mods.modsJson(Paths.formatToSongPath(PlayState.SONG.song) + '/' + dialogueFile);
-			if(!FileSystem.exists(path))
-			#end
-				path = Paths.json(Paths.formatToSongPath(PlayState.SONG.song) + '/' + dialogueFile);
-
-			luaTrace('startDialogue: Trying to load dialogue: ' + path);
-
-			#if MODS_ALLOWED
-			if(FileSystem.exists(path))
-			#else
-			if(Assets.exists(path))
-			#end
-			{
-				var shit:DialogueFile = DialogueBoxPsych.parseDialogue(path);
-				if(shit.dialogue.length > 0) {
-					PlayState.instance.startDialogue(shit, music);
-					luaTrace('startDialogue: Successfully loaded dialogue', false, false, FlxColor.GREEN);
-					return true;
-				} else {
-					luaTrace('startDialogue: Your dialogue file is badly formatted!', false, false, FlxColor.RED);
-				}
-			} else {
-				luaTrace('startDialogue: Dialogue file not found', false, false, FlxColor.RED);
-				if(PlayState.instance.endingSong) {
-					PlayState.instance.endSong();
-				} else {
-					PlayState.instance.startCountdown();
-				}
-			}
-			return false;
-		});
-		Lua_helper.add_callback(lua, "playVideo", function(videoFile:String, ?isNotMidPartSong:Bool = false) {
-			#if VIDEOS_ALLOWED
-			if(FileSystem.exists(Paths.video(videoFile))) {
-				PlayState.instance.playVideo(videoFile, isNotMidPartSong);
-				return true;
-			} else {
-				luaTrace('playVideo: Video file not found: ' + videoFile, false, false, FlxColor.RED);
-			}
-			return false;
-
-			#else
-			return true;
-			#end
-		});
 
 		Lua_helper.add_callback(lua, "debugPrint", function(text1:Dynamic = '', text2:Dynamic = '', text3:Dynamic = '', text4:Dynamic = '', text5:Dynamic = '') {
 			text1 ??= '';

@@ -41,8 +41,8 @@ class PsychUIInputText extends FlxSpriteGroup
 {
 	public static final CHANGE_EVENT = "inputtext_change";
 
-	static final KEY_TILDE = 126;
-	static final KEY_ACUTE = 180;
+	@:unreflective static final KEY_TILDE = 126;
+	@:unreflective static final KEY_ACUTE = 180;
 
 	public static var focusOn(default, set):PsychUIInputText = null;
 	

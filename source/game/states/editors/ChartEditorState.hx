@@ -3018,7 +3018,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 	function updateGrid():Void
 	{
-		var clearingGrps:Array<Dynamic> = [
+		var clearingGrps:Array<FlxTypedGroup<Dynamic>> = [
 			curRenderedNotes,
 			curRenderedSustains,
 			curRenderedNoteType,

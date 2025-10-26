@@ -65,6 +65,8 @@ class FreeplayState extends MusicBeatState
 
 		if (!isSoftcodedState())
 		{
+			if(FlxG.sound.music == null) FlxG.sound.playMusic(Paths.music('freakyMenu'), 0);
+			
 			createMenuInterface();
 			setupNavigation();
 		}

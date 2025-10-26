@@ -5,6 +5,7 @@ import openfl.ui.MouseCursor;
 
 class PsychUICheckBox extends FlxSpriteGroup
 {
+	@:unreflective
 	public static final CLICK_EVENT = 'checkbox_click';
 
 	public var name:String;
@@ -15,7 +16,7 @@ class PsychUICheckBox extends FlxSpriteGroup
 	public var checked(default, set):Bool = false;
 	public var onClick:Void->Void = null;
 
-	var _isHovered:Bool = false;
+	private var _isHovered:Bool = false;
 
 	public function new(x:Float, y:Float, label:String, ?textWid:Int = 100, ?callback:Void->Void)
 	{

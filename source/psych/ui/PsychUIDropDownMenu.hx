@@ -7,6 +7,7 @@ import openfl.ui.MouseCursor;
 
 class PsychUIDropDownMenu extends PsychUIInputText
 {
+	@:unreflective
 	public static final CLICK_EVENT = "dropdown_click";
 
 	public var list(default, set):Array<String> = [];
@@ -16,8 +17,8 @@ class PsychUIDropDownMenu extends PsychUIInputText
 	public var selectedIndex(default, set):Int = -1;
 	public var selectedLabel(default, set):String = null;
 
-	var _curFilter:Array<String>;
-	var _itemWidth:Float = 0;
+	private var _curFilter:Array<String>;
+	private var _itemWidth:Float = 0;
 	
 	private var _isButtonHovered:Bool = false;
 

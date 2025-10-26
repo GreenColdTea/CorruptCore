@@ -30,7 +30,7 @@ class ChartBackupManager
     public static final VERSION:String = "1.0";
     
     /** File extension used for backup files */
-    public static final BACKUP_EXTENSION:String = "ccb";
+    @:unreflective public static final BACKUP_EXTENSION:String = "ccb";
     
     private var editor:ChartEditorState;
     

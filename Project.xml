@@ -58,7 +58,7 @@
 	<define name="HSCRIPT_ALLOWED" />
 	<define name="MODCHART_ALLOWED" />
 	<define name="DISCORD_ALLOWED" if="desktop" unless="hl"/>
-	<define name="ACHIEVEMENTS_ALLOWED" />
+	<!--<define name="ACHIEVEMENTS_ALLOWED" />--> <!-- Not neccesary -->
 	<define name="VIDEOS_ALLOWED" if="desktop || mobile" unless="hl"/>
 	<define name="TITLE_SCREEN_EASTER_EGG" if="officialBuild" /> <!-- DELETE THE if="officialBuild" for enabling this on an unofficial build -->
 	<define name="CRASH_HANDLER" />
@@ -250,8 +250,6 @@
 
 	<!--Analyzer Optimization-->
 	<haxedef name="analyzer-optimize" unless="HSCRIPT_ALLOWED || LUA_ALLOWED"/>
-
-	<haxedef name='no-deprecation-warnings' />
 
 	<!--For Haxe 4.3.0 and above-->
 	<haxedef name='message.reporting' value='pretty' />

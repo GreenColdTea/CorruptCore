@@ -194,18 +194,11 @@ class TitleState extends MusicBeatState
 	{
 		if (isSoftcodedState())
 		{
-			if(FlxG.sound.music == null) {
-				FlxG.sound.playMusic(Paths.music('freakyMenu'), 0);
-			}
+			if(FlxG.sound.music == null) FlxG.sound.playMusic(Paths.music('freakyMenu'), 0);
 			return;
 		}
 
-		if (!initialized)
-		{
-			if(FlxG.sound.music == null) {
-				FlxG.sound.playMusic(Paths.music('freakyMenu'), 0);
-			}
-		}
+		if (!initialized) if(FlxG.sound.music == null) FlxG.sound.playMusic(Paths.music('freakyMenu'), 0);
 
 		Conductor.changeBPM(titleJSON.bpm);
 		persistentUpdate = true;
@@ -535,27 +528,13 @@ class TitleState extends MusicBeatState
 						FlxG.sound.playMusic(Paths.music('freakyMenu'), 0);
 						FlxG.sound.music.fadeIn(4, 0, 0.7);
 					case 2:
-						#if PSYCH_WATERMARKS
-						createCoolText(['Psych Engine by'], 15);
-						#else
 						createCoolText(['ninjamuffin99', 'phantomArcade', 'kawaisprite', 'evilsk8er']);
-						#end
 					case 4:
-						#if PSYCH_WATERMARKS
-						addMoreText('Shadow Mario', 15);
-						addMoreText('RiverOaken', 15);
-						addMoreText('shubs', 15);
-						#else
 						addMoreText('present');
-						#end
 					case 5:
 						deleteCoolText();
 					case 6:
-						#if PSYCH_WATERMARKS
-						createCoolText(['Not associated', 'with'], -40);
-						#else
 						createCoolText(['In association', 'with'], -40);
-						#end
 					case 8:
 						addMoreText('newgrounds', -40);
 						if (credGroup != null) ngSpr.visible = true;

@@ -5,7 +5,7 @@ import openfl.ui.MouseCursor;
 
 class PsychUINumericStepper extends PsychUIInputText
 {
-	public static final CHANGE_EVENT = "numericstepper_change";
+	@:unreflective public static final CHANGE_EVENT = "numericstepper_change";
 
 	public var step:Float = 0;
 	public var min(default, set):Float = 0;

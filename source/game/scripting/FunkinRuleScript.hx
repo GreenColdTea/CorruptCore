@@ -31,6 +31,8 @@ using StringTools;
 using Lambda;
 
 class FunkinRuleScript {
+
+    @:unreflective
     static final PRESET_VARS:haxe.ds.Map<String, Dynamic> = [
         // Flixel Classes
         "FlxG" => flixel.FlxG,
@@ -109,6 +111,7 @@ class FunkinRuleScript {
 		'ObjectMap' => haxe.ds.ObjectMap
     ];
 
+    @:unreflective
     static final ABSTRACT_IMPORTS:Array<String> = [
         "flixel.util.FlxColor",
         "flixel.input.keyboard.FlxKey",

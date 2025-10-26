@@ -3086,7 +3086,6 @@ class PlayState extends MusicBeatState
 				if (storyPlaylist.length <= 0)
 				{
 					WeekData.loadTheFirstEnabledMod();
-					FlxG.sound.playMusic(Paths.music('freakyMenu'));
 
 					cancelMusicFadeTween();
 					canResync = false;
@@ -3119,7 +3118,7 @@ class PlayState extends MusicBeatState
 					prevCamFollow = camFollow;
 
 					PlayState.SONG = Song.loadFromJson(PlayState.storyPlaylist[0] + difficulty, PlayState.storyPlaylist[0]);
-					FlxG.sound.music.stop();
+					FlxG.sound.music?.stop();
 
 					LoadingState.loadAndSwitchState(() -> new PlayState());
 				}
@@ -3131,7 +3130,6 @@ class PlayState extends MusicBeatState
 				cancelMusicFadeTween();
 				canResync = false;
 				FlxG.switchState(() -> new FreeplayState());
-				FlxG.sound.playMusic(Paths.music('freakyMenu'));
 				changedDifficulty = false;
 			}
 			transitioning = true;

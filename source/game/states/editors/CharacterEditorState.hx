@@ -59,7 +59,6 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 {
 	var char:Character;
 	var ghostChar:Character;
-	var textAnim:FlxText;
 	var bgLayer:FlxTypedGroup<FlxSprite>;
 	var charLayer:FlxTypedGroup<Character>;
 	var shadowLayer:FlxTypedGroup<FlxSprite>;
@@ -69,18 +68,13 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 	var daAnim:String = 'spooky';
 	var goToPlayState:Bool = true;
 
-	public function new(daAnim:String = 'spooky', goToPlayState:Bool = true)
-	{
-		super();
-		this.daAnim = daAnim;
-		this.goToPlayState = goToPlayState;
-	}
-
 	var UI_box:PsychUIBox;
 	var UI_characterbox:PsychUIBox;
 
 	private var camEditor:FlxCamera;
 	private var camHUD:FlxCamera;
+
+	var textAnim:FlxText;
 
 	var grid:FlxSprite;
 	var gridVisible:Bool = false;
@@ -104,7 +98,15 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 	var cameraScrollTarget:FlxPoint = FlxPoint.get(FlxG.camera.scroll.x, FlxG.camera.scroll.y);
 
 	var lastAutoSaveTime:Float = 0;
+
 	static inline final AUTO_SAVE_INTERVAL:Float = 60; // Auto save every 60 seconds
+
+	public function new(daAnim:String = 'spooky', goToPlayState:Bool = true)
+	{
+		super();
+		this.daAnim = daAnim;
+		this.goToPlayState = goToPlayState;
+	}
 
 	override function create()
 	{
@@ -225,7 +227,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		UI_box.scrollFactor.set();
 		UI_box.cameras = [camHUD];
 
-		UI_characterbox = new PsychUIBox(UI_box.x - 100, UI_box.y + UI_box.height + 10, 350, 280, ['Shadows', 'Animations', 'Character']);
+		UI_characterbox = new PsychUIBox(UI_box.x - 100, UI_box.y + UI_box.height + 10, 350, 280, ['Shadows\n(Unfinished)', 'Animations', 'Character']);
 		UI_characterbox.scrollFactor.set();
 		UI_characterbox.cameras = [camHUD];
 		add(UI_characterbox);
@@ -873,7 +875,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 	var shadowFlipXCheckBox:PsychUICheckBox;
 	var shadowFlipYCheckBox:PsychUICheckBox;
 	function addShadowsUI() {
-		var tab_group = UI_characterbox.getTab('Shadows').menu;
+		var tab_group = UI_characterbox.getTab('Shadows\n(Unfinished)').menu;
 
 		shadowVisibleCheck = new PsychUICheckBox(10, 10, "Shadow Visible", 100);
 		shadowVisibleCheck.checked = char.shadowVisible;
@@ -1257,9 +1259,10 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		}
 		dumbTexts.clear();
 
-		for (anim => offsets in char.animOffsets)
+		for (anim in char.animationsArray)
 		{
-			var text:FlxText = new FlxText(10, 20 + (18 * daLoop), 0, anim + ": " + offsets, 15);
+			var offsets = char.animOffsets.get(anim.anim);
+			var text:FlxText = new FlxText(10, 20 + (18 * daLoop), 0, anim.anim + ": " + offsets, 15);
 			text.setFormat(null, 16, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 			text.scrollFactor.set();
 			text.borderSize = 1;
@@ -1445,7 +1448,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		if(animList.length < 1) animList.push('NO ANIMATIONS'); //Prevents crash
 
 		animationDropDown.list = animList;
-		//reloadGhost();
+		genBoyOffsets();
 	}
 
 	function reloadGhost() {
@@ -1599,8 +1602,6 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		}
 
 		if(char.animationsArray[curAnim] != null) {
-			textAnim.text = char.animationsArray[curAnim].anim;
-
 			var animName = char.animationsArray[curAnim].anim;
 			var validAnim = false;
 			
@@ -1612,7 +1613,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			}
 			
 			if(!validAnim) {
-				textAnim.text += ' (ERROR!)';
+				textAnim.text = 'ERROR!';
 			}
 		} else {
 			textAnim.text = '';

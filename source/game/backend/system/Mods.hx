@@ -12,6 +12,7 @@ import game.Paths;
 
 class Mods
 {
+    @:unreflective
     inline public static final MODS_FOLDER = "contents";
     
     public static var debugMode:Bool = #if DEBUG_MODS true #else false #end;

@@ -37,7 +37,10 @@ import api.Discord;
 using StringTools;
 
 class EditorLua {
+	@:unreflective
 	public static final Function_Stop = 1;
+
+	@:unreflective
 	public static final Function_Continue = 0;
 
 	#if LUA_ALLOWED

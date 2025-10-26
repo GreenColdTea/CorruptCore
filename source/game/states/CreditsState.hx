@@ -89,7 +89,11 @@ class CreditsState extends MusicBeatState
 		persistentUpdate = true;
 		initializeCredits();
 
-		if (!isSoftcodedState()) createInterface();
+		if (!isSoftcodedState()) {
+			if(FlxG.sound.music == null) FlxG.sound.playMusic(Paths.music('freakyMenu'), 0);
+			
+			createInterface();
+		}
 
 		super.create();
 	}

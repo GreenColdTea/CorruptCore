@@ -73,6 +73,7 @@ class FPSCounterPlugin extends Bitmap
 	private var frameTimes:Array<Float> = [];
 	private var maxFrameTimeHistory:Int = 20;
 
+	@:unreflective
 	private final dataTexts = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
 
 	private var minFPS:Int = 9999;

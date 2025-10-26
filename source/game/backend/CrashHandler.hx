@@ -24,6 +24,7 @@ enum AudioStatus {
 
 class CrashHandler
 {
+    @:unreflective
     static final LOGS_DIR = "logs/";
     
     public static function init():Void

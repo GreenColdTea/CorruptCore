@@ -38,6 +38,8 @@ class Paths
 {
     inline public static final SOUND_EXT = #if web "mp3" #else "ogg" #end;
     inline public static final VIDEO_EXT = "mp4";
+
+    @:unreflective
     inline public static final WAV_EXT = "wav";
 
     public static function excludeAsset(key:String) {
@@ -49,8 +51,8 @@ class Paths
     [
         'assets/music/freakyMenu.$SOUND_EXT',
     ];
+    
     public static var localTrackedAssets:Array<String> = [];     
-
     public static function clearUnusedMemory(cleanMajor:Bool = true) {
         if (FlxG.state is PlayState) cleanMajor = false; // dont do major cleans ingame
 
@@ -100,9 +102,7 @@ class Paths
                 if(grp != null)
                 {
                     for (member in grp)
-                    {
                         checkForGraphics(member);
-                    }
                     return;
                 }
             }

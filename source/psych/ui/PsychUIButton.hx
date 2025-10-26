@@ -10,6 +10,7 @@ import openfl.ui.MouseCursor;
 
 class PsychUIButton extends FlxSpriteGroup
 {
+	@:unreflective
 	public static final CLICK_EVENT = 'button_click';
 
 	public var name:String;
@@ -38,7 +39,7 @@ class PsychUIButton extends FlxSpriteGroup
 		bgAlpha: 1
 	};
 
-	var _isHovered:Bool = false;
+	private var _isHovered:Bool = false;
 
 	public function new(x:Float = 0, y:Float = 0, label:String = '', ?onClick:Void->Void = null, ?wid:Int = 80, ?hei:Int = 20)
 	{
