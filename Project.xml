@@ -246,10 +246,12 @@
 
 	<!--Code Cleanup and Full Compile of Classes-->
 	<haxeflag name="--macro" value="allowPackage('flash')" />
-	<haxeflag name="--macro" value="include('hxvlc')" />
+	<haxeflag name="--macro" value="include('hxvlc')" if="VIDEOS_ALLOWED"/>
 
 	<!--Analyzer Optimization-->
 	<haxedef name="analyzer-optimize" unless="HSCRIPT_ALLOWED || LUA_ALLOWED"/>
+
+	<haxedef name='no-deprecation-warnings' />
 
 	<!--For Haxe 4.3.0 and above-->
 	<haxedef name='message.reporting' value='pretty' />

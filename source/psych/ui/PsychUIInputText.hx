@@ -39,7 +39,7 @@ enum abstract CaseMode(Int) from Int from UInt to Int to UInt
 
 class PsychUIInputText extends FlxSpriteGroup
 {
-	public static final CHANGE_EVENT = "inputtext_change";
+	@:unreflective public static final CHANGE_EVENT = "inputtext_change";
 
 	@:unreflective static final KEY_TILDE = 126;
 	@:unreflective static final KEY_ACUTE = 180;
@@ -331,19 +331,22 @@ class PsychUIInputText extends FlxSpriteGroup
 				inInsertMode = !inInsertMode;
 
 			case BACKSPACE: //Delete letter to the left of caret
-				if(caretIndex <= 0) return;
-
-				if(selectIndex > -1 && selectIndex != caretIndex)
-					deleteSelection();
-				else
+				if (selectIndex > -1 && selectIndex != caretIndex)
 				{
-					var lastText = text;
-					text = text.substring(0, caretIndex-1) + text.substring(caretIndex);
-					caretIndex--;
-					saveToHistory(lastText);
-					if(onChange != null) onChange(lastText, text);
-					if(broadcastInputTextEvent) PsychUIEventHandler.event(CHANGE_EVENT, this);
+					deleteSelection();
+					_nextAccent = NONE;
+					updateCaret();
+					return;
 				}
+				
+				if(caretIndex < 0) return;
+
+				var lastText = text;
+				text = text.substring(0, caretIndex-1) + text.substring(caretIndex);
+				caretIndex--;
+				saveToHistory(lastText);
+				if(onChange != null) onChange(lastText, text);
+				if(broadcastInputTextEvent) PsychUIEventHandler.event(CHANGE_EVENT, this);
 				_nextAccent = NONE;
 
 			case DELETE: //Delete letter to the right of caret
@@ -752,19 +755,18 @@ class PsychUIInputText extends FlxSpriteGroup
 		}
 	}
 
-	inline function deleteSelection()
+	function deleteSelection()
 	{
+		if (selectIndex == -1 || selectIndex == caretIndex) return;
+		
 		var lastText:String = text;
-		if(selectIndex > caretIndex)
-		{
-			text = text.substring(0, caretIndex) + text.substring(selectIndex);
-		}
-		else
-		{
-			text = text.substring(0, selectIndex) + text.substring(caretIndex);
-			caretIndex = selectIndex;
-		}
+		var start:Int = Std.int(Math.min(selectIndex, caretIndex));
+		var end:Int = Std.int(Math.max(selectIndex, caretIndex));
+		
+		text = text.substring(0, start) + text.substring(end);
+		caretIndex = start;
 		selectIndex = -1;
+		
 		saveToHistory(lastText);
 		if(onChange != null) onChange(lastText, text);
 		if(broadcastInputTextEvent) PsychUIEventHandler.event(CHANGE_EVENT, this);
