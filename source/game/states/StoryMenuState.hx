@@ -292,7 +292,7 @@ class StoryMenuState extends MusicBeatState
 
 	function handleUserInput()
 	{
-		if (!isMovingBack && !isWeekSelected)
+		if (!isMovingBack && !isWeekSelected && FlxG.state.subState == null)
 		{
 			handleWeekSelection();
 			handleDifficultySelection();

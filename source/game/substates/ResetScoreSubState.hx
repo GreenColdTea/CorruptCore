@@ -31,6 +31,8 @@ class ResetScoreSubState extends MusicBeatSubstate
 
 		super();
 
+		freezeParentState = false;
+
 		var name:String = song;
 		if(week > -1) name = WeekData.weeksLoaded.get(WeekData.weeksList[week]).weekName;
 		name += ' (${CoolUtil.difficulties[difficulty]})?';

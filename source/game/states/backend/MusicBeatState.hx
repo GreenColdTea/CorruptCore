@@ -369,6 +369,11 @@ class MusicBeatState extends FlxState
 	{
 		if(quickCallMenuScript("onOpenSubState", [subState]) != FunkinLua.Function_Stop) super.openSubState(subState);
 	}
+
+	override public function closeSubState()
+	{
+		if(quickCallMenuScript("onCloseSubState", []) != FunkinLua.Function_Stop) super.closeSubState();
+	}
 	
 	override public function onResize(w:Int, h:Int) {
 		super.onResize(w, h);

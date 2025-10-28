@@ -255,7 +255,7 @@ class FreeplayState extends MusicBeatState
 
 	function handleInput(elapsed:Float)
 	{
-		if (songs.length == 0) return;
+		if (songs.length == 0 || FlxG.state.subState != null) return;
 
 		var upPressed = controls.UI_UP_P;
 		var downPressed = controls.UI_DOWN_P;

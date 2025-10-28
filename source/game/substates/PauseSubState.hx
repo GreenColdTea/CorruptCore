@@ -138,7 +138,12 @@ class PauseSubState extends MusicBeatSubstate
 		add(grpMenuShit);
 
 		regenMenu();
-		cameras = [FlxG.cameras.list[FlxG.cameras.list.length - 1]];
+
+		cameras = [PlayState.instance.camPause];
+
+		for (member in members)
+            if (Std.isOfType(member, FlxSprite) || Std.isOfType(member, FlxTypedGroup))
+                member.cameras = [PlayState.instance.camPause];
 
 		super.create();
 	}
@@ -150,6 +155,9 @@ class PauseSubState extends MusicBeatSubstate
 		cantUnpause -= elapsed;
 		if (pauseMusic.volume < 0.5)
 			pauseMusic.volume += 0.01 * elapsed;
+
+		if (!PlayState.instance.camPause.visible)
+            PlayState.instance.camPause.visible = true;
 
 		super.update(elapsed);
 		updateSkipTextStuff();
@@ -324,6 +332,8 @@ class PauseSubState extends MusicBeatSubstate
 		lvlInfoTween?.cancel();
 		lvlDifftween?.cancel();
 		blueBallsTween?.cancel();
+
+		PlayState.instance.camPause.visible = false;
 
 		super.destroy();
 	}

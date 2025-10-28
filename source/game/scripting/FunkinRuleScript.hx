@@ -74,6 +74,8 @@ class FunkinRuleScript {
         "ModManager" => game.modchart.ModManager,
         #end
 
+        "FlxShader" => game.shaders.flixel.FlxShader,
+
         "Paths" => game.Paths,
         "Character" => game.objects.Character,
         "PlayerSettings" => game.backend.PlayerSettings,

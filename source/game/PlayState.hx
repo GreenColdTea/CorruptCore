@@ -274,6 +274,8 @@ class PlayState extends MusicBeatState
 	public var camHUD:FlxCamera;
 	public var camGame:FlxCamera;
 	public var camOther:FlxCamera;
+	public var camPause:FlxCamera;
+	public var camSubState:FlxCamera;
 	public var cameraSpeed:Float = 1;
 
 	var dialogue:Array<String> = ['blah blah blah', 'coolswag'];
@@ -431,11 +433,18 @@ class PlayState extends MusicBeatState
 		camGame = initFNFCamera();
 		camHUD = new FlxCamera();
 		camOther = new FlxCamera();
+		camPause = new FlxCamera();
+		camSubState = new FlxCamera();
+
 		camHUD.bgColor.alpha = 0;
 		camOther.bgColor.alpha = 0;
+		camPause.bgColor.alpha = 0;
+		camSubState.bgColor.alpha = 0;
 
 		FlxG.cameras.add(camHUD, false);
 		FlxG.cameras.add(camOther, false);
+		FlxG.cameras.add(camPause, false);
+		FlxG.cameras.add(camSubState, false);
 
 		grpNoteSplashes = new FlxTypedGroup<NoteSplash>();
 		grpHoldCovers = new FlxTypedGroup<NoteHoldCover>();
