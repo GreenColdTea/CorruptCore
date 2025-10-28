@@ -156,16 +156,4 @@ class Native
 		}
 	')
 	public static function registerAsGame():Void {}
-
-	/**
-    * Turns off that annoying "Report to Microsoft" dialog that pops up when the game crashes.
-    */
-	public static function disableWinReport():Void
-	{
-		#if (cpp && windows)
-		untyped __cpp__('SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);');
-		#else
-		// Do nothing lol
-		#end
-	}
 }
