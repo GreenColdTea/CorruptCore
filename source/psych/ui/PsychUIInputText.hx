@@ -339,7 +339,7 @@ class PsychUIInputText extends FlxSpriteGroup
 					return;
 				}
 				
-				if(caretIndex < 0) return;
+				if(caretIndex <= 0) return;
 
 				var lastText = text;
 				text = text.substring(0, caretIndex-1) + text.substring(caretIndex);
