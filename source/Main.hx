@@ -36,7 +36,7 @@ import game.scripting.LuaCallbackHandler;
 using StringTools;
 
 // NATIVE API STUFF, YOU CAN IGNORE THIS AND SCROLL //
-#if (linux && !debug)
+#if (linux && cpp && !debug)
 @:cppInclude('./_external/gamemode_client.h')
 @:cppFileCode('#define GAMEMODE_AUTO')
 #end

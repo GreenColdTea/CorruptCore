@@ -38,6 +38,9 @@ class Paths
 {
     inline public static final SOUND_EXT = #if web "mp3" #else "ogg" #end;
     inline public static final VIDEO_EXT = "mp4";
+    
+    @:unreflective
+    inline public static final OPUS_EXT = "opus";
 
     @:unreflective
     inline public static final WAV_EXT = "wav";
@@ -737,6 +740,32 @@ class Paths
             localTrackedAssets.push(file);
             return currentTrackedSounds.get(file);
         }
+
+        #if (hxopus && sys)
+        file = Mods.modsSounds(modLibPath, key, OPUS_EXT);
+        if(file.startsWith('zip://')) {
+            var parts = file.substr(6).split('/');
+            var mod = parts[0];
+            var filePath = parts.slice(1).join('/');
+            var tempPath = Mods.extractFileFromZipMod(mod, filePath, 'sounds');
+            if(tempPath != null) {
+                if(!currentTrackedSounds.exists(file)) {
+                    var bytes = File.getBytes(tempPath);
+                    currentTrackedSounds.set(file, hxopus.Opus.toOpenFL(bytes));
+                }
+                localTrackedAssets.push(file);
+                return currentTrackedSounds.get(file);
+            }
+        }
+        else if(FileSystem.exists(file)) {
+            if(!currentTrackedSounds.exists(file)) {
+                var bytes = File.getBytes(file);
+                currentTrackedSounds.set(file, hxopus.Opus.toOpenFL(bytes));
+            }
+            localTrackedAssets.push(file);
+            return currentTrackedSounds.get(file);
+        }
+        #end
         #end
 
         var wavPath:String = getPath((path != null ? '$path/' : '') + '$key.$WAV_EXT', SOUND, library);
@@ -764,6 +793,18 @@ class Paths
             localTrackedAssets.push(standardPath);
             return currentTrackedSounds.get(standardPath);
         }
+
+        #if hxopus
+        var opusPath:String = getPath((path != null ? '$path/' : '') + '$key.$OPUS_EXT', SOUND, library);
+        if(OpenFlAssets.exists(opusPath, SOUND)) {
+            if(!currentTrackedSounds.exists(opusPath)) {
+                var bytes = OpenFlAssets.getBytes(opusPath);
+                currentTrackedSounds.set(opusPath, hxopus.Opus.toOpenFL(bytes));
+            }
+            localTrackedAssets.push(opusPath);
+            return currentTrackedSounds.get(opusPath);
+        }
+        #end
 
         if(beepOnNull) {
             trace('SOUND NOT FOUND: $key, PATH: $path');
