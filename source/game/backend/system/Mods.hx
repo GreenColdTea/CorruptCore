@@ -752,3 +752,63 @@ class Mods
     }
 }
 #end
+
+class ModMetadata
+{
+    public var folder:String;
+    public var name:String;
+    public var description:String;
+    public var color:FlxColor;
+    public var restart:Bool;
+    public var alphabet:Alphabet;
+    public var icon:AttachedSprite;
+
+    public function new(folder:String)
+    {
+        this.folder = folder;
+        this.name = folder;
+        this.description = "No description provided.";
+        this.color = ModsMenuState.defaultColor;
+        this.restart = false;
+
+        var jsonBytes:Bytes = Mods.getFileFromMod(folder, 'pack.json');
+        if(jsonBytes != null) {
+            try {
+                var rawJson:String = jsonBytes.toString();
+                if(rawJson != null && rawJson.length > 0) {
+                    var stuff:Dynamic = Json.parse(rawJson);
+                    
+                    var colors:Array<Int> = Reflect.getProperty(stuff, "color");
+                    var description:String = Reflect.getProperty(stuff, "description");
+                    var name:String = Reflect.getProperty(stuff, "name");
+                    var restart:Bool = Reflect.getProperty(stuff, "restart");
+
+                    if(name != null && name.length > 0)
+                    {
+                        this.name = name;
+                    }
+                    if(description != null && description.length > 0)
+                    {
+                        this.description = description;
+                    }
+                    if(name == 'Name')
+                    {
+                        this.name = folder;
+                    }
+                    if(description == 'Description')
+                    {
+                        this.description = "No description provided.";
+                    }
+                    if(colors != null && colors.length > 2)
+                    {
+                        this.color = FlxColor.fromRGB(colors[0], colors[1], colors[2]);
+                    }
+
+                    this.restart = restart;
+                }
+            } catch(e:Dynamic) {
+                trace('Error parsing pack.json for mod $folder: $e');
+            }
+        }
+    }
+}

@@ -29,6 +29,9 @@ import flixel.util.FlxColor;
 import flixel.util.FlxSave;
 import flixel.util.FlxSort;
 
+import flixel.addons.display.waveform.FlxWaveform;
+import flixel.addons.display.waveform.FlxWaveformBuffer;
+
 import lime.media.AudioBuffer;
 import lime.utils.Assets;
 
@@ -62,12 +65,6 @@ import sys.FileSystem;
 import sys.io.File;
 #end
 
-#if (flixel < "5.3.0")
-@:access(flixel.system.FlxSound._sound)
-#else
-@:access(flixel.sound.FlxSound._sound)
-#end
-@:access(openfl.media.Sound.__buffer)
 
 enum abstract WaveformTarget(String)
 {
@@ -76,6 +73,12 @@ enum abstract WaveformTarget(String)
 	var OPPONENT = 'opp';
 }
 
+#if (flixel < "5.3.0")
+@:access(flixel.system.FlxSound._sound)
+#else
+@:access(flixel.sound.FlxSound._sound)
+#end
+@:access(openfl.media.Sound.__buffer)
 class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.PsychUIEvent
 
 {
@@ -244,13 +247,19 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
     	0xFFF9393F  // red (right note)
 	];
 
-	var gridColors = {
+	var gridColors:Dynamic = {
 		background: 0xFF0C1020,
 		mainLines: 0xFF1C2038,
 		secondaryLines: 0xFF141830,
 		beatLines: 0xFF2C4880,
 		sectionLines: 0xFF3C5888
 	};
+
+	var waveformColors:Map<WaveformTarget, FlxColor> = [
+		INST => 0xFF4A88C8,
+		PLAYER => 0xFF4AC84A,
+		OPPONENT => 0xFFC84A4A
+	];
 
 	//select box things
 	var selectBox:FlxSprite;
@@ -261,7 +270,9 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 	var clipboardNotes:Array<Dynamic> = [];
 
-	var waveformSprite:FlxSprite;
+	var waveform:FlxWaveform;
+	var currentWaveformSound:FlxSound = null;
+
 	var gridLayer:FlxTypedGroup<FlxSprite>;
 
 	public static var quantization:Int = 16;
@@ -347,10 +358,12 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 		var waveformWidth:Int = Std.int(gridBG.width);
 		var waveformHeight:Int = Std.int(gridBG.height);
-		waveformSprite = new FlxSprite(gridBG.x + GRID_SIZE, 0).makeGraphic(1, 1, 0xFF4A3C88);
-		waveformSprite.scrollFactor.x = 0;
-		waveformSprite.visible = false;
-		add(waveformSprite);
+		waveform = new FlxWaveform(gridBG.x + GRID_SIZE / 2, gridBG.y, waveformWidth, waveformHeight, 0xFF4A3C88, FlxColor.TRANSPARENT);
+		waveform.waveformOrientation = VERTICAL;
+		waveform.autoUpdateBitmap = false;
+		waveform.visible = false;
+		waveform.scrollFactor.x = 0;
+		add(waveform);
 
 		var eventIcon:FlxSprite = new FlxSprite(GRID_SIZE + 375).loadGraphic(Paths.image('eventArrow'));
 		leftIcon = new HealthIcon('bf');
@@ -604,6 +617,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		}
 	}
 
+	var stepperBPM:PsychUINumericStepper;
 	var check_mute_inst:PsychUICheckBox = null;
 	var check_mute_vocals:PsychUICheckBox = null;
 	var check_mute_vocals_opponent:PsychUICheckBox = null;
@@ -698,17 +712,21 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		clear_events.normalStyle.bgColor = FlxColor.RED;
 		clear_events.normalStyle.textColor = FlxColor.WHITE;
 
-		var stepperBPM:PsychUINumericStepper = new PsychUINumericStepper(10, 70, 1, 1, 1, 400, 3);
+		stepperBPM = new PsychUINumericStepper(10, 70, 1, 1, 1, 400, 3);
 		stepperBPM.value = Conductor.bpm;
 		stepperBPM.name = 'song_bpm';
 		stepperBPM.onValueChange = () -> {
-			_song.bpm = stepperBPM.value;
+			tempBpm = stepperBPM.value;
+			Conductor.mapBPMChanges(_song);
+			Conductor.changeBPM(stepperBPM.value);
+			updateWaveform();
 			updateGrid();
 		}
 
 		var stepperSpeed:PsychUINumericStepper = new PsychUINumericStepper(10, stepperBPM.y + 35, 0.1, 1, 0.1, 10, 1);
 		stepperSpeed.value = _song.speed;
 		stepperSpeed.name = 'song_speed';
+		stepperSpeed.onValueChange = () -> _song.speed = stepperSpeed.value;
 		var directories:Array<String> = [#if MODS_ALLOWED Mods.getModPath('characters/'), Mods.getModPath(Mods.currentModDirectory + '/characters/'), #end  Paths.getPreloadPath('characters/')];
 		#if MODS_ALLOWED
 		for(mod in Mods.getGlobalMods())
@@ -883,34 +901,56 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		check_mustHitSection = new PsychUICheckBox(10, 15, "Must Hit Section", 100);
 		check_mustHitSection.name = 'check_mustHit';
 		check_mustHitSection.checked = _song.notes[curSec].mustHitSection;
+		check_mustHitSection.onClick = () -> {
+			_song.notes[curSec].mustHitSection = check_mustHitSection.checked;
+			updateGrid();
+			updateHeads();
+		}
 
 		check_gfSection = new PsychUICheckBox(10, check_mustHitSection.y + 22, "GF Section", 100);
 		check_gfSection.name = 'check_gf';
 		check_gfSection.checked = _song.notes[curSec].gfSection;
+		check_gfSection.onClick = () -> {
+			_song.notes[curSec].gfSection = check_gfSection.checked;
+			updateGrid();
+			updateHeads();
+		}
 		// _song.needsVoices = check_mustHit.checked;
 
 		check_altAnim = new PsychUICheckBox(check_gfSection.x + 120, check_gfSection.y, "Alt Animation", 100);
 		check_altAnim.checked = _song.notes[curSec].altAnim;
 		check_altAnim.name = 'check_altAnim';
+		check_altAnim.onClick = () -> _song.notes[curSec].altAnim = check_altAnim.checked;
 
 		stepperBeats = new PsychUINumericStepper(10, 100, 1, 4, 1, 6, 2);
 		stepperBeats.value = getSectionBeats();
 		stepperBeats.name = 'section_beats';
+		stepperBeats.onValueChange = () -> {
+			_song.notes[curSec].sectionBeats = stepperBeats.value;
+			reloadGridLayer();
+			updateWaveform();
+		}
 
 		check_changeBPM = new PsychUICheckBox(10, stepperBeats.y + 30, 'Change BPM', 100);
 		check_changeBPM.checked = _song.notes[curSec].changeBPM;
 		check_changeBPM.name = 'check_changeBPM';
 		check_changeBPM.onClick = () -> {
+			_song.notes[curSec].changeBPM = check_changeBPM.checked;
+			reloadGridLayer();
 			updateGrid();
 			updateNoteUI();
+			updateWaveform();
+			FlxG.log.add('changed bpm');
 		}
 
-		stepperSectionBPM = new PsychUINumericStepper(10, check_changeBPM.y + 20, 1, Conductor.bpm, 0, 999, 1);
-		stepperSectionBPM.value = check_changeBPM.checked ? _song.notes[curSec].bpm : Conductor.bpm;
+		stepperSectionBPM = new PsychUINumericStepper(10, check_changeBPM.y + 20, 1, stepperBPM.value ?? Conductor.bpm, 0, 999, 1);
+		stepperSectionBPM.value = check_changeBPM.checked ? _song.notes[curSec].bpm : stepperBPM.value ?? Conductor.bpm;
 		stepperSectionBPM.name = 'section_bpm';
 		stepperSectionBPM.onValueChange = () -> {
+			_song.notes[curSec].bpm = stepperSectionBPM.value;
 			updateGrid();
 			updateNoteUI();
+			updateWaveform();
 		}
 
 		var check_eventsSec:PsychUICheckBox = null;
@@ -1020,7 +1060,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			for (i in 0..._song.notes[curSec].sectionNotes.length)
 			{
 				var note:Array<Dynamic> = _song.notes[curSec].sectionNotes[i];
-				note[1] = (note[1] + 4) % 8;
+				note[1] = (note[1] + GRID_COLUMNS_PER_PLAYER) % GRID_COLUMNS_PER_PLAYER * 2;
 				_song.notes[curSec].sectionNotes[i] = note;
 			}
 			updateGrid();
@@ -1130,9 +1170,28 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	{
 		var tab_group_note = mainBox.getTab('Note').menu;
 
-		stepperSusLength = new PsychUINumericStepper(10, 25, Conductor.stepCrochet / 2, 0, 0, Conductor.stepCrochet * 20);
+		stepperSusLength = new PsychUINumericStepper(10, 25, Conductor.stepCrochet / 2, 0, 0, Conductor.stepCrochet * 16);
 		stepperSusLength.value = 0;
 		stepperSusLength.name = 'note_susLength';
+		stepperSusLength.onValueChange = () -> {
+			if (selectedNotes.length > 0)
+			{
+				for (note in selectedNotes)
+				{
+					if (note.noteData > -1) // Only normal notes have sustain length
+					{
+						note.rawData[2] = stepperSusLength.value;
+						note.sustainLength = stepperSusLength.value; // Update the visual note property too
+					}
+				}
+				updateGrid();
+			}
+			else if (curSelectedNote != null && curSelectedNote[2] != null)
+			{
+				curSelectedNote[2] = stepperSusLength.value;
+				updateGrid();
+			}
+		}
 
 		strumTimeInputText = new PsychUIInputText(10, 65, 180, "0");
 		tab_group_note.add(strumTimeInputText);
@@ -1496,6 +1555,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			chartEditorSave.data.chart_vortex = check_vortex.checked;
 			vortex = chartEditorSave.data.chart_vortex;
 			reloadGridLayer();
+			updateWaveform();
 		};
 
 		check_warnings = new PsychUICheckBox(10, 120, "Ignore Progress Warnings", 100);
@@ -1550,14 +1610,17 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		instVolume = new PsychUINumericStepper(50, 270, 0.1, 1, 0, 1, 1);
 		instVolume.value = FlxG.sound.music.volume;
 		instVolume.name = 'inst_volume';
+		instVolume.onValueChange = () -> FlxG.sound.music.volume = instVolume.value;
 
 		voicesVolume = new PsychUINumericStepper(instVolume.x + 100, instVolume.y, 0.1, 1, 0, 1, 1);
 		voicesVolume.value = vocals.volume;
 		voicesVolume.name = 'voices_volume';
+		voicesVolume.onValueChange = () -> vocals.volume = voicesVolume.value;
 
 		voicesOppVolume = new PsychUINumericStepper(instVolume.x + 200, instVolume.y, 0.1, 1, 0, 1, 1);
 		voicesOppVolume.value = vocals.volume;
 		voicesOppVolume.name = 'voices_opp_volume';
+		voicesOppVolume.onValueChange = () -> opponentVocals.volume = voicesOppVolume.value;
 		
 		#if FLX_PITCH
 		playbackSlider = new PsychUISlider(145, 120, (v:Float) -> playbackSpeed = v, 1, 0.1, 5.0, 200);
@@ -1592,7 +1655,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 	function loadSong():Void
 	{
-	    FlxG.sound?.music?.stop();
+		FlxG.sound?.music?.stop();
 
 		vocals?.stop();
 		vocals?.destroy();
@@ -1600,13 +1663,24 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		opponentVocals?.stop();
 		opponentVocals?.destroy();
 
+		currentWaveformSound = null;
+
 		vocals = new FlxSound();
 		opponentVocals = new FlxSound();
+		
 		try
 		{
 			var playerVocals = Paths.voices(currentSongName, (characterData.vocalsP1 == null || characterData.vocalsP1.length < 1) ? 'Player' : characterData.vocalsP1);
-			vocals.loadEmbedded(playerVocals ?? Paths.voices(currentSongName));
+			if (playerVocals != null)
+				vocals.loadEmbedded(playerVocals);
+			else
+				vocals.loadEmbedded(Paths.voices(currentSongName));
 		}
+		catch (e:Dynamic)
+		{
+			trace("Could not load player vocals: " + e);
+		}
+		
 		vocals.autoDestroy = false;
 		FlxG.sound.list.add(vocals);
 
@@ -1616,6 +1690,11 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			var oppVocals = Paths.voices(currentSongName, (characterData.vocalsP2 == null || characterData.vocalsP2.length < 1) ? 'Opponent' : characterData.vocalsP2);
 			if(oppVocals != null) opponentVocals.loadEmbedded(oppVocals);
 		}
+		catch (e:Dynamic)
+		{
+			trace("Could not load opponent vocals: " + e);
+		}
+		
 		opponentVocals.autoDestroy = false;
 		FlxG.sound.list.add(opponentVocals);
 
@@ -1678,132 +1757,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			case PsychUIBox.DROP_EVENT:
 				chartEditorSave.data.mainBoxPosition = [mainBox.x, mainBox.y];
 				chartEditorSave.data.infoBoxPosition = [infoBox.x, infoBox.y];
-
-			case PsychUICheckBox.CLICK_EVENT:
-				handleCheckBoxEvent(cast sender);
-				
-			case PsychUINumericStepper.CHANGE_EVENT if (Std.isOfType(sender, PsychUINumericStepper)):
-				handleNumericStepperEvent(cast sender);
-				
-			case PsychUIInputText.CHANGE_EVENT if (Std.isOfType(sender, PsychUIInputText)):
-				handleInputTextEvent(cast sender);
-		}
-	}
-
-	private function handleCheckBoxEvent(check:PsychUICheckBox):Void
-	{
-		var label = check.label;
-		switch (label)
-		{
-			case 'Must Hit Section':
-				_song.notes[curSec].mustHitSection = check.checked;
-				updateGrid();
-				updateHeads();
-
-			case 'GF Section':
-				_song.notes[curSec].gfSection = check.checked;
-				updateGrid();
-				updateHeads();
-
-			case 'Change BPM':
-				_song.notes[curSec].changeBPM = check.checked;
-				reloadGridLayer();
-				updateGrid();
-				FlxG.log.add('changed bpm');
-
-			case "Alt Animation":
-				_song.notes[curSec].altAnim = check.checked;
-		}
-	}
-
-	private function handleNumericStepperEvent(nums:PsychUINumericStepper):Void
-	{
-		if (nums == stepperSusLength)
-		{
-			handleNoteLengthChange(nums);
-			return;
-		}
-
-		var wname = nums.name;
-		FlxG.log.add(wname);
-		
-		switch (wname)
-		{
-			case 'section_beats':
-				_song.notes[curSec].sectionBeats = nums.value;
-				reloadGridLayer();
-				
-			case 'song_speed':
-				_song.speed = nums.value;
-				
-			case 'song_bpm':
-				tempBpm = nums.value;
-				Conductor.mapBPMChanges(_song);
-				Conductor.changeBPM(nums.value);
-				
-			case 'note_susLength':
-				if (curSelectedNote != null && curSelectedNote[2] != null)
-				{
-					curSelectedNote[2] = nums.value;
-					updateGrid();
-				}
-				
-			case 'section_bpm':
-				_song.notes[curSec].bpm = nums.value;
-				updateGrid();
-				
-			case 'inst_volume':
-				FlxG.sound.music.volume = nums.value;
-				
-			case 'voices_volume':
-				vocals.volume = nums.value;
-				
-			case 'voices_opp_volume':
-				opponentVocals.volume = nums.value;
-				if (check_mute_vocals_opponent.checked) opponentVocals.volume = 0;
-		}
-	}
-
-	private function handleNoteLengthChange(nums:PsychUINumericStepper):Void
-	{
-		if (selectedNotes.length > 0)
-		{
-			for (note in selectedNotes)
-			{
-				if (note.noteData > -1) // Only normal notes have sustain length
-				{
-					note.rawData[2] = nums.value;
-					note.sustainLength = nums.value; // Update the visual note property too
-				}
-			}
-			updateGrid();
-		}
-		else if (curSelectedNote != null && curSelectedNote[2] != null)
-		{
-			curSelectedNote[2] = nums.value;
-			updateGrid();
-		}
-	}
-
-	private function handleInputTextEvent(input:PsychUIInputText):Void
-	{
-		if (curSelectedNote == null) return;
-
-		if (input == value1InputText) {
-			if (curSelectedNote[1][curEventSelected] == null) return;
-
-			curSelectedNote[1][curEventSelected][1] = input.text;
-			updateGrid();
-		} else if (input == value2InputText) {
-			if (curSelectedNote[1][curEventSelected] == null) return;
-
-			curSelectedNote[1][curEventSelected][2] = input.text;
-			updateGrid();
-		} else if (input == strumTimeInputText) {
-			var value:Float = Std.parseFloat(input.text);
-			if (Math.isNaN(value)) value = 0;
-			curSelectedNote[0] = value;
-			updateGrid();
 		}
 	}
 
@@ -2618,6 +2571,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		if(daZoom < 1) zoomThing = Math.round(1 / daZoom) + ' / 1';
 		zoomTxt.text = 'Zoom: ' + zoomThing;
 		reloadGridLayer();
+		updateWaveform();
 	}
 
 	function reloadCharacter(char:String) {
@@ -2644,8 +2598,8 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		gridBG = FlxGridOverlay.create(GRID_SIZE, GRID_SIZE, GRID_SIZE * 9, Std.int(GRID_SIZE * getSectionBeats() * GRID_COLUMNS_PER_PLAYER * zoomList[curZoom]), true, gridColors.mainLines, gridColors.secondaryLines);
 		gridBG.screenCenter(X);
 		
-		waveformSprite.x = gridBG.x + GRID_SIZE;
-
+		/*waveform.setPosition(gridBG.x + GRID_SIZE / 2, gridBG.y);
+		waveform.resize(Std.int(gridBG.width), Std.int(gridBG.height));*/
 		updateWaveformIfNeeded();
 		updateGrid();
 
@@ -2711,11 +2665,19 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		gridLineRight.y = topY + 1;
 		gridLayer.add(gridLineRight);
 
-		for (i in 1...Std.int(getSectionBeats())) {
-			var beatsep:FlxSprite = new FlxSprite(gridBG.x, (GRID_SIZE * (GRID_COLUMNS_PER_PLAYER * zoomList[curZoom])) * i).makeGraphic(1, 1, gridColors.beatLines);
-			beatsep.scale.x = gridBG.width;
-			beatsep.updateHitbox();
-			if(vortex) gridLayer.add(beatsep);
+		function addBeatSeparators(grid:FlxSprite, beats:Float) {
+			for (i in 1...Std.int(beats)) {
+				var beatsep:FlxSprite = new FlxSprite(grid.x, grid.y + (GRID_SIZE * (GRID_COLUMNS_PER_PLAYER * zoomList[curZoom])) * i).makeGraphic(1, 1, gridColors.beatLines);
+				beatsep.scale.x = grid.width;
+				beatsep.updateHitbox();
+				if(vortex) gridLayer.add(beatsep);
+			}
+		}
+
+		if(vortex) {
+			addBeatSeparators(gridBG, getSectionBeats());
+			if(foundPrevSec) addBeatSeparators(prevGridBG, getSectionBeats(curSec - 1));
+			if(foundNextSec) addBeatSeparators(nextGridBG, getSectionBeats(curSec + 1));
 		}
 	}
 
@@ -2821,6 +2783,8 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 			reloadGridLayer();
 			updateSectionUI();
+
+			updateWaveform();
 		}
 		else
 		{
@@ -3928,206 +3892,99 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		cachedSectionTimes[_song.notes.length] = time;
 	}
 
-	var wavData:Array<Array<Array<Float>>> = [[[0], [0]], [[0], [0]]];
-	function updateWaveform() {
-		#if (lime_cffi && !macro)
-		var shouldShowWaveform = chartEditorSave.data.chart_waveformInst || 
-                           chartEditorSave.data.chart_waveformVoices || 
-                           chartEditorSave.data.chart_waveformOppVoices;
-    
-		if(!shouldShowWaveform || curSec < 0 || curSec >= cachedSectionTimes.length)
-		{
-			waveformSprite.visible = false;
-			return;
-		}
-
-		waveformSprite.visible = true;
-		waveformSprite.y = gridBG.y;
-		var width:Int = Std.int(GRID_SIZE * GRID_COLUMNS_PER_PLAYER * GRID_PLAYERS);
-		var height:Int = Std.int(gridBG.height);
-		if(Std.int(waveformSprite.height) != height && waveformSprite?.pixels != null)
-		{
-			waveformSprite.pixels.dispose();
-			waveformSprite.pixels.disposeImage();
-			waveformSprite.makeGraphic(width, height, 0x00FFFFFF);
-		}
-		waveformSprite.pixels.fillRect(new Rectangle(0, 0, width, height), 0x00FFFFFF);
-
-		wavData[0][0].resize(0);
-		wavData[0][1].resize(0);
-		wavData[1][0].resize(0);
-		wavData[1][1].resize(0);
-
-		var sound:FlxSound = switch(waveformTarget)
-		{
-			case INST:
-				FlxG.sound.music;
-			case PLAYER:
-				vocals;
-			case OPPONENT:
-				opponentVocals;
-			case _: null;
-		}
-		
-		@:privateAccess
-		if (sound != null && sound._sound != null && sound._sound.__buffer != null)
-		{
-			var bytes:Bytes = sound._sound.__buffer.data.toBytes();
-			wavData = waveformData(sound._sound.__buffer, bytes, cachedSectionTimes[curSec] - Conductor.offset, cachedSectionTimes[curSec+1] - Conductor.offset, 1, wavData, height);
-		}
-
-		// Draws
-		var gSize:Int = Std.int(GRID_SIZE * 8);
-		var hSize:Int = Std.int(gSize / 2);
-		var size:Float = 1;
-
-		var leftLength:Int = (wavData[0][0].length > wavData[0][1].length ? wavData[0][0].length : wavData[0][1].length);
-		var rightLength:Int = (wavData[1][0].length > wavData[1][1].length ? wavData[1][0].length : wavData[1][1].length);
-
-		var length:Int = leftLength > rightLength ? leftLength : rightLength;
-
-		for (index in 0...length)
-		{
-			var lmin:Float = FlxMath.bound(((index < wavData[0][0].length && index >= 0) ? wavData[0][0][index] : 0) * (gSize / 1.12), -hSize, hSize) / 2;
-			var lmax:Float = FlxMath.bound(((index < wavData[0][1].length && index >= 0) ? wavData[0][1][index] : 0) * (gSize / 1.12), -hSize, hSize) / 2;
-
-			var rmin:Float = FlxMath.bound(((index < wavData[1][0].length && index >= 0) ? wavData[1][0][index] : 0) * (gSize / 1.12), -hSize, hSize) / 2;
-			var rmax:Float = FlxMath.bound(((index < wavData[1][1].length && index >= 0) ? wavData[1][1][index] : 0) * (gSize / 1.12), -hSize, hSize) / 2;
-
-			waveformSprite.pixels.fillRect(new Rectangle(hSize - (lmin + rmin), index * size, (lmin + rmin) + (lmax + rmax), size), FlxColor.WHITE);
-		}
-		#else
-		waveformSprite.visible = false;
-		#end
-	}
-
-	function waveformData(buffer:AudioBuffer, bytes:Bytes, time:Float, endTime:Float, multiply:Float = 1, ?array:Array<Array<Array<Float>>>, ?steps:Float):Array<Array<Array<Float>>>
-	{
-		#if (lime_cffi && !macro)
-		if (buffer == null || buffer.data == null) return [[[0], [0]], [[0], [0]]];
-
-		var khz:Float = (buffer.sampleRate / 1000);
-		var channels:Int = buffer.channels;
-
-		var index:Int = Std.int(time * khz);
-
-		var samples:Float = ((endTime - time) * khz);
-
-		if (steps == null) steps = 1280;
-
-		var samplesPerRow:Float = samples / steps;
-		var samplesPerRowI:Int = Std.int(samplesPerRow);
-
-		var gotIndex:Int = 0;
-
-		var lmin:Float = 0;
-		var lmax:Float = 0;
-
-		var rmin:Float = 0;
-		var rmax:Float = 0;
-
-		var rows:Float = 0;
-
-		var simpleSample:Bool = true;//samples > 17200;
-		var v1:Bool = false;
-
-		if (array == null) array = [[[0], [0]], [[0], [0]]];
-
-		while (index < (bytes.length - 1)) {
-			if (index >= 0) {
-				var byte:Int = bytes.getUInt16(index * channels * 2);
-
-				if (byte > 65535 / 2) byte -= 65535;
-
-				var sample:Float = (byte / 65535);
-
-				if (sample > 0)
-					if (sample > lmax) lmax = sample;
-				else
-					if (sample < lmin) lmin = sample;
-
-				if (channels >= 2) {
-					byte = bytes.getUInt16((index * channels * 2) + 2);
-
-					if (byte > 65535 / 2) byte -= 65535;
-
-					sample = (byte / 65535);
-
-					if (sample > 0) {
-						if (sample > rmax) rmax = sample;
-					} else {
-						if (sample < rmin) rmin = sample;
-					}
-				}
-			}
-
-			v1 = samplesPerRowI > 0 ? (index % samplesPerRowI == 0) : false;
-			while (simpleSample ? v1 : rows >= samplesPerRow) {
-				v1 = false;
-				rows -= samplesPerRow;
-
-				gotIndex++;
-
-				var lRMin:Float = Math.abs(lmin) * multiply;
-				var lRMax:Float = lmax * multiply;
-
-				var rRMin:Float = Math.abs(rmin) * multiply;
-				var rRMax:Float = rmax * multiply;
-
-				if (gotIndex > array[0][0].length) array[0][0].push(lRMin);
-					else array[0][0][gotIndex - 1] = array[0][0][gotIndex - 1] + lRMin;
-
-				if (gotIndex > array[0][1].length) array[0][1].push(lRMax);
-					else array[0][1][gotIndex - 1] = array[0][1][gotIndex - 1] + lRMax;
-
-				if (channels >= 2)
-				{
-					if (gotIndex > array[1][0].length) array[1][0].push(rRMin);
-						else array[1][0][gotIndex - 1] = array[1][0][gotIndex - 1] + rRMin;
-
-					if (gotIndex > array[1][1].length) array[1][1].push(rRMax);
-						else array[1][1][gotIndex - 1] = array[1][1][gotIndex - 1] + rRMax;
-				}
-				else
-				{
-					if (gotIndex > array[1][0].length) array[1][0].push(lRMin);
-						else array[1][0][gotIndex - 1] = array[1][0][gotIndex - 1] + lRMin;
-
-					if (gotIndex > array[1][1].length) array[1][1].push(lRMax);
-						else array[1][1][gotIndex - 1] = array[1][1][gotIndex - 1] + lRMax;
-				}
-
-				lmin = 0;
-				lmax = 0;
-
-				rmin = 0;
-				rmax = 0;
-			}
-
-			index++;
-			rows++;
-			if(gotIndex > steps) break;
-		}
-
-		return array;
-		#else
-		return [[[0], [0]], [[0], [0]]];
-		#end
-	}
-
-	function updateWaveformIfNeeded():Void
+	function updateWaveform():Void
 	{
 		var shouldShowWaveform = chartEditorSave.data.chart_waveformInst || 
 							chartEditorSave.data.chart_waveformVoices || 
 							chartEditorSave.data.chart_waveformOppVoices;
 		
-		if(shouldShowWaveform) updateWaveform();
-		else waveformSprite.visible = false;
+		if(!shouldShowWaveform || curSec < 0 || curSec >= cachedSectionTimes.length)
+		{
+			waveform.visible = false;
+			return;
+		}
+
+		waveform.visible = true;
+		
+		var targetSound:FlxSound = switch(waveformTarget)
+		{
+			case INST: FlxG.sound.music;
+			case PLAYER: vocals;
+			case OPPONENT: opponentVocals;
+			case _: null;
+		};
+		
+		if (targetSound == null || targetSound._sound == null || targetSound._sound.__buffer == null || targetSound.length <= 0)
+		{
+			waveform.visible = false;
+			currentWaveformSound = null;
+			return;
+		}
+		
+		try
+		{
+			var soundChanged = targetSound != currentWaveformSound;
+			if (soundChanged)
+			{
+				currentWaveformSound = targetSound;
+				waveform.loadDataFromFlxSound(targetSound);
+			}
+
+			if (waveform.waveformBuffer == null || waveform.waveformBuffer.length == 0)
+			{
+				waveform.visible = false;
+				return;
+			}
+
+			var startTime:Float = cachedSectionTimes[curSec] - Conductor.offset;
+			var endTime:Float = cachedSectionTimes[curSec + 1] - Conductor.offset;
+			
+			if (Math.isNaN(startTime) || Math.isNaN(endTime) || startTime < 0 || endTime <= startTime)
+			{
+				waveform.visible = false;
+				return;
+			}
+
+			if (waveformColors.exists(waveformTarget)) 
+				waveform.waveformColor = waveformColors[waveformTarget];
+			
+			waveform.waveformTime = startTime;
+			waveform.waveformDuration = Math.max(endTime - startTime, 1);
+			
+			waveform.setPosition(gridBG.x + GRID_SIZE / 2, gridBG.y);
+			waveform.resize(Std.int(gridBG.width), Std.int(gridBG.height));
+			
+			if (soundChanged || !waveform.autoUpdateBitmap)
+				waveform.generateWaveformBitmap();
+		}
+		catch (e:Dynamic)
+		{
+			trace("Error updating waveform: " + e);
+			waveform.visible = false;
+			currentWaveformSound = null;
+		}
+	}
+
+	function updateWaveformIfNeeded():Void
+	{
+		var shouldShowWaveform = chartEditorSave.data.chart_waveformInst || 
+								chartEditorSave.data.chart_waveformVoices || 
+								chartEditorSave.data.chart_waveformOppVoices;
+		
+		if (waveform.waveformBuffer == null || waveform.waveformBuffer.length == 0) return;
+		
+		waveform.visible = shouldShowWaveform;
 	}
 
 	override function destroy() {
 		autoBackupTimer?.cancel();
 		autoBackupTimer?.destroy();
+
+		if (waveform != null)
+		{
+			waveform.destroy();
+			waveform = null;
+		}
 
 		super.destroy();
 	}

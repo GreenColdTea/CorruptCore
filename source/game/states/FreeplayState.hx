@@ -313,6 +313,8 @@ class FreeplayState extends MusicBeatState
 
 	function handleDifficultyInput(leftPressed:Bool, rightPressed:Bool, upPressed:Bool, downPressed:Bool)
 	{
+		if (CoolUtil.difficulties.length < 1) return;
+
 		if (leftPressed)
 			changeDifficulty(-1);
 		else if (rightPressed)
@@ -486,13 +488,24 @@ class FreeplayState extends MusicBeatState
 
 	function changeDifficulty(change:Int = 0)
 	{
-		curDifficulty = FlxMath.wrap(curDifficulty + change, 0, CoolUtil.difficulties.length - 1);
-		updateDifficulty();
+		if (CoolUtil.difficulties.length > 1)
+		{
+			curDifficulty = FlxMath.wrap(curDifficulty + change, 0, CoolUtil.difficulties.length - 1);
+			updateDifficulty();
+		}
 	}
 
 	function updateDifficulty()
 	{
-		lastDifficultyName = CoolUtil.difficulties[curDifficulty];
+		if (CoolUtil.difficulties.length > 0)
+		{
+			curDifficulty = FlxMath.wrap(curDifficulty, 0, CoolUtil.difficulties.length - 1);
+			lastDifficultyName = CoolUtil.difficulties[curDifficulty];
+		}
+		else
+		{
+			lastDifficultyName = CoolUtil.defaultDifficulty;
+		}
 
 		#if !switch
 		intendedScore = Highscore.getScore(songs[curSelected].songName, curDifficulty);
@@ -500,7 +513,7 @@ class FreeplayState extends MusicBeatState
 		#end
 
 		PlayState.storyDifficulty = curDifficulty;
-		difficultyText.text = '< ' + CoolUtil.difficultyString() + ' >';
+		difficultyText.text = CoolUtil.difficulties.length <= 1 ? CoolUtil.difficultyString() : '< ' + CoolUtil.difficultyString() + ' >';
 		positionScoreDisplay();
 	}
 

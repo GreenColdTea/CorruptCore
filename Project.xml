@@ -148,6 +148,7 @@
 	<haxedef name="hscriptPos" />
 
 	<haxelib name="flixel-animate"/>
+	<haxelib name="flixel-waveform"/>
 	<haxelib name="flxsoundfilters" if="cpp"/>
 	<haxelib name="flxgif"/>
 	<haxelib name="hxcpp"/>

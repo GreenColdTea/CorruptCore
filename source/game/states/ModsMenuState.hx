@@ -4,6 +4,8 @@ package game.states;
 import api.Discord.DiscordClient;
 #end
 
+import game.backend.system.Mods.ModMetadata;
+
 import flixel.FlxG;
 import flixel.FlxBasic;
 import flixel.FlxSprite;
@@ -74,8 +76,6 @@ class ModsMenuState extends MusicBeatState
     var isExtracting:Bool = false;
 
     var descriptionBg:FlxSprite;
-    var descriptionScrollBar:FlxSprite;
-    var descriptionScrollBarBg:FlxSprite;
     var descriptionText:FlxText;
     var descriptionScroll:Float = 0;
     var descriptionMaxScroll:Float = 0;
@@ -87,7 +87,6 @@ class ModsMenuState extends MusicBeatState
         WeekData.setDirectoryFromWeek();
 
         #if DISCORD_ALLOWED
-        // Updating Discord Rich Presence
         DiscordClient.changePresence("In the Menus", null);
         #end
 
@@ -97,7 +96,7 @@ class ModsMenuState extends MusicBeatState
         bg.screenCenter();
 
         noModsTxt = new FlxText(0, 0, FlxG.width, "NO MODS INSTALLED\nPRESS BACK TO EXIT AND INSTALL A MOD", 48);
-        if(FlxG.random.bool(0.1)) noModsTxt.text += '\nBITCH.'; //meanie
+        if(FlxG.random.bool(0.1)) noModsTxt.text += '\nBITCH.';
         noModsTxt.setFormat(Paths.font("vcr.ttf"), 32, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
         noModsTxt.scrollFactor.set();
         noModsTxt.borderSize = 2;
@@ -121,7 +120,6 @@ class ModsMenuState extends MusicBeatState
             }
         }
 
-        // FIND MOD FOLDERS
         if (FileSystem.exists(path)){
             for (folder in Mods.getModDirectories())
             {
@@ -203,7 +201,7 @@ class ModsMenuState extends MusicBeatState
         startX -= 100;
         buttonTop = new FlxButton(startX, 0, "TOP", function() {
             var doRestart:Bool = (mods[0].restart || mods[curSelected].restart);
-            for (i in 0...curSelected) //so it shifts to the top instead of replacing the top one
+            for (i in 0...curSelected)
             {
                 moveMod(-1, true);
             }
@@ -294,30 +292,22 @@ class ModsMenuState extends MusicBeatState
         add(extractInfoTxt);
         visibleWhenHasMods.push(extractInfoTxt);
 
-        descriptionBg = new FlxSprite(148, 0).makeGraphic(FlxG.width - 216, 120, FlxColor.BLACK);
+        descriptionBg = new FlxSprite(148, 0).makeGraphic(FlxG.width - 275, 120, FlxColor.BLACK);
         descriptionBg.alpha = 0.6;
         descriptionBg.scrollFactor.set();
         add(descriptionBg);
         visibleWhenHasMods.push(descriptionBg);
 
-        descriptionText = new FlxText(descriptionBg.x + 5, descriptionBg.y + 5, FlxG.width - 235, "", 16);
+        descriptionText = new FlxText(descriptionBg.x + 5, descriptionBg.y + 5, descriptionBg.width, "", 16);
         descriptionText.setFormat(Paths.font("vcr.ttf"), 16, FlxColor.WHITE, LEFT);
         descriptionText.scrollFactor.set();
         add(descriptionText);
         visibleWhenHasMods.push(descriptionText);
 
-        descriptionScrollBarBg = new FlxSprite(descriptionBg.x + descriptionBg.width, descriptionBg.y);
-        descriptionScrollBarBg.makeGraphic(8, Std.int(descriptionBg.height), FlxColor.GRAY);
-        descriptionScrollBarBg.alpha = 0.6;
-        descriptionScrollBarBg.scrollFactor.set();
-        add(descriptionScrollBarBg);
-        visibleWhenHasMods.push(descriptionScrollBarBg);
-
-        descriptionScrollBar = new FlxSprite(descriptionScrollBarBg.x + 1, descriptionScrollBarBg.y + 1);
-        descriptionScrollBar.makeGraphic(6, 30, FlxColor.WHITE);
-        descriptionScrollBar.scrollFactor.set();
-        add(descriptionScrollBar);
-        visibleWhenHasMods.push(descriptionScrollBar);
+        remove(descriptionText);
+        remove(descriptionBg);
+        add(descriptionBg);
+        add(descriptionText);
 
         var i:Int = 0;
         var len:Int = modsList.length;
@@ -341,7 +331,6 @@ class ModsMenuState extends MusicBeatState
             newMod.alphabet.x = 310;
             add(newMod.alphabet);
             
-            //Don't ever cache the icons, it's a waste of loaded memory
             var loadedIcon:BitmapData = null;
             var iconBytes = Mods.getFileFromMod(values[0], 'pack.png');
             if(iconBytes != null)
@@ -356,7 +345,7 @@ class ModsMenuState extends MusicBeatState
             newMod.icon = new AttachedSprite();
             if(loadedIcon != null)
             {
-                newMod.icon.loadGraphic(loadedIcon, true, 150, 150);//animated icon support
+                newMod.icon.loadGraphic(loadedIcon, true, 150, 150);
                 var totalFrames = Math.floor(loadedIcon.width / 150) * Math.floor(loadedIcon.height / 150);
                 newMod.icon.animation.add("icon", [for (i in 0...totalFrames) i],10);
                 newMod.icon.animation.play("icon");
@@ -401,15 +390,13 @@ class ModsMenuState extends MusicBeatState
         descriptionText.text = description;
         
         descriptionText.autoSize = true;
+
         var textHeight = descriptionText.height;
         descriptionText.autoSize = false;
-        
         descriptionMaxScroll = Math.max(0, textHeight - descriptionBg.height + 10);
-        
         descriptionScroll = 0;
         descriptionText.y = descriptionBg.y + 5;
-        
-        updateScrollBar();
+        descriptionText.clipRect = null;
     }
 
     function addToModsList(values:Array<Dynamic>)
@@ -548,54 +535,67 @@ class ModsMenuState extends MusicBeatState
             noModsTxt.alpha = 1 - Math.sin((Math.PI * noModsSine) / 180);
         }
 
-        if (mods.length > 0 && descriptionMaxScroll > 0) {
-            var needsUpdate = false;
-            
-            if (FlxG.mouse.wheel != 0) {
-                descriptionScroll -= FlxG.mouse.wheel * 30;
-                descriptionScroll = FlxMath.bound(descriptionScroll, 0, descriptionMaxScroll);
-                needsUpdate = true;
-            }
-            
-            if (needsUpdate) {
-                descriptionText.y = descriptionBg.y + 5 - descriptionScroll;
-                updateScrollBarPosition();
-            }
-        }
-
-        if(canExit && controls.BACK && !isExtracting)
+        if (!isExtracting)
         {
-            colorTween?.cancel();
+            if (mods.length > 0 && descriptionMaxScroll > 0) {
+                var mouseWheel = FlxG.mouse.wheel;
+                if (mouseWheel != 0) {
+                    descriptionScroll -= mouseWheel * 30;
+                    descriptionScroll = FlxMath.bound(descriptionScroll, 0, descriptionMaxScroll);
+                    descriptionText.y = descriptionBg.y + 5 - descriptionScroll;
+                }
+                
+                if (controls.UI_UP_P) {
+                    descriptionScroll -= 40;
+                    descriptionScroll = FlxMath.bound(descriptionScroll, 0, descriptionMaxScroll);
+                    descriptionText.y = descriptionBg.y + 5 - descriptionScroll;
+                    FlxG.sound.play(Paths.sound('scrollMenu'), 0.4);
+                }
 
-            FlxG.sound.play(Paths.sound('cancelMenu'));
-            FlxG.mouse.visible = false;
+                if (controls.UI_DOWN_P) {
+                    descriptionScroll += 40;
+                    descriptionScroll = FlxMath.bound(descriptionScroll, 0, descriptionMaxScroll);
+                    descriptionText.y = descriptionBg.y + 5 - descriptionScroll;
+                    FlxG.sound.play(Paths.sound('scrollMenu'), 0.4);
+                }
+            }
 
-            saveTxt();
-            if(needaReset)
+            if(canExit && controls.BACK)
             {
-                TitleState.initialized = false;
-                TitleState.closedState = false;
-                FlxG.sound?.music?.fadeOut(0.3);
-                FreeplayState.vocals?.fadeOut(0.3);
-                FreeplayState.vocals = null;
-                FlxG.camera.fade(FlxColor.BLACK, 0.5, false, FlxG.resetGame, false);
+                colorTween?.cancel();
+
+                FlxG.sound.play(Paths.sound('cancelMenu'));
+                FlxG.mouse.visible = false;
+
+                saveTxt();
+                if(needaReset)
+                {
+                    TitleState.initialized = false;
+                    TitleState.closedState = false;
+                    FlxG.sound?.music?.fadeOut(0.3);
+                    FreeplayState.vocals?.fadeOut(0.3);
+                    FreeplayState.vocals = null;
+                    FlxG.camera.fade(FlxColor.BLACK, 0.5, false, FlxG.resetGame, false);
+                }
+                else
+                {
+                    FlxG.switchState(() -> new MainMenuState());
+                }
             }
-            else
+
+            if(controls.UI_UP_P)
             {
-                FlxG.switchState(() -> new MainMenuState());
+                changeSelection(-1);
+                FlxG.sound.play(Paths.sound('scrollMenu'));
+            }
+
+            if(controls.UI_DOWN_P)
+            {
+                changeSelection(1);
+                FlxG.sound.play(Paths.sound('scrollMenu'));
             }
         }
 
-        if(controls.UI_UP_P && !isExtracting)
-        {
-            changeSelection(-1);
-            FlxG.sound.play(Paths.sound('scrollMenu'));
-        }
-        if(controls.UI_DOWN_P && !isExtracting)
-        {
-            changeSelection(1);
-            FlxG.sound.play(Paths.sound('scrollMenu'));
-        }
         updatePosition(elapsed);
         super.update(elapsed);
     }
@@ -662,7 +662,7 @@ class ModsMenuState extends MusicBeatState
                 
                 updateDescriptionText();
                 
-                var stuffArray:Array<FlxSprite> = [selector, descriptionBg, descriptionScrollBarBg, descriptionScrollBar, mod.alphabet, mod.icon];
+                var stuffArray:Array<FlxSprite> = [descriptionBg, descriptionText, selector, mod.alphabet, mod.icon];
                 for (obj in stuffArray)
                 {
                     remove(obj);
@@ -694,9 +694,6 @@ class ModsMenuState extends MusicBeatState
                 var descriptionY = mod.alphabet.y + 160;
                 descriptionBg.y = descriptionY;
                 descriptionText.y = descriptionY + 5 - descriptionScroll;
-                descriptionScrollBarBg.y = descriptionY;
-                
-                updateScrollBarPosition();
                 
                 extractInfoTxt.y = mod.alphabet.y + 290;
                 for (button in buttonsArray)
@@ -708,44 +705,19 @@ class ModsMenuState extends MusicBeatState
         }
     }
 
-    function updateScrollBar()
-    {
-        if (descriptionMaxScroll > 0) {
-            var scrollBarHeight = Math.max(30, (descriptionBg.height / (descriptionText.height + 10)) * descriptionBg.height);
-            descriptionScrollBar.makeGraphic(6, Std.int(scrollBarHeight), FlxColor.WHITE);
-            
-            descriptionScrollBar.visible = true;
-            descriptionScrollBarBg.visible = true;
-        } else {
-            descriptionScrollBar.visible = false;
-            descriptionScrollBarBg.visible = false;
-        }
-        updateScrollBarPosition();
-    }
-
-    function updateScrollBarPosition()
-    {
-        if (descriptionMaxScroll > 0) {
-            var scrollPercentage = descriptionScroll / descriptionMaxScroll;
-            descriptionScrollBar.y = descriptionScrollBarBg.y + 1 + scrollPercentage * (descriptionBg.height - descriptionScrollBar.height - 2);
-        }
-    }
-
     var cornerSize:Int = 11;
     function makeSelectorGraphic()
     {
         selector.makeGraphic(1100, 450, FlxColor.BLACK);
         selector.pixels.fillRect(new Rectangle(0, 190, selector.width, 5), 0x0);
 
-        // Why did i do this? Because i'm a lmao stupid, of course
-        // also i wanted to understand better how fillRect works so i did this shit lol???
-        selector.pixels.fillRect(new Rectangle(0, 0, cornerSize, cornerSize), 0x0);														 //top left
+        selector.pixels.fillRect(new Rectangle(0, 0, cornerSize, cornerSize), 0x0);
         drawCircleCornerOnSelector(false, false);
-        selector.pixels.fillRect(new Rectangle(selector.width - cornerSize, 0, cornerSize, cornerSize), 0x0);							 //top right
+        selector.pixels.fillRect(new Rectangle(selector.width - cornerSize, 0, cornerSize, cornerSize), 0x0);
         drawCircleCornerOnSelector(true, false);
-        selector.pixels.fillRect(new Rectangle(0, selector.height - cornerSize, cornerSize, cornerSize), 0x0);							 //bottom left
+        selector.pixels.fillRect(new Rectangle(0, selector.height - cornerSize, cornerSize, cornerSize), 0x0);
         drawCircleCornerOnSelector(false, true);
-        selector.pixels.fillRect(new Rectangle(selector.width - cornerSize, selector.height - cornerSize, cornerSize, cornerSize), 0x0); //bottom right
+        selector.pixels.fillRect(new Rectangle(selector.width - cornerSize, selector.height - cornerSize, cornerSize, cornerSize), 0x0);
         drawCircleCornerOnSelector(true, true);
     }
 
@@ -763,67 +735,6 @@ class ModsMenuState extends MusicBeatState
         selector.pixels.fillRect(new Rectangle((flipX ? antiX : 5), Std.int(Math.abs(antiY - 3)),  6, 1), FlxColor.BLACK);
         selector.pixels.fillRect(new Rectangle((flipX ? antiX : 6), Std.int(Math.abs(antiY - 2)),  5, 1), FlxColor.BLACK);
         selector.pixels.fillRect(new Rectangle((flipX ? antiX : 8), Std.int(Math.abs(antiY - 1)),  3, 1), FlxColor.BLACK);
-    }
-}
-
-class ModMetadata
-{
-    public var folder:String;
-    public var name:String;
-    public var description:String;
-    public var color:FlxColor;
-    public var restart:Bool;//trust me. this is very important
-    public var alphabet:Alphabet;
-    public var icon:AttachedSprite;
-
-    public function new(folder:String)
-    {
-        this.folder = folder;
-        this.name = folder;
-        this.description = "No description provided.";
-        this.color = ModsMenuState.defaultColor;
-        this.restart = false;
-
-        var jsonBytes:Bytes = Mods.getFileFromMod(folder, 'pack.json');
-        if(jsonBytes != null) {
-            try {
-                var rawJson:String = jsonBytes.toString();
-                if(rawJson != null && rawJson.length > 0) {
-                    var stuff:Dynamic = Json.parse(rawJson);
-                    
-                    //using reflects cuz for some odd reason my haxe hates the stuff.var shit
-                    var colors:Array<Int> = Reflect.getProperty(stuff, "color");
-                    var description:String = Reflect.getProperty(stuff, "description");
-                    var name:String = Reflect.getProperty(stuff, "name");
-                    var restart:Bool = Reflect.getProperty(stuff, "restart");
-
-                    if(name != null && name.length > 0)
-                    {
-                        this.name = name;
-                    }
-                    if(description != null && description.length > 0)
-                    {
-                        this.description = description;
-                    }
-                    if(name == 'Name')
-                    {
-                        this.name = folder;
-                    }
-                    if(description == 'Description')
-                    {
-                        this.description = "No description provided.";
-                    }
-                    if(colors != null && colors.length > 2)
-                    {
-                        this.color = FlxColor.fromRGB(colors[0], colors[1], colors[2]);
-                    }
-
-                    this.restart = restart;
-                }
-            } catch(e:Dynamic) {
-                trace('Error parsing pack.json for mod $folder: $e');
-            }
-        }
     }
 }
 
@@ -1000,7 +911,6 @@ class ModExtractProgressSubstate extends MusicBeatSubstate
             var entriesList = Reader.readZip(input);
             var entries:Array<Entry> = [];
             
-            // Convert List to Array for easier iteration
             var iter = entriesList.iterator();
             while (iter.hasNext()) {
                 entries.push(iter.next());
@@ -1008,7 +918,6 @@ class ModExtractProgressSubstate extends MusicBeatSubstate
             
             var fileCount = 0;
             
-            // Count files first
             for (entry in entries) {
                 var fileName:String = entry.fileName;
                 if (!StringTools.endsWith(fileName, "/")) {
@@ -1019,7 +928,6 @@ class ModExtractProgressSubstate extends MusicBeatSubstate
             totalFiles = fileCount;
             extractedFiles = 0;
 
-            // Analyze ZIP structure
             var hasRootFolder = true;
             var rootFolderName:String = null;
             
@@ -1039,10 +947,8 @@ class ModExtractProgressSubstate extends MusicBeatSubstate
 
             var shouldStripRootFolder = (hasRootFolder && rootFolderName != null && rootFolderName == mod);
 
-            // Extract files
             for (entry in entries) {
                 if (!isExtracting) {
-                    // User cancelled
                     Mods.deleteDirectory(extractPath);
                     return false;
                 }
@@ -1055,7 +961,6 @@ class ModExtractProgressSubstate extends MusicBeatSubstate
 
                 var targetFileName:String = fileName;
                 
-                // Remove root folder if it matches mod name
                 if (shouldStripRootFolder && StringTools.startsWith(fileName, rootFolderName + '/')) {
                     targetFileName = fileName.substring(rootFolderName.length + 1);
                 }
@@ -1071,7 +976,6 @@ class ModExtractProgressSubstate extends MusicBeatSubstate
                 File.saveBytes(fullPath, data);
                 extractedFiles++;
 
-                // Update progress
                 var progress = extractedFiles / totalFiles;
                 var barWidth = Std.int(296 * progress);
                 progressBar.makeGraphic(barWidth, 26, FlxColor.GREEN);

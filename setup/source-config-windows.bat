@@ -10,9 +10,10 @@ haxelib install hxjsonast --quiet
 haxelib install flxgif --quiet
 haxelib set flixel 6.1.1
 haxelib git lime https://github.com/GreenColdTea/lime-9.0.0
-haxelib install format
-haxelib install hxp
+haxelib install format --quiet
+haxelib install hxp --quiet
 haxelib set openfl 9.4.2
+haxelib install flixel-waveform --quiet --skip-dependencies
 haxelib install hxvlc --quiet --skip-dependencies
 haxelib run lime setup flixel
 haxelib set flixel-tools 1.5.1
