@@ -36,19 +36,19 @@ class GraphicsSettingsSubState extends BaseOptionsMenu
 {
 	#if !html5
 	private var framerateOption:Option;
+	private var unlimitedFPSOption:Option;
 	#end
 
 	public function new()
 	{
 		title = 'Graphics';
-		rpcTitle = 'Graphics Settings Menu'; //for Discord Rich Presence
+		rpcTitle = 'Graphics Settings Menu';
 
-		//I'd suggest using "Low Quality" as an example for making your own option since it is the simplest here
-		var option:Option = new Option('Low Quality', //Name
-			'If checked, disables some background details,\ndecreases loading times and improves performance.', //Description
-			'lowQuality', //Save data variable name
-			'bool', //Variable type
-			false); //Default value
+		var option:Option = new Option('Low Quality',
+			'If checked, disables some background details,\ndecreases loading times and improves performance.',
+			'lowQuality',
+			'bool',
+			false);
 		addOption(option);
 
 		var option:Option = new Option('Anti-Aliasing',
@@ -57,14 +57,14 @@ class GraphicsSettingsSubState extends BaseOptionsMenu
 			'bool',
 			true);
 		option.showBoyfriend = true;
-		option.onChange = onChangeAntiAliasing; //Changing onChange is only needed if you want to make a special interaction after it changes the value
+		option.onChange = onChangeAntiAliasing;
 		addOption(option);
 
-		var option:Option = new Option('Shaders', //Name
-			'If unchecked, disables shaders.\nIt\'s used for some visual effects, and also CPU intensive for weaker PCs.', //Description
-			'shaders', //Save data variable name
-			'bool', //Variable type
-			true); //Default value
+		var option:Option = new Option('Shaders',
+			'If unchecked, disables shaders.\nIt\'s used for some visual effects, and also CPU intensive for weaker PCs.',
+			'shaders',
+			'bool',
+			true);
 		addOption(option);
 
 		var option:Option = new Option('VSync',
@@ -76,7 +76,6 @@ class GraphicsSettingsSubState extends BaseOptionsMenu
 		option.onChange = () -> {
 			var vsyncMode:WindowVSyncMode = ClientPrefs.vsync ? WindowVSyncMode.ON : WindowVSyncMode.OFF;
 			Lib.application.window.setVSyncMode(vsyncMode);
-
 			FlxG.save.flush();
 			
 			#if !html5
@@ -84,7 +83,16 @@ class GraphicsSettingsSubState extends BaseOptionsMenu
 			#end
 		}
 
-		#if !html5 //Apparently other framerates isn't correctly supported on Browser? Probably it has some V-Sync shit enabled by default, idk
+		#if !html5
+		var option:Option = new Option('Unlimited FPS',
+			'If checked, removes FPS cap for maximum performance.\nMay cause high CPU/GPU usage.',
+			'unlimitedFPS',
+			'bool',
+			false);
+		addOption(option);
+		unlimitedFPSOption = option;
+		option.onChange = onChangeUnlimitedFPS;
+
 		var option:Option = new Option('Framerate:',
 			"Pretty self explanatory, isn't it?",
 			'framerate',
@@ -93,7 +101,7 @@ class GraphicsSettingsSubState extends BaseOptionsMenu
 		addOption(option);
 		framerateOption = option;
 
-		option.minValue = 60;
+		option.minValue = 30;
 		option.maxValue = 360;
 		option.displayFormat = '%v FPS';
 		option.onChange = onChangeFramerate;
@@ -109,10 +117,28 @@ class GraphicsSettingsSubState extends BaseOptionsMenu
 	#if !html5
 	private function updateFramerateVisibility():Void
 	{
-		framerateOption.visible = !ClientPrefs.vsync;
-		framerateOption.active = !ClientPrefs.vsync;
+	
+		var shouldHide = ClientPrefs.vsync || ClientPrefs.unlimitedFPS;
+		framerateOption.visible = !shouldHide;
+		framerateOption.active = !shouldHide;
 		
 		refreshOptions();
+	}
+
+	function onChangeUnlimitedFPS()
+	{
+		if (ClientPrefs.unlimitedFPS)
+		{
+			FlxG.drawFramerate = 1000;
+			FlxG.updateFramerate = 1000;
+		}
+		else
+		{
+			onChangeFramerate();
+		}
+		
+		updateFramerateVisibility();
+		FlxG.save.flush();
 	}
 	#end
 

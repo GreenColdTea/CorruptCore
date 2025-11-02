@@ -218,17 +218,38 @@ class FPSCounterPlugin extends Bitmap
 		performanceWarnings = [];
 		warningLevel = 0;
 		
-		var targetFPS = ClientPrefs.vsync ? getDisplayRefreshRate() : ClientPrefs.framerate;
-		
-		if (currentFPS < targetFPS * warningThresholds.fpsCritical) {
-			performanceWarnings.push("CRITICAL: Very low FPS!");
-			warningLevel = 3;
-		} else if (currentFPS < targetFPS * warningThresholds.fpsVeryLow) {
-			performanceWarnings.push("WARNING: Low FPS");
-			if (2 > warningLevel) warningLevel = 2;
-		} else if (currentFPS < targetFPS * warningThresholds.fpsLow) {
-			performanceWarnings.push("Notice: FPS below normal");
-			if (1 > warningLevel) warningLevel = 1;
+		if (!ClientPrefs.unlimitedFPS) {
+			var targetFPS = ClientPrefs.vsync ? getDisplayRefreshRate() : ClientPrefs.framerate;
+			
+			if (currentFPS < targetFPS * warningThresholds.fpsCritical) {
+				performanceWarnings.push("CRITICAL: Very low FPS!");
+				warningLevel = 3;
+			} else if (currentFPS < targetFPS * warningThresholds.fpsVeryLow) {
+				performanceWarnings.push("WARNING: Low FPS");
+				if (2 > warningLevel) warningLevel = 2;
+			} else if (currentFPS < targetFPS * warningThresholds.fpsLow) {
+				performanceWarnings.push("Notice: FPS below normal");
+				if (1 > warningLevel) warningLevel = 1;
+			}
+			
+			if (frameTimes.length > 0) {
+				var frameStats = getFrameTimingStats();
+				if (frameStats.avg > warningThresholds.frameTimeVeryHigh) {
+					performanceWarnings.push("WARNING: High frame time");
+					if (2 > warningLevel) warningLevel = 2;
+				} else if (frameStats.avg > warningThresholds.frameTimeHigh) {
+					performanceWarnings.push("Notice: Elevated frame time");
+					if (1 > warningLevel) warningLevel = 1;
+				}
+			}
+			
+			if (graphHistory.length > 10) {
+				var stability = calculateFPSStability();
+				if (stability < 0.7) {
+					performanceWarnings.push("Notice: Unstable FPS");
+					if (1 > warningLevel) warningLevel = 1;
+				}
+			}
 		}
 		
 		if (smoothMemory > warningThresholds.memoryCritical) {
@@ -242,28 +263,9 @@ class FPSCounterPlugin extends Bitmap
 			if (1 > warningLevel) warningLevel = 1;
 		}
 		
-		if (frameTimes.length > 0) {
-			var frameStats = getFrameTimingStats();
-			if (frameStats.avg > warningThresholds.frameTimeVeryHigh) {
-				performanceWarnings.push("WARNING: High frame time");
-				if (2 > warningLevel) warningLevel = 2;
-			} else if (frameStats.avg > warningThresholds.frameTimeHigh) {
-				performanceWarnings.push("Notice: Elevated frame time");
-				if (1 > warningLevel) warningLevel = 1;
-			}
-		}
-		
 		if (availableSystemMemory > 0 && availableSystemMemory < warningThresholds.systemMemoryLow) {
 			performanceWarnings.push("WARNING: Low free system memory");
 			if (2 > warningLevel) warningLevel = 2;
-		}
-		
-		if (graphHistory.length > 10) {
-			var stability = calculateFPSStability();
-			if (stability < 0.7) {
-				performanceWarnings.push("Notice: Unstable FPS");
-				if (1 > warningLevel) warningLevel = 1;
-			}
 		}
 	}
 
@@ -331,24 +333,32 @@ class FPSCounterPlugin extends Bitmap
 		totalFPS += currentFPS;
 		avgFPS = totalFPS / fpsSamples;
 		
-		var targetFPS = ClientPrefs.vsync ? getDisplayRefreshRate() : ClientPrefs.framerate;
-		if (currentFPS < targetFPS * 0.8) {
-			lowFPSFrames++;
+		if (!ClientPrefs.unlimitedFPS) {
+			var targetFPS = ClientPrefs.vsync ? getDisplayRefreshRate() : ClientPrefs.framerate;
+			if (currentFPS < targetFPS * 0.8) {
+				lowFPSFrames++;
+			}
 		}
 		totalFrames++;
 		
-		var fpsScore = (currentFPS / targetFPS) * 60;
-		fpsScore = Math.min(fpsScore, 60);
+		var fpsScore:Float;
+		if (ClientPrefs.unlimitedFPS) {
+			fpsScore = Math.min(currentFPS / 120.0 * 60.0, 60.0);
+		} else {
+			var targetFPS = ClientPrefs.vsync ? getDisplayRefreshRate() : ClientPrefs.framerate;
+			fpsScore = (currentFPS / targetFPS) * 60;
+			fpsScore = Math.min(fpsScore, 60);
+		}
 		
 		var memoryRatio = Math.min(smoothMemory / 2e9, 1.0);
 		var memoryScore = 40 * (1 - memoryRatio);
-		
 		var stabilityFactor = 0;
-		if (stabilityIssues > 10) {
+
+		if (!ClientPrefs.unlimitedFPS && stabilityIssues > 10) {
 			stabilityFactor = -20;
-		} else if (stabilityIssues > 5) {
+		} else if (!ClientPrefs.unlimitedFPS && stabilityIssues > 5) {
 			stabilityFactor = -10;
-		} else if (stabilityIssues > 2) {
+		} else if (!ClientPrefs.unlimitedFPS && stabilityIssues > 2) {
 			stabilityFactor = -5;
 		}
 		
@@ -411,7 +421,15 @@ class FPSCounterPlugin extends Bitmap
 
 	private function buildOutputString():String
 	{
-		var output = 'FPS: $currentFPS / ${!ClientPrefs.vsync ? ClientPrefs.framerate : getDisplayRefreshRate()}';
+		var fpsText:String;
+		if (ClientPrefs.unlimitedFPS) {
+			fpsText = 'FPS: $currentFPS (Unlimited)';
+		} else {
+			var targetFPS = ClientPrefs.vsync ? getDisplayRefreshRate() : ClientPrefs.framerate;
+			fpsText = 'FPS: $currentFPS / $targetFPS';
+		}
+		
+		var output = fpsText;
 		
 		var memoryText = "RAM: " + getSizeLabel(smoothMemory);
 		if (availableSystemMemory > 0) {
@@ -435,6 +453,7 @@ class FPSCounterPlugin extends Bitmap
 			output += "\n\n--- DETAILS ---";
 			output += "\nMin/Max/Avg: " + minFPS + "/" + maxFPS + "/" + Math.round(avgFPS);
 			output += "\nVSync: " + (ClientPrefs.vsync ? "ON" : "OFF");
+			output += "\nUnlimited FPS: " + (ClientPrefs.unlimitedFPS ? "ON" : "OFF");
 
 			output += "\nGC RAM: " + flixel.util.FlxStringUtil.formatBytes(#if (openfl >= "9.4.0") System.totalMemoryNumber #else currentMem = System.totalMemory #end);
 			
@@ -443,7 +462,9 @@ class FPSCounterPlugin extends Bitmap
 				output += "\nFrame: " + frameStats.avg + "ms (min: " + frameStats.min + "ms, max: " + frameStats.max + "ms)";
 			}
 			
-			output += "\nStability: " + Math.round(calculateFPSStability() * 100) + "%";
+			if (!ClientPrefs.unlimitedFPS) {
+				output += "\nStability: " + Math.round(calculateFPSStability() * 100) + "%";
+			}
 			output += "\nProblem frames: " + stabilityIssues;
 		}
 
@@ -591,14 +612,16 @@ class FPSCounterPlugin extends Bitmap
 		var maxValue = Math.max(ClientPrefs.framerate, Math.max(currentFPS, getArrayMax(graphHistory)));
 		if (maxValue < 1) maxValue = 1;
 		
-		var targetY = graphY + graphHeight - Std.int((ClientPrefs.framerate / maxValue) * graphHeight);
-		bmd.fillRect(new Rectangle(graphX, targetY - 1, graphWidth, 3), 0xAA00FF00);
-		
-		var targetLabel = '${ClientPrefs.framerate}';
-		var labelX = graphX + graphWidth - 15;
-		var labelY = targetY - 8;
-		bmd.fillRect(new Rectangle(labelX - 2, labelY - 1, 16, 10), 0xAA000000);
-		bmd.fillRect(new Rectangle(labelX - 1, labelY, 14, 8), 0xAA00FF00);
+		if (!ClientPrefs.unlimitedFPS) {
+			var targetY = graphY + graphHeight - Std.int((ClientPrefs.framerate / maxValue) * graphHeight);
+			bmd.fillRect(new Rectangle(graphX, targetY - 1, graphWidth, 3), 0xAA00FF00);
+			
+			var targetLabel = '${ClientPrefs.framerate}';
+			var labelX = graphX + graphWidth - 15;
+			var labelY = targetY - 8;
+			bmd.fillRect(new Rectangle(labelX - 2, labelY - 1, 16, 10), 0xAA000000);
+			bmd.fillRect(new Rectangle(labelX - 1, labelY, 14, 8), 0xAA00FF00);
+		}
 		
 		var points:Array<{x:Int, y:Int}> = [];
 		var segmentCount = Std.int(Math.min(graphHistory.length, graphWidth));

@@ -29,6 +29,7 @@ class ClientPrefs {
     public static var noteOffset:Int = 0;
     public static var arrowHSV:Array<Array<Int>> = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]];
     public static var vsync:Bool = false;
+    public static var unlimitedFPS:Bool = false;
     public static var ghostTapping:Bool = true;
     public static var timeBarType:String = 'Time Left';
     public static var scoreZoom:Bool = true;
@@ -122,6 +123,7 @@ class ClientPrefs {
         hitsoundVolume = 0;
         pauseMusic = 'Tea Time';
         vsync = false;
+        unlimitedFPS = false;
         checkForUpdates = true;
         comboStacking = true;
         colorBlindMode = 'None';
@@ -175,6 +177,7 @@ class ClientPrefs {
         FlxG.save.data.hitsoundVolume = hitsoundVolume;
         FlxG.save.data.pauseMusic = pauseMusic;
         FlxG.save.data.vsync = vsync;
+        FlxG.save.data.unlimitedFPS = unlimitedFPS;
         FlxG.save.data.checkForUpdates = checkForUpdates;
         FlxG.save.data.comboStacking = comboStacking;
         FlxG.save.data.colorBlindMode = colorBlindMode;
@@ -225,6 +228,7 @@ class ClientPrefs {
         if (FlxG.save.data.hitsoundVolume != null) hitsoundVolume = FlxG.save.data.hitsoundVolume;
         if (FlxG.save.data.pauseMusic != null) pauseMusic = FlxG.save.data.pauseMusic;
         if (FlxG.save.data.vsync != null) vsync = FlxG.save.data.vsync;
+        if (FlxG.save.data.unlimitedFPS != null) unlimitedFPS = FlxG.save.data.unlimitedFPS;
         if (FlxG.save.data.checkForUpdates != null) checkForUpdates = FlxG.save.data.checkForUpdates;
         if (FlxG.save.data.comboStacking != null) comboStacking = FlxG.save.data.comboStacking;
         if (FlxG.save.data.colorBlindMode != null) colorBlindMode = FlxG.save.data.colorBlindMode;

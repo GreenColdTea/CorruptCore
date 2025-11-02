@@ -8,9 +8,9 @@ class LuaObject
 {
     public static function init(script:FunkinLua)
     {
-        var lua:State = script.lua;
+        var lua:cpp.RawPointer<Lua_State> = script.lua;
         
-        Lua_helper.add_callback(lua, "setScrollFactor", function(obj:String, scrollX:Float, scrollY:Float) {
+        LuaUtils.addFunction(lua, "setScrollFactor", function(obj:String, scrollX:Float, scrollY:Float) {
 			if(PlayState.instance.getLuaObject(obj,false)!=null) {
 				PlayState.instance.getLuaObject(obj,false).scrollFactor.set(scrollX, scrollY);
 				return;
@@ -21,7 +21,7 @@ class LuaObject
 				object.scrollFactor.set(scrollX, scrollY);
 			}
 		});
-        Lua_helper.add_callback(lua, "setGraphicSize", function(obj:String, x:Int, y:Int = 0, updateHitbox:Bool = true) {
+        LuaUtils.addFunction(lua, "setGraphicSize", function(obj:String, x:Int, y:Int = 0, updateHitbox:Bool = true) {
 			if(PlayState.instance.getLuaObject(obj)!=null) {
 				var shit:FlxSprite = PlayState.instance.getLuaObject(obj);
 				shit.setGraphicSize(x, y);
@@ -42,7 +42,7 @@ class LuaObject
 			}
 			FunkinLua.luaTrace('setGraphicSize: Couldnt find object: ' + obj, false, false, FlxColor.RED);
 		});
-		Lua_helper.add_callback(lua, "scaleObject", function(obj:String, x:Float, y:Float, updateHitbox:Bool = true) {
+		LuaUtils.addFunction(lua, "scaleObject", function(obj:String, x:Float, y:Float, updateHitbox:Bool = true) {
 			if(PlayState.instance.getLuaObject(obj)!=null) {
 				var shit:FlxSprite = PlayState.instance.getLuaObject(obj);
 				shit.scale.set(x, y);
@@ -63,7 +63,7 @@ class LuaObject
 			}
 			FunkinLua.luaTrace('scaleObject: Couldnt find object: ' + obj, false, false, FlxColor.RED);
 		});
-		Lua_helper.add_callback(lua, "updateHitbox", function(obj:String) {
+		LuaUtils.addFunction(lua, "updateHitbox", function(obj:String) {
 			if(PlayState.instance.getLuaObject(obj)!=null) {
 				var shit:FlxSprite = PlayState.instance.getLuaObject(obj);
 				shit.updateHitbox();
@@ -77,7 +77,7 @@ class LuaObject
 			}
 			FunkinLua.luaTrace('updateHitbox: Couldnt find object: ' + obj, false, false, FlxColor.RED);
 		});
-		Lua_helper.add_callback(lua, "updateHitboxFromGroup", function(group:String, index:Int) {
+		LuaUtils.addFunction(lua, "updateHitboxFromGroup", function(group:String, index:Int) {
 			if(Std.isOfType(Reflect.getProperty(FunkinLua.getInstance(), group), FlxTypedGroup)) {
 				Reflect.getProperty(FunkinLua.getInstance(), group).members[index].updateHitbox();
 				return;
@@ -85,7 +85,7 @@ class LuaObject
 			Reflect.getProperty(FunkinLua.getInstance(), group)[index].updateHitbox();
 		});
 
-        Lua_helper.add_callback(lua, "setObjectCamera", function(obj:String, camera:String = '') {
+        LuaUtils.addFunction(lua, "setObjectCamera", function(obj:String, camera:String = '') {
 			var real = PlayState.instance.getLuaObject(obj);
 			if(real!=null){
 				real.cameras = [FunkinLua.cameraFromString(camera)];
@@ -105,7 +105,7 @@ class LuaObject
 			FunkinLua.luaTrace("setObjectCamera: Object " + obj + " doesn't exist!", false, false, FlxColor.RED);
 			return false;
 		});
-		Lua_helper.add_callback(lua, "setBlendMode", function(obj:String, blend:String = '') {
+		LuaUtils.addFunction(lua, "setBlendMode", function(obj:String, blend:String = '') {
 			var real = PlayState.instance.getLuaObject(obj);
 			if(real != null) {
 				real.blend = blendModeFromString(blend);
@@ -125,7 +125,7 @@ class LuaObject
 			FunkinLua.luaTrace("setBlendMode: Object " + obj + " doesn't exist!", false, false, FlxColor.RED);
 			return false;
 		});
-		Lua_helper.add_callback(lua, "screenCenter", function(obj:String, pos:String = 'xy') {
+		LuaUtils.addFunction(lua, "screenCenter", function(obj:String, pos:String = 'xy') {
 			var spr:FlxSprite = PlayState.instance.getLuaObject(obj);
 
 			if(spr==null){
@@ -153,7 +153,7 @@ class LuaObject
 			}
 			FunkinLua.luaTrace("screenCenter: Object " + obj + " doesn't exist!", false, false, FlxColor.RED);
 		});
-		Lua_helper.add_callback(lua, "objectsOverlap", function(obj1:String, obj2:String) {
+		LuaUtils.addFunction(lua, "objectsOverlap", function(obj1:String, obj2:String) {
 			var namesArray:Array<String> = [obj1, obj2];
 			var objectsArray:Array<FlxSprite> = [];
 			for (i in 0...namesArray.length)
@@ -173,7 +173,7 @@ class LuaObject
 			return false;
 		});
 
-        Lua_helper.add_callback(lua, "getObjectOrder", function(obj:String) {
+        LuaUtils.addFunction(lua, "getObjectOrder", function(obj:String) {
 			var killMe:Array<String> = obj.split('.');
 			var leObj:FlxBasic = FunkinLua.getObjectDirectly(killMe[0]);
 			if(killMe.length > 1) {
@@ -187,7 +187,7 @@ class LuaObject
 			FunkinLua.luaTrace("getObjectOrder: Object " + obj + " doesn't exist!", false, false, FlxColor.RED);
 			return -1;
 		});
-		Lua_helper.add_callback(lua, "setObjectOrder", function(obj:String, position:Int) {
+		LuaUtils.addFunction(lua, "setObjectOrder", function(obj:String, position:Int) {
 			var killMe:Array<String> = obj.split('.');
 			var leObj:FlxBasic = FunkinLua.getObjectDirectly(killMe[0]);
 			if(killMe.length > 1) {

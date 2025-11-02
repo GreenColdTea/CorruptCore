@@ -96,6 +96,28 @@ class Init extends FlxState
 	public static function applyGraphicsSettings() {
 		var vsyncMode:WindowVSyncMode = ClientPrefs.vsync ? WindowVSyncMode.ON : WindowVSyncMode.OFF;
 		Lib.application.window.setVSyncMode(vsyncMode);
+		
+		#if !html5
+		if (ClientPrefs.unlimitedFPS)
+		{
+			FlxG.drawFramerate = 1000;
+			FlxG.updateFramerate = 1000;
+		}
+		else
+		{
+			var targetFPS:Int = ClientPrefs.framerate;
+			if(targetFPS > FlxG.drawFramerate)
+			{
+				FlxG.updateFramerate = targetFPS;
+				FlxG.drawFramerate = targetFPS;
+			}
+			else
+			{
+				FlxG.drawFramerate = targetFPS;
+				FlxG.updateFramerate = targetFPS;
+			}
+		}
+		#end
 	}
 
 	private function pluginsLessGo()

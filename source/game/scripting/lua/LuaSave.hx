@@ -6,9 +6,9 @@ class LuaSave
 {
     public static function init(script:FunkinLua)
     {
-        var lua:State = script.lua;
+        var lua:cpp.RawPointer<Lua_State> = script.lua;
         
-        Lua_helper.add_callback(lua, "initSaveData", function(name:String, ?folder:String = 'psychenginemods') {
+        LuaUtils.addFunction(lua, "initSaveData", function(name:String, ?folder:String = 'psychenginemods') {
 			if(!PlayState.instance.modchartSaves.exists(name))
 			{
 				var save:FlxSave = new FlxSave();
@@ -18,7 +18,7 @@ class LuaSave
 			}
 			FunkinLua.luaTrace('initSaveData: Save file already initialized: ' + name);
 		});
-		Lua_helper.add_callback(lua, "flushSaveData", function(name:String) {
+		LuaUtils.addFunction(lua, "flushSaveData", function(name:String) {
 			if(PlayState.instance.modchartSaves.exists(name))
 			{
 				PlayState.instance.modchartSaves.get(name).flush();
@@ -27,7 +27,7 @@ class LuaSave
 			FunkinLua.luaTrace('flushSaveData: Save file not initialized: ' + name, false, false, FlxColor.RED);
 		});
 
-        Lua_helper.add_callback(lua, "getDataFromSave", function(name:String, field:String, ?defaultValue:Dynamic = null) {
+        LuaUtils.addFunction(lua, "getDataFromSave", function(name:String, field:String, ?defaultValue:Dynamic = null) {
 			if(PlayState.instance.modchartSaves.exists(name))
 			{
 				var retVal:Dynamic = Reflect.field(PlayState.instance.modchartSaves.get(name).data, field);
@@ -36,7 +36,7 @@ class LuaSave
 			FunkinLua.luaTrace('getDataFromSave: Save file not initialized: ' + name, false, false, FlxColor.RED);
 			return defaultValue;
 		});
-		Lua_helper.add_callback(lua, "setDataFromSave", function(name:String, field:String, value:Dynamic) {
+		LuaUtils.addFunction(lua, "setDataFromSave", function(name:String, field:String, value:Dynamic) {
 			if(PlayState.instance.modchartSaves.exists(name))
 			{
 				Reflect.setField(PlayState.instance.modchartSaves.get(name).data, field, value);

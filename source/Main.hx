@@ -29,10 +29,6 @@ import game.objects.FunkinSoundTray;
 import game.backend.system.Mods;
 #end
 
-#if LUA_ALLOWED
-import game.scripting.LuaCallbackHandler;
-#end
-
 using StringTools;
 
 // NATIVE API STUFF, YOU CAN IGNORE THIS AND SCROLL //
@@ -132,12 +128,6 @@ class Main extends Sprite
 		#if sl_windows_api
 		WindowsAPI.disableWindowsReport();
 		WindowsAPI.disableWindowsGhosting();
-		#end
-
-		#if LUA_ALLOWED llua.Lua.set_callbacks_function(cpp.Callable.fromStaticFunction(LuaCallbackHandler.call)); #end
-
-		#if VIDEOS_ALLOWED
-		hxvlc.util.Handle.init(#if (hxvlc >= "1.8.0")  ['--no-lua'] #end);
 		#end
 
 		var push:FlxGame = new FlxGame(game.width, game.height, Init, #if (flixel < "5.0.0") game.zoom, #end game.framerate, game.framerate, game.skipSplash, game.startFullscreen);

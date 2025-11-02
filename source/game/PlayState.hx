@@ -4005,7 +4005,7 @@ class PlayState extends MusicBeatState
 
 	override function destroy() {
 		for (lua in luaArray) {
-			lua.call('onDestroy', []);
+			lua.safeCall('onDestroy', []);
 			lua.stop();
 		}
 		luaArray = [];
@@ -4294,7 +4294,7 @@ class PlayState extends MusicBeatState
 			if(exclusions.contains(script.scriptName))
 				continue;
 
-			var myValue = script.call(event, args);
+			var myValue = script.safeCall(event, args);
 			if(myValue == FunkinLua.Function_StopLua && !ignoreStops)
 				break;
 			

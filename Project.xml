@@ -137,7 +137,8 @@
 	<haxelib name="tjson" />
 
 	<!--In case you want to use the ui package-->
-	<haxelib name="linc_luajit" if="LUA_ALLOWED"/>
+	<haxelib name="hxluajit" if="LUA_ALLOWED"/>
+	<haxelib name="hxluajit-wrapper" if="LUA_ALLOWED"/>
 	<haxelib name="hxvlc" if="VIDEOS_ALLOWED"/>
 	<haxelib name="hxdiscord_rpc" if="DISCORD_ALLOWED"/>
 	<haxelib name="faxe" if="switch"/>

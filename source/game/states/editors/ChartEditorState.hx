@@ -29,9 +29,6 @@ import flixel.util.FlxColor;
 import flixel.util.FlxSave;
 import flixel.util.FlxSort;
 
-import flixel.addons.display.waveform.FlxWaveform;
-import flixel.addons.display.waveform.FlxWaveformBuffer;
-
 import lime.media.AudioBuffer;
 import lime.utils.Assets;
 
@@ -270,7 +267,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 	var clipboardNotes:Array<Dynamic> = [];
 
-	var waveform:FlxWaveform;
+	var waveform:FlxSprite;
 	var currentWaveformSound:FlxSound = null;
 
 	var gridLayer:FlxTypedGroup<FlxSprite>;
@@ -356,13 +353,9 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		gridLayer.add(prevGridBG);
 		gridLayer.add(nextGridBG);
 
-		var waveformWidth:Int = Std.int(gridBG.width);
-		var waveformHeight:Int = Std.int(gridBG.height);
-		waveform = new FlxWaveform(gridBG.x + GRID_SIZE / 2, gridBG.y, waveformWidth, waveformHeight, 0xFF4A3C88, FlxColor.TRANSPARENT);
-		waveform.waveformOrientation = VERTICAL;
-		waveform.autoUpdateBitmap = false;
-		waveform.visible = false;
+		waveform = new FlxSprite(gridBG.x + GRID_SIZE, gridBG.y).makeGraphic(1, 1, 0xFF4A3C88);
 		waveform.scrollFactor.x = 0;
+		waveform.visible = false;
 		add(waveform);
 
 		var eventIcon:FlxSprite = new FlxSprite(GRID_SIZE + 375).loadGraphic(Paths.image('eventArrow'));
@@ -928,7 +921,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		stepperBeats.onValueChange = () -> {
 			_song.notes[curSec].sectionBeats = stepperBeats.value;
 			reloadGridLayer();
-			updateWaveform();
 		}
 
 		check_changeBPM = new PsychUICheckBox(10, stepperBeats.y + 30, 'Change BPM', 100);
@@ -939,7 +931,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			reloadGridLayer();
 			updateGrid();
 			updateNoteUI();
-			updateWaveform();
 			FlxG.log.add('changed bpm');
 		}
 
@@ -950,7 +941,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			_song.notes[curSec].bpm = stepperSectionBPM.value;
 			updateGrid();
 			updateNoteUI();
-			updateWaveform();
 		}
 
 		var check_eventsSec:PsychUICheckBox = null;
@@ -1555,7 +1545,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			chartEditorSave.data.chart_vortex = check_vortex.checked;
 			vortex = chartEditorSave.data.chart_vortex;
 			reloadGridLayer();
-			updateWaveform();
 		};
 
 		check_warnings = new PsychUICheckBox(10, 120, "Ignore Progress Warnings", 100);
@@ -2571,7 +2560,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		if(daZoom < 1) zoomThing = Math.round(1 / daZoom) + ' / 1';
 		zoomTxt.text = 'Zoom: ' + zoomThing;
 		reloadGridLayer();
-		updateWaveform();
 	}
 
 	function reloadCharacter(char:String) {
@@ -2597,9 +2585,9 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 		gridBG = FlxGridOverlay.create(GRID_SIZE, GRID_SIZE, GRID_SIZE * 9, Std.int(GRID_SIZE * getSectionBeats() * GRID_COLUMNS_PER_PLAYER * zoomList[curZoom]), true, gridColors.mainLines, gridColors.secondaryLines);
 		gridBG.screenCenter(X);
+
+		waveform.x = gridBG.x + GRID_SIZE;
 		
-		/*waveform.setPosition(gridBG.x + GRID_SIZE / 2, gridBG.y);
-		waveform.resize(Std.int(gridBG.width), Std.int(gridBG.height));*/
 		updateWaveformIfNeeded();
 		updateGrid();
 
@@ -3892,12 +3880,13 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		cachedSectionTimes[_song.notes.length] = time;
 	}
 
-	function updateWaveform():Void
-	{
+	var wavData:Array<Array<Array<Float>>> = [[[0], [0]], [[0], [0]]];
+	function updateWaveform() {
+		#if (lime_cffi && !macro)
 		var shouldShowWaveform = chartEditorSave.data.chart_waveformInst || 
-							chartEditorSave.data.chart_waveformVoices || 
-							chartEditorSave.data.chart_waveformOppVoices;
-		
+                           chartEditorSave.data.chart_waveformVoices || 
+                           chartEditorSave.data.chart_waveformOppVoices;
+    
 		if(!shouldShowWaveform || curSec < 0 || curSec >= cachedSectionTimes.length)
 		{
 			waveform.visible = false;
@@ -3905,86 +3894,193 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		}
 
 		waveform.visible = true;
-		
-		var targetSound:FlxSound = switch(waveformTarget)
+		waveform.y = gridBG.y;
+		var width:Int = Std.int(GRID_SIZE * GRID_COLUMNS_PER_PLAYER * GRID_PLAYERS);
+		var height:Int = Std.int(gridBG.height);
+		if(Std.int(waveform.height) != height && waveform?.pixels != null)
 		{
-			case INST: FlxG.sound.music;
-			case PLAYER: vocals;
-			case OPPONENT: opponentVocals;
+			waveform.pixels.dispose();
+			waveform.pixels.disposeImage();
+			waveform.makeGraphic(width, height, FlxColor.TRANSPARENT);
+		}
+		waveform.pixels.fillRect(new Rectangle(0, 0, width, height), FlxColor.TRANSPARENT);
+
+		wavData[0][0].resize(0);
+		wavData[0][1].resize(0);
+		wavData[1][0].resize(0);
+		wavData[1][1].resize(0);
+
+		var sound:FlxSound = switch(waveformTarget)
+		{
+			case INST:
+				FlxG.sound.music;
+			case PLAYER:
+				vocals;
+			case OPPONENT:
+				opponentVocals;
 			case _: null;
-		};
-		
-		if (targetSound == null || targetSound._sound == null || targetSound._sound.__buffer == null || targetSound.length <= 0)
-		{
-			waveform.visible = false;
-			currentWaveformSound = null;
-			return;
 		}
 		
-		try
+		if (sound?._sound?.__buffer != null)
 		{
-			var soundChanged = targetSound != currentWaveformSound;
-			if (soundChanged)
-			{
-				currentWaveformSound = targetSound;
-				waveform.loadDataFromFlxSound(targetSound);
-			}
-
-			if (waveform.waveformBuffer == null || waveform.waveformBuffer.length == 0)
-			{
-				waveform.visible = false;
-				return;
-			}
-
-			var startTime:Float = cachedSectionTimes[curSec] - Conductor.offset;
-			var endTime:Float = cachedSectionTimes[curSec + 1] - Conductor.offset;
-			
-			if (Math.isNaN(startTime) || Math.isNaN(endTime) || startTime < 0 || endTime <= startTime)
-			{
-				waveform.visible = false;
-				return;
-			}
-
-			if (waveformColors.exists(waveformTarget)) 
-				waveform.waveformColor = waveformColors[waveformTarget];
-			
-			waveform.waveformTime = startTime;
-			waveform.waveformDuration = Math.max(endTime - startTime, 1);
-			
-			waveform.setPosition(gridBG.x + GRID_SIZE / 2, gridBG.y);
-			waveform.resize(Std.int(gridBG.width), Std.int(gridBG.height));
-			
-			if (soundChanged || !waveform.autoUpdateBitmap)
-				waveform.generateWaveformBitmap();
+			var bytes:Bytes = sound._sound.__buffer.data.toBytes();
+			wavData = waveformData(sound._sound.__buffer, bytes, cachedSectionTimes[curSec] - Conductor.offset, cachedSectionTimes[curSec+1] - Conductor.offset, 1, wavData, height);
 		}
-		catch (e:Dynamic)
+
+		var waveformColor:FlxColor = waveformColors.exists(waveformTarget) ? waveformColors.get(waveformTarget) : FlxColor.WHITE;
+
+		// Draws
+		var gSize:Int = Std.int(GRID_SIZE * 8);
+		var hSize:Int = Std.int(gSize / 2);
+		var size:Float = 1;
+
+		var leftLength:Int = (wavData[0][0].length > wavData[0][1].length ? wavData[0][0].length : wavData[0][1].length);
+		var rightLength:Int = (wavData[1][0].length > wavData[1][1].length ? wavData[1][0].length : wavData[1][1].length);
+
+		var length:Int = leftLength > rightLength ? leftLength : rightLength;
+
+		for (index in 0...length)
 		{
-			trace("Error updating waveform: " + e);
-			waveform.visible = false;
-			currentWaveformSound = null;
+			var lmin:Float = FlxMath.bound(((index < wavData[0][0].length && index >= 0) ? wavData[0][0][index] : 0) * (gSize / 1.12), -hSize, hSize) / 2;
+			var lmax:Float = FlxMath.bound(((index < wavData[0][1].length && index >= 0) ? wavData[0][1][index] : 0) * (gSize / 1.12), -hSize, hSize) / 2;
+
+			var rmin:Float = FlxMath.bound(((index < wavData[1][0].length && index >= 0) ? wavData[1][0][index] : 0) * (gSize / 1.12), -hSize, hSize) / 2;
+			var rmax:Float = FlxMath.bound(((index < wavData[1][1].length && index >= 0) ? wavData[1][1][index] : 0) * (gSize / 1.12), -hSize, hSize) / 2;
+
+			 waveform.pixels.fillRect(new Rectangle(hSize - (lmin + rmin), index * size, (lmin + rmin) + (lmax + rmax), size), waveformColor);
 		}
+		#else
+		waveform.visible = false;
+		#end
+	}
+
+	function waveformData(buffer:AudioBuffer, bytes:Bytes, time:Float, endTime:Float, multiply:Float = 1, ?array:Array<Array<Array<Float>>>, ?steps:Float):Array<Array<Array<Float>>>
+	{
+		#if (lime_cffi && !macro)
+		if (buffer == null || buffer.data == null) return [[[0], [0]], [[0], [0]]];
+
+		var khz:Float = (buffer.sampleRate / 1000);
+		var channels:Int = buffer.channels;
+
+		var index:Int = Std.int(time * khz);
+
+		var samples:Float = ((endTime - time) * khz);
+
+		if (steps == null) steps = 1280;
+
+		var samplesPerRow:Float = samples / steps;
+		var samplesPerRowI:Int = Std.int(samplesPerRow);
+
+		var gotIndex:Int = 0;
+
+		var lmin:Float = 0;
+		var lmax:Float = 0;
+
+		var rmin:Float = 0;
+		var rmax:Float = 0;
+
+		var rows:Float = 0;
+
+		var simpleSample:Bool = true; //samples > 17200;
+		var v1:Bool = false;
+
+		array ??= [[[0], [0]], [[0], [0]]];
+
+		while (index < (bytes.length - 1)) {
+			if (index >= 0) {
+				var byte:Int = bytes.getUInt16(index * channels * 2);
+
+				if (byte > 65535 / 2) byte -= 65535;
+
+				var sample:Float = (byte / 65535);
+
+				if (sample > 0)
+					if (sample > lmax) lmax = sample;
+				else
+					if (sample < lmin) lmin = sample;
+
+				if (channels >= 2) {
+					byte = bytes.getUInt16((index * channels * 2) + 2);
+
+					if (byte > 65535 / 2) byte -= 65535;
+
+					sample = (byte / 65535);
+
+					if (sample > 0) {
+						if (sample > rmax) rmax = sample;
+					} else {
+						if (sample < rmin) rmin = sample;
+					}
+				}
+			}
+
+			v1 = samplesPerRowI > 0 ? (index % samplesPerRowI == 0) : false;
+			while (simpleSample ? v1 : rows >= samplesPerRow) {
+				v1 = false;
+				rows -= samplesPerRow;
+
+				gotIndex++;
+
+				var lRMin:Float = Math.abs(lmin) * multiply;
+				var lRMax:Float = lmax * multiply;
+
+				var rRMin:Float = Math.abs(rmin) * multiply;
+				var rRMax:Float = rmax * multiply;
+
+				if (gotIndex > array[0][0].length) array[0][0].push(lRMin);
+					else array[0][0][gotIndex - 1] = array[0][0][gotIndex - 1] + lRMin;
+
+				if (gotIndex > array[0][1].length) array[0][1].push(lRMax);
+					else array[0][1][gotIndex - 1] = array[0][1][gotIndex - 1] + lRMax;
+
+				if (channels >= 2)
+				{
+					if (gotIndex > array[1][0].length) array[1][0].push(rRMin);
+						else array[1][0][gotIndex - 1] = array[1][0][gotIndex - 1] + rRMin;
+
+					if (gotIndex > array[1][1].length) array[1][1].push(rRMax);
+						else array[1][1][gotIndex - 1] = array[1][1][gotIndex - 1] + rRMax;
+				}
+				else
+				{
+					if (gotIndex > array[1][0].length) array[1][0].push(lRMin);
+						else array[1][0][gotIndex - 1] = array[1][0][gotIndex - 1] + lRMin;
+
+					if (gotIndex > array[1][1].length) array[1][1].push(lRMax);
+						else array[1][1][gotIndex - 1] = array[1][1][gotIndex - 1] + lRMax;
+				}
+
+				lmin = 0;
+				lmax = 0;
+
+				rmin = 0;
+				rmax = 0;
+			}
+
+			index++;
+			rows++;
+			if(gotIndex > steps) break;
+		}
+
+		return array;
+		#else
+		return [[[0], [0]], [[0], [0]]];
+		#end
 	}
 
 	function updateWaveformIfNeeded():Void
 	{
 		var shouldShowWaveform = chartEditorSave.data.chart_waveformInst || 
-								chartEditorSave.data.chart_waveformVoices || 
-								chartEditorSave.data.chart_waveformOppVoices;
+							chartEditorSave.data.chart_waveformVoices || 
+							chartEditorSave.data.chart_waveformOppVoices;
 		
-		if (waveform.waveformBuffer == null || waveform.waveformBuffer.length == 0) return;
-		
-		waveform.visible = shouldShowWaveform;
+		if(shouldShowWaveform) updateWaveform();
+		else waveform.visible = false;
 	}
 
 	override function destroy() {
 		autoBackupTimer?.cancel();
 		autoBackupTimer?.destroy();
-
-		if (waveform != null)
-		{
-			waveform.destroy();
-			waveform = null;
-		}
 
 		super.destroy();
 	}

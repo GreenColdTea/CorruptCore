@@ -6,9 +6,9 @@ class LuaFileManager
 {
     public static function init(script:FunkinLua)
     {
-        var lua:State = script.lua;
+        var lua:cpp.RawPointer<Lua_State> = script.lua;
         
-        Lua_helper.add_callback(lua, "checkFileExists", function(filename:String, ?absolute:Bool = false) {
+        LuaUtils.addFunction(lua, "checkFileExists", function(filename:String, ?absolute:Bool = false) {
 			#if MODS_ALLOWED
 			if(absolute)
 			{
@@ -29,7 +29,7 @@ class LuaFileManager
 			return Assets.exists(Paths.getPath('assets/$filename', TEXT));
 			#end
 		});
-		Lua_helper.add_callback(lua, "saveFile", function(path:String, content:String, ?absolute:Bool = false)
+		LuaUtils.addFunction(lua, "saveFile", function(path:String, content:String, ?absolute:Bool = false)
 		{
 			try {
 				if(!absolute)
@@ -47,7 +47,7 @@ class LuaFileManager
 			}
 			return false;
 		});
-		Lua_helper.add_callback(lua, "deleteFile", function(path:String, ?ignoreModFolders:Bool = false)
+		LuaUtils.addFunction(lua, "deleteFile", function(path:String, ?ignoreModFolders:Bool = false)
 		{
 			try {
 				#if MODS_ALLOWED
@@ -73,7 +73,7 @@ class LuaFileManager
 			}
 			return false;
 		});
-		Lua_helper.add_callback(lua, "getTextFromFile", function(path:String, ?ignoreModFolders:Bool = false) {
+		LuaUtils.addFunction(lua, "getTextFromFile", function(path:String, ?ignoreModFolders:Bool = false) {
 			return Paths.getTextFromFile(path, ignoreModFolders);
 		});
     }

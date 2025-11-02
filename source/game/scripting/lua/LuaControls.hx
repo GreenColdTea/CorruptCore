@@ -4,9 +4,9 @@ class LuaControls
 {
     public static function init(script:FunkinLua)
     {
-        var lua:State = script.lua;
+        var lua:cpp.RawPointer<Lua_State> = script.lua;
         
-        Lua_helper.add_callback(lua, "mouseClicked", function(button:String) {
+        LuaUtils.addFunction(lua, "mouseClicked", function(button:String) {
 			var boobs = FlxG.mouse.justPressed;
 			switch(button){
 				case 'middle':
@@ -19,7 +19,7 @@ class LuaControls
 			return boobs;
 		});
         
-        Lua_helper.add_callback(lua, "mousePressed", function(button:String) {
+        LuaUtils.addFunction(lua, "mousePressed", function(button:String) {
 			var boobs = FlxG.mouse.pressed;
 			switch(button){
 				case 'middle':
@@ -29,7 +29,7 @@ class LuaControls
 			}
 			return boobs;
 		});
-		Lua_helper.add_callback(lua, "mouseReleased", function(button:String) {
+		LuaUtils.addFunction(lua, "mouseReleased", function(button:String) {
 			var boobs = FlxG.mouse.justReleased;
 			switch(button){
 				case 'middle':
@@ -40,33 +40,33 @@ class LuaControls
 			return boobs;
 		});
 
-        Lua_helper.add_callback(lua, "keyboardJustPressed", function(name:String)
+        LuaUtils.addFunction(lua, "keyboardJustPressed", function(name:String)
 		{
 			return Reflect.getProperty(FlxG.keys.justPressed, name);
 		});
-		Lua_helper.add_callback(lua, "keyboardPressed", function(name:String)
+		LuaUtils.addFunction(lua, "keyboardPressed", function(name:String)
 		{
 			return Reflect.getProperty(FlxG.keys.pressed, name);
 		});
-		Lua_helper.add_callback(lua, "keyboardReleased", function(name:String)
+		LuaUtils.addFunction(lua, "keyboardReleased", function(name:String)
 		{
 			return Reflect.getProperty(FlxG.keys.justReleased, name);
 		});
 
-		Lua_helper.add_callback(lua, "anyGamepadJustPressed", function(name:String)
+		LuaUtils.addFunction(lua, "anyGamepadJustPressed", function(name:String)
 		{
 			return FlxG.gamepads.anyJustPressed(name);
 		});
-		Lua_helper.add_callback(lua, "anyGamepadPressed", function(name:String)
+		LuaUtils.addFunction(lua, "anyGamepadPressed", function(name:String)
 		{
 			return FlxG.gamepads.anyPressed(name);
 		});
-		Lua_helper.add_callback(lua, "anyGamepadReleased", function(name:String)
+		LuaUtils.addFunction(lua, "anyGamepadReleased", function(name:String)
 		{
 			return FlxG.gamepads.anyJustReleased(name);
 		});
 
-		Lua_helper.add_callback(lua, "gamepadAnalogX", function(id:Int, ?leftStick:Bool = true)
+		LuaUtils.addFunction(lua, "gamepadAnalogX", function(id:Int, ?leftStick:Bool = true)
 		{
 			var controller = FlxG.gamepads.getByID(id);
 			if (controller == null)
@@ -75,7 +75,7 @@ class LuaControls
 			}
 			return controller.getXAxis(leftStick ? LEFT_ANALOG_STICK : RIGHT_ANALOG_STICK);
 		});
-		Lua_helper.add_callback(lua, "gamepadAnalogY", function(id:Int, ?leftStick:Bool = true)
+		LuaUtils.addFunction(lua, "gamepadAnalogY", function(id:Int, ?leftStick:Bool = true)
 		{
 			var controller = FlxG.gamepads.getByID(id);
 			if (controller == null)
@@ -84,7 +84,7 @@ class LuaControls
 			}
 			return controller.getYAxis(leftStick ? LEFT_ANALOG_STICK : RIGHT_ANALOG_STICK);
 		});
-		Lua_helper.add_callback(lua, "gamepadJustPressed", function(id:Int, name:String)
+		LuaUtils.addFunction(lua, "gamepadJustPressed", function(id:Int, name:String)
 		{
 			var controller = FlxG.gamepads.getByID(id);
 			if (controller == null)
@@ -93,7 +93,7 @@ class LuaControls
 			}
 			return Reflect.getProperty(controller.justPressed, name) == true;
 		});
-		Lua_helper.add_callback(lua, "gamepadPressed", function(id:Int, name:String)
+		LuaUtils.addFunction(lua, "gamepadPressed", function(id:Int, name:String)
 		{
 			var controller = FlxG.gamepads.getByID(id);
 			if (controller == null)
@@ -102,7 +102,7 @@ class LuaControls
 			}
 			return Reflect.getProperty(controller.pressed, name) == true;
 		});
-		Lua_helper.add_callback(lua, "gamepadReleased", function(id:Int, name:String)
+		LuaUtils.addFunction(lua, "gamepadReleased", function(id:Int, name:String)
 		{
 			var controller = FlxG.gamepads.getByID(id);
 			if (controller == null)
@@ -112,7 +112,7 @@ class LuaControls
 			return Reflect.getProperty(controller.justReleased, name) == true;
 		});
 
-		Lua_helper.add_callback(lua, "keyJustPressed", function(name:String) {
+		LuaUtils.addFunction(lua, "keyJustPressed", function(name:String) {
 			var key:Bool = false;
 			switch(name) {
 				case 'left': key = PlayState.instance.getControl('NOTE_LEFT_P');
@@ -127,7 +127,7 @@ class LuaControls
 			}
 			return key;
 		});
-		Lua_helper.add_callback(lua, "keyPressed", function(name:String) {
+		LuaUtils.addFunction(lua, "keyPressed", function(name:String) {
 			var key:Bool = false;
 			switch(name) {
 				case 'left': key = PlayState.instance.getControl('NOTE_LEFT');
@@ -138,7 +138,7 @@ class LuaControls
 			}
 			return key;
 		});
-		Lua_helper.add_callback(lua, "keyReleased", function(name:String) {
+		LuaUtils.addFunction(lua, "keyReleased", function(name:String) {
 			var key:Bool = false;
 			switch(name) {
 				case 'left': key = PlayState.instance.getControl('NOTE_LEFT_R');

@@ -13,9 +13,9 @@ class LuaSprites
 {
     public static function init(script:FunkinLua)
     {
-        var lua:State = script.lua;
+        var lua:cpp.RawPointer<Lua_State> = script.lua;
         
-        Lua_helper.add_callback(lua, "makeLuaSprite", function(tag:String, image:String, x:Float, y:Float) {
+        LuaUtils.addFunction(lua, "makeLuaSprite", function(tag:String, image:String, x:Float, y:Float) {
 			tag = tag.replace('.', '');
 			resetSpriteTag(tag);
 			var leSprite:ModchartSprite = new ModchartSprite(x, y);
@@ -28,7 +28,7 @@ class LuaSprites
 			leSprite.active = true;
 		});
 
-		Lua_helper.add_callback(lua, "makeLuaBackdrop", function(tag:String, image:String, x:Float, y:Float, repeatX:Bool = false, repeatY:Bool = false) {
+		LuaUtils.addFunction(lua, "makeLuaBackdrop", function(tag:String, image:String, x:Float, y:Float, repeatX:Bool = false, repeatY:Bool = false) {
 			tag = tag.replace('.', '');
 			resetSpriteTag(tag);
 		
@@ -40,7 +40,7 @@ class LuaSprites
 			backdrop.active = true;
 		});	
 
-		Lua_helper.add_callback(lua, "makeAnimatedLuaSprite", function(tag:String, image:String, x:Float, y:Float, ?spriteType:String = "sparrow") {
+		LuaUtils.addFunction(lua, "makeAnimatedLuaSprite", function(tag:String, image:String, x:Float, y:Float, ?spriteType:String = "sparrow") {
 			tag = tag.replace('.', '');
 			resetSpriteTag(tag);
 			var leSprite:ModchartSprite = new ModchartSprite(x, y);
@@ -50,7 +50,7 @@ class LuaSprites
 			PlayState.instance.modchartSprites.set(tag, leSprite);
 		});
 
-		Lua_helper.add_callback(lua, "makeGraphic", function(obj:String, width:Int, height:Int, color:String) {
+		LuaUtils.addFunction(lua, "makeGraphic", function(obj:String, width:Int, height:Int, color:String) {
 			var colorNum:Int = Std.parseInt(color);
 			if(!color.startsWith('0x')) colorNum = Std.parseInt('0xff' + color);
 
@@ -65,7 +65,7 @@ class LuaSprites
 				object.makeGraphic(width, height, colorNum);
 			}
 		});
-		Lua_helper.add_callback(lua, "addAnimationByPrefix", function(obj:String, name:String, prefix:String, framerate:Int = 24, loop:Bool = true) {
+		LuaUtils.addFunction(lua, "addAnimationByPrefix", function(obj:String, name:String, prefix:String, framerate:Int = 24, loop:Bool = true) {
 			if(PlayState.instance.getLuaObject(obj,false)!=null) {
 				var cock:FlxSprite = PlayState.instance.getLuaObject(obj,false);
 				cock.animation.addByPrefix(name, prefix, framerate, loop);
@@ -84,7 +84,7 @@ class LuaSprites
 			}
 		});
 
-		Lua_helper.add_callback(lua, "addAnimation", function(obj:String, name:String, frames:Array<Int>, framerate:Int = 24, loop:Bool = true) {
+		LuaUtils.addFunction(lua, "addAnimation", function(obj:String, name:String, frames:Array<Int>, framerate:Int = 24, loop:Bool = true) {
 			if(PlayState.instance.getLuaObject(obj,false)!=null) {
 				var cock:FlxSprite = PlayState.instance.getLuaObject(obj,false);
 				cock.animation.add(name, frames, framerate, loop);
@@ -103,15 +103,15 @@ class LuaSprites
 			}
 		});
 
-		Lua_helper.add_callback(lua, "addAnimationByIndices", function(obj:String, name:String, prefix:String, indices:String, framerate:Int = 24) {
+		LuaUtils.addFunction(lua, "addAnimationByIndices", function(obj:String, name:String, prefix:String, indices:String, framerate:Int = 24) {
 			return addAnimByIndices(obj, name, prefix, indices, framerate, false);
 		});
-		Lua_helper.add_callback(lua, "addAnimationByIndicesLoop", function(obj:String, name:String, prefix:String, indices:String, framerate:Int = 24) {
+		LuaUtils.addFunction(lua, "addAnimationByIndicesLoop", function(obj:String, name:String, prefix:String, indices:String, framerate:Int = 24) {
 			return addAnimByIndices(obj, name, prefix, indices, framerate, true);
 		});
 		
 
-		Lua_helper.add_callback(lua, "playAnim", function(obj:String, name:String, forced:Bool = false, ?reverse:Bool = false, ?startFrame:Int = 0)
+		LuaUtils.addFunction(lua, "playAnim", function(obj:String, name:String, forced:Bool = false, ?reverse:Bool = false, ?startFrame:Int = 0)
 		{
 			var obj:Dynamic = FunkinLua.getObjectDirectly(obj, false);
 			if(obj.playAnim != null)
@@ -127,7 +127,7 @@ class LuaSprites
 			}
 			return false;
 		});
-		Lua_helper.add_callback(lua, "addOffset", function(obj:String, anim:String, x:Float, y:Float) {
+		LuaUtils.addFunction(lua, "addOffset", function(obj:String, anim:String, x:Float, y:Float) {
 			if(PlayState.instance.modchartSprites.exists(obj)) {
 				PlayState.instance.modchartSprites.get(obj).animOffsets.set(anim, [x, y]);
 				return true;
@@ -143,7 +143,7 @@ class LuaSprites
 
 		//FlxAnimate Funcs
 		#if flixel_animate
-		Lua_helper.add_callback(lua, "makeFlxAnimateSprite", function(tag:String, atlasFolder:String, ?x:Float = 0, ?y:Float = 0) {
+		LuaUtils.addFunction(lua, "makeFlxAnimateSprite", function(tag:String, atlasFolder:String, ?x:Float = 0, ?y:Float = 0) {
 			tag = tag.replace('.', '');
 			var lastSprite = PlayState.instance.variables.get(tag);
 			if(lastSprite != null)
@@ -159,7 +159,7 @@ class LuaSprites
 			mySprite.active = true;
 		});
 		
-		Lua_helper.add_callback(lua, "addAnimationBySymbol", function(tag:String, name:String, symbol:String, ?framerate:Float = 24, ?loop:Bool = false, ?flipX:Bool = false, ?flipY:Bool = false)
+		LuaUtils.addFunction(lua, "addAnimationBySymbol", function(tag:String, name:String, symbol:String, ?framerate:Float = 24, ?loop:Bool = false, ?flipX:Bool = false, ?flipY:Bool = false)
 		{
 			var obj:Dynamic = PlayState.instance.variables.get(tag);
 			if(cast (obj, FlxAnimate) == null) return false;
@@ -173,7 +173,7 @@ class LuaSprites
 			return true;
 		});
 
-		Lua_helper.add_callback(lua, "addAnimationBySymbolIndices", function(tag:String, name:String, symbol:String, ?indices:Any = null, ?framerate:Float = 24, ?loop:Bool = false, ?flipX:Bool = false, ?flipY:Bool = false)
+		LuaUtils.addFunction(lua, "addAnimationBySymbolIndices", function(tag:String, name:String, symbol:String, ?indices:Any = null, ?framerate:Float = 24, ?loop:Bool = false, ?flipX:Bool = false, ?flipY:Bool = false)
 		{
 			var obj:Dynamic = PlayState.instance.variables.get(tag);
 			if(cast (obj, FlxAnimate) == null) return false;
@@ -199,7 +199,7 @@ class LuaSprites
 			return true;
 		});
 
-		Lua_helper.add_callback(lua, "addAnimationByFrameLabel", function(tag:String, name:String, label:String, ?framerate:Float = 24, ?loop:Bool = false, ?flipX:Bool = false, ?flipY:Bool = false)
+		LuaUtils.addFunction(lua, "addAnimationByFrameLabel", function(tag:String, name:String, label:String, ?framerate:Float = 24, ?loop:Bool = false, ?flipX:Bool = false, ?flipY:Bool = false)
 		{
 			var obj:Dynamic = PlayState.instance.variables.get(tag);
 			if(cast (obj, FlxAnimate) == null) return false;
@@ -213,7 +213,7 @@ class LuaSprites
 			return true;
 		});
 
-		Lua_helper.add_callback(lua, "addAnimationByFrameLabelIndices", function(tag:String, name:String, label:String, ?indices:Any = null, ?framerate:Float = 24, ?loop:Bool = false, ?flipX:Bool = false, ?flipY:Bool = false)
+		LuaUtils.addFunction(lua, "addAnimationByFrameLabelIndices", function(tag:String, name:String, label:String, ?indices:Any = null, ?framerate:Float = 24, ?loop:Bool = false, ?flipX:Bool = false, ?flipY:Bool = false)
 		{
 			var obj:Dynamic = PlayState.instance.variables.get(tag);
 			if(cast (obj, FlxAnimate) == null) return false;
@@ -239,7 +239,7 @@ class LuaSprites
 			return true;
 		});
 
-		Lua_helper.add_callback(lua, "addByTimeline", function(tag:String, name:String, timelinePath:String, ?framerate:Float = 24, ?loop:Bool = true, ?flipX:Bool = false, ?flipY:Bool = false) {
+		LuaUtils.addFunction(lua, "addByTimeline", function(tag:String, name:String, timelinePath:String, ?framerate:Float = 24, ?loop:Bool = true, ?flipX:Bool = false, ?flipY:Bool = false) {
 			var obj:Dynamic = PlayState.instance.variables.get(tag);
 			if(cast (obj, FlxAnimate) == null) return false;
 
@@ -253,7 +253,7 @@ class LuaSprites
 			return true;
 		});
 
-		Lua_helper.add_callback(lua, "addByTimelineIndices", function(tag:String, name:String, timelinePath:String, indices:Any = null, ?framerate:Float = 24, ?loop:Bool = true, ?flipX:Bool = false, ?flipY:Bool = false) {
+		LuaUtils.addFunction(lua, "addByTimelineIndices", function(tag:String, name:String, timelinePath:String, indices:Any = null, ?framerate:Float = 24, ?loop:Bool = true, ?flipX:Bool = false, ?flipY:Bool = false) {
 			var obj:Dynamic = PlayState.instance.variables.get(tag);
 			if(cast (obj, FlxAnimate) == null) return false;
 
@@ -276,7 +276,7 @@ class LuaSprites
 		});
 		#end
 
-		Lua_helper.add_callback(lua, "addLuaSprite", function(tag:String, front:Bool = false) {
+		LuaUtils.addFunction(lua, "addLuaSprite", function(tag:String, front:Bool = false) {
 			if(PlayState.instance.modchartSprites.exists(tag)) {
 				var shit:ModchartSprite = PlayState.instance.modchartSprites.get(tag);
 				if(!shit.wasAdded) {
@@ -307,7 +307,7 @@ class LuaSprites
 			}
 		});
 
-		Lua_helper.add_callback(lua, "addLuaBackdrop", function(tag:String, front:Bool = false) {
+		LuaUtils.addFunction(lua, "addLuaBackdrop", function(tag:String, front:Bool = false) {
 			if (!PlayState.instance.modchartBackdrops.exists(tag)) return;
 		
 			final backdrop = PlayState.instance.modchartBackdrops.get(tag);
@@ -339,7 +339,7 @@ class LuaSprites
 			}
 		});
 
-		Lua_helper.add_callback(lua, "removeLuaSprite", function(tag:String, destroy:Bool = true) {
+		LuaUtils.addFunction(lua, "removeLuaSprite", function(tag:String, destroy:Bool = true) {
 			if(!PlayState.instance.modchartSprites.exists(tag)) {
 				return;
 			}
@@ -360,11 +360,11 @@ class LuaSprites
 			}
 		});
 
-		Lua_helper.add_callback(lua, "luaSpriteExists", function(tag:String) {
+		LuaUtils.addFunction(lua, "luaSpriteExists", function(tag:String) {
 			return PlayState.instance.modchartSprites.exists(tag);
 		});
 
-        Lua_helper.add_callback(lua, "loadGraphic", function(variable:String, image:String, ?gridX:Int = 0, ?gridY:Int = 0) {
+        LuaUtils.addFunction(lua, "loadGraphic", function(variable:String, image:String, ?gridX:Int = 0, ?gridY:Int = 0) {
 			var killMe:Array<String> = variable.split('.');
 			var spr:FlxSprite = FunkinLua.getObjectDirectly(killMe[0]);
 			var animated = gridX != 0 || gridY != 0;
@@ -378,7 +378,7 @@ class LuaSprites
 				spr.loadGraphic(Paths.image(image), animated, gridX, gridY);
 			}
 		});
-		Lua_helper.add_callback(lua, "loadFrames", function(variable:String, image:String, spriteType:String = "sparrow") {
+		LuaUtils.addFunction(lua, "loadFrames", function(variable:String, image:String, spriteType:String = "sparrow") {
 			var killMe:Array<String> = variable.split('.');
 			var spr:FlxSprite = FunkinLua.getObjectDirectly(killMe[0]);
 			if(killMe.length > 1) {

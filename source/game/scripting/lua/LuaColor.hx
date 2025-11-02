@@ -4,14 +4,14 @@ class LuaColor
 {
     public static function init(script:FunkinLua)
     {
-        var lua:State = script.lua;
+        var lua:cpp.RawPointer<Lua_State> = script.lua;
 
-        Lua_helper.add_callback(lua, "getColorFromHex", function(color:String) {
+        LuaUtils.addFunction(lua, "getColorFromHex", function(color:String) {
 			if(!color.startsWith('0x')) color = '0xff' + color;
 			return Std.parseInt(color);
 		});
 
-        Lua_helper.add_callback(lua, "setHealthBarColors", function(leftHex:String, rightHex:String) {
+        LuaUtils.addFunction(lua, "setHealthBarColors", function(leftHex:String, rightHex:String) {
 			var left:FlxColor = Std.parseInt(leftHex);
 			if(!leftHex.startsWith('0x')) left = Std.parseInt('0xff' + leftHex);
 			var right:FlxColor = Std.parseInt(rightHex);
@@ -20,7 +20,7 @@ class LuaColor
 			PlayState.instance.healthBar.createFilledBar(left, right);
 			PlayState.instance.healthBar.updateBar();
 		});
-		Lua_helper.add_callback(lua, "setTimeBarColors", function(leftHex:String, rightHex:String) {
+		LuaUtils.addFunction(lua, "setTimeBarColors", function(leftHex:String, rightHex:String) {
 			var left:FlxColor = Std.parseInt(leftHex);
 			if(!leftHex.startsWith('0x')) left = Std.parseInt('0xff' + leftHex);
 			var right:FlxColor = Std.parseInt(rightHex);
@@ -30,7 +30,7 @@ class LuaColor
 			PlayState.instance.timeBar.updateBar();
 		});
 
-		Lua_helper.add_callback(lua, "getPixelColor", function(obj:String, x:Int, y:Int) {
+		LuaUtils.addFunction(lua, "getPixelColor", function(obj:String, x:Int, y:Int) {
 			var killMe:Array<String> = obj.split('.');
 			var spr:FlxSprite = FunkinLua.getObjectDirectly(killMe[0]);
 			if(killMe.length > 1) {
