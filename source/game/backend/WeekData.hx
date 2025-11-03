@@ -237,17 +237,19 @@ class WeekData {
 	}
 
 	public static function setDirectoryFromWeek(?data:WeekData = null) {
+		#if MODS_ALLOWED
 		Mods.currentModDirectory = '';
 		if(data != null && data.folder != null && data.folder.length > 0) {
 			Mods.currentModDirectory = data.folder;
 		}
+		#end
 	}
 
 	public static function loadTheFirstEnabledMod()
 	{
+		#if MODS_ALLOWED
 		Mods.currentModDirectory = '';
 		
-		#if MODS_ALLOWED
 		if (FileSystem.exists(Paths.txt("modsList")))
 		{
 			var list:Array<String> = CoolUtil.listFromString(File.getContent(Paths.txt("modsList")));

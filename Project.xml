@@ -79,11 +79,6 @@
 		<assets path="assets/secrets" rename="assets" exclude="*.mp3"  unless="web"/>
 	</section>
 
-	<section if="INCLUDE_BASE_GAME">
-		<assets path="base_game" rename="assets" exclude="*.ogg" if="web"/>
-		<assets path="base_game" rename="assets" exclude="*.mp3" unless="web"/>
-	</section>
-
 	<!-- DONT ENABLE THIS -->
 	<!--<define name="CHECK_FOR_UPDATES" if="desktop officialBuild"/>-->
 	<!-- NOTE: ITS OUTDATED -->
@@ -110,6 +105,11 @@
 
 	<section if="MODS_ALLOWED">
 		<assets path='contents_file' rename='contents' embed='false'/>
+	</section>
+
+	<section if="INCLUDE_BASE_GAME">
+		<assets path="base_game" rename="contents/base_game" exclude="*.ogg" if="web"/>
+		<assets path="base_game" rename="contents/base_game" exclude="*.mp3" unless="web"/>
 	</section>
 	<!-- <template path='mods' /> -->
 

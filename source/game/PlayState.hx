@@ -1664,7 +1664,7 @@ class PlayState extends MusicBeatState
 
 	public function setSongTime(time:Float)
 	{
-		if(time < 0) time = 0;
+		if(time <= 0) time = 0;
 
 		FlxG.sound.music.pause();
 		vocals.pause();
@@ -2491,9 +2491,7 @@ class PlayState extends MusicBeatState
 
 							if(!daNote.blockHit && daNote.mustPress && cpuControlled && daNote.canBeHit) {
 								if(daNote.isSustainNote) {
-									if(daNote.canBeHit) {
-										goodNoteHit(daNote);
-									}
+									if(daNote.parent?.wasGoodHit) goodNoteHit(daNote);
 								} else if(daNote.strumTime <= Conductor.songPosition || daNote.isSustainNote) {
 									goodNoteHit(daNote);
 								}
@@ -2508,6 +2506,9 @@ class PlayState extends MusicBeatState
 								{
 									if(daNote.y - daNote.offset.y * daNote.scale.y + daNote.height >= center)
 									{
+										#if !MODCHART_ALLOWED
+										swagRect = new FlxRect(0, 0, daNote.width / daNote.scale.x, daNote.height / daNote.scale.y)
+										#end
 										swagRect.height = (center - daNote.y) / daNote.scale.y;
 										swagRect.y = daNote.frameHeight - swagRect.height;
 									}
@@ -2516,8 +2517,7 @@ class PlayState extends MusicBeatState
 								{
 									if (daNote.y + daNote.offset.y * daNote.scale.y <= center)
 									{
-										/*swagRect = new FlxRect(0, 0, daNote.width / daNote.scale.x, daNote.height / daNote.scale.y);
-										swagRect = new FlxRect(0, 0, daNote.frameWidth, daNote.frameHeight);*/
+										//swagRect = new FlxRect(0, 0, daNote.frameWidth, daNote.frameHeight);
 										swagRect.y = (center - daNote.y) / daNote.scale.y;
 										swagRect.height -= swagRect.y;
 									}
@@ -3993,7 +3993,7 @@ class PlayState extends MusicBeatState
 		}
 		
 		var holdCover:NoteHoldCover = grpHoldCovers.recycle(NoteHoldCover);
-		holdCover.startCrochet = Conductor.stepCrochet;
+		holdCover.startCrochet = Conductor.stepCrochet / playbackRate;
 		holdCover.frameRate = Math.floor(24 / 100 * SONG.bpm);
 		
 		holdCover.setupHoldCover(strum, note, skin, hueColor, satColor, brtColor);

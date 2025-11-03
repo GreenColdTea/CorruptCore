@@ -177,9 +177,6 @@ class TitleState extends MusicBeatState
 		}
 		else
 		{
-			if(FlxG.sound.music == null) {
-				FlxG.sound.playMusic(Paths.music('freakyMenu'), 0);
-			}
 			skippedIntro = true;
 		}
 	}
@@ -192,13 +189,9 @@ class TitleState extends MusicBeatState
 
 	function startIntro()
 	{
-		if (isSoftcodedState())
-		{
-			if(FlxG.sound.music == null) FlxG.sound.playMusic(Paths.music('freakyMenu'), 0);
-			return;
-		}
+		if (isSoftcodedState()) return;
 
-		if (!initialized) if(FlxG.sound.music == null) FlxG.sound.playMusic(Paths.music('freakyMenu'), 0);
+		if(!initialized && FlxG.sound.music == null) FlxG.sound.playMusic(Paths.music('freakyMenu'), 0);
 
 		Conductor.changeBPM(titleJSON.bpm);
 		persistentUpdate = true;
@@ -258,13 +251,13 @@ class TitleState extends MusicBeatState
 		logoBl.shader = swagShader.shader;
 
 		titleText = new FlxSprite(titleJSON.startx, titleJSON.starty);
-		#if (desktop && MODS_ALLOWED)
-		var path = "contents/" + Mods.currentModDirectory + "/images/titleEnter.png";
+		#if MODS_ALLOWED
+		var path = Mods.MODS_FOLDER + "/" + Mods.currentModDirectory + "/images/titleEnter.png";
 		if (!FileSystem.exists(path)){
-			path = "contents/images/titleEnter.png";
+			path = '${Mods.MODS_FOLDER}/images/titleEnter.png';
 		}
 		if (!FileSystem.exists(path)){
-			path = "assets/images/titleEnter.png";
+			path = Paths.getPath('images/titleEnter.png');
 		}
 		titleText.frames = FlxAtlasFrames.fromSparrow(BitmapData.fromFile(path),File.getContent(StringTools.replace(path,".png",".xml")));
 		#else

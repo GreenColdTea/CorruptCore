@@ -156,7 +156,7 @@ class PauseSubState extends MusicBeatSubstate
 		if (pauseMusic.volume < 0.5)
 			pauseMusic.volume += 0.01 * elapsed;
 
-		if (!PlayState.instance.camPause.visible)
+		if (!PlayState.instance?.camPause?.visible)
             PlayState.instance.camPause.visible = true;
 
 		super.update(elapsed);
@@ -333,7 +333,7 @@ class PauseSubState extends MusicBeatSubstate
 		lvlDifftween?.cancel();
 		blueBallsTween?.cancel();
 
-		PlayState.instance.camPause.visible = false;
+		if(PlayState.instance?.camPause != null) PlayState.instance.camPause.visible = false;
 
 		super.destroy();
 	}

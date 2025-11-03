@@ -19,9 +19,7 @@ import game.stages.backend.BaseStage;
 import game.states.backend.MusicBeatState;
 import game.substates.backend.MusicBeatSubstate;
 
-#if MODS_ALLOWED
 import game.backend.system.Mods;
-#end
 
 import flixel.animation.PsychAnimationController;
 

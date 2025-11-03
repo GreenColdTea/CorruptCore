@@ -441,13 +441,11 @@ class Paths
                 var mod = parts[0];
                 var filePath = parts.slice(1).join('/');
                 var content = Mods.getFileFromMod(mod, filePath);
-                if (content != null) {
-                    bitmap = BitmapData.fromBytes(content);
-                }
+                if (content != null) bitmap = BitmapData.fromBytes(content);
             }
-            else #end if (FileSystem.exists(file))
+            else #end #if sys if (FileSystem.exists(file))
                 bitmap = BitmapData.fromFile(file);
-            else if (OpenFlAssets.exists(file, IMAGE))
+            else #end if (OpenFlAssets.exists(file, IMAGE))
                 bitmap = OpenFlAssets.getBitmapData(file);
 
             if (bitmap == null)

@@ -1,6 +1,7 @@
 package game.backend.plugins;
 
 import haxe.Timer;
+
 import openfl.Lib;
 import openfl.events.Event;
 import openfl.events.KeyboardEvent;
@@ -13,14 +14,19 @@ import openfl.geom.Matrix;
 import openfl.geom.Rectangle;
 import openfl.system.System;
 import openfl.utils.Assets;
+
 import flixel.FlxG;
-import sys.FileSystem;
-import sys.io.File;
+
 import game.backend.utils.MemoryUtil;
 
 #if gl_stats
 import openfl.display._internal.stats.Context3DStats;
 import openfl.display._internal.stats.DrawCallContext;
+#end
+
+#if sys
+import sys.FileSystem;
+import sys.io.File;
 #end
 
 @:allow(Init)
@@ -732,16 +738,19 @@ class FPSCounterPlugin extends Bitmap
 
 	private function initLogFile():Void
 	{
+		#if sys
 		try {
 			var header = "Timestamp,FPS,Memory,PeakMemory,AvailableMemory,VSync,TargetFPS,PerformanceScore,Warnings\n";
 			File.saveContent(logFile, header);
 		} catch (e:Dynamic) {
 			trace("Failed to create log file: " + e);
 		}
+		#end
 	}
 
 	private function logData():Void
 	{
+		#if sys
 		try {
 			var timestamp = Date.now().toString();
 			var warnings = performanceWarnings.join("; ");
@@ -754,6 +763,7 @@ class FPSCounterPlugin extends Bitmap
 		} catch (e:Dynamic) {
 			trace("Failed to write log: " + e);
 		}
+		#end
 	}
 
 	public inline function positionFPS(X:Float, Y:Float, ?scale:Float = 1)

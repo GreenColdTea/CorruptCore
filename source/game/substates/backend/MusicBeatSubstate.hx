@@ -79,7 +79,7 @@ class MusicBeatSubstate extends FlxSubState
 
 			for (path in scriptFiles) {
 				menuScriptArray.push(new FunkinHScript(path, this));
-				if (path.contains('contents/'))
+				if (path.contains('${Mods.MODS_FOLDER}/'))
 					trace('Loaded mod substate script: $path');
 				else
 					trace('Loaded base game substate script: $path');

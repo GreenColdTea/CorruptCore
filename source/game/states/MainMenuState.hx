@@ -61,7 +61,7 @@ class MainMenuState extends MusicBeatState
 		
 		if (!isSoftcodedState())
 		{
-			if(FlxG.sound.music == null) FlxG.sound.playMusic(Paths.music('freakyMenu'), 0);
+			if(FlxG.sound.music == null) FlxG.sound.playMusic(Paths.music('freakyMenu'));
 			
 			createMenuStuff();
 

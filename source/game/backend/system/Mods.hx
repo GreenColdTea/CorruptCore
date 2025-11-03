@@ -1,8 +1,10 @@
 package game.backend.system;
 
-#if MODS_ALLOWED
+#if sys
 import sys.FileSystem;
 import sys.io.File;
+#end
+
 import haxe.io.Bytes;
 import haxe.zip.Reader;
 import haxe.zip.Entry;
@@ -42,6 +44,7 @@ class Mods
     public static var zipModsCache:Map<String, Map<String, Bytes>> = new Map();
     public static var tempExtractedFolders:Array<String> = [];
 
+    #if MODS_ALLOWED
     inline public static function getModPath(key:String = ''):String
     {
         return '$MODS_FOLDER/$key';
@@ -750,8 +753,8 @@ class Mods
         
         trace('=== END ANALYSIS ===');
     }
+    #end
 }
-#end
 
 class ModMetadata
 {

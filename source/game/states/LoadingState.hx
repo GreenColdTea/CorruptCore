@@ -214,11 +214,15 @@ class LoadingState extends MusicBeatState
 
             if (PlayState.SONG.needsVoices)
             {
-                loadQueue.push({
-                    type: MAIN_THREAD, // Audio loading in main thread
-                    execute: () -> checkLoadSong(getVocalPath()),
-                    description: 'Load vocal audio'
-                });
+                var vocalPaths = getVocalPaths();
+                for (vocalPath in vocalPaths)
+                {
+                    loadQueue.push({
+                        type: MAIN_THREAD,
+                        execute: () -> checkLoadSong(vocalPath),
+                        description: 'Load vocal audio: $vocalPath'
+                    });
+                }
             }
 
             var stage = PlayState.SONG.stage;
@@ -404,10 +408,10 @@ class LoadingState extends MusicBeatState
             return;
         }
 
+        #if MODS_ALLOWED
         if (path.startsWith('${Mods.MODS_FOLDER}/')) {
             var callback = callbacks.add("modSong:" + path);
             
-            #if MODS_ALLOWED
             try {
                 var sound = Sound.fromFile(path);
                 Paths.currentTrackedSounds.set(path, sound);
@@ -416,10 +420,7 @@ class LoadingState extends MusicBeatState
                 trace('Error loading mod sound: $path, error: $e');
                 callback();
             }
-            #else
-            callback();
-            #end
-        } else {
+        } else #end {
             if (!Assets.cache.hasSound(path))
             {
                 var callback = callbacks.add("song:" + path);
@@ -482,9 +483,22 @@ class LoadingState extends MusicBeatState
         return instPath(PlayState.SONG.song);
     }
 
-    static function getVocalPath():String
+    static function getVocalPaths():Array<String>
     {
-        return voicesPath(PlayState.SONG.song);
+        var paths:Array<String> = [];
+
+        var vocalsPath:String = voicesPath(PlayState.SONG.song);
+        if (vocalsPath != null) paths.push(vocalsPath);
+        
+        var playerVocalsFile:String = PlayState.instance?.boyfriend?.vocalsFile ?? 'Player';
+        var playerVocals:String = voicesPath(PlayState.SONG.song, playerVocalsFile);
+        if (playerVocals != null) paths.push(playerVocals);
+        
+        var opponentVocalsFile:String = PlayState.instance?.dad?.vocalsFile ?? 'Opponent';
+        var opponentVocals:String = voicesPath(PlayState.SONG.song, opponentVocalsFile);
+        if (opponentVocals != null) paths.push(opponentVocals);
+        
+        return paths;
     }
 
     static function instPath(song:String):String
@@ -562,7 +576,7 @@ class LoadingState extends MusicBeatState
         var loaded:Bool = true;
         if (PlayState.SONG != null) {
             loaded = isSoundLoaded(getSongPath()) && 
-                    (!PlayState.SONG.needsVoices || isSoundLoaded(getVocalPath())) && 
+                    (!PlayState.SONG.needsVoices || areVocalsLoaded()) && 
                     isLibraryLoaded("shared") && 
                     isLibraryLoaded(directory) &&
                     #if MODS_ALLOWED isModsLoaded() #else true #end &&
@@ -659,16 +673,23 @@ class LoadingState extends MusicBeatState
         return Mods.getGlobalMods().length > 0;
     }
     #end
+
+    static function areVocalsLoaded():Bool
+    {
+        var vocalPaths = getVocalPaths();
+        for (path in vocalPaths)
+        {
+            if (!isSoundLoaded(path))
+                return false;
+        }
+        return true;
+    }
     
     static function isSoundLoaded(path:String):Bool
     {
-        if (path.startsWith('${Mods.MODS_FOLDER}/')) {
-            #if MODS_ALLOWED
-            return sys.FileSystem.exists(path);
-            #else
-            return false;
-            #end
-        }
+        #if MODS_ALLOWED
+        if (path.startsWith('${Mods.MODS_FOLDER}/')) return sys.FileSystem.exists(path);
+        #end
         
         return Assets.cache.hasSound(path);
     }

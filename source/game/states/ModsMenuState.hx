@@ -34,8 +34,10 @@ import haxe.format.JsonParser;
 import haxe.zip.Reader;
 import haxe.zip.Entry;
 
+#if sys
 import sys.io.File;
 import sys.FileSystem;
+#end
 
 using StringTools;
 
@@ -96,7 +98,7 @@ class ModsMenuState extends MusicBeatState
         bg.screenCenter();
 
         noModsTxt = new FlxText(0, 0, FlxG.width, "NO MODS INSTALLED\nPRESS BACK TO EXIT AND INSTALL A MOD", 48);
-        if(FlxG.random.bool(0.1)) noModsTxt.text += '\nBITCH.';
+        if(FlxG.random.bool(0.01)) noModsTxt.text += '\nBITCH.';
         noModsTxt.setFormat(Paths.font("vcr.ttf"), 32, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
         noModsTxt.scrollFactor.set();
         noModsTxt.borderSize = 2;
