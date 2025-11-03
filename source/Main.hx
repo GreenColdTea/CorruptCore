@@ -127,7 +127,7 @@ class Main extends Sprite
 
 		#if sl_windows_api
 		WindowsAPI.disableWindowsReport();
-		WindowsAPI.disableWindowsGhosting();
+		//WindowsAPI.disableWindowsGhosting();
 		#end
 
 		var push:FlxGame = new FlxGame(game.width, game.height, Init, #if (flixel < "5.0.0") game.zoom, #end game.framerate, game.framerate, game.skipSplash, game.startFullscreen);

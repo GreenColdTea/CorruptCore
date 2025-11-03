@@ -2248,13 +2248,8 @@ class PlayState extends MusicBeatState
 		//for health bar smoothing
 		displayHealth = FlxMath.lerp(displayHealth, health, 0.1 * playbackRate);
 
-		final mult:Float = FlxMath.lerp(1, iconP1.scale.x, Math.exp(-elapsed * 9 * playbackRate));
-		iconP1.scale.set(mult, mult);
-		iconP1.updateHitbox();
-
-		final mult:Float = FlxMath.lerp(1, iconP2.scale.x, Math.exp(-elapsed * 9 * playbackRate));
-		iconP2.scale.set(mult, mult);
-		iconP2.updateHitbox();
+		iconP1.updateIconScale(elapsed);
+		iconP2.updateIconScale(elapsed);
 
 		var iconOffset:Int = 26;
 
@@ -3749,7 +3744,7 @@ class PlayState extends MusicBeatState
 		if (SONG.needsVoices)
 			if(opponentVocals.length <= 0) vocals.volume = 1;
 
-		iconP2.scale.set(1.15, 1.15);
+		iconP2.flash(1.12, 1);
 
 		var time:Float = 0.15;
 		if(note.isSustainNote && !note.animation.curAnim.name.endsWith('end')) {
@@ -3882,7 +3877,7 @@ class PlayState extends MusicBeatState
 			note.wasGoodHit = true;
 			vocals.volume = 1;
 
-			iconP1.scale.set(1.15, 1.15);
+			iconP1.flash(1.12, 1);
 
 			var isSus:Bool = note.isSustainNote; //GET OUT OF MY HEAD, GET OUT OF MY HEAD, GET OUT OF MY HEAD
 			var leData:Int = Math.round(Math.abs(note.noteData));
@@ -4088,11 +4083,8 @@ class PlayState extends MusicBeatState
 			notes.sort(FlxSort.byY, ClientPrefs.downScroll ? FlxSort.ASCENDING : FlxSort.DESCENDING);
 		}
 
-		iconP1.scale.set(1.2, 1.2);
-		iconP2.scale.set(1.2, 1.2);
-
-		iconP1.updateHitbox();
-		iconP2.updateHitbox();
+		iconP1.flash(1.2, 1);
+		iconP2.flash(1.2, 1);
 
 		characterBopper(curBeat);
 
