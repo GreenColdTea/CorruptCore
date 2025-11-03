@@ -2,7 +2,7 @@
 <project>
 	<!-- _________________________ Application Settings _________________________ -->
 
-	<app title="Friday Night Funkin': CorruptCore Engine" file="CorruptCore" packageName="com.justin.corruptcore" package="com.justin.corruptcore" main="Main" version="0.2.0" company="JustX" />
+	<app title="Friday Night Funkin': CorruptCore Engine" file="CorruptCore" packageName="com.justin.corruptcore" package="com.justin.corruptcore" main="Main" version="0.3.0" company="JustX" />
 
 	<!--Switch Export with Unique ApplicationID and Icon-->
 	<set name="APP_ID" value="0x0100f6c013bbc000" />
@@ -21,10 +21,10 @@
 	<!-- ____________________________ Window Settings ___________________________ -->
 
 	<!--These window settings apply to all targets-->
-	<window width="1280" height="720" background="#000000" hardware="true" vsync="false" allow-high-dpi="true"/>
+	<window width="1280" height="720" fps="60" background="#000000" hardware="true" vsync="false" allow-high-dpi="true"/>
 
 	<!--HTML5-specific-->
-	<window if="html5" resizable="true" />
+	<window if="html5" resizable="true" vsync="true" />
 
 	<!--Desktop-specific-->
 	<window if="desktop" orientation="landscape" fullscreen="false" resizable="true" vsync="false"/>
@@ -33,7 +33,7 @@
 	<window if="mobile" orientation="landscape" fullscreen="true" width="1280" height="720" resizable="false" allow-shaders="true" require-shaders="true"/>
 
 	<!--Switch-specific-->
-	<window if="switch" orientation="landscape" fullscreen="true" width="0" height="0" resizable="true" />
+	<window if="switch" orientation="landscape" fullscreen="true" width="1280" height="720" resizable="true" />
 
 	<!-- _____________________________ Path Settings ____________________________ -->
 
@@ -56,12 +56,12 @@
 	<define name="MODS_ALLOWED" if="desktop" />
 	<define name="LUA_ALLOWED" if="cpp" />
 	<define name="HSCRIPT_ALLOWED" />
-	<!--<define name="MODCHART_ALLOWED" />--> <!-- disabled for now-->
-	<define name="DISCORD_ALLOWED" if="desktop" unless="hl"/>
-	<define name="ACHIEVEMENTS_ALLOWED" />
-	<define name="VIDEOS_ALLOWED" if="desktop || mobile" unless="hl"/>
+	<define name="MODCHART_ALLOWED" />
+	<define name="DISCORD_ALLOWED" if="desktop cpp" />
+	<!--<define name="ACHIEVEMENTS_ALLOWED" />--> <!-- Not neccesary -->
+	<define name="VIDEOS_ALLOWED" if="cpp" />
 	<define name="TITLE_SCREEN_EASTER_EGG" if="officialBuild" /> <!-- DELETE THE if="officialBuild" for enabling this on an unofficial build -->
-	<define name="CRASH_HANDLER" unless="debug" />
+	<define name="CRASH_HANDLER" />
 
 	<section if="HSCRIPT_ALLOWED">
 		<define name="SCRIPTABLE_STATES" /> <!-- Adds haxe scripting support to the menus (need to enable HSCRIPT_ALLOWED)! -->
@@ -73,6 +73,7 @@
 
 	<assets path="assets/preload" rename="assets" exclude="*.ogg" if="web"/>
 	<assets path="assets/preload" rename="assets" exclude="*.mp3"  unless="web"/>
+
 	<section if="TITLE_SCREEN_EASTER_EGG">
 		<assets path="assets/secrets" rename="assets" exclude="*.ogg" if="web"/>
 		<assets path="assets/secrets" rename="assets" exclude="*.mp3"  unless="web"/>
@@ -102,11 +103,13 @@
 	<assets path="assets/shared"        library="shared"        exclude="*.ogg" if="web"/>
 	<assets path="assets/shared"        library="shared"        exclude="*.mp3" unless="web"/>
 
-	<assets path="assets/week6_sfx" rename="assets" exclude="*.ogg" if="web"/>
-	<assets path="assets/week6_sfx" rename="assets" exclude="*.mp3" unless="web"/>
-
 	<section if="MODS_ALLOWED">
 		<assets path='contents_file' rename='contents' embed='false'/>
+	</section>
+
+	<section if="INCLUDE_BASE_GAME">
+		<assets path="base_game" rename="contents/base_game" exclude="*.ogg" if="web"/>
+		<assets path="base_game" rename="contents/base_game" exclude="*.mp3" unless="web"/>
 	</section>
 	<!-- <template path='mods' /> -->
 
@@ -124,7 +127,7 @@
 	<assets path="assets/embed/sounds" rename="assets/sounds" embed='true'/>
 	<!-- _______________________________ Libraries ______________________________ -->
 
-	<haxelib name="flixel" version="6.1.0"/>
+	<haxelib name="flixel" version="6.1.1"/>
 	<haxedev set='webgl'/>
 
 	<!--<haxelib name="flixel-ui" /> fuck this shit ass creation-->
@@ -134,7 +137,8 @@
 	<haxelib name="tjson" />
 
 	<!--In case you want to use the ui package-->
-	<haxelib name="linc_luajit" if="LUA_ALLOWED"/>
+	<haxelib name="hxluajit" if="LUA_ALLOWED"/>
+	<haxelib name="hxluajit-wrapper" if="LUA_ALLOWED"/>
 	<haxelib name="hxvlc" if="VIDEOS_ALLOWED"/>
 	<haxelib name="hxdiscord_rpc" if="DISCORD_ALLOWED"/>
 	<haxelib name="faxe" if="switch"/>
@@ -145,15 +149,17 @@
 	<haxedef name="hscriptPos" />
 
 	<haxelib name="flixel-animate"/>
-	<haxelib name="flxsoundfilters" unless="flash || html5 || hl"/>
+	<haxelib name="flixel-waveform"/>
+	<haxelib name="flxsoundfilters" if="cpp"/>
 	<haxelib name="flxgif"/>
 	<haxelib name="hxcpp"/>
 
+	<haxelib name="away3d" />
+
 	<section if="cpp">
 		<haxelib name="sl-windows-api" if="windows" />
+		<haxelib name="hxopus" />
 	</section>
-
-	<haxelib name="funkin-modchart" if="MODCHART_ALLOWED"/>
 
 	<!-- Disable Discord IO Thread -->
 	<haxedef name="DISCORD_DISABLE_IO_THREAD" if="hxdiscord_rpc" />
@@ -179,15 +185,10 @@
 		<haxedef name="HXVLC_OPENAL" />
 	</section>
 
-	<section if="funkin-modchart">
-		<haxedef name="FM_ENGINE" value="PSYCH"/>
-		<haxedef name="FM_ENGINE_VERSION" value="0.6"/>
-
-		<haxeflag name="--macro" value="modchart.backend.macros.Macro.includeFiles()"/>
-	</section>
-
 	<!-- Basically Allows Videos To Render In Higher Quality On Higher Resoluttions -->
 	<haxedef name="openfl_dpi_aware" unless="web" />
+
+	<haxedef name='lime_disable_assets_version'/>
 
 	<!--Enable the Flixel core recording system-->
 	<!--<haxedef name="FLX_RECORD" />-->
@@ -234,6 +235,9 @@
 
 	<haxeflag name="--macro" value="game.backend.utils.MacroUtil.addScriptResources()" />
 
+	<!-- Disable Dead Code Elimination, because it breaks some stuff for scripting -->
+	<haxeflag name="-dce" value="no" if="HSCRIPT_ALLOWED || LUA_ALLOWED"/>
+
 	<!-- _________________________________ Custom _______________________________ -->
 
 	<!--Place custom nodes like icons here (higher priority to override the HaxeFlixel icon)-->
@@ -245,10 +249,10 @@
 
 	<!--Code Cleanup and Full Compile of Classes-->
 	<haxeflag name="--macro" value="allowPackage('flash')" />
-	<haxeflag name="--macro" value="include('hxvlc')" />
+	<haxeflag name="--macro" value="include('hxvlc')" if="VIDEOS_ALLOWED"/>
 
 	<!--Analyzer Optimization-->
-	<haxedef name="analyzer-optimize" />
+	<haxedef name="analyzer-optimize" unless="HSCRIPT_ALLOWED || LUA_ALLOWED"/>
 
 	<haxedef name='no-deprecation-warnings' />
 

@@ -3,6 +3,9 @@ package game.backend;
 import flixel.FlxG;
 import flixel.util.FlxSave;
 import flixel.input.keyboard.FlxKey;
+
+import lime.ui.WindowVSyncMode;
+
 import game.states.backend.Achievements;
 import game.backend.Controls;
 
@@ -28,6 +31,8 @@ class ClientPrefs {
     public static var hideHud:Bool = false;
     public static var noteOffset:Int = 0;
     public static var arrowHSV:Array<Array<Int>> = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]];
+    public static var vsync:Bool = false;
+    public static var unlimitedFPS:Bool = false;
     public static var ghostTapping:Bool = true;
     public static var timeBarType:String = 'Time Left';
     public static var scoreZoom:Bool = true;
@@ -120,6 +125,8 @@ class ClientPrefs {
         controllerMode = false;
         hitsoundVolume = 0;
         pauseMusic = 'Tea Time';
+        vsync = false;
+        unlimitedFPS = false;
         checkForUpdates = true;
         comboStacking = true;
         colorBlindMode = 'None';
@@ -172,6 +179,8 @@ class ClientPrefs {
         FlxG.save.data.controllerMode = controllerMode;
         FlxG.save.data.hitsoundVolume = hitsoundVolume;
         FlxG.save.data.pauseMusic = pauseMusic;
+        FlxG.save.data.vsync = vsync;
+        FlxG.save.data.unlimitedFPS = unlimitedFPS;
         FlxG.save.data.checkForUpdates = checkForUpdates;
         FlxG.save.data.comboStacking = comboStacking;
         FlxG.save.data.colorBlindMode = colorBlindMode;
@@ -221,6 +230,8 @@ class ClientPrefs {
         if (FlxG.save.data.controllerMode != null) controllerMode = FlxG.save.data.controllerMode;
         if (FlxG.save.data.hitsoundVolume != null) hitsoundVolume = FlxG.save.data.hitsoundVolume;
         if (FlxG.save.data.pauseMusic != null) pauseMusic = FlxG.save.data.pauseMusic;
+        if (FlxG.save.data.vsync != null) vsync = FlxG.save.data.vsync;
+        if (FlxG.save.data.unlimitedFPS != null) unlimitedFPS = FlxG.save.data.unlimitedFPS;
         if (FlxG.save.data.checkForUpdates != null) checkForUpdates = FlxG.save.data.checkForUpdates;
         if (FlxG.save.data.comboStacking != null) comboStacking = FlxG.save.data.comboStacking;
         if (FlxG.save.data.colorBlindMode != null) colorBlindMode = FlxG.save.data.colorBlindMode;
@@ -247,17 +258,36 @@ class ClientPrefs {
     }
 
     private static function applySettings() {
-        if (Main.fpsVar != null) {
-            Main.fpsVar.visible = showFPS;
+        if (Init.fpsVar != null) {
+            Init.fpsVar.visible = showFPS;
         }
-        
-        if (framerate > FlxG.drawFramerate) {
-            FlxG.updateFramerate = framerate;
-            FlxG.drawFramerate = framerate;
-        } else {
-            FlxG.drawFramerate = framerate;
-            FlxG.updateFramerate = framerate;
-        }
+
+        FlxG.stage.quality = lowQuality ? LOW : BEST;
+
+        var vsyncMode:WindowVSyncMode = vsync ? WindowVSyncMode.ON : WindowVSyncMode.OFF;
+		openfl.Lib.application.window.setVSyncMode(vsyncMode);
+		
+		#if !html5
+		if (unlimitedFPS)
+		{
+			FlxG.drawFramerate = 0;
+			FlxG.updateFramerate = 0;
+		}
+		else
+		{
+			var targetFPS:Int = framerate;
+			if(targetFPS > FlxG.drawFramerate)
+			{
+				FlxG.updateFramerate = targetFPS;
+				FlxG.drawFramerate = targetFPS;
+			}
+			else
+			{
+				FlxG.drawFramerate = targetFPS;
+				FlxG.updateFramerate = targetFPS;
+			}
+		}
+		#end
         
         if (FlxG.save.data.volume != null) FlxG.sound.volume = FlxG.save.data.volume;
         if (FlxG.save.data.mute != null) FlxG.sound.muted = FlxG.save.data.mute;

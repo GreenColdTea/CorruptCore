@@ -1,0 +1,497 @@
+package game.scripting;
+
+#if sys
+import sys.io.File;
+#end
+
+import haxe.ds.StringMap;
+import haxe.io.Path;
+
+import rulescript.*;
+import rulescript.parsers.*;
+import rulescript.RuleScript;
+import rulescript.scriptedClass.RuleScriptedClassUtil.*;
+import rulescript.scriptedClass.RuleScriptedClassUtil;
+import rulescript.scriptedClass.RuleScriptedClass.*;
+import rulescript.scriptedClass.RuleScriptedClass;
+import rulescript.types.ScriptedTypeUtil;
+import rulescript.types.ScriptedAbstract;
+import rulescript.interps.RuleScriptInterp;
+import rulescript.types.ScriptedModule;
+import rulescript.types.Abstracts;
+
+import hscript.Expr;
+
+import game.scripting.HScriptParser as HxParser;
+
+import flixel.group.FlxGroup.FlxTypedGroup;
+import flixel.group.FlxGroup;
+
+using StringTools;
+using Lambda;
+
+class FunkinRuleScript {
+
+    @:unreflective
+    static final PRESET_VARS:haxe.ds.Map<String, Dynamic> = [
+        // Flixel Classes
+        "FlxG" => flixel.FlxG,
+        "FlxSprite" => flixel.FlxSprite,
+        "FlxSpriteUtil" => flixel.util.FlxSpriteUtil,
+        "FlxTimer" => flixel.util.FlxTimer,
+        "FlxTween" => flixel.tweens.FlxTween,
+        "FlxEase" => flixel.tweens.FlxEase,
+        "FlxText" => flixel.text.FlxText,
+        "FlxSound" => flixel.sound.FlxSound,
+        "FlxTextBorderStyle" => flixel.text.FlxText.FlxTextBorderStyle,
+        "FlxCamera" => flixel.FlxCamera,
+        "FlxTextFormat" => flixel.text.FlxText.FlxTextFormat,
+        "FlxTextFormatMarkerPair" => flixel.text.FlxText.FlxTextFormatMarkerPair,
+
+        "BaseScaleMode" => flixel.system.scaleModes.BaseScaleMode,
+        "FillScaleMode" => flixel.system.scaleModes.FillScaleMode,
+        "FixedScaleAdjustSizeScaleMode" => flixel.system.scaleModes.FixedScaleAdjustSizeScaleMode,
+        "FixedScaleMode" => flixel.system.scaleModes.FixedScaleMode,
+        "PixelPerfectScaleMode" => flixel.system.scaleModes.PixelPerfectScaleMode,
+        "RatioScaleMode" => flixel.system.scaleModes.RatioScaleMode,
+        "RelativeScaleMode" => flixel.system.scaleModes.RelativeScaleMode,
+        "StageSizeScaleMode" => flixel.system.scaleModes.StageSizeScaleMode,
+
+        #if VIDEOS_ALLOWED
+        "FunkinVideoSprite" => game.objects.FunkinVideoSprite,
+        #end
+
+        #if flxsoundfilters
+        "FlxFilteredSound" => FlxFilteredSound,
+        #end
+
+        #if flxgif
+        "FlxGifSprite" => FlxGifSprite,
+        "FlxGifBackdrop" => FlxGifBackdrop,
+        #end
+
+        #if MODCHART_ALLOWED
+        "ModManager" => game.modchart.ModManager,
+        #end
+
+        "FlxShader" => game.shaders.flixel.FlxShader,
+
+        "Paths" => game.Paths,
+        "Character" => game.objects.Character,
+        "PlayerSettings" => game.backend.PlayerSettings,
+        "CoolUtil" => game.backend.utils.CoolUtil,
+        "MusicBeatState" => MusicBeatState,
+        "MusicBeatSubstate" => MusicBeatSubstate,
+        "Conductor" => game.backend.Conductor,
+        "ClientPrefs" => game.backend.ClientPrefs,
+        "PlayState" => game.PlayState,
+        "BGSprite" => game.objects.BGSprite,
+        "FunkinRuleScript" => FunkinRuleScript,
+
+        #if LUA_ALLOWED
+        "FunkinLua" => FunkinLua,
+        #end
+
+        #if MODS_ALLOWED
+        "Mods" => game.backend.system.Mods,
+        #end
+
+        #if SCRIPTABLE_STATES
+        "TitleState" => game.states.TitleState,
+        "MainMenuState" => game.states.MainMenuState,
+        "OptionsMenu" => game.states.options.OptionsState,
+        "CreditsState" => game.states.CreditsState,
+        "StoryMenuState" => game.states.StoryMenuState,
+        "FreeplayState" => game.states.FreeplayState,
+        "LoadingState" => game.states.LoadingState,
+        "HScriptState" => game.scripting.HScriptState,
+        "HScriptSubstate" => game.scripting.HScriptSubstate,
+        #end
+
+        'StringMap' => haxe.ds.StringMap,
+		'IntMap' => haxe.ds.IntMap,
+		'ObjectMap' => haxe.ds.ObjectMap
+    ];
+
+    @:unreflective
+    static final ABSTRACT_IMPORTS:Array<String> = [
+        "flixel.util.FlxColor",
+        "flixel.input.keyboard.FlxKey",
+        "flixel.tweens.FlxTween.FlxTweenType",
+        "flixel.text.FlxText.FlxTextAlign",
+        #if flxgif
+        "flxgif.FlxGifAsset",
+        #end
+        "openfl.display.BlendMode"
+    ];
+
+    public var scriptName:String;
+    public var active(default, null):Bool = true;
+    
+    private var rule:RuleScript;
+    private var parentInstance:Dynamic;
+    private var callbacks:haxe.ds.Map<String, Array<Dynamic>> = new haxe.ds.Map();
+    private var importedPackages:haxe.ds.Map<String, Bool> = new haxe.ds.Map();
+
+    public function new(path:String, parentInstance:Dynamic = null, skipCreate:Bool = false) {
+        this.parentInstance = parentInstance;
+        scriptName = path;
+
+        initScriptedClasses();
+
+        rule = new RuleScript(new RuleScriptInterpEx(this));
+        rule.scriptName = path;
+        rule.errorHandler = onError;
+
+        try {
+            var content = loadScriptContent(path);
+            execute(content, skipCreate);
+        } catch (e:haxe.Exception) {
+            trace('Failed to load script $path: ${e.message}');
+            active = false;
+        }
+    }
+
+    private function initScriptedClasses() {
+        ScriptedTypeUtil.resolveModule = function(name:String):Array<ModuleDecl>
+        {
+            var path = parseTypePath(name);
+            if (path.name == null || path.name.length == 0) {
+                trace('Invalid module path: $name');
+                return null;
+            }
+
+            var filePath = 'source/${path.name.replace('.', '/')}.hx';
+
+            if (!Paths.fileExists(filePath, TEXT)) {
+                //trace('Module not found: $filePath');
+                return null;
+            }
+
+            var content = Paths.getTextFromFile(filePath);
+            if (content == null) {
+                trace('Failed to load module content: $filePath');
+                return null;
+            }
+
+            var parser = new HxParser();
+            parser.allowAll();
+            parser.mode = MODULE;
+
+            try {
+                return parser.parseModule(content);
+            } catch (e:Dynamic) {
+                trace('Failed to parse module $filePath: $e');
+                return null;
+            }
+        }
+
+        RuleScriptedClassUtil.buildBridge = function(typePath:String, superInstance:Dynamic):RuleScript
+        {
+            var type:ScriptedClassType = ScriptedTypeUtil.resolveScript(typePath);
+            if (type == null) {
+                trace('Failed to resolve script type: $typePath');
+                return null;
+            }
+
+            var script = new RuleScript(new RuleScriptInterpEx());
+            script.scriptName = typePath;
+
+            script.getParser(HxParser).allowAll();
+            script.superInstance = superInstance;
+            script.getInterp(RuleScriptInterpEx).skipNextRestore = true;
+
+            if (type.isExpr) {
+                script.execute(cast type);
+                return script;
+            } else {
+                var cl:ScriptedClass = cast type;
+                RuleScriptedClassUtil.buildScriptedClass(cl, script);
+            }
+
+            return script;
+        };
+
+        ScriptedTypeUtil.resolveScript = function(name:String):Dynamic
+        {
+            var path = parseTypePath(name);
+            if (path.name == null || path.name.length == 0) {
+                trace('Invalid script path: $name');
+                return null;
+            }
+
+            final module:Array<ModuleDecl> = ScriptedTypeUtil.resolveModule(path.name);
+            if (module == null) {
+                //trace('Module not found for script: $name');
+                return null;
+            }
+
+            try {
+                @:privateAccess
+                var scriptedModule = new ScriptedModule(path.name, module, ScriptedTypeUtil._currentContext);
+                return scriptedModule.types[path.typeName];
+            } catch (e:Dynamic) {
+                trace('Failed to create scripted module for $name: $e');
+                return null;
+            }
+        };
+    }
+
+    private function parseTypePath(name:String):{name:String, typeName:String} {
+        if (name == null || name.length == 0) {
+            return {name: "", typeName: ""};
+        }
+
+        var path:Array<String> = name.split('.');
+        if (path.length == 0) {
+            return {name: "", typeName: ""};
+        }
+
+        var typeName = path.pop();
+        var moduleName = path.join('.');
+        
+        //If no package, use the type name as module name
+        if (moduleName.length == 0) {
+            moduleName = typeName;
+        }
+        
+        return {
+            name: moduleName,
+            typeName: typeName
+        };
+    }
+
+    private function loadScriptContent(path:String):String {
+        if (path == null || path.length == 0) return "// Empty script lol";
+
+        #if sys
+        if (FileSystem.exists(path)) {
+            return File.getContent(path);
+        } else {
+            throw 'Script file not found: $path';
+        }
+        #else
+        var resourceName = path.replace("/", "_").replace(".", "_").replace(":", "_");
+        var content = haxe.Resource.getString(resourceName);
+        if (content == null) {
+            throw 'HScript not found in resources: $path (resource name: $resourceName)';
+        }
+        return content;
+        #end
+    }
+
+    function execute(code:String, skipCreate:Bool) {
+        presetVariables();
+        rule.tryExecute(code);
+        if (!skipCreate) call("onCreate");
+    }
+
+    function presetVariables() {
+        for (key => value in PRESET_VARS)
+            set(key, value);
+
+        for (abstractType in ABSTRACT_IMPORTS) {
+            var abstractInstance = Abstracts.resolveAbstract(abstractType);
+            var typeName = abstractType.split('.').pop();
+            set(typeName, abstractInstance);
+        }
+                
+        if (parentInstance != null)
+            set("parent", parentInstance);
+
+        var isPlayState = FlxG.state is PlayState;
+        if (isPlayState) {
+            set("game", PlayState.instance);
+            
+            set("add", function(basic:flixel.FlxBasic, ?frontOfChars:Bool = false) {
+                if (frontOfChars) {
+                    PlayState.instance.add(basic);
+                    return;
+                }
+
+                var position:Int = PlayState.instance.members.indexOf(PlayState.instance.gfGroup);
+                if(PlayState.instance.members.indexOf(PlayState.instance.boyfriendGroup) < position) 
+                    position = PlayState.instance.members.indexOf(PlayState.instance.boyfriendGroup);
+                else if(PlayState.instance.members.indexOf(PlayState.instance.dadGroup) < position) 
+                    position = PlayState.instance.members.indexOf(PlayState.instance.dadGroup);
+                
+                PlayState.instance.insert(position, basic);
+            });
+            
+            set("insert", PlayState.instance.insert);
+            set("remove", PlayState.instance.remove);
+            set("addBehindGF", PlayState.instance.addBehindGF);
+            set("addBehindDad", PlayState.instance.addBehindDad);
+            set("addBehindBF", PlayState.instance.addBehindBF);
+            
+            set("setVar", (name:String, value:Dynamic) -> {
+                PlayState.instance.variables.set(name, value);
+                return value;
+            });
+            set("getVar", (name:String) -> {
+                var result:Dynamic = null;
+                if(PlayState.instance.variables.exists(name)) 
+                    result = PlayState.instance.variables.get(name);
+
+                return result;
+            });
+            set("removeVar", (name:String) -> {
+                if(PlayState.instance.variables.exists(name)) {
+                    PlayState.instance.variables.remove(name);
+                    return true;
+                }
+                
+                return false;
+            });
+            
+        } else {
+            var scriptObject = FlxG.state.subState ?? FlxG.state;
+            set("game", scriptObject);
+            
+            set("add", scriptObject.add);
+            set("insert", scriptObject.insert);
+            set("remove", scriptObject.remove);
+            
+            set("setVar", (name:String, value:Dynamic) -> {
+                rule.variables.set(name, value);
+                return value;
+            });
+            set("getVar", (name:String) -> {
+                var result:Dynamic = rule.variables.get(name);
+                return result;
+            });
+            set("removeVar", (name:String) -> {
+                if(rule.variables.exists(name)) {
+                    rule.variables.remove(name);
+                    return true;
+                }
+                return false;
+            });
+        }
+
+        set("controls", game.backend.PlayerSettings.player1.controls);
+        
+        set("getObject", getObject);
+        set("getAll", getAllObjects);
+    }
+
+    public function getObject(index:Int, group:String):Dynamic {
+        if (parentInstance == null) return null;
+        
+        try {
+            if (Reflect.hasField(parentInstance, group)) {
+                var targetGroup = Reflect.field(parentInstance, group);
+                if (Std.isOfType(targetGroup, FlxTypedGroup)) {
+                    return targetGroup.members[index];
+                }
+            }
+        } catch (e:Dynamic) {
+            trace('Error getting object: ${e.message}');
+        }
+        return null;
+    }
+
+    public function getAllObjects(group:String):Array<Dynamic> {
+        if (parentInstance == null) return [];
+        
+        try {
+            if (Reflect.hasField(parentInstance, group)) {
+                var targetGroup = Reflect.field(parentInstance, group);
+                if (Std.isOfType(targetGroup, FlxTypedGroup)) {
+                    return targetGroup.members;
+                }
+            }
+        } catch (e:Dynamic) {
+            trace('Error getting objects: ${e.message}');
+        }
+        return [];
+    }
+
+    public function resolveType(typeName:String):Dynamic {
+        var cl = Type.resolveClass(typeName);
+        if (cl != null) return cl;
+        
+        for (pkg in importedPackages.keys()) {
+            cl = Type.resolveClass(pkg + "." + typeName);
+            if (cl != null) return cl;
+        }
+        
+        // Try to resolve as scripted class
+        try {
+            var scriptedType = ScriptedTypeUtil.resolveScript(typeName);
+            if (scriptedType != null) return scriptedType;
+        } catch (e:Dynamic) {
+            trace('Failed to resolve scripted type $typeName: $e');
+        }
+        
+        return null;
+    }
+
+    public function call(event:String, ?args:Array<Dynamic>):Dynamic {
+        if (!active) return null;
+        
+        if (callbacks.exists(event)) {
+            for (cb in callbacks.get(event)) {
+                try {
+                    Reflect.callMethod(null, cb, args ?? []);
+                } catch (e:Dynamic) {
+                    @:privateAccess
+                    onError(haxe.Exception.caught(e));
+                }
+            }
+        }
+        
+        if (!exists(event)) return null;
+        
+        try {
+            return Reflect.callMethod(null, get(event), args ?? []);
+        } catch (e:Dynamic) {
+            @:privateAccess
+            onError(haxe.Exception.caught(e));
+            return null;
+        }
+    }
+
+    public function exists(variable:String):Bool {
+        return active && rule.variables.exists(variable);
+    }
+
+    public function get(variable:String):Dynamic {
+        return exists(variable) ? rule.variables.get(variable) : null;
+    }
+
+    public function set(variable:String, value:Dynamic):Void {
+        if (active) rule.variables.set(variable, value);
+    }
+
+    public function addCallback(event:String, callback:Dynamic):Void {
+        if (!callbacks.exists(event))
+            callbacks.set(event, []);
+        callbacks.get(event).push(callback);
+    }
+
+    public function removeCallback(event:String, callback:Dynamic):Bool {
+        return if (callbacks.exists(event)) {
+            var arr = callbacks.get(event);
+            var result = arr.remove(callback);
+            if (arr.length == 0) callbacks.remove(event);
+            result;
+        } else false;
+    }
+
+    function onError(e:haxe.Exception):Void {
+        final text = 'Error in $scriptName: ${e.details()}';
+        CoolUtil.hxTrace(text, FlxColor.RED);
+    }
+
+    public function stop():Void {
+        if (!active) return;
+        
+        active = false;
+        rule?.variables?.clear();
+        callbacks?.clear();
+        importedPackages?.clear();
+        rule = null;
+        parentInstance = null;
+    }
+}

@@ -113,6 +113,8 @@ class GameplayChangersSubstate extends MusicBeatSubstate
 	public function new()
 	{
 		super();
+
+		freezeParentState = false;
 		
 		var bg:FlxSprite = new FlxSprite().makeGraphic(FlxG.width, FlxG.height, FlxColor.BLACK);
 		bg.alpha = 0.6;
@@ -336,7 +338,9 @@ class GameplayChangersSubstate extends MusicBeatSubstate
 		var val:Dynamic = option.getValue();
 		if(option.type == 'percent') val *= 100;
 		var def:Dynamic = option.defaultValue;
-		option.text = text.replace('%v', val).replace('%d', def);
+		
+		// hashlink fix
+		option.text = text.replace('%v', Std.string(val)).replace('%d', Std.string(def));
 	}
 
 	function clearHold()

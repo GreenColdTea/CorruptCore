@@ -5,7 +5,7 @@ import openfl.ui.MouseCursor;
 
 class PsychUINumericStepper extends PsychUIInputText
 {
-	public static final CHANGE_EVENT = "numericstepper_change";
+	@:unreflective public static final CHANGE_EVENT = "numericstepper_change";
 
 	public var step:Float = 0;
 	public var min(default, set):Float = 0;
@@ -25,10 +25,12 @@ class PsychUINumericStepper extends PsychUIInputText
 	{
 		super(x, y, wid, '');
 		fieldWidth = Std.int(behindText.width + 2);
-		@:bypassAccessor this.decimals = decimals;
-		@:bypassAccessor this.isPercent = isPercent;
-		@:bypassAccessor this.min = min;
-		@:bypassAccessor this.max = max;
+		@:bypassAccessor {
+			this.decimals = decimals;
+			this.isPercent = isPercent;
+			this.min = min;
+			this.max = max;
+		}
 		this.step = step;
 		_updateFilter();
 

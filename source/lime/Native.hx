@@ -18,6 +18,7 @@ import flixel.util.FlxColor;
 #include <dwmapi.h>
 #include <winuser.h>
 #include <wingdi.h>
+#include <shobjidl.h>
 
 #define attributeDarkMode 20
 #define attributeDarkModeFallback 19
@@ -25,6 +26,8 @@ import flixel.util.FlxColor;
 #define attributeCaptionColor 34
 #define attributeTextColor 35
 #define attributeBorderColor 36
+
+typedef HRESULT (WINAPI *SetGameDVRRecordableWindow_t)(HWND hwnd);
 
 struct HandleData {
 	DWORD pid = 0;
@@ -53,6 +56,19 @@ void getHandle() {
 		curHandle = data.handle;
 	}
 }
+
+void markAsGame(HWND hwnd) {
+    if (hwnd != (HWND)0) {
+        HMODULE hDVR = LoadLibraryA("GameBarPresenceWriter.dll");
+        if (hDVR) {
+            auto fn = (SetGameDVRRecordableWindow_t)GetProcAddress(hDVR, "SetGameDVRRecordableWindow");
+            if (fn) {
+                fn(hwnd);
+            }
+            FreeLibrary(hDVR);
+        }
+    }
+}
 ')
 #end
 class Native
@@ -74,7 +90,7 @@ class Native
 		}
 		UpdateWindow(window);
 	')
-	public static function setDarkMode(title:String, enable:Bool) {}
+	public static function setWindowDarkMode(title:String, enable:Bool) {}
 
 	public static function __init__():Void
 	{
@@ -133,15 +149,11 @@ class Native
 		#end
 	}
 
-	/**
-    * Turns off that annoying "Report to Microsoft" dialog that pops up when the game crashes.
-    */
-	public static function disableWinReport():Void
-	{
-		#if (cpp && windows)
-		untyped __cpp__('SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);');
-		#else
-		// Do nothing lol
-		#end
-	}
+	@:functionCode('
+		getHandle();
+		if (curHandle != (HWND)0) {
+			markAsGame(curHandle);
+		}
+	')
+	public static function registerAsGame():Void {}
 }

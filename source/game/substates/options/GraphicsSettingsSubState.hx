@@ -12,6 +12,7 @@ import flixel.group.FlxGroup.FlxTypedGroup;
 import flixel.math.FlxMath;
 import flixel.text.FlxText;
 import flixel.util.FlxColor;
+import lime.ui.WindowVSyncMode;
 import lime.utils.Assets;
 import flixel.FlxSubState;
 import openfl.text.TextField;
@@ -33,18 +34,23 @@ using StringTools;
 
 class GraphicsSettingsSubState extends BaseOptionsMenu
 {
+	#if !html5
+	private var framerateOption:Option;
+	private var unlimitedFPSOption:Option;
+	#end
+
 	public function new()
 	{
 		title = 'Graphics';
-		rpcTitle = 'Graphics Settings Menu'; //for Discord Rich Presence
+		rpcTitle = 'Graphics Settings Menu';
 
-		//I'd suggest using "Low Quality" as an example for making your own option since it is the simplest here
-		var option:Option = new Option('Low Quality', //Name
-			'If checked, disables some background details,\ndecreases loading times and improves performance.', //Description
-			'lowQuality', //Save data variable name
-			'bool', //Variable type
-			false); //Default value
-		addOption(option);
+		var option:Option = new Option('Low Quality',
+            'If checked, disables some background details,\ndecreases loading times and improves performance.',
+            'lowQuality',
+            'bool',
+            false);
+        addOption(option);
+        option.onChange = onChangeLowQuality;
 
 		var option:Option = new Option('Anti-Aliasing',
 			'If unchecked, disables anti-aliasing, increases performance\nat the cost of sharper visuals.',
@@ -52,32 +58,98 @@ class GraphicsSettingsSubState extends BaseOptionsMenu
 			'bool',
 			true);
 		option.showBoyfriend = true;
-		option.onChange = onChangeAntiAliasing; //Changing onChange is only needed if you want to make a special interaction after it changes the value
+		option.onChange = onChangeAntiAliasing;
 		addOption(option);
 
-		var option:Option = new Option('Shaders', //Name
-			'If unchecked, disables shaders.\nIt\'s used for some visual effects, and also CPU intensive for weaker PCs.', //Description
-			'shaders', //Save data variable name
-			'bool', //Variable type
-			true); //Default value
+		var option:Option = new Option('Shaders',
+			'If unchecked, disables shaders.\nIt\'s used for some visual effects, and also CPU intensive for weaker PCs.',
+			'shaders',
+			'bool',
+			true);
 		addOption(option);
 
-		#if !html5 //Apparently other framerates isn't correctly supported on Browser? Probably it has some V-Sync shit enabled by default, idk
-		var option:Option = new Option('Framerate',
+		var option:Option = new Option('VSync',
+			'If checked, enables V-Sync.\nHelps with screen tearing, but can introduce input lag.',
+			'vsync',
+			'bool',
+			false);
+		addOption(option);
+		option.onChange = () -> {
+			var vsyncMode:WindowVSyncMode = ClientPrefs.vsync ? WindowVSyncMode.ON : WindowVSyncMode.OFF;
+			Lib.application.window.setVSyncMode(vsyncMode);
+			FlxG.save.flush();
+			
+			#if !html5
+			updateFramerateVisibility();
+			#end
+		}
+
+		#if !html5
+		var option:Option = new Option('Unlimited FPS',
+			'If checked, removes FPS cap for maximum performance.\nMay cause high CPU/GPU usage.',
+			'unlimitedFPS',
+			'bool',
+			false);
+		addOption(option);
+		unlimitedFPSOption = option;
+		option.onChange = onChangeUnlimitedFPS;
+
+		var option:Option = new Option('Framerate:',
 			"Pretty self explanatory, isn't it?",
 			'framerate',
 			'int',
 			60);
 		addOption(option);
+		framerateOption = option;
 
-		option.minValue = 60;
+		option.minValue = 30;
 		option.maxValue = 360;
 		option.displayFormat = '%v FPS';
 		option.onChange = onChangeFramerate;
 		#end
 
 		super();
+		
+		#if !html5
+		updateFramerateVisibility();
+		#end
 	}
+
+	function onChangeLowQuality()
+    {
+        FlxG.stage.quality = ClientPrefs.lowQuality ? LOW : BEST;
+        onChangeAntiAliasing();
+    }
+
+	#if !html5
+	private function updateFramerateVisibility():Void
+	{
+		var shouldHide = ClientPrefs.vsync || ClientPrefs.unlimitedFPS;
+		framerateOption.visible = !shouldHide;
+		framerateOption.active = !shouldHide;
+
+		unlimitedFPSOption.visible = !ClientPrefs.vsync;
+		unlimitedFPSOption.active = !ClientPrefs.vsync;
+		
+		refreshOptions();
+	}
+
+	function onChangeUnlimitedFPS()
+	{
+		if (ClientPrefs.unlimitedFPS)
+		{
+			FlxG.drawFramerate = 0;
+			FlxG.updateFramerate = 0;
+		}
+		else
+		{
+			onChangeFramerate();
+		}
+		
+		updateFramerateVisibility();
+		ClientPrefs.saveSettings();
+	}
+	#end
 
 	//stupid hl fix
 	function onChangeAntiAliasing()

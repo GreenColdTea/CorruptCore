@@ -22,7 +22,7 @@ import sys.FileSystem;
 #end
 #if SCRIPTABLE_STATES
 import game.scripting.FunkinHScript;
-import game.scripting.FunkinRScript;
+import game.scripting.FunkinRuleScript;
 import game.scripting.HScriptGlobal;
 #end
 
@@ -32,7 +32,7 @@ import openfl.utils.AssetType;
 class MusicBeatState extends FlxState
 {
 	#if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
-	public var menuScriptArray:Array<FunkinRScript> = [];
+	public var menuScriptArray:Array<FunkinRuleScript> = [];
 	private var excludeStates:Array<Dynamic>;
 	#end
 
@@ -76,7 +76,6 @@ class MusicBeatState extends FlxState
 	// (WStaticInitOrder) Warning : maybe loop in static generation of MusicBeatState
 	private static function initExcludeStates():Array<Dynamic> {
 		return [
-			game.states.LoadingState, 
 			game.PlayState, 
 			game.scripting.HScriptState, 
 			MusicBeatState,
@@ -168,7 +167,7 @@ class MusicBeatState extends FlxState
 			for (path in scriptFiles)
 			{
 				menuScriptArray.push(new FunkinHScript(path, this));
-				if (path.contains('contents/'))
+				if (path.contains('${Mods.MODS_FOLDER}/'))
 					trace('Loaded mod state script: $path');
 				else
 					trace('Loaded base game state script: $path');
@@ -177,6 +176,8 @@ class MusicBeatState extends FlxState
 		#end
 
 		super.create();
+
+		quickSetOnMenuScripts('this', this);
 
 		quickCallMenuScript("onCreatePost", []);
 	}
@@ -367,6 +368,11 @@ class MusicBeatState extends FlxState
 	override public function openSubState(subState:FlxSubState) 
 	{
 		if(quickCallMenuScript("onOpenSubState", [subState]) != FunkinLua.Function_Stop) super.openSubState(subState);
+	}
+
+	override public function closeSubState()
+	{
+		if(quickCallMenuScript("onCloseSubState", []) != FunkinLua.Function_Stop) super.closeSubState();
 	}
 	
 	override public function onResize(w:Int, h:Int) {

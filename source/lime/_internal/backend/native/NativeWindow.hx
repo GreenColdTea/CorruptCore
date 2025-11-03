@@ -21,6 +21,7 @@ import lime.system.JNI;
 import lime.system.System;
 import lime.ui.MouseCursor;
 import lime.ui.Window;
+import lime.ui.WindowVSyncMode;
 import lime.utils.UInt8Array;
 
 #if !lime_debug
@@ -109,7 +110,7 @@ class NativeWindow
 		handle = NativeCFFI.lime_window_create(parent.application.__backend.handle, width, height, flags, title);
 
 		#if !macro
-		CoolUtil.setDarkMode(title, true);
+		CoolUtil.setWindowDarkMode(title, true);
 		#end
 
 		if (handle != null)
@@ -683,6 +684,21 @@ class NativeWindow
 		return value;
 	}
 
+	//compatibility with official lime
+	#if (lime == "9.0.0")
+	public function setVSyncMode(mode:WindowVSyncMode):Bool
+	{
+		if (handle != null)
+		{
+			#if (!macro && lime_cffi)
+			return NativeCFFI.lime_window_set_vsync_mode(handle, mode);
+			#end
+		}
+
+		return false;
+	}
+	#end
+
 	#if (lime >= "8.1.0")
 	public function setVisible(value:Bool):Bool
 	{
@@ -695,18 +711,6 @@ class NativeWindow
 
 		return value;
 	}
-
-	/*public function setVSync(value:Bool):Bool
-	{
-		if (handle != null)
-		{
-			#if (!macro && lime_cffi)
-			return NativeCFFI.lime_window_set_vsync(handle, value);
-			#end
-		}
-
-		return value;
-	}*/
 
 	public function getOpacity():Float
 	{

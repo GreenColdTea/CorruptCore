@@ -30,7 +30,7 @@ class ChartBackupManager
     public static final VERSION:String = "1.0";
     
     /** File extension used for backup files */
-    public static final BACKUP_EXTENSION:String = "ccb";
+    @:unreflective public static final BACKUP_EXTENSION:String = "ccb";
     
     private var editor:ChartEditorState;
     
@@ -147,7 +147,7 @@ class ChartBackupManager
      */
     inline public function loadBackup():Void {
         #if desktop
-        var fileFilter = new FileFilter('Chart Backup Files', '*.$BACKUP_EXTENSION;*.json');
+        var fileFilter = new FileFilter('Chart Backup Files', '*.$BACKUP_EXTENSION');
         var fileRef = new FileReference();
         fileRef.addEventListener(Event.SELECT, function onFileSelected(e:Event) {
             fileRef.removeEventListener(Event.SELECT, onFileSelected);

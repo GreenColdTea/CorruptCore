@@ -78,6 +78,7 @@ class EditorPlayState extends MusicBeatState
 		var bg:FlxSprite = new FlxSprite().loadGraphic(Paths.image('menuDesat'));
 		bg.scrollFactor.set();
 		bg.color = FlxColor.fromHSB(FlxG.random.int(0, 359), FlxG.random.float(0, 0.8), FlxG.random.float(0.3, 1));
+		bg.antialiasing = ClientPrefs.globalAntialiasing;
 		add(bg);
 
 		keysArray = [
@@ -122,7 +123,7 @@ class EditorPlayState extends MusicBeatState
 		generateSong(PlayState.SONG.song);
 		#if (LUA_ALLOWED && MODS_ALLOWED)
 		for (notetype in noteTypeMap.keys()) {
-			var luaToLoad:String = Paths.modFolders('custom_notetypes/' + notetype + '.lua');
+			var luaToLoad:String = Mods.modFolders('custom_notetypes/' + notetype + '.lua');
 			if(sys.FileSystem.exists(luaToLoad)) {
 				var lua:game.states.backend.EditorLua = new game.states.backend.EditorLua(luaToLoad);
 				new FlxTimer().start(0.1, function (tmr:FlxTimer) {

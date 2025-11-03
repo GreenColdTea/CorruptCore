@@ -1,12 +1,17 @@
 package game.objects;
 
 import flixel.FlxSprite;
+import flixel.math.FlxMath;
 
 class HealthIcon extends FlxSprite
 {
 	public var sprTracker:FlxSprite;
 	private var isPlayer:Bool = false;
 	private var char:String = '';
+
+	public var targetScale:Float = 1;
+	public var lerpSpeed:Float = 7;
+	public var autoUpdateScale:Bool = true;
 
 	public function new(char:String = 'face', isPlayer:Bool = false, ?allowGPU:Bool = false)
 	{
@@ -22,6 +27,44 @@ class HealthIcon extends FlxSprite
 
 		if (sprTracker != null)
 			setPosition(sprTracker.x + sprTracker.width + 12, sprTracker.y - 30);
+
+		if (autoUpdateScale)
+			updateIconScale(elapsed);
+	}
+
+	/**
+	 * Updates icon scale using lerp for smooth animation
+	 * @param elapsed Time elapsed since last frame
+	 */
+	public function updateIconScale(elapsed:Float):Void
+	{
+		if (scale.x != targetScale || scale.y != targetScale)
+		{
+			var lerpVal:Float = FlxMath.lerp(scale.x, targetScale, 1 - Math.exp(-elapsed * lerpSpeed));
+			scale.set(lerpVal, lerpVal);
+			updateHitbox();
+		}
+	}
+
+	/**
+	 * Sets target scale for lerp animation
+	 * @param newScale New target scale
+	 */
+	public function setTargetScale(newScale:Float):Void
+	{
+		targetScale = newScale;
+	}
+
+	/**
+	 * Temporarily scales up the icon (e.g., when hitting a note)
+	 * @param flashScale Scale for flash effect (default 1.15)
+	 * @param resetScale Scale to return to after flash (default 1)
+	 */
+	public function flash(flashScale:Float = 1.15, resetScale:Float = 1):Void
+	{
+		scale.set(flashScale, flashScale);
+		targetScale = resetScale;
+		updateHitbox();
 	}
 
 	private var iconOffsets:Array<Float> = [0, 0];

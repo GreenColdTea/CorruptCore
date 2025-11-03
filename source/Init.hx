@@ -4,10 +4,16 @@ import flixel.FlxG;
 import flixel.FlxState;
 import flixel.input.keyboard.FlxKey;
 
+import openfl.Lib;
+import openfl.display.Sprite;
+import openfl.display.StageScaleMode;
+
 import game.backend.PlayerSettings;
 import game.backend.WeekData;
 import game.backend.utils.CoolUtil;
 import game.states.StoryMenuState;
+
+import game.backend.plugins.*;
 
 class Init extends FlxState
 {
@@ -15,15 +21,13 @@ class Init extends FlxState
 	public static var volumeDownKeys:Array<FlxKey> = [FlxKey.NUMPADMINUS, FlxKey.MINUS];
 	public static var volumeUpKeys:Array<FlxKey> = [FlxKey.NUMPADPLUS, FlxKey.PLUS];
 
+	public static var fpsVar:FPSCounterPlugin;
+
     override function create()
     {
 		game.backend.PlayerSettings.init();
 
         FlxG.save.bind('ccengine', CoolUtil.getSavePath());
-
-		#if GLOBAL_SCRIPTS
-		if(!game.scripting.HScriptGlobal.globalScriptActive) game.scripting.HScriptGlobal.addGlobalScript();
-		#end
 
 		ClientPrefs.init();
 
@@ -38,13 +42,21 @@ class Init extends FlxState
 				StoryMenuState.weekCompleted = FlxG.save.data.weekCompleted;
 		}
 			
-        #if (LUA_ALLOWED && MODS_ALLOWED)
-		Paths.pushGlobalMods();
+        #if MODS_ALLOWED
+		game.backend.system.Mods.pushGlobalMods();
 		WeekData.loadTheFirstEnabledMod();
 		#end
 
+		fpsVar = new FPSCounterPlugin(10, 3, 0xFFFFFF);
+		Lib.current.addChild(fpsVar);
+		Lib.current.stage.align = "tl";
+		Lib.current.stage.scaleMode = StageScaleMode.NO_SCALE;
+
+		if(fpsVar != null) fpsVar.visible = ClientPrefs.showFPS;
+
         FlxG.fixedTimestep = false;
 	    FlxG.game.focusLostFramerate = #if mobile 30 #else 60 #end;
+		FlxG.cameras.useBufferLocking = true;
         FlxG.keys.preventDefaultKeys = [TAB];
 
         #if html5
@@ -52,13 +64,34 @@ class Init extends FlxState
 		FlxG.mouse.visible = false;
 		#end
 
-		#if FEATURE_DEBUG_TRACY
+		#if (FEATURE_DEBUG_TRACY && !macro)
 		openfl.Lib.current.stage.addEventListener(openfl.events.Event.EXIT_FRAME, (e:openfl.events.Event) ->
 			cpp.vm.tracy.TracyProfiler.frameMark());
 		
 		cpp.vm.tracy.TracyProfiler.setThreadName("main");
 		#end
 
+		pluginsLessGo();
+
+		#if desktop
+		FlxG.mouse.visible = false;
+    	FlxG.mouse.useSystemCursor = true;
+		#end
+
+		#if !html5
+		FlxG.scaleMode = new flixel.FlxScaleMode();
+		#end
+
+		#if GLOBAL_SCRIPTS
+		if(!game.scripting.HScriptGlobal.globalScriptActive) game.scripting.HScriptGlobal.addGlobalScript();
+		#end
+
 		FlxG.switchState(() -> new game.states.TitleState());
     }
+
+	private function pluginsLessGo()
+	{
+		HotReloadPlugin.init();
+		DebugConsolePlugin.init();
+	}
 }

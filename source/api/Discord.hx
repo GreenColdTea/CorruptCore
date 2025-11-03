@@ -7,8 +7,9 @@ import hxdiscord_rpc.Discord;
 import hxdiscord_rpc.Types;
 
 #if LUA_ALLOWED
-import llua.Lua;
-import llua.State;
+import hxluajit.Lua;
+import hxluajit.Types;
+import hxluajit.wrapper.LuaUtils;
 #end
 class DiscordClient
 {
@@ -124,8 +125,8 @@ class DiscordClient
 	}
 
 	#if LUA_ALLOWED
-	public static function addLuaCallbacks(lua:State) {
-		Lua_helper.add_callback(lua, "changePresence", function(details:String, state:Null<String>, ?smallImageKey:String, ?hasStartTimestamp:Bool, ?endTimestamp:Float) {
+	public static function addLuaCallbacks(lua:cpp.RawPointer<Lua_State>) {
+		LuaUtils.addFunction(lua, "changePresence", function(details:String, state:Null<String>, ?smallImageKey:String, ?hasStartTimestamp:Bool, ?endTimestamp:Float) {
 			#if DISCORD_ALLOWED
 			changePresence(details, state, smallImageKey, hasStartTimestamp, endTimestamp);
 			#else

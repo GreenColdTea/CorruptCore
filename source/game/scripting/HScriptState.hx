@@ -16,7 +16,7 @@ class HScriptState extends MusicBeatState
         this.originalClassName = className;
         
         var parts = className.split(".");
-        this.stateName = parts[parts.length - 1];
+        stateName = parts[parts.length - 1];
 
         super();
     }
@@ -61,7 +61,7 @@ class HScriptState extends MusicBeatState
             for (path in scriptFiles) {
                 try {
                     menuScriptArray.push(new FunkinHScript(path, this));
-                    if (path.contains('contents/'))
+                    if (path.contains('${Mods.MODS_FOLDER}/'))
                         trace('Loaded mod state script: $path');
                     else
                         trace('Loaded base game state script: $path');

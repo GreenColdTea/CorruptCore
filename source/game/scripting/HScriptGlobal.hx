@@ -17,12 +17,12 @@ class HScriptGlobal {
         var scriptPath:String = null;
         
         #if sys
-        var foldersToCheck:Array<String> = [Paths.getPreloadPath('scripts/') #if MODS_ALLOWED , Paths.mods('scripts/') #end];
+        var foldersToCheck:Array<String> = [Paths.getPreloadPath('scripts/') #if MODS_ALLOWED , Mods.getModPath('scripts/') #end];
         #if MODS_ALLOWED
-        if(Paths.currentModDirectory != null && Paths.currentModDirectory.length > 0) 
-            foldersToCheck.insert(0, Paths.mods('${Paths.currentModDirectory}/scripts/'));
-        for(mod in Paths.getGlobalMods()) 
-            foldersToCheck.insert(0, Paths.mods('$mod/scripts/states/'));
+        if(Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0) 
+            foldersToCheck.insert(0, Mods.getModPath('${Mods.currentModDirectory}/scripts/'));
+        for(mod in Mods.getGlobalMods()) 
+            foldersToCheck.insert(0, Mods.getModPath('$mod/scripts/states/'));
         #end
         
         for (folder in foldersToCheck) {
@@ -78,9 +78,11 @@ class HScriptGlobal {
             if (executeMethod != null) {
                 Reflect.callMethod(script, executeMethod, [content, false]);
             } else {
-                var parser = new rulescript.parsers.HxParser();
+                var parser = new HScriptParser();
                 parser.allowAll();
-                var ruleScript = new rulescript.RuleScript(new rulescript.interps.RuleScriptInterp(), parser);
+                parser.preprocesorValues = FunkinHScript.getHScriptPreprocessors();
+
+                var ruleScript = new rulescript.RuleScript(new RuleScriptInterpEx(), parser);
                 ruleScript.execute(content);
                 
                 for (key in ruleScript.variables.keys()) {

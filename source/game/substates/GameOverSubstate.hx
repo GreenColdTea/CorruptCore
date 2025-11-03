@@ -41,6 +41,8 @@ class GameOverSubstate extends MusicBeatSubstate
 		
 		Conductor.songPosition = 0;
 
+		freezeParentState = false;
+
 		var beef = PlayState.instance.boyfriend.getScreenPosition();
 		boyfriend = new Character(beef.x, beef.y, characterName, true);
 		boyfriend.x += boyfriend.positionArray[0] - PlayState.instance.boyfriend.positionArray[0];

@@ -13,6 +13,8 @@ typedef CutsceneEvent = {
 class CutsceneHandler extends FlxBasic
 {
 	private var controls(get, never):Controls;
+
+	private var _canSkip:Bool = false;
 	
 	public var timedEvents:Array<CutsceneEvent> = [];
 	public var skipCallback:Void->Void = null;
@@ -22,7 +24,7 @@ class CutsceneHandler extends FlxBasic
 	public var music:String = null;
 
 	final _timeToSkip:Float = 1;
-	var _canSkip:Bool = false;
+	
 	public var holdingTime:Float = 0;
 	public var skipSprite:FlxPieDial;
 	public var finishCallback:Void->Void = null;

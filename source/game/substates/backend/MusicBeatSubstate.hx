@@ -2,6 +2,7 @@ package game.substates.backend;
 
 import game.backend.Conductor.BPMChangeEvent;
 import game.scripting.FunkinLua;
+
 import flixel.FlxG;
 import flixel.FlxSubState;
 import flixel.FlxBasic;
@@ -13,6 +14,7 @@ import sys.FileSystem;
 import game.scripting.FunkinHScript;
 #end
 
+import openfl.filters.BitmapFilter;
 import openfl.utils.Assets as OpenFlAssets;
 
 class MusicBeatSubstate extends FlxSubState
@@ -21,6 +23,13 @@ class MusicBeatSubstate extends FlxSubState
 	public var menuScriptArray:Array<FunkinHScript> = [];
 	private var excludeSubStates:Array<Dynamic>;
 	#end
+
+	public var camSubState:FlxCamera;
+
+	public var useCustomCamera:Bool = false;
+	public var freezeParentState:Bool = true;
+	
+	public var parentState:MusicBeatState;
 
 	// (WStaticInitOrder) Warning : maybe loop in static generation of MusicBeatSubstate
 	private static function initExcludeSubStates():Array<Dynamic> {
@@ -34,6 +43,10 @@ class MusicBeatSubstate extends FlxSubState
 		#if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
 		excludeSubStates = initExcludeSubStates();
 		#end
+		
+		parentState = cast FlxG.state;
+		
+		initializeSubStateCamera();
 		
 		#if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
 		if (!excludeSubStates.contains(Type.getClass(this)))
@@ -66,13 +79,61 @@ class MusicBeatSubstate extends FlxSubState
 
 			for (path in scriptFiles) {
 				menuScriptArray.push(new FunkinHScript(path, this));
-				if (path.contains('contents/'))
+				if (path.contains('${Mods.MODS_FOLDER}/'))
 					trace('Loaded mod substate script: $path');
 				else
 					trace('Loaded base game substate script: $path');
 			}
 		}
 		#end
+	}
+
+	private function initializeSubStateCamera():Void
+	{
+		if (Type.getClass(FlxG.state) == PlayState)
+		{
+			var playState:PlayState = cast FlxG.state;
+			if (playState.camSubState != null)
+			{
+				camSubState = playState.camSubState;
+				useCustomCamera = true;
+				
+				this.cameras = [camSubState];
+			}
+		}
+		
+		if (camSubState == null)
+		{
+			camSubState = cameras != null && cameras.length > 0 ? cameras[0] : FlxG.camera;
+		}
+	}
+
+	public function showSubStateCamera():Void
+	{
+		if (useCustomCamera && camSubState != null)
+		{
+			camSubState.visible = true;
+			camSubState.active = true;
+		}
+	}
+
+	public function hideSubStateCamera():Void
+	{
+		if (useCustomCamera && camSubState != null)
+		{
+			camSubState.visible = false;
+			camSubState.active = false;
+		}
+	}
+
+	public function setSubStateCameraEffects(?filters:Array<BitmapFilter>):Void
+	{
+		if(camSubState != null) camSubState.filters = filters;
+	}
+
+	public function resetSubStateCameraEffects():Void
+	{
+		if(camSubState != null) camSubState.filters = [];
 	}
 
 	private var lastBeat:Float = 0;
@@ -87,8 +148,16 @@ class MusicBeatSubstate extends FlxSubState
 
 	override function create()
 	{
-		super.create();
+		if (!freezeParentState)
+			parentState.persistentUpdate = parentState.persistentDraw = true;
+		
+		showSubStateCamera();
+		
 		quickCallMenuScript("onCreate", []);
+
+		super.create();
+
+		quickCallMenuScript("onCreatePost", []);
 	}
 
 	override function update(elapsed:Float)
@@ -106,6 +175,20 @@ class MusicBeatSubstate extends FlxSubState
 
 		super.update(elapsed);
 		quickCallMenuScript("onUpdatePost", [elapsed]);
+	}
+
+	override function openSubState(SubState:FlxSubState)
+	{
+		showSubStateCamera();
+		quickCallMenuScript("onOpenSubState", []);
+		super.openSubState(SubState);
+	}
+
+	override function closeSubState()
+	{
+		hideSubStateCamera();
+		quickCallMenuScript("onCloseSubState", []);
+		super.closeSubState();
 	}
 
 	private function updateCurStep():Void
@@ -129,6 +212,8 @@ class MusicBeatSubstate extends FlxSubState
 
 	override function destroy()
 	{
+		hideSubStateCamera();
+		
 		#if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
 		for (sc in menuScriptArray)
 		{

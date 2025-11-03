@@ -36,38 +36,23 @@ class CoolUtil
 
 	public static var difficulties:Array<String> = [];
 
-	inline static public function getBuildTarget() {
+	public static function getBuildTarget():String {
 		#if windows
-		return 'windows';
+		return "Windows";
 		#elseif linux
-		return 'linux';
+		return "Linux";
 		#elseif mac
-		return 'mac';
-		#elseif html5
-		return 'browser';
+		return "Mac";
 		#elseif android
-		return 'android';
+		return "Android";
 		#elseif ios
-		return 'ios';
+		return "iOS";
+		#elseif html5
+		return "HTML5";
 		#else
-		return 'unknown';
+		return "Unknown";
 		#end
 	}
-
-	#if HSCRIPT_ALLOWED
-	/**
-	 * Gets the hscript preprocessors for haxe scripts and runHaxeCode
-	 */
-	public static dynamic function getHScriptPreprocessors() {
-		var preprocessors:Map<String, Dynamic> = game.backend.utils.MacroUtil.defines;
-		preprocessors.set("CC_ENGINE", true);
-		preprocessors.set("CC_ENGINE_VER", Application.current.meta.get('version'));
-		preprocessors.set("BUILD_TARGET", getBuildTarget());
-		preprocessors.set("INITIAL_STATE", Type.getClassName(Type.getClass(FlxG.state)));
-
-		return preprocessors;
-	}
-	#end
 	
 	public static function getDifficultyFilePath(num:Null<Int> = null)
 	{
@@ -163,7 +148,7 @@ class CoolUtil
 		if(FlxG.save.data.modSettings == null) FlxG.save.data.modSettings = new Map<String, Dynamic>();
 		var settings:Map<String, Dynamic> = FlxG.save.data.modSettings.get(modName);
 		
-		var path:String = Paths.mods('$modName/data/settings.json');
+		var path:String = Mods.getModPath('$modName/data/settings.json');
 		if(FileSystem.exists(path))
 		{
 			if(settings == null || !settings.exists(saveTag))
@@ -194,7 +179,7 @@ class CoolUtil
 					}
 					FlxG.save.data.modSettings.set(modName, settings);
 				} catch(e:Dynamic) {
-					var errorTitle = 'Mod name: ' + Paths.currentModDirectory;
+					var errorTitle = 'Mod name: ' + Mods.currentModDirectory;
 					var errorMsg = 'An error occurred: $e';
 
 					showPopUp(errorMsg, errorTitle);
@@ -272,6 +257,13 @@ class CoolUtil
 		#end
     }
 
+	inline public static function setWindowDarkMode(title:String, enable:Bool) {
+		#if windows
+		title ??= lime.app.Application.current.window.title;
+		lime.Native.setWindowDarkMode(title, enable);
+		#end
+	}
+
 	//uhhhh does this even work at all? i'm starting to doubt
 	inline public static function precacheSound(sound:String, ?library:String = null):Void {
 		Paths.sound(sound, library);
@@ -293,13 +285,6 @@ class CoolUtil
 		#end
 	}
 
-	inline public static function setDarkMode(title:String, enable:Bool) {
-		#if windows
-		title ??= lime.app.Application.current.window.title;
-		lime.Native.setDarkMode(title, enable);
-		#end
-	}
-
 	inline public static function showPopUp(message:String, title:String #if sl_windows_api, ?icon:MessageBoxIcon, ?type:MessageBoxType #end, showScrollableMSG:Bool = false):Void
 	{
 		#if android
@@ -312,7 +297,7 @@ class CoolUtil
 		else
 			WindowsAPI.showMessageBox(message, title, icon, type);
 		#else
-		lime.app.Application.current.window.alert(message, title);
+		FlxG.stage.window.alert(message, title);
 		#end
 	}
 

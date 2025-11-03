@@ -5,7 +5,7 @@ import flixel.FlxObject;
 
 class PsychUIRadioGroup extends FlxSpriteGroup
 {
-	public static final CLICK_EVENT = 'radiogroup_click';
+	@:unreflective public static final CLICK_EVENT = 'radiogroup_click';
 
 	public var labels(default, set):Array<String> = [];
 	public var radios:Array<PsychUIRadioItem> = [];

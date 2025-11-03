@@ -11,7 +11,6 @@ import flixel.FlxCamera;
 import flixel.input.keyboard.FlxKey;
 import openfl.Assets;
 import openfl.Lib;
-import openfl.display.FPS;
 import openfl.display.Sprite;
 import openfl.events.Event;
 import openfl.display.StageScaleMode;
@@ -24,17 +23,16 @@ import openfl.errors.Error;
 import game.backend.CrashHandler;
 #end
 
-#if LUA_ALLOWED
-import game.scripting.LuaCallbackHandler;
-#end
+import game.objects.FunkinSoundTray;
 
-import game.backend.plugins.HotReloadPlugin;
-import game.backend.plugins.CMDEnablingPlugin;
+#if MODS_ALLOWED
+import game.backend.system.Mods;
+#end
 
 using StringTools;
 
 // NATIVE API STUFF, YOU CAN IGNORE THIS AND SCROLL //
-#if (linux && !debug)
+#if (linux && cpp && !debug)
 @:cppInclude('./_external/gamemode_client.h')
 @:cppFileCode('#define GAMEMODE_AUTO')
 #end
@@ -50,8 +48,6 @@ class Main extends Sprite
 		skipSplash: true, // if the default flixel splash screen should be skipped
 		startFullscreen: false // if the game should start at fullscreen mode
 	};
-
-	public static var fpsVar:FPS;
 
 	//for colorblind mode
 	public static var colorblindMode:Int = -1;
@@ -72,6 +68,10 @@ class Main extends Sprite
 		#if CRASH_HANDLER
 	    CrashHandler.init();
 	    #end
+
+		#if MODS_ALLOWED
+        Application.current.onExit.add((_) -> Mods.clearTempFiles());
+        #end
 
 		if (stage != null)
 		{
@@ -123,44 +123,25 @@ class Main extends Sprite
 	    #end
 
 		lime.Native.fixScaling();
-		lime.Native.disableWinReport();
+		lime.Native.registerAsGame();
 
-		#if LUA_ALLOWED llua.Lua.set_callbacks_function(cpp.Callable.fromStaticFunction(LuaCallbackHandler.call)); #end
-
-		#if VIDEOS_ALLOWED
-		hxvlc.util.Handle.init(#if (hxvlc >= "1.8.0")  ['--no-lua'] #end);
+		#if sl_windows_api
+		WindowsAPI.disableWindowsReport();
+		//WindowsAPI.disableWindowsGhosting();
 		#end
 
-		addChild(new FlxGame(game.width, game.height, Init, #if (flixel < "5.0.0") game.zoom, #end game.framerate, game.framerate, game.skipSplash, game.startFullscreen));
+		var push:FlxGame = new FlxGame(game.width, game.height, Init, #if (flixel < "5.0.0") game.zoom, #end game.framerate, game.framerate, game.skipSplash, game.startFullscreen);
+		@:privateAccess
+        push._customSoundTray = FunkinSoundTray;
 
-		pluginsLessGo();
-
-		#if desktop
-		FlxG.mouse.visible = false;
-    	FlxG.mouse.useSystemCursor = true;
-		#end
-
-		#if !html5
-		FlxG.scaleMode = new flixel.FlxScaleMode();
-		#end
-
-		#if !mobile
-		fpsVar = new FPS(10, 3, 0xFFFFFF);
-		addChild(fpsVar);
-		Lib.current.stage.align = "tl";
-		Lib.current.stage.scaleMode = StageScaleMode.NO_SCALE;
-		if(fpsVar != null) {
-			fpsVar.visible = ClientPrefs.showFPS;
-		}
-		#end
+		addChild(push);
 
 		FlxG.signals.gameResized.add((w, h) -> {
-            if (fpsVar != null)
-                fpsVar.positionFPS(10, 3, Math.min(w / FlxG.width, h / FlxG.height));
+            Init.fpsVar?.positionFPS(10, 3, Math.min(w / FlxG.width, h / FlxG.height));
 
 			resetSpriteCache(this);
 
-            if (FlxG.cameras != null && FlxG.cameras.list != null) {
+            if (FlxG.cameras?.list != null) {
                 for (cam in FlxG.cameras.list) {
                     if (cam != null)
                         resetSpriteCache(cam.flashSprite);
@@ -179,6 +160,7 @@ class Main extends Sprite
 		#end
 	}
 
+	@:noCompletion
 	private static function resetSpriteCache(sprite:Sprite):Void {
 		@:privateAccess {
 			if (sprite != null)
@@ -299,11 +281,5 @@ class Main extends Sprite
 		};
 		ClientPrefs.colorBlindIntensity = intensity;
 		ClientPrefs.saveSettings();
-	}
-
-	private function pluginsLessGo()
-	{
-		HotReloadPlugin.init();
-		CMDEnablingPlugin.init();
 	}
 }

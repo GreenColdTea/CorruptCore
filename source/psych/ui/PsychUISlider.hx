@@ -5,7 +5,8 @@ import openfl.ui.MouseCursor;
 
 class PsychUISlider extends FlxSpriteGroup
 {
-	public static final CHANGE_EVENT = "slider_change";
+	@:unreflective public static final CHANGE_EVENT = "slider_change";
+	
 	public var bar:FlxSprite;
 	public var minText:FlxText;
 	public var maxText:FlxText;

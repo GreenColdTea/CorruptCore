@@ -24,6 +24,7 @@ enum AudioStatus {
 
 class CrashHandler
 {
+    @:unreflective
     static final LOGS_DIR = "logs/";
     
     public static function init():Void
@@ -202,29 +203,7 @@ class CrashHandler
             logContent.add('\n${content}\n');
             logContent.add('==================== SYSTEM INFORMATION ==================\n\n');
 
-            var osInfo = "Unknown";
-            #if windows
-            try {
-                var windowsCurrentVersionPath = "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion";
-                var buildStr = WindowsRegistry.getKey(HKEY_LOCAL_MACHINE, windowsCurrentVersionPath, "CurrentBuildNumber");
-                var buildNumber:Int = 0;
-                if (buildStr != null) {
-                    var parsed = Std.parseInt(buildStr);
-                    if (parsed != null) buildNumber = parsed;
-                }
-                var edition = WindowsRegistry.getKey(HKEY_LOCAL_MACHINE, windowsCurrentVersionPath, "ProductName");
-                edition ??= "Windows";
-                
-                if (buildNumber >= 22000) {
-                    edition = edition.replace("Windows 10", "Windows 11");
-                }
-                osInfo = edition;
-            } catch (e:Dynamic) {
-                osInfo = '${System.platformLabel} ${System.platformVersion}';
-            }
-            #else
-            osInfo = '${System.platformLabel} ${System.platformVersion}';
-            #end
+            var osInfo = '${System.platformLabel} ${System.platformVersion}';
             
             var arch = "Unknown";
             try {
@@ -303,48 +282,20 @@ class CrashHandler
     private static function getGpuInfo():String 
     {
         try {
-            #if windows
-            try {
-                return WindowsRegistry.getKey(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}\\0000", "DriverDesc");
-            } catch(e:Dynamic) {}
-            
-            //fallback to WMIC
-            var process = new Process("wmic", ["path", "win32_VideoController", "get", "name"]);
-            var result = process.stdout.readAll().toString();
-            process.close();
-            
-            var lines = result.split("\n");
-            for (line in lines) {
-                if (line.trim() != "" && line.indexOf("Name") == -1) {
-                    return line.trim();
+            var gpuName:String = "N/A";
+            @:privateAccess {
+                if (FlxG.stage?.context3D?.gl != null) {
+                    var renderer = FlxG.stage.context3D.gl.getParameter(FlxG.stage.context3D.gl.RENDERER);
+                    if (renderer != null) {
+                        gpuName = Std.string(renderer).split("/")[0].trim();
+                        if (gpuName != "N/A" && gpuName != "") {
+                            return gpuName;
+                        }
+                    }
                 }
             }
-            #elseif linux
-            var process = new Process("lspci", []);
-            var result = process.stdout.readAll().toString();
-            process.close();
-            
-            var lines = result.split("\n");
-            for (line in lines) {
-                if (line.indexOf("VGA") != -1 || line.indexOf("3D") != -1) {
-                    var parts = line.split(":");
-                    if (parts.length > 1) return parts[parts.length-1].trim();
-                }
-            }
-            #elseif mac
-            var process = new Process("system_profiler", ["SPDisplaysDataType"]);
-            var result = process.stdout.readAll().toString();
-            process.close();
-            
-            var lines = result.split("\n");
-            for (line in lines) {
-                if (line.indexOf("Chipset Model") != -1) {
-                    var parts = line.split(":");
-                    if (parts.length > 1) return parts[1].trim();
-                }
-            }
-            #end
         } catch (e:Dynamic) {}
+
         return "Unknown GPU";
     }
     
@@ -352,42 +303,88 @@ class CrashHandler
     {
         try {
             #if sl_windows_api
-            var totalMemBytes:Float = winapi.WindowsAPI.obtainRAM();
-            if (!Math.isNaN(totalMemBytes)) {
-                var gb = Math.round(totalMemBytes / 1024 * 100) / 100;
-                return '${gb} GB';
-            }
-            #else
-            //fallback to system commands
-            var total = 0.0;
+            var ramInfo:String = winapi.WindowsAPI.obtainRAMInfo(true);
             
-            if (Sys.systemName() == "Windows") {
-                var process = new Process("wmic", ["computersystem", "get", "totalphysicalmemory"]);
-                var result = process.stdout.readAll().toString();
-                process.close();
+            if (ramInfo.indexOf("MB") != -1) {
+                var parts = ramInfo.split("MB");
+                var ramValueStr = parts[0].trim();
+                var ramValue = Std.parseInt(ramValueStr);
                 
-                var lines = result.split("\n");
-                for (line in lines) {
-                    if (line.trim() != "" && line.indexOf("TotalPhysicalMemory") == -1) {
-                        total = Std.parseFloat(line.trim());
-                        break;
+                if (ramValue != null) {
+                    var gb = Math.round(ramValue / 1024 * 100) / 100;
+                    var hasTypeInfo = false;
+                    var ramType = "";
+
+                    if (parts.length > 1 && parts[1] != null) {
+                        var typePart = parts[1].trim();
+                        if (typePart.length > 2 && typePart.charAt(0) == '(' && typePart.charAt(typePart.length - 1) == ')') {
+                            ramType = typePart.substring(1, typePart.length - 1);
+                            if (ramType.length > 0) {
+                                hasTypeInfo = true;
+                            }
+                        }
+                    }
+                    
+                    if (hasTypeInfo) {
+                        return '${gb} GB (${ramType})';
+                    } else {
+                        return '${gb} GB';
                     }
                 }
             }
-            else if (Sys.systemName() == "Linux") {
-                var process = new Process("grep", ["MemTotal", "/proc/meminfo"]);
-                var result = process.stdout.readAll().toString();
-                process.close();
-                
-                var tokens = result.split(" ").filter(function(token) return token.trim() != "");
-                if (tokens.length > 1) {
-                    total = Std.parseFloat(tokens[1]) * 1024;
+            return "Unknown RAM";
+            #else
+            // Fallback
+            var total = 0.0;
+            
+            if (Sys.systemName() == "Windows") {
+                try {
+                    var process = new Process("powershell", ["Get-CimInstance -ClassName Win32_PhysicalMemory | Measure-Object -Property Capacity -Sum | Select-Object Sum"]);
+                    var result = process.stdout.readAll().toString();
+                    process.close();
+                    
+                    var lines = result.split("\n");
+                    for (line in lines) {
+                        if (line.indexOf("Sum") != -1) {
+                            var sumStr = line.split(":")[1].trim();
+                            total = Std.parseFloat(sumStr);
+                            break;
+                        }
+                    }
+                } catch (e:Dynamic) {
+                    try {
+                        var process = new Process("wmic", ["computersystem", "get", "totalphysicalmemory"]);
+                        var result = process.stdout.readAll().toString();
+                        process.close();
+                        
+                        var lines = result.split("\n");
+                        for (line in lines) {
+                            if (line.trim() != "" && line.indexOf("TotalPhysicalMemory") == -1) {
+                                total = Std.parseFloat(line.trim());
+                                break;
+                            }
+                        }
+                    } catch (e2:Dynamic) {}
                 }
             }
+            else if (Sys.systemName() == "Linux") {
+                try {
+                    var process = new Process("grep", ["MemTotal", "/proc/meminfo"]);
+                    var result = process.stdout.readAll().toString();
+                    process.close();
+                    
+                    var tokens = result.split(" ").filter(function(token) return token.trim() != "");
+                    if (tokens.length > 1) {
+                        total = Std.parseFloat(tokens[1]) * 1024;
+                    }
+                } catch (e:Dynamic) {}
+            }
             else if (Sys.systemName() == "Mac") {
-                var process = new Process("sysctl", ["-n", "hw.memsize"]);
-                total = Std.parseFloat(process.stdout.readAll().toString().trim());
-                process.close();
+                try {
+                    var process = new Process("sysctl", ["-n", "hw.memsize"]);
+                    total = Std.parseFloat(process.stdout.readAll().toString().trim());
+                    process.close();
+                } catch (e:Dynamic) {}
             }
             
             if (!Math.isNaN(total) && total > 0) {
@@ -395,7 +392,9 @@ class CrashHandler
                 return '${gb} GB';
             }
             #end
-        } catch (e:Dynamic) {}
+        } catch (e:Dynamic) {
+            trace("Error getting RAM info: " + e);
+        }
         return "Unknown RAM";
     }
     #end

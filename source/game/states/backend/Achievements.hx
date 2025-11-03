@@ -36,6 +36,10 @@ class Achievements {
 	public static function unlockAchievement(name:String):Void {
 		FlxG.log.add('Completed achievement "' + name +'"');
 		achievementsMap.set(name, true);
+		
+		FlxG.save.data.achievementsMap = achievementsMap;
+		FlxG.save.flush();
+		
 		FlxG.sound.play(Paths.sound('confirmMenu'), 0.7);
 	}
 
@@ -56,13 +60,11 @@ class Achievements {
 	}
 
 	public static function loadAchievements():Void {
-		if(FlxG.save.data != null) {
-			if(FlxG.save.data.achievementsMap != null) {
-				achievementsMap = FlxG.save.data.achievementsMap;
-			}
-			if(henchmenDeath == 0 && FlxG.save.data.henchmenDeath != null) {
-				henchmenDeath = FlxG.save.data.henchmenDeath;
-			}
+		if(FlxG.save?.data?.achievementsMap != null) {
+			achievementsMap = FlxG.save.data.achievementsMap;
+		}
+		if(henchmenDeath == 0 && FlxG.save?.data?.henchmenDeath != null) {
+			henchmenDeath = FlxG.save.data.henchmenDeath;
 		}
 	}
 }
