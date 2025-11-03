@@ -100,8 +100,8 @@ class Init extends FlxState
 		#if !html5
 		if (ClientPrefs.unlimitedFPS)
 		{
-			FlxG.drawFramerate = 1000;
-			FlxG.updateFramerate = 1000;
+			FlxG.drawFramerate = 0;
+			FlxG.updateFramerate = 0;
 		}
 		else
 		{

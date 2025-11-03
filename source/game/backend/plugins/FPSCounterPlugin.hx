@@ -175,7 +175,7 @@ class FPSCounterPlugin extends Bitmap
 			times.shift();
 
 		var currentCount = times.length < FlxG.updateFramerate ? times.length : FlxG.updateFramerate;
-		currentFPS = Math.round(currentCount);
+		currentFPS = ClientPrefs.unlimitedFPS ? times.length : Math.round(currentCount);
 
 		if (currentTimeStamp - lastUpdateTime >= updateInterval) {
 			updateMemoryStats(currentTimeStamp);

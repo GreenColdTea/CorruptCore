@@ -800,7 +800,7 @@ class FunkinLua {
             if (blah == null) {
                 #if LUA_ALLOWED
                 if (getBool('luaDebugMode')) {
-                    trace('WARNING: Property not found: "${shit[0]}" (object: $instanceInfo, full path: $variable)');
+                    //trace('WARNING: Property not found: "${shit[0]}" (object: $instanceInfo, full path: $variable)');
                 }
                 #end
                 return false;
@@ -823,14 +823,14 @@ class FunkinLua {
                             var blahInfo:String = getObjectInfo(blah);
                             #if LUA_ALLOWED
                             if (getBool('luaDebugMode')) {
-                                trace('ERROR: Failed to set property "$variable" on object: $blahInfo - ${e.message}');
+                                //trace('ERROR: Failed to set property "$variable" on object: $blahInfo - ${e.message}');
                             }
                             #end
                             return false;
                         }
                     }
                     var blahInfo:String = getObjectInfo(blah);
-                    trace('WARNING: Cannot set index on non-array: "${shit[0]}" (object: $blahInfo, type: ${Type.getClassName(Type.getClass(blah))})');
+                    //trace('WARNING: Cannot set index on non-array: "${shit[0]}" (object: $blahInfo, type: ${Type.getClassName(Type.getClass(blah))})');
                     return false;
                 } else {
                     if (blah != null && (Reflect.isObject(blah) || Std.isOfType(blah, Array))) {
@@ -840,7 +840,7 @@ class FunkinLua {
                             var blahInfo:String = getObjectInfo(blah);
                             #if LUA_ALLOWED
                             if (getBool('luaDebugMode')) {
-                                trace('ERROR: Failed to access index "$key" on object: $blahInfo while setting "$variable" - ${e.message}');
+                                //trace('ERROR: Failed to access index "$key" on object: $blahInfo while setting "$variable" - ${e.message}');
                             }
                             #end
                             return false;
@@ -849,7 +849,7 @@ class FunkinLua {
                         var blahInfo:String = getObjectInfo(blah);
                         #if LUA_ALLOWED
                         if (getBool('luaDebugMode')) {
-                            trace('WARNING: Cannot access index on non-container: ${shit.slice(0, i).join('[')} (object: $blahInfo, type: ${Type.getClassName(Type.getClass(blah))})');
+                            //trace('WARNING: Cannot access index on non-container: ${shit.slice(0, i).join('[')} (object: $blahInfo, type: ${Type.getClassName(Type.getClass(blah))})');
                         }
                         #end
                         return false;
@@ -874,7 +874,7 @@ class FunkinLua {
 
             #if LUA_ALLOWED
             if (getBool('luaDebugMode')) {
-                trace('WARNING: Instance is null for property: "$variable" (called from Lua script, object info: $instanceInfo)');
+                //trace('WARNING: Instance is null for property: "$variable" (called from Lua script, object info: $instanceInfo)');
             }
             #end
             return false;
@@ -882,7 +882,7 @@ class FunkinLua {
             var instanceInfo:String = getObjectInfo(instance);
             #if LUA_ALLOWED
             if (getBool('luaDebugMode')) {
-                trace('ERROR: Failed to set property "$variable" on object: $instanceInfo - ${e.message}');
+                //trace('ERROR: Failed to set property "$variable" on object: $instanceInfo - ${e.message}');
             }
             #end
             return false;
@@ -1077,7 +1077,7 @@ class FunkinLua {
 
     public static function getPropertyLoopThingWhatever(killMe:Array<String>, ?checkForTextsToo:Bool = true, ?getProperty:Bool = true):Dynamic {
         if (killMe.length == 0) {
-            trace('ERROR: getPropertyLoopThingWhatever - empty path array');
+            //trace('ERROR: getPropertyLoopThingWhatever - empty path array');
             return null;
         }
 
@@ -1087,7 +1087,7 @@ class FunkinLua {
 
         for (i in 1...end) {
             if (coverMeInPiss == null) {
-                trace('WARNING: getPropertyLoopThingWhatever - null object at path: ${killMe.slice(0, i).join(".")} (full path: ${killMe.join(".")})');
+                //trace('WARNING: getPropertyLoopThingWhatever - null object at path: ${killMe.slice(0, i).join(".")} (full path: ${killMe.join(".")})');
                 return null;
             }
             coverMeInPiss = getVarInArray(coverMeInPiss, killMe[i]);
