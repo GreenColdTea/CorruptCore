@@ -59,7 +59,7 @@
 	<define name="MODCHART_ALLOWED" />
 	<define name="DISCORD_ALLOWED" if="desktop cpp" />
 	<!--<define name="ACHIEVEMENTS_ALLOWED" />--> <!-- Not neccesary -->
-	<define name="VIDEOS_ALLOWED" if="desktop || mobile" unless="hl"/>
+	<define name="VIDEOS_ALLOWED" if="cpp" />
 	<define name="TITLE_SCREEN_EASTER_EGG" if="officialBuild" /> <!-- DELETE THE if="officialBuild" for enabling this on an unofficial build -->
 	<define name="CRASH_HANDLER" />
 
