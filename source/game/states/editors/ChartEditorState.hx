@@ -1769,6 +1769,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			FlxG.mouse.overlaps(sliderBg);
 	}
 
+	var iconJustFlashed:Bool = false;
 	var lastConductorPos:Float;
 	var colorSine:Float = 0;
 	/**
@@ -1786,6 +1787,18 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		final conductorTime = Conductor.songPosition;
 		final blockInput = PsychUIInputText.focusOn != null;
 		final mouseOverUI = isMouseOverUI();
+
+		leftIcon.updateIconScale(elapsed);
+		rightIcon.updateIconScale(elapsed);
+
+		var beatProgress = (Conductor.songPosition % Conductor.crochet) / Conductor.crochet;
+		if (beatProgress < 0.1 && !iconJustFlashed) {
+			leftIcon.flash(0.47, 0.35);
+			rightIcon.flash(0.47, 0.35);
+			iconJustFlashed = true;
+		} else if (beatProgress > 0.1) {
+			iconJustFlashed = false;
+		}
 		
 		updateMusicPlayback();
 
