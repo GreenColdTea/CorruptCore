@@ -8,8 +8,6 @@ import openfl.Lib;
 import openfl.display.Sprite;
 import openfl.display.StageScaleMode;
 
-import lime.ui.WindowVSyncMode;
-
 import game.backend.PlayerSettings;
 import game.backend.WeekData;
 import game.backend.utils.CoolUtil;
@@ -43,8 +41,6 @@ class Init extends FlxState
 			if (FlxG.save.data.weekCompleted != null)
 				StoryMenuState.weekCompleted = FlxG.save.data.weekCompleted;
 		}
-
-		applyGraphicsSettings();
 			
         #if MODS_ALLOWED
 		game.backend.system.Mods.pushGlobalMods();
@@ -92,33 +88,6 @@ class Init extends FlxState
 
 		FlxG.switchState(() -> new game.states.TitleState());
     }
-
-	public static function applyGraphicsSettings() {
-		var vsyncMode:WindowVSyncMode = ClientPrefs.vsync ? WindowVSyncMode.ON : WindowVSyncMode.OFF;
-		Lib.application.window.setVSyncMode(vsyncMode);
-		
-		#if !html5
-		if (ClientPrefs.unlimitedFPS)
-		{
-			FlxG.drawFramerate = 0;
-			FlxG.updateFramerate = 0;
-		}
-		else
-		{
-			var targetFPS:Int = ClientPrefs.framerate;
-			if(targetFPS > FlxG.drawFramerate)
-			{
-				FlxG.updateFramerate = targetFPS;
-				FlxG.drawFramerate = targetFPS;
-			}
-			else
-			{
-				FlxG.drawFramerate = targetFPS;
-				FlxG.updateFramerate = targetFPS;
-			}
-		}
-		#end
-	}
 
 	private function pluginsLessGo()
 	{

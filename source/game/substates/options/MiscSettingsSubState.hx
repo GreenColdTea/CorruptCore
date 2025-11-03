@@ -33,24 +33,31 @@ using StringTools;
 
 class MiscSettingsSubState extends BaseOptionsMenu
 {
+	private var adaptiveCacheOption:Option;
+	private var gpuCacheOption:Option;
+
 	public function new()
 	{
 		title = 'Misc';
-		rpcTitle = 'Misc Settings Menu'; //for Discord Rich Presence
+		rpcTitle = 'Misc Settings Menu';
 
 		var option:Option = new Option('Adaptive Caching',
 			"If checked, it will use your GPU with RAM to cache sprites.\nTurn it on, if you have a good GPU.",
 			'adaptiveCache',
 			'bool',
-		    false);
+			false);
 		addOption(option);
+		adaptiveCacheOption = option;
+		option.onChange = updateCacheOptionsVisibility;
 
 		var option:Option = new Option('GPU Caching',
 			"The same is above but GPU only.",
 			'cacheOnGPU',
 			'bool',
-		    false);
+			false);
 		addOption(option);
+		gpuCacheOption = option;
+		option.onChange = updateCacheOptionsVisibility;
 
 		var option:Option = new Option('Colorblind Mode:',
 			"What type of colorblind are you?",
@@ -70,6 +77,19 @@ class MiscSettingsSubState extends BaseOptionsMenu
 		option.onChange = onChangeColorBlind;
 
 		super();
+
+		updateCacheOptionsVisibility();
+	}
+
+	private function updateCacheOptionsVisibility():Void
+	{
+		gpuCacheOption.visible = !ClientPrefs.adaptiveCache;
+		gpuCacheOption.active = !ClientPrefs.adaptiveCache;
+
+		adaptiveCacheOption.visible = !ClientPrefs.cacheOnGPU;
+		adaptiveCacheOption.active = !ClientPrefs.cacheOnGPU;
+		
+		refreshOptions();
 	}
 
 	function onChangeColorBlind()

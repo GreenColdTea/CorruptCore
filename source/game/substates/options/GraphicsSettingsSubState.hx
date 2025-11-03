@@ -45,11 +45,12 @@ class GraphicsSettingsSubState extends BaseOptionsMenu
 		rpcTitle = 'Graphics Settings Menu';
 
 		var option:Option = new Option('Low Quality',
-			'If checked, disables some background details,\ndecreases loading times and improves performance.',
-			'lowQuality',
-			'bool',
-			false);
-		addOption(option);
+            'If checked, disables some background details,\ndecreases loading times and improves performance.',
+            'lowQuality',
+            'bool',
+            false);
+        addOption(option);
+        option.onChange = onChangeLowQuality;
 
 		var option:Option = new Option('Anti-Aliasing',
 			'If unchecked, disables anti-aliasing, increases performance\nat the cost of sharper visuals.',
@@ -114,13 +115,21 @@ class GraphicsSettingsSubState extends BaseOptionsMenu
 		#end
 	}
 
+	function onChangeLowQuality()
+    {
+        FlxG.stage.quality = ClientPrefs.lowQuality ? LOW : BEST;
+        onChangeAntiAliasing();
+    }
+
 	#if !html5
 	private function updateFramerateVisibility():Void
 	{
-	
 		var shouldHide = ClientPrefs.vsync || ClientPrefs.unlimitedFPS;
 		framerateOption.visible = !shouldHide;
 		framerateOption.active = !shouldHide;
+
+		unlimitedFPSOption.visible = !ClientPrefs.vsync;
+		unlimitedFPSOption.active = !ClientPrefs.vsync;
 		
 		refreshOptions();
 	}
@@ -138,7 +147,7 @@ class GraphicsSettingsSubState extends BaseOptionsMenu
 		}
 		
 		updateFramerateVisibility();
-		FlxG.save.flush();
+		ClientPrefs.saveSettings();
 	}
 	#end
 

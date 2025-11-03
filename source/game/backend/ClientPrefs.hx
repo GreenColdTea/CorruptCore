@@ -3,6 +3,9 @@ package game.backend;
 import flixel.FlxG;
 import flixel.util.FlxSave;
 import flixel.input.keyboard.FlxKey;
+
+import lime.ui.WindowVSyncMode;
+
 import game.states.backend.Achievements;
 import game.backend.Controls;
 
@@ -258,14 +261,33 @@ class ClientPrefs {
         if (Init.fpsVar != null) {
             Init.fpsVar.visible = showFPS;
         }
-        
-        if (framerate > FlxG.drawFramerate) {
-            FlxG.updateFramerate = framerate;
-            FlxG.drawFramerate = framerate;
-        } else {
-            FlxG.drawFramerate = framerate;
-            FlxG.updateFramerate = framerate;
-        }
+
+        FlxG.stage.quality = lowQuality ? LOW : BEST;
+
+        var vsyncMode:WindowVSyncMode = vsync ? WindowVSyncMode.ON : WindowVSyncMode.OFF;
+		openfl.Lib.application.window.setVSyncMode(vsyncMode);
+		
+		#if !html5
+		if (unlimitedFPS)
+		{
+			FlxG.drawFramerate = 0;
+			FlxG.updateFramerate = 0;
+		}
+		else
+		{
+			var targetFPS:Int = framerate;
+			if(targetFPS > FlxG.drawFramerate)
+			{
+				FlxG.updateFramerate = targetFPS;
+				FlxG.drawFramerate = targetFPS;
+			}
+			else
+			{
+				FlxG.drawFramerate = targetFPS;
+				FlxG.updateFramerate = targetFPS;
+			}
+		}
+		#end
         
         if (FlxG.save.data.volume != null) FlxG.sound.volume = FlxG.save.data.volume;
         if (FlxG.save.data.mute != null) FlxG.sound.muted = FlxG.save.data.mute;
