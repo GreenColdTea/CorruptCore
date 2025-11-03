@@ -168,8 +168,9 @@ class LuaPlayState
 		LuaUtils.addFunction(lua, "cameraShake", function(camera:String, intensity:Float, duration:Float) {
 			FunkinLua.cameraFromString(camera).shake(intensity, duration);
 		});
-
 		LuaUtils.addFunction(lua, "cameraFlash", function(camera:String, color:String, duration:Float,forced:Bool) {
+			if (!ClientPrefs.flashing) return;
+
 			var colorNum:Int = Std.parseInt(color);
 			if(!color.startsWith('0x')) colorNum = Std.parseInt('0xff' + color);
 			FunkinLua.cameraFromString(camera).flash(colorNum, duration,null,forced);
