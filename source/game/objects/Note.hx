@@ -222,7 +222,12 @@ class Note extends FlxSprite
 			/*alpha = 0.6;
 			multAlpha = 0.6;*/
 			hitsoundDisabled = true;
+
+			#if MODCHART_ALLOWED
 			flipX = ClientPrefs.downScroll;
+			#else
+			flipY = ClientPrefs.downScroll;
+			#end
 
 			offsetX += width / 2;
 			copyAngle = false;

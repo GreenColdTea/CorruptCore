@@ -110,7 +110,8 @@ class ReverseModifier extends NoteModifier {
 
 		pos.y = shift + (visualDiff * mult);
 
-		// Sustain note positioning adjustments - using PlayState logic
+		// Sus note positioning adjustments 
+        // Using in-game logic
         if(obj is Note)
 		{
             var note:Note = cast obj;
