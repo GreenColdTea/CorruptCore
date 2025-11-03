@@ -1462,6 +1462,17 @@ class PlayState extends MusicBeatState
 				//if(ClientPrefs.middleScroll) opponentStrums.members[i].visible = false;
 			}
 
+			//modchart calling func
+			#if MODCHART_ALLOWED
+			modManager.receptors = [playerStrums.members, opponentStrums.members];
+
+			callOnScripts('onModchartCall', []);
+			modManager.registerDefaultModifiers();
+
+			callOnScripts('onModchartCallPost', []);
+			Modcharts.loadModchart(modManager, SONG.song);
+			#end
+
 			startedCountdown = true;
 			Conductor.songPosition = -Conductor.crochet * 5;
 			setOnScripts('startedCountdown', true);
@@ -1479,17 +1490,6 @@ class PlayState extends MusicBeatState
 				return true;
 			}
 			moveCameraSection();
-
-			//modchart calling func
-			#if MODCHART_ALLOWED
-			modManager.receptors = [playerStrums.members, opponentStrums.members];
-
-			callOnScripts('onModchartCall', []);
-			modManager.registerDefaultModifiers();
-
-			callOnScripts('onModchartCallPost', []);
-			Modcharts.loadModchart(modManager, SONG.song);
-			#end
 
 			startTimer = new FlxTimer().start(Conductor.crochet / 1000 / playbackRate, function(tmr:FlxTimer)
 			{
@@ -2519,7 +2519,6 @@ class PlayState extends MusicBeatState
 								{
 									if (daNote.y + daNote.offset.y * daNote.scale.y <= center)
 									{
-										//swagRect = new FlxRect(0, 0, daNote.width / daNote.scale.x, daNote.height / daNote.scale.y);
 										swagRect.y = (center - daNote.y) / daNote.scale.y;
 										#if !MODCHART_ALLOWED
 										swagRect.height = (daNote.height / daNote.scale.y) - swagRect.y;
