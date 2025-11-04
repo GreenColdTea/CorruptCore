@@ -701,11 +701,31 @@ class LoadingState extends MusicBeatState
     
     override function destroy()
     {
-        super.destroy();
+        if (fileIOPool != null) {
+            fileIOPool.cancel();
+            fileIOPool = null;
+        }
         
+        if (imageProcessingPool != null) {
+            imageProcessingPool.cancel();
+            imageProcessingPool = null;
+        }
+        
+        if (audioProcessingPool != null) {
+            audioProcessingPool.cancel();
+            audioProcessingPool = null;
+        }
+        
+        if (jsonProcessingPool != null) {
+            jsonProcessingPool.cancel();
+            jsonProcessingPool = null;
+        }
+
         callbacks = null;
         percentText?.destroy();
         startTimer?.destroy();
+
+        super.destroy();
     }
     
     static function initSongsManifest()
