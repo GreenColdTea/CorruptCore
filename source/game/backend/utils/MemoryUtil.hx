@@ -9,8 +9,6 @@ class MemoryUtil {
         hl.Gc.enable(enable);
         #elseif java
         java.vm.Gc.run(enable);
-        #elseif neko
-        neko.vm.Gc.enable(enable);
         #end
     }
 
@@ -80,13 +78,13 @@ class MemoryUtil {
             reserved: reservedMemory(),
             large: largeMemory()
         };
-        
+
         #if hl
         var hlStats = hl.Gc.stats();
         stats.hlTotalAllocated = Std.int(hlStats.totalAllocated);
         stats.hlAllocationCount = Std.int(hlStats.allocationCount);
         #end
-        
+
         return stats;
     }
 
@@ -201,7 +199,7 @@ class MemoryUtil {
             vm_size_t page_size;
             vm_statistics64_data_t vm_stats;
             mach_msg_type_number_t host_size = sizeof(vm_stats) / sizeof(natural_t);
-            
+
             if (host_page_size(mach_host_self(), &page_size) == KERN_SUCCESS &&
                 host_statistics64(mach_host_self(), HOST_VM_INFO, (host_info64_t)&vm_stats, &host_size) == KERN_SUCCESS) {
                 result = (double)((int64_t)vm_stats.free_count * (int64_t)page_size);
@@ -283,7 +281,7 @@ typedef MemoryStats = {
     var current:Int;
     var reserved:Int;
     var large:Int;
-    
+
     @:optional var hlTotalAllocated:Int;
     @:optional var hlAllocationCount:Int;
 }

@@ -174,10 +174,10 @@
 	<!-- ______________________________ Haxedefines _____________________________ -->
 
 	<!-- OpenAL config -->
-	<section if="desktop">
+	<!--<section if="desktop">
 		<assets path="alsoft.txt" rename="plugins/alsoft.ini" type="text" if="windows"/>
 		<assets path="alsoft.txt" rename="plugins/alsoft.conf" type="text" unless="windows"/>
-	</section>
+	</section>-->
 
 	<section if="hxvlc">
 		<haxedef name="HXVLC_NO_SHARE_DIRECTORY" />

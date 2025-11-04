@@ -333,7 +333,7 @@ class Shader
 		var compileStatus = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
 
 		if (hasInfoLog || compileStatus == 0) {
-			final shaderType = (type == gl.VERTEX_SHADER) ? "vertex" : "fragment";
+			final shaderType = (type == gl.VERTEX_SHADER) ? "Vertex" : "Fragment";
 			final status = (compileStatus == 0) ? "Error" : "Warning";
 			
 			var fileName = "N/A";
