@@ -81,13 +81,13 @@ class Main extends Sprite
 		{
 			addEventListener(Event.ADDED_TO_STAGE, init);
 		}
-		
+
 		// was taken from doido engine
 		// thanks @nebulazorua, @crowplexus, @diogotvv
 		FlxG.stage.addEventListener(openfl.events.KeyboardEvent.KEY_DOWN, (e) ->
 		{
 			if (e.keyCode == FlxKey.F11) FlxG.fullscreen = !FlxG.fullscreen;
-			
+
 			if (e.keyCode == FlxKey.ENTER && e.altKey) e.stopImmediatePropagation();
 		}, false, 100);
 	}
@@ -152,12 +152,12 @@ class Main extends Sprite
                 resetSpriteCache(FlxG.game);
         });
 
-		#if desktop
+		/*#if desktop
 		if(CoolUtil.hasVersion("Windows 10")) {
 			FlxG.stage.window.borderless = true;
 			FlxG.stage.window.borderless = false;
 		}
-		#end
+		#end*/
 	}
 
 	@:noCompletion
@@ -175,7 +175,7 @@ class Main extends Sprite
 
 	/**
 	 * Colorblind mode stuff
-	 * 
+	 *
 	 * Applies a colorblind filter to the camera.
 	 * @param type - The type of colorblindness (0-7, -1 for no filter).
 	 * @param intensity - The intensity of the filter (0-1, 1 being full intensity).
@@ -199,49 +199,49 @@ class Main extends Sprite
 					0.700, 0.300, 0, 0, 0,
 					0,     0.300, 0.700, 0, 0,
 					0, 0, 0, 1, 0];
-					
+
 			case 1: // Protanopia
 				matrixShit = [
 					0.567, 0.433, 0, 0, 0,
 					0.558, 0.442, 0, 0, 0,
 					0,     0.242, 0.758, 0, 0,
 					0, 0, 0, 1, 0];
-					
+
 			case 2: // Tritanopia
 				matrixShit = [
 					0.950, 0.050, 0, 0, 0,
 					0,     0.433, 0.567, 0, 0,
 					0,     0.475, 0.525, 0, 0,
 					0, 0, 0, 1, 0];
-			
+
 			case 3: // Protanomaly
 				matrixShit = [
 					0.817, 0.183, 0, 0, 0,
 					0.333, 0.667, 0, 0, 0,
 					0,     0.125, 0.875, 0, 0,
 					0, 0, 0, 1, 0];
-					
+
 			case 4: // Deuteranomaly
 				matrixShit = [
 					0.800, 0.200, 0, 0, 0,
 					0.258, 0.742, 0, 0, 0,
 					0,     0.142, 0.858, 0, 0,
 					0, 0, 0, 1, 0];
-					
+
 			case 5: // Tritanomaly
 				matrixShit = [
 					0.967, 0.033, 0, 0, 0,
 					0,     0.733, 0.267, 0, 0,
 					0,     0.183, 0.817, 0, 0,
 					0, 0, 0, 1, 0];
-			
+
 			case 6: // Rod monochromacy
 				matrixShit = [
 					0.2126, 0.7152, 0.0722, 0, 0,
 					0.2126, 0.7152, 0.0722, 0, 0,
 					0.2126, 0.7152, 0.0722, 0, 0,
 					0,      0,      0,      1, 0];
-					
+
 			case 7: // Cone monochromacy
 				matrixShit = [
 					0.299, 0.587, 0.114, 0, 0,
@@ -262,11 +262,11 @@ class Main extends Sprite
 	public static function updateColorblindFilter(type:Int = -1, intensity:Float = 1) {
 		colorblindMode = type;
 		colorblindIntensity = intensity;
-		
+
 		for (camera in FlxG.cameras.list) {
 			applyColorblindFilterToCamera(camera, type, intensity);
 		}
-		
+
 		ClientPrefs.colorBlindMode = switch (type) {
 			case -1: 'None';
 			case 0: 'Deutranopia';

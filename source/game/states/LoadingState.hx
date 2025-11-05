@@ -10,6 +10,7 @@ import flixel.util.typeLimit.NextState;
 import flixel.math.FlxMath;
 
 import openfl.utils.Assets;
+import openfl.utils.AssetType;
 import openfl.media.Sound;
 
 import lime.app.Promise;
@@ -125,6 +126,9 @@ class LoadingState extends MusicBeatState
     {
         Paths.clearStoredMemory();
         Paths.clearUnusedMemory(false);
+
+        FlxTransitionableState.skipNextTransIn = true;
+        FlxTransitionableState.skipNextTransOut = true;
 
         var bg:FlxSprite = new FlxSprite(0, 0).makeGraphic(FlxG.width, FlxG.height, 0xffcaff4d);
         add(bg);
@@ -321,11 +325,10 @@ class LoadingState extends MusicBeatState
         
         var rawJson:String = null;
         #if MODS_ALLOWED
-        if (sys.FileSystem.exists(path)) {
+        if (sys.FileSystem.exists(path))
             rawJson = sys.io.File.getContent(path);
-        } else #end if (Assets.exists(path)) {
+        else #end if (Assets.exists(path))
             rawJson = Assets.getText(path);
-        }
 
         if (rawJson != null) {
             try {
@@ -368,12 +371,23 @@ class LoadingState extends MusicBeatState
 
     function checkImageFormats(image:String):Dynamic
     {
+        function assetExists(path:String, type:AssetType):Bool
+        {
+            #if MODS_ALLOWED
+            var modsPath:String = Paths.getPath(path, type, null, true);
+            if (sys.FileSystem.exists(modsPath))
+                return true;
+            #end
+            
+            return Assets.exists(Paths.getPath(path, type, null, false));
+        }
+
         return {
-            animate: #if flixel_animate Assets.exists(Paths.getPath('images/$image/Animation.json', TEXT, null, true)) #else false #end,
-            xml: Assets.exists(Paths.getPath('images/$image.xml', TEXT, null, true)),
-            json: Assets.exists(Paths.getPath('images/$image.json', TEXT, null, true)),
-            txt: Assets.exists(Paths.getPath('images/$image.txt', TEXT, null, true)),
-            png: Assets.exists(Paths.getPath('images/$image.png', IMAGE, null, true))
+            animate: #if flixel_animate assetExists('images/$image/Animation.json', TEXT) #else false #end,
+            xml: assetExists('images/$image.xml', TEXT),
+            json: assetExists('images/$image.json', TEXT),
+            txt: assetExists('images/$image.txt', TEXT),
+            png: assetExists('images/$image.png', IMAGE)
         };
     }
 
@@ -490,13 +504,18 @@ class LoadingState extends MusicBeatState
         var vocalsPath:String = voicesPath(PlayState.SONG.song);
         if (vocalsPath != null) paths.push(vocalsPath);
         
-        var playerVocalsFile:String = PlayState.instance?.boyfriend?.vocalsFile ?? 'Player';
-        var playerVocals:String = voicesPath(PlayState.SONG.song, playerVocalsFile);
-        if (playerVocals != null) paths.push(playerVocals);
+        var playerPostfix:String = getCharVocalsPostfix(PlayState.SONG.player1);
+        var opponentPostfix:String = getCharVocalsPostfix(PlayState.SONG.player2);
         
-        var opponentVocalsFile:String = PlayState.instance?.dad?.vocalsFile ?? 'Opponent';
-        var opponentVocals:String = voicesPath(PlayState.SONG.song, opponentVocalsFile);
-        if (opponentVocals != null) paths.push(opponentVocals);
+        if (playerPostfix != null) {
+            var playerVocals:String = voicesPath(PlayState.SONG.song, playerPostfix);
+            if (playerVocals != null) paths.push(playerVocals);
+        }
+        
+        if (opponentPostfix != null) {
+            var opponentVocals:String = voicesPath(PlayState.SONG.song, opponentPostfix);
+            if (opponentVocals != null) paths.push(opponentVocals);
+        }
         
         return paths;
     }
@@ -556,6 +575,40 @@ class LoadingState extends MusicBeatState
         var standardPath:String = Paths.getPath('$fullKey.${Paths.SOUND_EXT}', SOUND, library);
         if(Assets.exists(standardPath, SOUND)) {
             return standardPath;
+        }
+
+        return null;
+    }
+
+    static function getCharVocalsPostfix(character:String):String
+    {
+        if (character == null) return null;
+        
+        try {
+            var characterPath:String = 'characters/' + character + '.json';
+            var path:String = Paths.getPath(characterPath, TEXT, null, true);
+            
+            var rawJson:String = null;
+            #if MODS_ALLOWED
+            if (sys.FileSystem.exists(path))
+                rawJson = sys.io.File.getContent(path);
+            else #end if (Assets.exists(path))
+                rawJson = Assets.getText(path);
+
+            if (rawJson != null) {
+                var json:Dynamic = haxe.Json.parse(rawJson);
+                if (json?.vocals_file != null) 
+                    return json.vocals_file;
+            }
+        } catch (e:Dynamic) {
+            trace('Error getting vocals postfix for character $character: $e');
+        }
+        
+        if (PlayState.SONG != null) {
+            if (character == PlayState.SONG.player1)
+                return "Player";
+            else if (character == PlayState.SONG.player2)
+                return "Opponent";
         }
 
         return null;

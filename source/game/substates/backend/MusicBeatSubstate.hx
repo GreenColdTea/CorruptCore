@@ -96,9 +96,7 @@ class MusicBeatSubstate extends FlxSubState
 			if (playState.camSubState != null)
 			{
 				camSubState = playState.camSubState;
-				useCustomCamera = true;
-				
-				this.cameras = [camSubState];
+				this.camera = camSubState;
 			}
 		}
 		

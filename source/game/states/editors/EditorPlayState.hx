@@ -790,12 +790,12 @@ class EditorPlayState extends MusicBeatState
 		//songScore -= 10;
 		songMisses++;
 
-		FlxG.sound.play(Paths.soundRandom('missnote', 1, 3), FlxG.random.float(0.1, 0.2));
+		FlxG.sound.play(Paths.soundRandom('missnote', 1, 3), FlxG.random.float(0.4, 0.6));
 		vocals.volume = 0;
 	}
 
-	var COMBO_X:Float = 400;
-	var COMBO_Y:Float = 340;
+	final COMBO_X:Float = 400;
+	final COMBO_Y:Float = 340;
 	private function popUpScore(note:Note = null):Void
 	{
 		var noteDiff:Float = Math.abs(note.strumTime - Conductor.songPosition + ClientPrefs.ratingOffset);

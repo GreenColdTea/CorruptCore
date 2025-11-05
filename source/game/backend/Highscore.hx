@@ -60,6 +60,8 @@ class Highscore
 			setScore(daSong, score);
 			if(rating >= 0) setRating(daSong, rating);
 		}
+
+		//trace(song, score, diff, rating);
 	}
 
 	public static function saveWeekScore(week:String, score:Int = 0, ?diff:Int = 0):Void

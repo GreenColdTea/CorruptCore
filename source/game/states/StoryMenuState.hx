@@ -99,8 +99,8 @@ class StoryMenuState extends MusicBeatState
 	function createMenuInterface()
 	{
 		createWeekSelection();
-		createTextElements();
 		createVisualElements();
+		createTextElements();
 		createWeekCharacters();
 		createDifficultySelector();
 	}
@@ -113,12 +113,6 @@ class StoryMenuState extends MusicBeatState
 		weekTitleText = new FlxText(FlxG.width * 0.7, 10, 0, "", 32);
 		weekTitleText.setFormat("VCR OSD Mono", 32, FlxColor.WHITE, RIGHT);
 		weekTitleText.alpha = 0.7;
-
-		tracklistText = new FlxText(FlxG.width * 0.05, 0, 0, "", 32);
-		tracklistText.alignment = CENTER;
-		tracklistText.font = Paths.font("vcr.ttf");
-		tracklistText.antialiasing = ClientPrefs.globalAntialiasing;
-		tracklistText.color = 0xFFe55777;
 
 		add(scoreText);
 		add(weekTitleText);
@@ -140,6 +134,11 @@ class StoryMenuState extends MusicBeatState
 		tracksSprite.antialiasing = ClientPrefs.globalAntialiasing;
 		add(tracksSprite);
 
+		tracklistText = new FlxText(FlxG.width * 0.05, 0, 0, "", 32);
+		tracklistText.alignment = CENTER;
+		tracklistText.font = Paths.font("vcr.ttf");
+		tracklistText.antialiasing = ClientPrefs.globalAntialiasing;
+		tracklistText.color = 0xFFe55777;
 		tracklistText.y = tracksSprite.y + 60;
 		add(tracklistText);
 	}

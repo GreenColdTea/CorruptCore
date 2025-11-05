@@ -57,7 +57,7 @@ class Song
 	public var holdCoverSkin:String;
 	public var speed:Float = 1;
 	public var stage:String;
-	public var validScore:Bool = false;
+	public var validScore:Bool = false; // МУСОР
 	public var player1:String = 'bf';
 	public var player2:String = 'dad';
 	public var gfVersion:String = 'gf';
