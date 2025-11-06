@@ -4100,6 +4100,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 }
 
+@:allow(ChartEditorState)
 class ChartingTipsSubstate extends MusicBeatSubstate
 {
     public function new()

@@ -99,6 +99,8 @@ class GameOverSubstate extends MusicBeatSubstate
 			endBullshit();
 		} else if (controls.BACK) {
 			FlxG.sound.music.stop();
+			FlxG.sound.music = null;
+			
 			PlayState.deathCounter = 0;
 			PlayState.seenCutscene = false;
 			PlayState.chartingMode = false;
@@ -129,7 +131,7 @@ class GameOverSubstate extends MusicBeatSubstate
 			}
 		}
 
-		if (FlxG.sound.music.playing)
+		if (FlxG.sound?.music?.playing)
 		{
 			Conductor.songPosition = FlxG.sound.music.time;
 		}

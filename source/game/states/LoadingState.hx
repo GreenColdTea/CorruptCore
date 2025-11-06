@@ -614,7 +614,7 @@ class LoadingState extends MusicBeatState
         return null;
     }
     
-    public static function loadAndSwitchState(targetFactory:Void->NextState, stopMusic = false)
+    public static function loadAndSwitchState(targetFactory:Void->FlxState, stopMusic = false)
     {
         var targetState = targetFactory();
         var isPlayState = Std.isOfType(targetState, PlayState);
@@ -638,13 +638,13 @@ class LoadingState extends MusicBeatState
         
         if (!loaded && isPlayState)
         {
-            FlxG.switchState(new LoadingState(targetState, stopMusic, directory));
+            FlxG.switchState(() -> new LoadingState(targetState, stopMusic, directory));
             return;
         }
         
         if (stopMusic) FlxG.sound?.music?.stop();
         
-        FlxG.switchState(targetState);
+        FlxG.switchState(() -> targetState);
     }
     
     static function areCharactersLoaded():Bool

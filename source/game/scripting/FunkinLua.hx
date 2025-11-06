@@ -83,6 +83,8 @@ class FunkinLua {
     public static var hscript:FunkinHScript = null;
     #end
 
+    public var importedClasses:Map<String, Dynamic> = new Map();
+
     public static var useCustomFunctions:Bool = false;
     public static var customFunctions:Map<String, Dynamic> = new Map<String, Dynamic>();
     public var callbacks:Map<String, Dynamic> = new Map<String, Dynamic>();
@@ -688,6 +690,14 @@ class FunkinLua {
             luaTrace('' + text1 + text2 + text3 + text4 + text5, true, false);
         });
 
+        LuaUtils.addFunction(lua, "import", function(className:String, ?packagePath:String = ""):Void {
+            importClass(className, packagePath);
+        });
+
+        LuaUtils.addFunction(lua, "getParent", function():Dynamic {
+            return Std.isOfType(FlxG.state, PlayState) ? PlayState.instance : FlxG.state.subState ?? FlxG.state;
+        });
+
         LuaUtils.addFunction(lua, "close", function():Bool {
             closed = true;
             return closed;
@@ -1147,6 +1157,78 @@ class FunkinLua {
         return false;
         #end
     }
+
+    #if HSCRIPT_ALLOWED
+    public function importClass(className:String, ?packagePath:String = ""):Void {
+        initHaxeModule();
+        try {
+            var fullPath:String = className;
+            if (packagePath.length > 0) {
+                fullPath = packagePath + '.' + className;
+            }
+
+            var clazz = Type.resolveClass(fullPath);
+            if (clazz != null) {
+                importedClasses.set(className, clazz);
+                set(className, createLuaClassWrapper(clazz, className));
+            } else {
+                luaTrace('Cannot import class: $fullPath', false, false, FlxColor.RED);
+            }
+        } catch (e:Dynamic) {
+            luaTrace('Error importing class $className: $e', false, false, FlxColor.RED);
+        }
+    }
+
+    private function createLuaClassWrapper(clazz:Class<Dynamic>, className:String):Dynamic {
+        #if LUA_ALLOWED
+        var wrapper:Dynamic = {};
+        
+        Reflect.setField(wrapper, "new", function(args:Array<Dynamic> = null):Dynamic {
+            args ??= [];
+            return createLuaInstance(clazz, args);
+        });
+        
+        return wrapper;
+        #else
+        return null;
+        #end
+    }
+
+    private function createLuaInstance(clazz:Class<Dynamic>, args:Array<Dynamic> = null):Dynamic {
+        args ??= [];
+        
+        try {
+            var instance = Type.createInstance(clazz, args);
+            return createLuaObjectWrapper(instance);
+        } catch (e:Dynamic) {
+            trace('Error creating instance of $clazz: $e');
+            return null;
+        }
+    }
+
+    private function createLuaObjectWrapper(obj:Dynamic):Dynamic {
+        #if LUA_ALLOWED
+        var wrapper:Dynamic = {};
+        
+        var fields = Reflect.fields(obj);
+        for (field in fields) {
+            var value = Reflect.field(obj, field);
+            if (Reflect.isFunction(value)) {
+                Reflect.setField(wrapper, field, function(args:Array<Dynamic> = null):Dynamic {
+                    args ??= [];
+                    return Reflect.callMethod(obj, value, args);
+                });
+            } else {
+                Reflect.setField(wrapper, field, value);
+            }
+        }
+        
+        return wrapper;
+        #else
+        return null;
+        #end
+    }
+    #end
 }
 
 class ModchartSprite extends FlxSprite {

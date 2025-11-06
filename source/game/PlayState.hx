@@ -3955,15 +3955,12 @@ class PlayState extends MusicBeatState
 		if(ClientPrefs.noteSplashes && note != null) {
 			var strum:StrumNote = playerStrums.members[note.noteData];
 			if(strum != null) {
-				spawnNoteSplash(strum.x, strum.y, note.noteData, note);
+				spawnNoteSplash(strum.x, strum.y, note.noteData, note, strum);
 			}
 		}
 	}
 
-	public function spawnNoteSplash(x:Float, y:Float, data:Int, ?note:Note = null) {
-		var skin:String = 'noteSplashes';
-		if(PlayState.SONG.splashSkin != null && PlayState.SONG.splashSkin.length > 0) skin = PlayState.SONG.splashSkin;
-
+	public function spawnNoteSplash(x:Float, y:Float, data:Int, ?note:Note = null, ?strum:StrumNote) {
 		var hue:Float = 0;
 		var sat:Float = 0;
 		var brt:Float = 0;
@@ -3973,7 +3970,6 @@ class PlayState extends MusicBeatState
 			sat = ClientPrefs.arrowHSV[data][1] / 100;
 			brt = ClientPrefs.arrowHSV[data][2] / 100;
 			if(note != null) {
-				skin = note.noteSplashTexture;
 				hue = note.noteSplashHue;
 				sat = note.noteSplashSat;
 				brt = note.noteSplashBrt;
@@ -3981,7 +3977,8 @@ class PlayState extends MusicBeatState
 		}
 
 		var splash:NoteSplash = grpNoteSplashes.recycle(NoteSplash);
-		splash.setupNoteSplash(x, y, data, skin, hue, sat, brt);
+		splash.babyArrow = strum;
+		splash.setupNoteSplash(x, y, data, hue, sat, brt);
 		grpNoteSplashes.add(splash);
 	}
 

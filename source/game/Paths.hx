@@ -490,10 +490,10 @@ class Paths
             var content = Mods.getFileFromMod(mod, filePath);
             return (content != null) ? content.toString() : null;
         }
-        return (FileSystem.exists(path)) ? File.getContent(path) : null;
-        #else
-        return (OpenFlAssets.exists(path, TEXT)) ? Assets.getText(path) : null;
+        if (FileSystem.exists(path)) return File.getContent(path);
         #end
+        
+        return (OpenFlAssets.exists(path, TEXT)) ? Assets.getText(path) : null;
     }
 
     static public function font(key:String)
@@ -515,21 +515,33 @@ class Paths
     }
 
     public static function fileExists(key:String, type:AssetType, ?ignoreMods:Bool = false, ?library:String = null)
-    {
-        var path:String = getPath(key, type, library, !ignoreMods);
-        
-        #if MODS_ALLOWED
-        if (path.startsWith('zip://')) {
-            return true;
-        }
-        if(FileSystem.exists(path)) {
-        #else
-        if(OpenFlAssets.exists(path, type)) {
+	{
+		#if MODS_ALLOWED
+		if(!ignoreMods)
+		{
+			for(mod in Mods.getGlobalMods())
+				if (FileSystem.exists(Mods.getModPath('$mod/$key')))
+					return true;
+
+			if (FileSystem.exists(Mods.getModPath(Mods.currentModDirectory + '/' + key)) || FileSystem.exists(Mods.getModPath(key)))
+				return true;
+			
+			if (FileSystem.exists(Mods.getModPath('$key')))
+				return true;
+		}
+		#end
+
+        #if sys
+        if(FileSystem.exists(getPath(key, type, library))) {
+			return true;
+		}
         #end
-            return true;
-        }
-        return false;
-    }
+
+		if(OpenFlAssets.exists(getPath(key, type, library))) {
+			return true;
+		}
+		return false;
+	}
 
     static public function getAtlas(key:String, ?library:String = null, ?allowGPU:Bool = true):FlxAtlasFrames
     {

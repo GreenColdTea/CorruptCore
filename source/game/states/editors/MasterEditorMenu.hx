@@ -23,12 +23,13 @@ using StringTools;
 class MasterEditorMenu extends MusicBeatState
 {
 	var options:Array<String> = [
+		'Chart Editor',
+		'Character Editor',
 		'Week Editor',
 		'Menu Character Editor',
+		'Note Splash Editor',
 		'Dialogue Editor',
 		'Dialogue Portrait Editor',
-		'Character Editor',
-		'Chart Editor'
 	];
 	private var grpTexts:FlxTypedGroup<Alphabet>;
 	private var directories:Array<String> = [null];
@@ -129,6 +130,8 @@ class MasterEditorMenu extends MusicBeatState
 				case 'Chart Editor'://felt it would be cool maybe
 					PlayState.chartingMode = true;
 					LoadingState.loadAndSwitchState(() -> new ChartEditorState(), false);
+				case 'Note Splash Editor':
+					LoadingState.loadAndSwitchState(() -> new NoteSplashEditorState(), false);
 			}
 			FlxG.sound.music.volume = 0;
 			#if PRELOAD_ALL
