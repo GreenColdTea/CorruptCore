@@ -136,22 +136,6 @@ class Main extends Sprite
 
 		addChild(push);
 
-		FlxG.signals.gameResized.add((w, h) -> {
-            Init.fpsVar?.positionFPS(10, 3, Math.min(w / FlxG.width, h / FlxG.height));
-
-			resetSpriteCache(this);
-
-            if (FlxG.cameras?.list != null) {
-                for (cam in FlxG.cameras.list) {
-                    if (cam != null)
-                        resetSpriteCache(cam.flashSprite);
-                }
-            }
-
-            if (FlxG.game != null)
-                resetSpriteCache(FlxG.game);
-        });
-
 		/*#if desktop
 		if(CoolUtil.hasVersion("Windows 10")) {
 			FlxG.stage.window.borderless = true;
@@ -159,19 +143,6 @@ class Main extends Sprite
 		}
 		#end*/
 	}
-
-	@:noCompletion
-	private static function resetSpriteCache(sprite:Sprite):Void {
-		@:privateAccess {
-			if (sprite != null)
-			{
-		   		sprite.__cacheBitmapData = null;
-				sprite.__cacheBitmapData2 = null;
-				sprite.__cacheBitmapData3 = null;
-				sprite.__cacheBitmapColorTransform = null;
-			}
-		}
-    }
 
 	/**
 	 * Colorblind mode stuff

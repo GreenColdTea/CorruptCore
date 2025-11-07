@@ -147,7 +147,8 @@ class FunkinRuleScript {
             var content = loadScriptContent(path);
             execute(content, skipCreate);
         } catch (e:haxe.Exception) {
-            trace('Failed to load script $path: ${e.message}');
+            if (shouldTraceErrors())
+                trace('Failed to load script $path: ${e.message}');
             active = false;
         }
     }
@@ -157,7 +158,8 @@ class FunkinRuleScript {
         {
             var path = parseTypePath(name);
             if (path.name == null || path.name.length == 0) {
-                trace('Invalid module path: $name');
+                if (shouldTraceErrors())
+                    trace('Invalid module path: $name');
                 return null;
             }
 
@@ -170,7 +172,8 @@ class FunkinRuleScript {
 
             var content = Paths.getTextFromFile(filePath);
             if (content == null) {
-                trace('Failed to load module content: $filePath');
+                if (shouldTraceErrors())
+                    trace('Failed to load module content: $filePath');
                 return null;
             }
 
@@ -181,7 +184,8 @@ class FunkinRuleScript {
             try {
                 return parser.parseModule(content);
             } catch (e:Dynamic) {
-                trace('Failed to parse module $filePath: $e');
+                if (shouldTraceErrors())
+                    trace('Failed to parse module $filePath: $e');
                 return null;
             }
         }
@@ -190,7 +194,8 @@ class FunkinRuleScript {
         {
             var type:ScriptedClassType = ScriptedTypeUtil.resolveScript(typePath);
             if (type == null) {
-                trace('Failed to resolve script type: $typePath');
+                if (shouldTraceErrors())
+                    trace('Failed to resolve script type: $typePath');
                 return null;
             }
 
@@ -216,7 +221,8 @@ class FunkinRuleScript {
         {
             var path = parseTypePath(name);
             if (path.name == null || path.name.length == 0) {
-                trace('Invalid script path: $name');
+                if (shouldTraceErrors())
+                    trace('Invalid script path: $name');
                 return null;
             }
 
@@ -231,7 +237,8 @@ class FunkinRuleScript {
                 var scriptedModule = new ScriptedModule(path.name, module, ScriptedTypeUtil._currentContext);
                 return scriptedModule.types[path.typeName];
             } catch (e:Dynamic) {
-                trace('Failed to create scripted module for $name: $e');
+                if (shouldTraceErrors())
+                    trace('Failed to create scripted module for $name: $e');
                 return null;
             }
         };
@@ -250,7 +257,6 @@ class FunkinRuleScript {
         var typeName = path.pop();
         var moduleName = path.join('.');
         
-        //If no package, use the type name as module name
         if (moduleName.length == 0) {
             moduleName = typeName;
         }
@@ -373,6 +379,12 @@ class FunkinRuleScript {
         
         set("getObject", getObject);
         set("getAll", getAllObjects);
+        
+        set("showErrorTraces", true);
+    }
+
+    private final function shouldTraceErrors():Bool {
+        return exists("showErrorTraces") && get("showErrorTraces") == true;
     }
 
     public function getObject(index:Int, group:String):Dynamic {
@@ -386,7 +398,8 @@ class FunkinRuleScript {
                 }
             }
         } catch (e:Dynamic) {
-            trace('Error getting object: ${e.message}');
+            if (shouldTraceErrors())
+                trace('Error getting object: ${e.message}');
         }
         return null;
     }
@@ -402,7 +415,8 @@ class FunkinRuleScript {
                 }
             }
         } catch (e:Dynamic) {
-            trace('Error getting objects: ${e.message}');
+            if (shouldTraceErrors())
+                trace('Error getting objects: ${e.message}');
         }
         return [];
     }
@@ -421,7 +435,8 @@ class FunkinRuleScript {
             var scriptedType = ScriptedTypeUtil.resolveScript(typeName);
             if (scriptedType != null) return scriptedType;
         } catch (e:Dynamic) {
-            trace('Failed to resolve scripted type $typeName: $e');
+            if (shouldTraceErrors())
+                trace('Failed to resolve scripted type $typeName: $e');
         }
         
         return null;
@@ -480,6 +495,8 @@ class FunkinRuleScript {
     }
 
     function onError(e:haxe.Exception):Void {
+        if (!shouldTraceErrors()) return;
+        
         final text = 'Error in $scriptName: ${e.details()}';
         CoolUtil.hxTrace(text, FlxColor.RED);
     }
