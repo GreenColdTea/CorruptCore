@@ -53,7 +53,7 @@ class CoolUtil
 		return "Unknown";
 		#end
 	}
-	
+
 	public static function getDifficultyFilePath(num:Null<Int> = null)
 	{
 		num ??= PlayState.storyDifficulty;
@@ -104,7 +104,7 @@ class CoolUtil
 
 		return daList;
 	}
-	
+
 	inline public static function dominantColor(sprite:flixel.FlxSprite):Int
 	{
 		var countByColor:Map<Int, Int> = [];
@@ -147,7 +147,7 @@ class CoolUtil
 		#if MODS_ALLOWED
 		if(FlxG.save.data.modSettings == null) FlxG.save.data.modSettings = new Map<String, Dynamic>();
 		var settings:Map<String, Dynamic> = FlxG.save.data.modSettings.get(modName);
-		
+
 		var path:String = Mods.getModPath('$modName/data/settings.json');
 		if(FileSystem.exists(path))
 		{
@@ -211,9 +211,9 @@ class CoolUtil
 	inline public static function unzipFile(srcZip:String, dstDir:String, ignoreRootFolder:Bool = false) {
 		#if sys
         trace("Unzipping archive...");
-		
+
         FileSystem.createDirectory(dstDir);
-        
+
         var inFile = sys.io.File.read(srcZip);
         var entries = haxe.zip.Reader.readZip(inFile);
         inFile.close();
@@ -226,7 +226,7 @@ class CoolUtil
                     if (ignoreRootFolder != false) {
                         dirs.shift();
                     }
-                
+
                     var path = "";
                     var file = dirs.pop();
                     for (d in dirs) {
@@ -234,12 +234,12 @@ class CoolUtil
                         sys.FileSystem.createDirectory(dstDir + "/" + path);
                         path += "/";
                     }
-                
+
                     if (file == "")
                         continue;
 
                     path += file;
-                
+
                     var data = haxe.zip.Reader.unzip(entry);
                     var f = File.write(dstDir + "/" + path, true);
                     f.write(data);
@@ -316,7 +316,7 @@ class CoolUtil
 		for (i in FileSystem.readDirectory(path))
 			returnFileName(i, ret, path);
 
-		
+
 		path += '/';
 		for (i in 0...ret.length)
 			ret[i] = ret[i].replace(path, '');
@@ -356,32 +356,32 @@ class CoolUtil
 		#end
 	}
 
-	public static function loadHighBitrateWav(key:String, path:String):Sound 
+	public static function loadHighBitrateWav(key:String, path:String):Sound
 	{
 		#if (sys && !web)
 		try {
 			var tempPath = '${Paths.getPreloadPath("temp")}/$key.converted.wav';
-			
+
 			if (FileSystem.exists(tempPath)) {
 				trace('Using existing converted WAV file: $key');
 				return Sound.fromFile(tempPath);
 			}
-			
+
 			var bytes = File.getBytes(path);
 			var buffer = AudioBuffer.fromBytes(bytes);
-			
-			if (buffer.sampleRate > 44100 || buffer.bitsPerSample > 16) {
+
+			if (buffer.sampleRate > 44100 || buffer.bitsPerSample > 32) {
 				trace('Converting high bitrate WAV: $key');
-				
+
 				if (!FileSystem.exists(Paths.getPreloadPath('temp')))
 					FileSystem.createDirectory(Paths.getPreloadPath('temp'));
-				
+
 				if (!FileSystem.exists(tempPath)) {
 					//yea yea it will work if you have ffmpeg on your desktop
 					//if not then it wont work lel
-					var cmd = 'ffmpeg -i "$path" -ar 44100 -ac ${buffer.channels} -sample_fmt s16 "$tempPath"';
+					var cmd = 'ffmpeg -i "$path" -ar 44100 -ac ${buffer.channels} -sample_fmt s32 "$tempPath"';
 					var result = Sys.command(cmd);
-					
+
 					if (result == 0 && FileSystem.exists(tempPath)) {
 						trace('Successfully converted WAV file: $key');
 						return Sound.fromFile(tempPath);
@@ -394,7 +394,7 @@ class CoolUtil
 			trace('Error processing WAV file $key: $e');
 		}
 		#end
-		
+
 		return Sound.fromFile(path);
 	}
 
@@ -405,17 +405,17 @@ class CoolUtil
 	/*private static function writeWavFile(path:String, data:Bytes, sampleRate:Int, channels:Int, bitsPerSample:Int):Void
 	{
 		var output = File.write(path, true);
-		
+
 		//calculate values for the WAV header
 		var byteRate = Std.int(sampleRate * channels * bitsPerSample / 8);
 		var blockAlign = Std.int(channels * bitsPerSample / 8);
 		var dataSize = data.length;
-		
+
 		//write WAV header
 		output.writeString("RIFF"); //chunk ID
 		output.writeInt32(36 + dataSize); //chunk size (file size = 8)
 		output.writeString("WAVE"); //format
-		
+
 		output.writeString("fmt "); //subchunk 1 ID
 		output.writeInt32(16); //subchunk 1 size (16 for PCM)
 		output.writeInt16(1); //audio format (1 = PCM)
@@ -424,10 +424,10 @@ class CoolUtil
 		output.writeInt32(byteRate); //byte rate
 		output.writeInt16(blockAlign); //block align
 		output.writeInt16(bitsPerSample); //bits per sample
-		
+
 		output.writeString("data"); //subchunk 2 ID
 		output.writeInt32(dataSize); //subchunk 2 size (data size)
-		
+
 		//write audio data
 		output.write(data);
 		output.close();

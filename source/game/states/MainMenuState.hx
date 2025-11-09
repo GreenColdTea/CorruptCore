@@ -38,7 +38,7 @@ class MainMenuState extends MusicBeatState
 	var overlay:FlxSprite;
 	var versionText:FlxText;
 	var camFollow:FlxObject;
-	
+
 	public static var curSelected:Int = 0;
 
 	var isTransitioning:Bool = false;
@@ -47,7 +47,7 @@ class MainMenuState extends MusicBeatState
 	{
 		Paths.clearStoredMemory();
 		Paths.clearUnusedMemory();
-		
+
 		#if MODS_ALLOWED
 		Mods.pushGlobalMods();
 		#end
@@ -58,11 +58,11 @@ class MainMenuState extends MusicBeatState
 		#end
 
 		initCamera();
-		
+
 		if (!isSoftcodedState())
 		{
-			if(FlxG.sound.music == null) FlxG.sound.playMusic(Paths.music('freakyMenu'));
-			
+			if(!FlxG.sound.music.playing) FlxG.sound.playMusic(Paths.music('freakyMenu'));
+
 			createMenuStuff();
 
 			FlxG.camera.follow(camFollow, null, 0.17);
@@ -141,11 +141,11 @@ class MainMenuState extends MusicBeatState
 		menuItem.screenCenter(X);
 		menuItem.updateHitbox();
 		menuItem.ID = id;
-		
+
 		var scrollFactor = (MENU_OPTIONS.length - 4) * 0.135;
 		if (MENU_OPTIONS.length < 6) scrollFactor = 0;
 		menuItem.scrollFactor.set(0, scrollFactor);
-		
+
 		return menuItem;
 	}
 
@@ -219,16 +219,16 @@ class MainMenuState extends MusicBeatState
 	function changeSelection(change:Int = 0)
 	{
 		FlxG.sound.play(Paths.sound('scrollMenu'));
-		
+
 		menuItems.members[curSelected].animation.play('idle');
 		menuItems.members[curSelected].updateHitbox();
-		
+
 		curSelected = FlxMath.wrap(curSelected + change, 0, MENU_OPTIONS.length - 1);
-		
+
 		var selectedItem = menuItems.members[curSelected];
 		selectedItem.animation.play('selected');
 		selectedItem.centerOffsets();
-		
+
 		camFollow.setPosition(
 			selectedItem.getGraphicMidpoint().x,
 			selectedItem.getGraphicMidpoint().y - (MENU_OPTIONS.length > 4 ? MENU_OPTIONS.length * 8 : 0)
@@ -250,7 +250,7 @@ class MainMenuState extends MusicBeatState
 		if (ClientPrefs.flashing)
 			FlxFlicker.flicker(overlay, 1.1, 0.15, false);
 
-		FlxFlicker.flicker(menuItems.members[curSelected], 1, 0.06, false, false, (_) -> 
+		FlxFlicker.flicker(menuItems.members[curSelected], 1, 0.06, false, false, (_) ->
 		{
 			transitionToSelectedState();
 		});

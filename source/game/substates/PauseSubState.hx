@@ -290,7 +290,6 @@ class PauseSubState extends MusicBeatSubstate
 					} else {
 						FlxG.switchState(() -> new FreeplayState());
 					}
-					FlxG.sound.music = null;
 					PlayState.changedDifficulty = false;
 					PlayState.chartingMode = false;
 			}

@@ -906,10 +906,7 @@ class Character extends FlxSprite
 		
 		for (tween in ghostTweens)
 		{
-			if (tween != null)
-			{
-				tween.cancel();
-			}
+			tween?.cancel();
 		}
 		ghostTweens = [];
 

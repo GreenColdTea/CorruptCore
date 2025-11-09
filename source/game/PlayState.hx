@@ -361,6 +361,8 @@ class PlayState extends MusicBeatState
 	public var startCallback:Void->Void = null;
 	public var endCallback:Void->Void = null;
 
+	public var playFreakyMenuAfterEnd:Bool = true;
+
 	override public function create()
 	{
 		//trace('Playback Rate: ' + playbackRate);
@@ -3008,6 +3010,7 @@ class PlayState extends MusicBeatState
 		updateTime = false;
 
 		FlxG.sound.music.volume = 0;
+		FlxG.sound.music.stop();
 		FlxG.sound.list.forEach((sound:FlxSound) -> {
 			if (sound != null && sound != FlxG.sound.music && sound.playing)
 				sound.volume = 0;
@@ -3096,8 +3099,10 @@ class PlayState extends MusicBeatState
 				{
 					WeekData.loadTheFirstEnabledMod();
 
-					cancelMusicFadeTween();
 					canResync = false;
+					cancelMusicFadeTween();
+
+					if (playFreakyMenuAfterEnd) FlxG.sound.playMusic(Paths.music('freakyMenu'));
 					FlxG.switchState(() -> new StoryMenuState());
 
 					// if ()
@@ -3124,7 +3129,6 @@ class PlayState extends MusicBeatState
 					prevCamFollow = camFollow;
 
 					PlayState.SONG = Song.loadFromJson(PlayState.storyPlaylist[0] + difficulty, PlayState.storyPlaylist[0]);
-					FlxG.sound.music?.stop();
 
 					LoadingState.loadAndSwitchState(() -> new PlayState());
 				}
@@ -3133,8 +3137,9 @@ class PlayState extends MusicBeatState
 			{
 				trace('WENT BACK TO FREEPLAY??');
 				WeekData.loadTheFirstEnabledMod();
-				cancelMusicFadeTween();
 				canResync = false;
+				cancelMusicFadeTween();
+				if (playFreakyMenuAfterEnd) FlxG.sound.playMusic(Paths.music('freakyMenu'));
 				FlxG.switchState(() -> new FreeplayState());
 				changedDifficulty = false;
 			}
@@ -3797,9 +3802,8 @@ class PlayState extends MusicBeatState
 
 					char.mostRecentRow = note.row;
 				}
-				else {
+				else
 					char.playAnim(animToPlay, true);
-				}
 			}
 		}
 
@@ -3894,7 +3898,6 @@ class PlayState extends MusicBeatState
 						var realAnim = singAnimations[Std.int(Math.abs(note.noteData))] + note.animSuffix;
 						if (char.mostRecentRow != note.row)
 							char.playAnim(realAnim, true);
-
 
 						if (note != animNote)
 							char.playGhostAnim(chord.indexOf(note) - 1, animToPlay, true);
@@ -4075,8 +4078,6 @@ class PlayState extends MusicBeatState
 		}
 		FlxG.animationTimeScale = 1;
 		#if FLX_PITCH if(FlxG.sound.music != null) FlxG.sound.music.pitch = 1; #end
-
-		if(!paused) FlxG.sound.music = null;
 
 		instance = null;
 		shutdownThread = true;

@@ -10,6 +10,10 @@ import hxluajit.wrapper.LuaError;
 #end
 
 import flixel.FlxG;
+import flixel.FlxSprite;
+import flixel.FlxCamera;
+import flixel.FlxObject;
+import flixel.FlxSprite;
 import flixel.addons.effects.FlxTrail;
 import flixel.input.keyboard.FlxKey;
 import flixel.tweens.FlxTween;
@@ -21,11 +25,7 @@ import flixel.group.FlxGroup.FlxTypedGroup;
 import flixel.math.FlxPoint;
 import flixel.sound.FlxSound;
 import flixel.util.FlxTimer;
-import flixel.FlxSprite;
-import flixel.FlxCamera;
 import flixel.util.FlxColor;
-import flixel.FlxObject;
-import flixel.FlxSprite;
 import flixel.math.FlxMath;
 import flixel.util.FlxSave;
 import flixel.addons.transition.FlxTransitionableState;
@@ -34,6 +34,7 @@ import flixel.addons.display.FlxBackdrop;
 import openfl.Lib;
 import openfl.display.BitmapData;
 import openfl.filters.BitmapFilter;
+import openfl.utils.Assets;
 
 #if sys
 import sys.FileSystem;

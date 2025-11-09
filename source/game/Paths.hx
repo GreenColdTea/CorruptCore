@@ -36,14 +36,21 @@ using StringTools;
 @:access(openfl.display.BitmapData)
 class Paths
 {
-    inline public static final SOUND_EXT = #if web "mp3" #else "ogg" #end;
+    public static final SOUND_EXTS:Array<String> =
+        #if web
+        ["mp3"]
+        #else
+        ["ogg", "wav", /*"flac",*/ "mp3"]
+        #end;
+
     inline public static final VIDEO_EXT = "mp4";
-    
+
     @:unreflective
     inline public static final OPUS_EXT = "opus";
 
+    //for backward compatibility
     @:unreflective
-    inline public static final WAV_EXT = "wav";
+    public static final SOUND_EXT = SOUND_EXTS[0];
 
     public static function excludeAsset(key:String) {
         if (!dumpExclusions.contains(key))
@@ -54,8 +61,8 @@ class Paths
     [
         'assets/music/freakyMenu.$SOUND_EXT',
     ];
-    
-    public static var localTrackedAssets:Array<String> = [];     
+
+    public static var localTrackedAssets:Array<String> = [];
     public static function clearUnusedMemory(cleanMajor:Bool = true) {
         if (FlxG.state is PlayState) cleanMajor = false; // dont do major cleans ingame
 
@@ -89,7 +96,7 @@ class Paths
 
         FlxG.bitmap.clearUnused();
         MemoryUtil.compact();
-        
+
         localTrackedAssets.resize(0);
         openfl.Assets.cache.clear("songs");
     }
@@ -200,7 +207,7 @@ class Paths
     static public function getStateScripts(statePath:String):Array<String> {
         var foldersToCheck:Array<String> = [
             Paths.getPreloadPath('scripts/states/$statePath/'),
-            #if MODS_ALLOWED 
+            #if MODS_ALLOWED
             Mods.getModPath('scripts/states/$statePath/'),
             #end
         ];
@@ -209,7 +216,7 @@ class Paths
         if (Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0) {
             foldersToCheck.insert(0, Mods.getModPath('${Mods.currentModDirectory}/scripts/states/$statePath/'));
         }
-        
+
         for (mod in Mods.getGlobalMods()) {
             foldersToCheck.insert(0, Mods.getModPath('$mod/scripts/states/$statePath/'));
         }
@@ -230,7 +237,7 @@ class Paths
     static public function getSubstateScripts(statePath:String):Array<String> {
         var foldersToCheck:Array<String> = [
             Paths.getPreloadPath('scripts/substates/$statePath/'),
-            #if MODS_ALLOWED 
+            #if MODS_ALLOWED
             Mods.getModPath('scripts/substates/$statePath/'),
             #end
         ];
@@ -239,7 +246,7 @@ class Paths
         if (Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0) {
             foldersToCheck.insert(0, Mods.getModPath('${Mods.currentModDirectory}/scripts/substates/$statePath/'));
         }
-        
+
         for (mod in Mods.getGlobalMods()) {
             foldersToCheck.insert(0, Mods.getModPath('$mod/scripts/substates/$statePath/'));
         }
@@ -328,26 +335,26 @@ class Paths
     {
         var songKey:String = '${formatToSongPath(song)}/voices';
         if (postfix != null) songKey += '-' + postfix;
-    
+
         var snd = returnSound(null, songKey, 'songs', false);
         if (snd == null) {
             songKey = '${formatToSongPath(song)}/Voices';
             if (postfix != null) songKey += '-' + postfix;
             snd = returnSound(null, songKey, 'songs', false);
         }
-    
+
         return snd;
     }
-    
+
     inline static public function inst(song:String):Any {
         var songKey:String = '${formatToSongPath(song)}/inst';
-        
+
         var snd = returnSound(null, songKey, 'songs', false);
         if (snd == null) {
             songKey = '${formatToSongPath(song)}/Inst';
             snd = returnSound(null, songKey, 'songs', false);
         }
-    
+
         return snd;
     }
 
@@ -366,15 +373,15 @@ class Paths
     public static function listDirectory(path:String):Array<String>
     {
         var result:Array<String> = [];
-        
+
         #if MODS_ALLOWED
         var modsList:Array<String> = [Mods.currentModDirectory];
         modsList = modsList.concat(Mods.getGlobalMods());
-        
+
         for (mod in modsList)
         {
             if (mod == null || mod.length == 0) continue;
-            
+
             var modPath = Mods.getModPath('$mod/$path');
             if (FileSystem.exists(modPath) && FileSystem.isDirectory(modPath))
             {
@@ -393,7 +400,7 @@ class Paths
         {
             #if web
             var prefix = assetsPath + "/";
-            for (asset in OpenFlAssets.list(ALL))
+            for (asset in OpenFlAssets.list())
             {
                 if (asset.startsWith(prefix) && asset != prefix)
                     result.push(asset);
@@ -413,7 +420,7 @@ class Paths
 
         return result;
     }
-        
+
     public static var currentTrackedAssets:Map<String, FlxGraphic> = [];
     static public function image(key:String, ?library:String = null, ?allowGPU:Bool = true, ?imgFormat:String = "png"):FlxGraphic
     {
@@ -434,7 +441,7 @@ class Paths
         if (bitmap == null)
         {
             var file:String = getPath('images/$key.$imgFormat', IMAGE, library, true);
-            
+
             #if MODS_ALLOWED
             if (file.startsWith('zip://')) {
                 var parts = file.substr(6).split('/');
@@ -492,7 +499,7 @@ class Paths
         }
         if (FileSystem.exists(path)) return File.getContent(path);
         #end
-        
+
         return (OpenFlAssets.exists(path, TEXT)) ? Assets.getText(path) : null;
     }
 
@@ -525,7 +532,7 @@ class Paths
 
 			if (FileSystem.exists(Mods.getModPath(Mods.currentModDirectory + '/' + key)) || FileSystem.exists(Mods.getModPath(key)))
 				return true;
-			
+
 			if (FileSystem.exists(Mods.getModPath('$key')))
 				return true;
 		}
@@ -627,7 +634,7 @@ class Paths
         var imageLoaded:FlxGraphic = image(key, library, allowGPU);
         #if MODS_ALLOWED
         var txtExists:Bool = false;
-        
+
         var txt:String = Mods.modsTxt(key);
         if(txt.startsWith('zip://')) {
             var parts = txt.substr(6).split('/');
@@ -673,6 +680,11 @@ class Paths
     }
     #end
 
+    inline static public function gif(key:String, ?library:String = null):FlxAnimateFrames
+    {
+        return Paths.getPath('images/$key.gif', IMAGE, library, true);
+    }
+
     inline static public function formatToSongPath(path:String) {
         var invalidChars = ~/[~&\\;:<>#]/;
         var hideChars = ~/[.,'"%?!]/;
@@ -700,109 +712,71 @@ class Paths
         if (library != null) modLibPath = '$library/';
         if (path != null) modLibPath += '$path';
 
-        var file:String = Mods.modsSounds(modLibPath, key, WAV_EXT);
-        if(file.startsWith('zip://')) {
-            var parts = file.substr(6).split('/');
-            var mod = parts[0];
-            var filePath = parts.slice(1).join('/');
-            var tempPath = Mods.extractFileFromZipMod(mod, filePath, 'sounds');
-            if(tempPath != null) {
-                if(!currentTrackedSounds.exists(file)) {
-                    #if (sys && !web)
-                    if (FileSystem.exists(tempPath))
-                        currentTrackedSounds.set(file, CoolUtil.loadHighBitrateWav(key, tempPath));
-                    else
-                        currentTrackedSounds.set(file, Sound.fromFile(tempPath));
-                    #else
-                    currentTrackedSounds.set(file, Sound.fromFile(tempPath));
-                    #end
-                }
-                localTrackedAssets.push(file);
-                return currentTrackedSounds.get(file);
-            }
-        }
-        else if(FileSystem.exists(file)) {
-            if(!currentTrackedSounds.exists(file)) {
-                currentTrackedSounds.set(file, CoolUtil.loadHighBitrateWav(key, file));
-            }
-            localTrackedAssets.push(file);
-            return currentTrackedSounds.get(file);
-        }
-
-        file = Mods.modsSounds(modLibPath, key);
-        if(file.startsWith('zip://')) {
-            var parts = file.substr(6).split('/');
-            var mod = parts[0];
-            var filePath = parts.slice(1).join('/');
-            var tempPath = Mods.extractFileFromZipMod(mod, filePath, 'sounds');
-            if(tempPath != null) {
-                if(!currentTrackedSounds.exists(file)) {
-                    currentTrackedSounds.set(file, Sound.fromFile(tempPath));
-                }
-                localTrackedAssets.push(file);
-                return currentTrackedSounds.get(file);
-            }
-        }
-        else if(FileSystem.exists(file)) {
-            if(!currentTrackedSounds.exists(file)) {
-                currentTrackedSounds.set(file, Sound.fromFile(file));
-            }
-            localTrackedAssets.push(file);
-            return currentTrackedSounds.get(file);
-        }
-
         #if (hxopus && sys)
-        file = Mods.modsSounds(modLibPath, key, OPUS_EXT);
-        if(file.startsWith('zip://')) {
-            var parts = file.substr(6).split('/');
+        var opusFile:String = Mods.modsSounds(modLibPath, key, OPUS_EXT);
+        if(opusFile.startsWith('zip://')) {
+            var parts = opusFile.substr(6).split('/');
             var mod = parts[0];
             var filePath = parts.slice(1).join('/');
             var tempPath = Mods.extractFileFromZipMod(mod, filePath, 'sounds');
             if(tempPath != null) {
-                if(!currentTrackedSounds.exists(file)) {
+                if(!currentTrackedSounds.exists(opusFile)) {
                     var bytes = File.getBytes(tempPath);
-                    currentTrackedSounds.set(file, hxopus.Opus.toOpenFL(bytes));
+                    currentTrackedSounds.set(opusFile, hxopus.Opus.toOpenFL(bytes));
+                }
+                localTrackedAssets.push(opusFile);
+                return currentTrackedSounds.get(opusFile);
+            }
+        }
+        else if(FileSystem.exists(opusFile)) {
+            if(!currentTrackedSounds.exists(opusFile)) {
+                var bytes = File.getBytes(opusFile);
+                currentTrackedSounds.set(opusFile, hxopus.Opus.toOpenFL(bytes));
+            }
+            localTrackedAssets.push(opusFile);
+            return currentTrackedSounds.get(opusFile);
+        }
+        #end
+
+        for (ext in SOUND_EXTS) {
+            var file:String = Mods.modsSounds(modLibPath, key, ext);
+            if(file.startsWith('zip://')) {
+                var parts = file.substr(6).split('/');
+                var mod = parts[0];
+                var filePath = parts.slice(1).join('/');
+                var tempPath = Mods.extractFileFromZipMod(mod, filePath, 'sounds');
+                if(tempPath != null) {
+                    if(!currentTrackedSounds.exists(file)) {
+                        if (ext == "wav") {
+                            #if (sys && !web)
+                            if (FileSystem.exists(tempPath))
+                                currentTrackedSounds.set(file, CoolUtil.loadHighBitrateWav(key, tempPath));
+                            else
+                                currentTrackedSounds.set(file, Sound.fromFile(tempPath));
+                            #else
+                            currentTrackedSounds.set(file, Sound.fromFile(tempPath));
+                            #end
+                        } else {
+                            currentTrackedSounds.set(file, Sound.fromFile(tempPath));
+                        }
+                    }
+                    localTrackedAssets.push(file);
+                    return currentTrackedSounds.get(file);
+                }
+            }
+            else if(FileSystem.exists(file)) {
+                if(!currentTrackedSounds.exists(file)) {
+                    if (ext == "wav") {
+                        currentTrackedSounds.set(file, CoolUtil.loadHighBitrateWav(key, file));
+                    } else {
+                        currentTrackedSounds.set(file, Sound.fromFile(file));
+                    }
                 }
                 localTrackedAssets.push(file);
                 return currentTrackedSounds.get(file);
             }
         }
-        else if(FileSystem.exists(file)) {
-            if(!currentTrackedSounds.exists(file)) {
-                var bytes = File.getBytes(file);
-                currentTrackedSounds.set(file, hxopus.Opus.toOpenFL(bytes));
-            }
-            localTrackedAssets.push(file);
-            return currentTrackedSounds.get(file);
-        }
         #end
-        #end
-
-        var wavPath:String = getPath((path != null ? '$path/' : '') + '$key.$WAV_EXT', SOUND, library);
-        if(OpenFlAssets.exists(wavPath, SOUND)) {
-            if(!currentTrackedSounds.exists(wavPath)) {
-                #if (sys && !web)
-                var absolutePath = getAbsolutePath(wavPath);
-                if (FileSystem.exists(absolutePath))
-                    currentTrackedSounds.set(wavPath, CoolUtil.loadHighBitrateWav(key, absolutePath));
-                else
-                    currentTrackedSounds.set(wavPath, OpenFlAssets.getSound(wavPath));
-                #else
-                currentTrackedSounds.set(wavPath, OpenFlAssets.getSound(wavPath));
-                #end
-            }
-            localTrackedAssets.push(wavPath);
-            return currentTrackedSounds.get(wavPath);
-        }
-
-        var standardPath:String = getPath((path != null ? '$path/' : '') + '$key.$SOUND_EXT', SOUND, library);
-        if(OpenFlAssets.exists(standardPath, SOUND)) {
-            if(!currentTrackedSounds.exists(standardPath)) {
-                currentTrackedSounds.set(standardPath, OpenFlAssets.getSound(standardPath));
-            }
-            localTrackedAssets.push(standardPath);
-            return currentTrackedSounds.get(standardPath);
-        }
 
         #if hxopus
         var opusPath:String = getPath((path != null ? '$path/' : '') + '$key.$OPUS_EXT', SOUND, library);
@@ -815,6 +789,29 @@ class Paths
             return currentTrackedSounds.get(opusPath);
         }
         #end
+
+        for (ext in SOUND_EXTS) {
+            var soundPath:String = getPath((path != null ? '$path/' : '') + '$key.$ext', SOUND, library);
+            if(OpenFlAssets.exists(soundPath, SOUND)) {
+                if(!currentTrackedSounds.exists(soundPath)) {
+                    if (ext == "wav") {
+                        #if (sys && !web)
+                        var absolutePath = getAbsolutePath(soundPath);
+                        if (FileSystem.exists(absolutePath))
+                            currentTrackedSounds.set(soundPath, CoolUtil.loadHighBitrateWav(key, absolutePath));
+                        else
+                            currentTrackedSounds.set(soundPath, OpenFlAssets.getSound(soundPath));
+                        #else
+                        currentTrackedSounds.set(soundPath, OpenFlAssets.getSound(soundPath));
+                        #end
+                    } else {
+                        currentTrackedSounds.set(soundPath, OpenFlAssets.getSound(soundPath));
+                    }
+                }
+                localTrackedAssets.push(soundPath);
+                return currentTrackedSounds.get(soundPath);
+            }
+        }
 
         if(beepOnNull) {
             trace('SOUND NOT FOUND: $key, PATH: $path');

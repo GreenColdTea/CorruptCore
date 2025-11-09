@@ -56,7 +56,7 @@ class LoadingState extends MusicBeatState
     static var imageProcessingPool:ThreadPool;
     static var audioProcessingPool:ThreadPool;
     static var jsonProcessingPool:ThreadPool;
-    
+
     var loadQueue:Array<LoadTask> = [];
     var queueIndex:Int = 0;
     var tasksPerFrame:Int = 2;
@@ -74,7 +74,7 @@ class LoadingState extends MusicBeatState
         this.target = target;
         this.stopMusic = stopMusic;
         this.directory = directory;
-        
+
         initializeMultiChannelPools();
     }
 
@@ -121,7 +121,7 @@ class LoadingState extends MusicBeatState
     var loadBarBg:FlxSprite;
     var loadBar:FlxSprite;
     var percentText:FlxText;
-    
+
     override function create()
     {
         Paths.clearStoredMemory();
@@ -132,7 +132,7 @@ class LoadingState extends MusicBeatState
 
         var bg:FlxSprite = new FlxSprite(0, 0).makeGraphic(FlxG.width, FlxG.height, 0xffcaff4d);
         add(bg);
-        
+
         funkay = new FlxSprite(0, 0).loadGraphic(Paths.getPath('images/funkay.png', IMAGE));
         funkay.setGraphicSize(FlxG.width, FlxG.height);
         funkay.updateHitbox();
@@ -151,19 +151,19 @@ class LoadingState extends MusicBeatState
         loadBar.scale.set(0, 15);
         loadBar.origin.set(0, 0);
         add(loadBar);
-        
+
         percentText = new FlxText(0, FlxG.height - 65, FlxG.width, "0%");
         percentText.setFormat(Paths.font("vcr.ttf"), 32, 0xFFFFFFFF, CENTER, OUTLINE, 0xFF000000);
         percentText.borderSize = 2;
         add(percentText);
-        
+
         @:privateAccess
         startTimer = new FlxTimer().start(CustomFadeTransition.lastDuration, (_) -> {
             loadingStarted = true;
             startLoading();
         });
     }
-    
+
     function startLoading()
     {
         initSongsManifest().onComplete
@@ -172,9 +172,9 @@ class LoadingState extends MusicBeatState
             {
                 callbacks = new MultiCallback(onLoad);
                 var introComplete = callbacks.add("introComplete");
-                
+
                 buildLoadQueue();
-                
+
                 new FlxTimer().start(MIN_TIME, (_) -> introComplete());
             }
         ).onError(function(e) {
@@ -184,7 +184,7 @@ class LoadingState extends MusicBeatState
             introComplete();
         });
     }
-    
+
     function buildLoadQueue()
     {
         if (PlayState.SONG != null)
@@ -194,7 +194,7 @@ class LoadingState extends MusicBeatState
                 PlayState.SONG.player2,
                 PlayState.SONG.gfVersion
             ];
-            
+
             for (char in characters)
             {
                 if (char != null)
@@ -231,7 +231,7 @@ class LoadingState extends MusicBeatState
 
             var stage = PlayState.SONG.stage;
             stage ??= StageData.vanillaSongStage(PlayState.SONG.song);
-            
+
             var stageFile:StageFile = StageData.getStageFile(stage);
             if (stageFile != null && stageFile.loadingImages != null)
             {
@@ -248,7 +248,7 @@ class LoadingState extends MusicBeatState
                 }
             }
         }
-        
+
         loadQueue.push({
             type: MAIN_THREAD, // Library operations in main thread
             execute: () -> checkLibrary("shared"),
@@ -263,11 +263,11 @@ class LoadingState extends MusicBeatState
             });
         }
     }
-    
+
     override function update(elapsed:Float)
     {
         super.update(elapsed);
-        
+
         if (loadingStarted)
         {
             var count = 0;
@@ -284,7 +284,7 @@ class LoadingState extends MusicBeatState
             var progress:Float = 1 - (callbacks.numRemaining / callbacks.length);
             targetShit = progress * Std.int(loadBarBg.width - 10);
             loadBar.scale.x = targetShit;
-            
+
             var percent:Int = Math.round(progress * 100);
             percentText.text = '$percent%';
         }
@@ -293,7 +293,7 @@ class LoadingState extends MusicBeatState
     function executeTask(task:LoadTask)
     {
         trace('Executing task: ${task.description}');
-        
+
         try {
             task.execute();
         } catch (e:Dynamic) {
@@ -317,12 +317,12 @@ class LoadingState extends MusicBeatState
     function onAudioProcessingUncaughtError(exception:Exception) {}
     function onJSONProcessingUncaughtError(exception:Exception) {}
     #end
-    
+
     function loadCharacter(character:String, onComplete:Void->Void)
     {
         var characterPath:String = 'characters/' + character + '.json';
         var path:String = Paths.getPath(characterPath, TEXT, null, true);
-        
+
         var rawJson:String = null;
         #if MODS_ALLOWED
         if (sys.FileSystem.exists(path))
@@ -341,7 +341,7 @@ class LoadingState extends MusicBeatState
                 trace('Error parsing character JSON for $character: $e');
             }
         }
-        
+
         // fallback to default image path
         loadCharacterImage('characters/' + character, onComplete);
     }
@@ -351,7 +351,7 @@ class LoadingState extends MusicBeatState
         var callback = callbacks.add("characterImage:" + image);
 
         var formats = checkImageFormats(image);
-        
+
         if (formats.animate)
             Paths.getAnimateAtlas(image);
         else if (formats.xml)
@@ -364,7 +364,7 @@ class LoadingState extends MusicBeatState
             Paths.image(image);
         else
             trace('WARNING: Character image not found: $image');
-        
+
         callback();
         onComplete();
     }
@@ -378,7 +378,7 @@ class LoadingState extends MusicBeatState
             if (sys.FileSystem.exists(modsPath))
                 return true;
             #end
-            
+
             return Assets.exists(Paths.getPath(path, type, null, false));
         }
 
@@ -396,7 +396,7 @@ class LoadingState extends MusicBeatState
         var callback = callbacks.add("stageImage:" + image);
 
         var formats = checkImageFormats(image);
-        
+
         if (formats.animate)
             Paths.getAnimateAtlas(image);
         else if (formats.xml)
@@ -409,11 +409,11 @@ class LoadingState extends MusicBeatState
             Paths.image(image);
         else
             trace('WARNING: Stage image not found: $image');
-        
+
         callback();
         onComplete();
     }
-    
+
     function checkLoadSong(path:String)
     {
         if (path == null) {
@@ -425,7 +425,7 @@ class LoadingState extends MusicBeatState
         #if MODS_ALLOWED
         if (path.startsWith('${Mods.MODS_FOLDER}/')) {
             var callback = callbacks.add("modSong:" + path);
-            
+
             try {
                 var sound = Sound.fromFile(path);
                 Paths.currentTrackedSounds.set(path, sound);
@@ -450,7 +450,7 @@ class LoadingState extends MusicBeatState
             }
         }
     }
-    
+
     function checkLibrary(library:String) {
         try {
             if (Assets.getLibrary(library) == null)
@@ -481,17 +481,17 @@ class LoadingState extends MusicBeatState
             callback();
         }
     }
-    
+
     function onLoad()
     {
         trace('Loading complete! Loaded ${callbacks.getFired().length} items');
-        
+
         if (stopMusic)
             FlxG.sound?.music?.stop();
-        
+
         FlxG.switchState(target);
     }
-    
+
     static function getSongPath():String
     {
         return instPath(PlayState.SONG.song);
@@ -503,27 +503,27 @@ class LoadingState extends MusicBeatState
 
         var vocalsPath:String = voicesPath(PlayState.SONG.song);
         if (vocalsPath != null) paths.push(vocalsPath);
-        
+
         var playerPostfix:String = getCharVocalsPostfix(PlayState.SONG.player1);
         var opponentPostfix:String = getCharVocalsPostfix(PlayState.SONG.player2);
-        
+
         if (playerPostfix != null) {
             var playerVocals:String = voicesPath(PlayState.SONG.song, playerPostfix);
             if (playerVocals != null) paths.push(playerVocals);
         }
-        
+
         if (opponentPostfix != null) {
             var opponentVocals:String = voicesPath(PlayState.SONG.song, opponentPostfix);
             if (opponentVocals != null) paths.push(opponentVocals);
         }
-        
+
         return paths;
     }
 
     static function instPath(song:String):String
     {
         var songKey:String = '${Paths.formatToSongPath(song)}/inst';
-        
+
         var path = getSoundFilePath(null, songKey, 'songs');
         if (path == null) {
             songKey = '${Paths.formatToSongPath(song)}/Inst';
@@ -555,26 +555,21 @@ class LoadingState extends MusicBeatState
         if (library != null) modLibPath = '$library/';
         if (path != null) modLibPath += '$path/';
 
-        var file:String = Mods.modsSounds(modLibPath, key, Paths.WAV_EXT);
-        if(FileSystem.exists(file)) {
-            return file;
-        }
-
-        file = Mods.modsSounds(modLibPath, key);
-        if(FileSystem.exists(file)) {
-            return file;
+        for (ext in Paths.SOUND_EXTS) {
+            var file:String = Mods.modsSounds(modLibPath, key, ext);
+            if(FileSystem.exists(file)) {
+                return file;
+            }
         }
         #end
 
         var fullKey = (path != null ? '$path/' : '') + key;
-        var wavPath:String = Paths.getPath('$fullKey.${Paths.WAV_EXT}', SOUND, library);
-        if(Assets.exists(wavPath, SOUND)) {
-            return wavPath;
-        }
 
-        var standardPath:String = Paths.getPath('$fullKey.${Paths.SOUND_EXT}', SOUND, library);
-        if(Assets.exists(standardPath, SOUND)) {
-            return standardPath;
+        for (ext in Paths.SOUND_EXTS) {
+            var soundPath:String = Paths.getPath('$fullKey.$ext', SOUND, library);
+            if(Assets.exists(soundPath, SOUND)) {
+                return soundPath;
+            }
         }
 
         return null;
@@ -583,11 +578,11 @@ class LoadingState extends MusicBeatState
     static function getCharVocalsPostfix(character:String):String
     {
         if (character == null) return null;
-        
+
         try {
             var characterPath:String = 'characters/' + character + '.json';
             var path:String = Paths.getPath(characterPath, TEXT, null, true);
-            
+
             var rawJson:String = null;
             #if MODS_ALLOWED
             if (sys.FileSystem.exists(path))
@@ -597,13 +592,13 @@ class LoadingState extends MusicBeatState
 
             if (rawJson != null) {
                 var json:Dynamic = haxe.Json.parse(rawJson);
-                if (json?.vocals_file != null) 
+                if (json?.vocals_file != null)
                     return json.vocals_file;
             }
         } catch (e:Dynamic) {
             trace('Error getting vocals postfix for character $character: $e');
         }
-        
+
         if (PlayState.SONG != null) {
             if (character == PlayState.SONG.player1)
                 return "Player";
@@ -613,7 +608,7 @@ class LoadingState extends MusicBeatState
 
         return null;
     }
-    
+
     public static function loadAndSwitchState(targetFactory:Void->FlxState, stopMusic = false)
     {
         var targetState = targetFactory();
@@ -628,25 +623,25 @@ class LoadingState extends MusicBeatState
 
         var loaded:Bool = true;
         if (PlayState.SONG != null) {
-            loaded = isSoundLoaded(getSongPath()) && 
-                    (!PlayState.SONG.needsVoices || areVocalsLoaded()) && 
-                    isLibraryLoaded("shared") && 
+            loaded = isSoundLoaded(getSongPath()) &&
+                    (!PlayState.SONG.needsVoices || areVocalsLoaded()) &&
+                    isLibraryLoaded("shared") &&
                     isLibraryLoaded(directory) &&
                     #if MODS_ALLOWED isModsLoaded() #else true #end &&
                     areCharactersLoaded();
         }
-        
+
         if (!loaded && isPlayState)
         {
             FlxG.switchState(() -> new LoadingState(targetState, stopMusic, directory));
             return;
         }
-        
+
         if (stopMusic) FlxG.sound?.music?.stop();
-        
+
         FlxG.switchState(() -> targetState);
     }
-    
+
     static function areCharactersLoaded():Bool
     {
         if (PlayState.SONG != null)
@@ -656,7 +651,7 @@ class LoadingState extends MusicBeatState
                 PlayState.SONG.player2,
                 PlayState.SONG.gfVersion
             ];
-            
+
             for (char in characters)
             {
                 if (char != null && !isCharacterLoaded(char))
@@ -665,7 +660,7 @@ class LoadingState extends MusicBeatState
 
             var stage = PlayState.SONG.stage;
             stage ??= StageData.vanillaSongStage(PlayState.SONG.song);
-            
+
             var stageFile:StageFile = StageData.getStageFile(stage);
             if (stageFile != null && stageFile.loadingImages != null)
             {
@@ -678,7 +673,7 @@ class LoadingState extends MusicBeatState
         }
         return true;
     }
-    
+
     static function isCharacterLoaded(character:String):Bool
     {
         var pathsToCheck = [
@@ -688,7 +683,7 @@ class LoadingState extends MusicBeatState
             Paths.getPath('images/characters/$character.json', TEXT, null, true),
             Paths.getPath('images/characters/$character.txt', TEXT, null, true)
         ];
-        
+
         for (path in pathsToCheck)
         {
             #if MODS_ALLOWED
@@ -696,7 +691,7 @@ class LoadingState extends MusicBeatState
             #end
             if (Assets.exists(path)) return true;
         }
-        
+
         return false;
     }
 
@@ -708,7 +703,7 @@ class LoadingState extends MusicBeatState
             Paths.getPath('images/$image.json', TEXT, null, true),
             Paths.getPath('images/$image.txt', TEXT, null, true)
         ];
-        
+
         for (path in pathsToCheck)
         {
             #if MODS_ALLOWED
@@ -716,10 +711,10 @@ class LoadingState extends MusicBeatState
             #end
             if (Assets.exists(path)) return true;
         }
-        
+
         return false;
     }
-    
+
     #if MODS_ALLOWED
     static function isModsLoaded():Bool
     {
@@ -737,38 +732,38 @@ class LoadingState extends MusicBeatState
         }
         return true;
     }
-    
+
     static function isSoundLoaded(path:String):Bool
     {
         #if MODS_ALLOWED
         if (path.startsWith('${Mods.MODS_FOLDER}/')) return sys.FileSystem.exists(path);
         #end
-        
+
         return Assets.cache.hasSound(path);
     }
-    
+
     static function isLibraryLoaded(library:String):Bool
     {
         return Assets.getLibrary(library) != null;
     }
-    
+
     override function destroy()
     {
         if (fileIOPool != null) {
             fileIOPool.cancel();
             fileIOPool = null;
         }
-        
+
         if (imageProcessingPool != null) {
             imageProcessingPool.cancel();
             imageProcessingPool = null;
         }
-        
+
         if (audioProcessingPool != null) {
             audioProcessingPool.cancel();
             audioProcessingPool = null;
         }
-        
+
         if (jsonProcessingPool != null) {
             jsonProcessingPool.cancel();
             jsonProcessingPool = null;
@@ -780,7 +775,7 @@ class LoadingState extends MusicBeatState
 
         super.destroy();
     }
-    
+
     static function initSongsManifest()
     {
         var id = "songs";
@@ -854,16 +849,16 @@ class MultiCallback
     public var logId:String = null;
     public var length(default, null) = 0;
     public var numRemaining(default, null) = 0;
-    
+
     var unfired = new Map<String, Void->Void>();
     var fired = new Array<String>();
-    
+
     public function new (callback:Void->Void, logId:String = null)
     {
         this.callback = callback;
         this.logId = logId;
     }
-    
+
     public function add(id = "untitled")
     {
         id = '$length:$id';
@@ -877,10 +872,10 @@ class MultiCallback
                 unfired.remove(id);
                 fired.push(id);
                 numRemaining--;
-                
+
                 if (logId != null)
                     log('fired $id, $numRemaining remaining');
-                
+
                 if (numRemaining == 0)
                 {
                     if (logId != null)
@@ -894,13 +889,13 @@ class MultiCallback
         unfired[id] = func;
         return func;
     }
-    
+
     inline function log(msg):Void
     {
         if (logId != null)
             trace('$logId: $msg');
     }
-    
+
     public function getFired() return fired.copy();
     public function getUnfired() return [for (id in unfired.keys()) id];
 }

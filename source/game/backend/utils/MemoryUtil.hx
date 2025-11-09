@@ -91,82 +91,10 @@ class MemoryUtil {
     public static function getAccurateRamUsage():Float {
         #if windows
         return WindowsMemoryAPI.getProcessMemoryUsage();
-        #elseif (linux || android)
-        return getLinuxMemoryUsage();
-        #elseif mac
-        return getMacMemoryUsage();
-        #elseif ios
-        return getIOSMemoryUsage();
         #else
-        #if (openfl || flash)
         return openfl.system.System.totalMemoryNumber;
-        #else
-        return -1;
-        #end
         #end
     }
-
-    // Linux implementation
-    // Same for android cuz it's kinda linux too, but idk if there needs using JNI
-    #if (linux || android)
-    private static function getLinuxMemoryUsage():Float {
-        #if cpp
-        var result:Float = -1.0;
-        untyped __cpp__('
-            FILE* file = fopen("/proc/self/statm", "r");
-            if (file) {
-                long pages = 0;
-                if (fscanf(file, "%*s%ld", &pages) == 1) {
-                    long page_size = sysconf(_SC_PAGESIZE);
-                    result = (double)(pages * page_size);
-                }
-                fclose(file);
-            }
-        ');
-        return result;
-        #else
-        return -1;
-        #end
-    }
-    #end
-
-    // macOS implementation
-    #if mac
-    private static function getMacMemoryUsage():Float {
-        #if cpp
-        var result:Float = -1.0;
-        untyped __cpp__('
-            task_basic_info_data_t taskInfo;
-            mach_msg_type_number_t infoCount = TASK_BASIC_INFO_COUNT;
-            if (task_info(mach_task_self(), TASK_BASIC_INFO, (task_info_t)&taskInfo, &infoCount) == KERN_SUCCESS) {
-                result = (double)taskInfo.resident_size;
-            }
-        ');
-        return result;
-        #else
-        return -1;
-        #end
-    }
-    #end
-
-    // iOS implementation
-    #if ios
-    private static function getIOSMemoryUsage():Float {
-        #if cpp
-        var result:Float = -1.0;
-        untyped __cpp__('
-            task_vm_info_data_t vmInfo;
-            mach_msg_type_number_t count = TASK_VM_INFO_COUNT;
-            if (task_info(mach_task_self(), TASK_VM_INFO, (task_info_t)&vmInfo, &count) == KERN_SUCCESS) {
-                result = (double)vmInfo.phys_footprint;
-            }
-        ');
-        return result;
-        #else
-        return -1;
-        #end
-    }
-    #end
 
     public static function getPeakRamUsage():Float {
         #if windows
@@ -179,36 +107,6 @@ class MemoryUtil {
     public static function getAvailableSystemMemory():Float {
         #if windows
         return WindowsMemoryAPI.getAvailableSystemMemory();
-        #elseif linux
-        #if cpp
-        var result:Float = -1.0;
-        untyped __cpp__('
-            struct sysinfo info;
-            if (sysinfo(&info) == 0) {
-                result = (double)(info.freeram * info.mem_unit);
-            }
-        ');
-        return result;
-        #else
-        return -1;
-        #end
-        #elseif mac
-        #if cpp
-        var result:Float = -1.0;
-        untyped __cpp__('
-            vm_size_t page_size;
-            vm_statistics64_data_t vm_stats;
-            mach_msg_type_number_t host_size = sizeof(vm_stats) / sizeof(natural_t);
-
-            if (host_page_size(mach_host_self(), &page_size) == KERN_SUCCESS &&
-                host_statistics64(mach_host_self(), HOST_VM_INFO, (host_info64_t)&vm_stats, &host_size) == KERN_SUCCESS) {
-                result = (double)((int64_t)vm_stats.free_count * (int64_t)page_size);
-            }
-        ');
-        return result;
-        #else
-        return -1;
-        #end
         #else
         return -1;
         #end
