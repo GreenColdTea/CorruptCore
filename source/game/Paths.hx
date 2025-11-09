@@ -9,6 +9,10 @@ import flixel.math.FlxPoint;
 import flixel.math.FlxRect;
 import flixel.system.FlxAssets;
 
+#if flxgif
+import flxgif.FlxGifAsset;
+#end
+
 import openfl.display.BitmapData;
 import openfl.geom.Rectangle;
 import openfl.media.Sound;
@@ -680,10 +684,12 @@ class Paths
     }
     #end
 
-    inline static public function gif(key:String, ?library:String = null):FlxAnimateFrames
+    #if flxgif
+    inline static public function gif(key:String, ?library:String = null):FlxGifAsset
     {
         return Paths.getPath('images/$key.gif', IMAGE, library, true);
     }
+    #end
 
     inline static public function formatToSongPath(path:String) {
         var invalidChars = ~/[~&\\;:<>#]/;
