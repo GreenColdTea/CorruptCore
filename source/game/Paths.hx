@@ -44,7 +44,7 @@ class Paths
         #if web
         ["mp3"]
         #else
-        ["ogg", "wav", /*"flac",*/ "mp3"]
+        ["ogg", "wav", #if hxflac "flac", #end "mp3"]
         #end;
 
     inline public static final VIDEO_EXT = "mp4";
@@ -762,6 +762,10 @@ class Paths
                             #else
                             currentTrackedSounds.set(file, Sound.fromFile(tempPath));
                             #end
+                        #if hxflac
+                        } else if (ext == "flac") {
+                            var bytes = File.getBytes(tempPath);
+                            currentTrackedSounds.set(file, hxflac.FLACHelper.toOpenFL(bytes)); #end
                         } else {
                             currentTrackedSounds.set(file, Sound.fromFile(tempPath));
                         }
@@ -774,6 +778,10 @@ class Paths
                 if(!currentTrackedSounds.exists(file)) {
                     if (ext == "wav") {
                         currentTrackedSounds.set(file, CoolUtil.loadHighBitrateWav(key, file));
+                    #if hxflac
+                    } else if (ext == "flac") {
+                        var bytes = File.getBytes(file);
+                        currentTrackedSounds.set(file, hxflac.FLACHelper.toOpenFL(bytes)); #end
                     } else {
                         currentTrackedSounds.set(file, Sound.fromFile(file));
                     }
@@ -810,6 +818,9 @@ class Paths
                         #else
                         currentTrackedSounds.set(soundPath, OpenFlAssets.getSound(soundPath));
                         #end
+                    #if hxflac
+                    } else if (ext == "flac") {
+                        currentTrackedSounds.set(soundPath, hxflac.FLACHelper.toOpenFLFromFile(soundPath)); #end
                     } else {
                         currentTrackedSounds.set(soundPath, OpenFlAssets.getSound(soundPath));
                     }

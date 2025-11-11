@@ -158,6 +158,7 @@
 
 	<section if="cpp">
 		<haxelib name="sl-windows-api" if="windows" />
+		<haxelib name="hxflac" />
 		<haxelib name="hxopus" />
 	</section>
 
