@@ -174,13 +174,8 @@ class FreeplayState extends MusicBeatState
 		textBackground.alpha = 0.6;
 		add(textBackground);
 
-		#if PRELOAD_ALL
-		var helpString = "Press SPACE to listen to the Song / Press CTRL to open the Gameplay Changers Menu / Press RESET to Reset your Score and Accuracy.";
+		var helpString = "Press SPACE to play the instrumental / Press CTRL to open the Gameplay Changers Menu / Press RESET to Reset your Score and Accuracy.";
 		var textSize = 16;
-		#else
-		var helpString = "Press CTRL to open the Gameplay Changers Menu / Press RESET to Reset your Score and Accuracy.";
-		var textSize = 18;
-		#end
 
 		helpText = new FlxText(textBackground.x, textBackground.y + 4, FlxG.width, helpString, textSize);
 		helpText.setFormat(Paths.font("vcr.ttf"), textSize, FlxColor.WHITE, RIGHT);
@@ -355,7 +350,6 @@ class FreeplayState extends MusicBeatState
 
 	function previewSong()
 	{
-		#if PRELOAD_ALL
 		if (instPlaying != curSelected)
 		{
 			FlxG.sound.music.volume = 0;
@@ -366,7 +360,6 @@ class FreeplayState extends MusicBeatState
 			FlxG.sound?.playMusic(Paths.inst(PlayState.SONG.song), 0.7);
 			instPlaying = curSelected;
 		}
-		#end
 	}
 
 	function startSong(shiftPressed:Bool)

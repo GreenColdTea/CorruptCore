@@ -52,7 +52,6 @@ class LoadingState extends MusicBeatState
     var callbacks:MultiCallback;
     var targetShit:Float = 0;
 
-    static var fileIOPool:ThreadPool;
     static var imageProcessingPool:ThreadPool;
     static var audioProcessingPool:ThreadPool;
     static var jsonProcessingPool:ThreadPool;
@@ -63,7 +62,6 @@ class LoadingState extends MusicBeatState
     var loadingStarted:Bool = false;
     var startTimer:FlxTimer;
 
-    public final maxFileIOThreads:Int = 2;
     public final maxImageThreads:Int = 2;
     public final maxAudioThreads:Int = 1;
     public final maxJSONThreads:Int = 2;
@@ -80,40 +78,25 @@ class LoadingState extends MusicBeatState
 
     function initializeMultiChannelPools()
     {
-        if (fileIOPool == null) {
-            fileIOPool = new ThreadPool(0, maxFileIOThreads);
-            fileIOPool.onComplete.add(onFileIOComplete);
-            fileIOPool.onError.add(onFileIOError);
-            #if (haxe_ver >= 4.1)
-            fileIOPool.onUncaughtError.add(onFileIOUncaughtError);
-            #end
-        }
-
         if (imageProcessingPool == null) {
             imageProcessingPool = new ThreadPool(0, maxImageThreads);
             imageProcessingPool.onComplete.add(onImageProcessingComplete);
             imageProcessingPool.onError.add(onImageProcessingError);
-            #if (haxe_ver >= 4.1)
             imageProcessingPool.onUncaughtError.add(onImageProcessingUncaughtError);
-            #end
         }
 
         if (audioProcessingPool == null) {
             audioProcessingPool = new ThreadPool(0, maxAudioThreads);
             audioProcessingPool.onComplete.add(onAudioProcessingComplete);
             audioProcessingPool.onError.add(onAudioProcessingError);
-            #if (haxe_ver >= 4.1)
             audioProcessingPool.onUncaughtError.add(onAudioProcessingUncaughtError);
-            #end
         }
 
         if (jsonProcessingPool == null) {
             jsonProcessingPool = new ThreadPool(0, maxJSONThreads);
             jsonProcessingPool.onComplete.add(onJSONProcessingComplete);
             jsonProcessingPool.onError.add(onJSONProcessingError);
-            #if (haxe_ver >= 4.1)
             jsonProcessingPool.onUncaughtError.add(onJSONProcessingUncaughtError);
-            #end
         }
     }
 
@@ -133,7 +116,7 @@ class LoadingState extends MusicBeatState
         var bg:FlxSprite = new FlxSprite(0, 0).makeGraphic(FlxG.width, FlxG.height, 0xffcaff4d);
         add(bg);
 
-        funkay = new FlxSprite(0, 0).loadGraphic(Paths.getPath('images/funkay.png', IMAGE));
+        funkay = new FlxSprite(0, 0).loadGraphic(Paths.image('funkay', null, true));
         funkay.setGraphicSize(FlxG.width, FlxG.height);
         funkay.updateHitbox();
         funkay.antialiasing = ClientPrefs.globalAntialiasing;
@@ -166,23 +149,12 @@ class LoadingState extends MusicBeatState
 
     function startLoading()
     {
-        initSongsManifest().onComplete
-        (
-            function (lib)
-            {
-                callbacks = new MultiCallback(onLoad);
-                var introComplete = callbacks.add("introComplete");
+        callbacks = new MultiCallback(onLoad);
+        var introComplete = callbacks.add("introComplete");
 
-                buildLoadQueue();
+        buildLoadQueue();
 
-                new FlxTimer().start(MIN_TIME, (_) -> introComplete());
-            }
-        ).onError(function(e) {
-            trace('Error loading songs manifest: $e');
-            callbacks = new MultiCallback(onLoad);
-            var introComplete = callbacks.add("introComplete");
-            introComplete();
-        });
+        new FlxTimer().start(MIN_TIME, (_) -> introComplete());
     }
 
     function buildLoadQueue()
@@ -200,7 +172,7 @@ class LoadingState extends MusicBeatState
                 if (char != null)
                 {
                     loadQueue.push({
-                        type: MAIN_THREAD, // JSON processing in main thread
+                        type: MAIN_THREAD,
                         execute: () -> {
                             var callback = callbacks.add("character:" + char);
                             loadCharacter(char, () -> callback());
@@ -211,7 +183,7 @@ class LoadingState extends MusicBeatState
             }
 
             loadQueue.push({
-                type: MAIN_THREAD, // Audio loading in main thread
+                type: MAIN_THREAD,
                 execute: () -> checkLoadSong(getSongPath()),
                 description: 'Load song audio'
             });
@@ -238,7 +210,7 @@ class LoadingState extends MusicBeatState
                 for (image in stageFile.loadingImages)
                 {
                     loadQueue.push({
-                        type: MAIN_THREAD, // Image loading in main thread
+                        type: MAIN_THREAD,
                         execute: () -> {
                             var callback = callbacks.add("stageImage:" + image);
                             loadStageImage(image, () -> callback());
@@ -247,20 +219,6 @@ class LoadingState extends MusicBeatState
                     });
                 }
             }
-        }
-
-        loadQueue.push({
-            type: MAIN_THREAD, // Library operations in main thread
-            execute: () -> checkLibrary("shared"),
-            description: 'Check shared library'
-        });
-
-        if(directory != null && directory.length > 0 && directory != 'shared') {
-            loadQueue.push({
-                type: MAIN_THREAD, // Library operations in main thread
-                execute: () -> checkLibrary(directory),
-                description: 'Check directory library: $directory'
-            });
         }
     }
 
@@ -301,34 +259,23 @@ class LoadingState extends MusicBeatState
         }
     }
 
-    // for future stuff
     function onFileIOComplete(state:Dynamic) {}
     function onImageProcessingComplete(state:Dynamic) {}
     function onAudioProcessingComplete(state:Dynamic) {}
     function onJSONProcessingComplete(state:Dynamic) {}
-    function handleTaskError(state:Dynamic) {}
     function onFileIOError(state:Dynamic) {}
     function onImageProcessingError(state:Dynamic) {}
     function onAudioProcessingError(state:Dynamic) {}
     function onJSONProcessingError(state:Dynamic) {}
-    #if (haxe_ver >= 4.1)
     function onFileIOUncaughtError(exception:Exception) {}
     function onImageProcessingUncaughtError(exception:Exception) {}
     function onAudioProcessingUncaughtError(exception:Exception) {}
     function onJSONProcessingUncaughtError(exception:Exception) {}
-    #end
 
     function loadCharacter(character:String, onComplete:Void->Void)
     {
         var characterPath:String = 'characters/' + character + '.json';
-        var path:String = Paths.getPath(characterPath, TEXT, null, true);
-
-        var rawJson:String = null;
-        #if MODS_ALLOWED
-        if (sys.FileSystem.exists(path))
-            rawJson = sys.io.File.getContent(path);
-        else #end if (Assets.exists(path))
-            rawJson = Assets.getText(path);
+        var rawJson:String = Paths.getTextFromFile(characterPath);
 
         if (rawJson != null) {
             try {
@@ -353,7 +300,7 @@ class LoadingState extends MusicBeatState
         var formats = checkImageFormats(image);
 
         if (formats.animate)
-            Paths.getAnimateAtlas(image);
+            #if flixel_animate Paths.getAnimateAtlas(image); #end
         else if (formats.xml)
             Paths.getSparrowAtlas(image, null, true);
         else if (formats.json)
@@ -361,7 +308,7 @@ class LoadingState extends MusicBeatState
         else if (formats.txt)
             Paths.getPackerAtlas(image, null, true);
         else if (formats.png)
-            Paths.image(image);
+            Paths.image(image, null, true);
         else
             trace('WARNING: Character image not found: $image');
 
@@ -371,23 +318,12 @@ class LoadingState extends MusicBeatState
 
     function checkImageFormats(image:String):Dynamic
     {
-        function assetExists(path:String, type:AssetType):Bool
-        {
-            #if MODS_ALLOWED
-            var modsPath:String = Paths.getPath(path, type, null, true);
-            if (sys.FileSystem.exists(modsPath))
-                return true;
-            #end
-
-            return Assets.exists(Paths.getPath(path, type, null, false));
-        }
-
         return {
-            animate: #if flixel_animate assetExists('images/$image/Animation.json', TEXT) #else false #end,
-            xml: assetExists('images/$image.xml', TEXT),
-            json: assetExists('images/$image.json', TEXT),
-            txt: assetExists('images/$image.txt', TEXT),
-            png: assetExists('images/$image.png', IMAGE)
+            animate: #if flixel_animate Paths.fileExists('images/$image/Animation.json', TEXT) #else false #end,
+            xml: Paths.fileExists('images/$image.xml', TEXT),
+            json: Paths.fileExists('images/$image.json', TEXT),
+            txt: Paths.fileExists('images/$image.txt', TEXT),
+            png: Paths.fileExists('images/$image.png', IMAGE)
         };
     }
 
@@ -398,7 +334,7 @@ class LoadingState extends MusicBeatState
         var formats = checkImageFormats(image);
 
         if (formats.animate)
-            Paths.getAnimateAtlas(image);
+            #if flixel_animate Paths.getAnimateAtlas(image); #end
         else if (formats.xml)
             Paths.getSparrowAtlas(image, null, true);
         else if (formats.json)
@@ -406,7 +342,7 @@ class LoadingState extends MusicBeatState
         else if (formats.txt)
             Paths.getPackerAtlas(image, null, true);
         else if (formats.png)
-            Paths.image(image);
+            Paths.image(image, null, true);
         else
             trace('WARNING: Stage image not found: $image');
 
@@ -451,37 +387,6 @@ class LoadingState extends MusicBeatState
         }
     }
 
-    function checkLibrary(library:String) {
-        try {
-            if (Assets.getLibrary(library) == null)
-            {
-                @:privateAccess
-                if (!LimeAssets.libraryPaths.exists(library))
-                {
-                    trace('Library $library not found, but continuing anyway');
-                    var callback = callbacks.add("missing_library:" + library);
-                    callback();
-                    return;
-                }
-
-                var callback = callbacks.add("library:" + library);
-                Assets.loadLibrary(library).onComplete((_) -> callback()).onError(function(e) {
-                    trace('Error loading library: $library, error: $e');
-                    callback();
-                });
-            }
-            else
-            {
-                var callback = callbacks.add("already_loaded_library:" + library);
-                callback();
-            }
-        } catch (e) {
-            trace('Exception in checkLibrary: $e');
-            var callback = callbacks.add("error_library:" + library);
-            callback();
-        }
-    }
-
     function onLoad()
     {
         trace('Loading complete! Loaded ${callbacks.getFired().length} items');
@@ -494,80 +399,67 @@ class LoadingState extends MusicBeatState
 
     static function getSongPath():String
     {
-        return instPath(PlayState.SONG.song);
+        return getSoundPath(PlayState.SONG.song, 'inst');
     }
 
     static function getVocalPaths():Array<String>
     {
         var paths:Array<String> = [];
 
-        var vocalsPath:String = voicesPath(PlayState.SONG.song);
+        var vocalsPath:String = getSoundPath(PlayState.SONG.song, 'voices');
         if (vocalsPath != null) paths.push(vocalsPath);
 
         var playerPostfix:String = getCharVocalsPostfix(PlayState.SONG.player1);
         var opponentPostfix:String = getCharVocalsPostfix(PlayState.SONG.player2);
 
         if (playerPostfix != null) {
-            var playerVocals:String = voicesPath(PlayState.SONG.song, playerPostfix);
+            var playerVocals:String = getSoundPath(PlayState.SONG.song, 'voices-$playerPostfix');
             if (playerVocals != null) paths.push(playerVocals);
         }
 
         if (opponentPostfix != null) {
-            var opponentVocals:String = voicesPath(PlayState.SONG.song, opponentPostfix);
+            var opponentVocals:String = getSoundPath(PlayState.SONG.song, 'voices-$opponentPostfix');
             if (opponentVocals != null) paths.push(opponentVocals);
         }
 
         return paths;
     }
 
-    static function instPath(song:String):String
+    static function getSoundPath(song:String, type:String):String
     {
-        var songKey:String = '${Paths.formatToSongPath(song)}/inst';
+        var songKey:String = '${Paths.formatToSongPath(song)}/$type';
 
-        var path = getSoundFilePath(null, songKey, 'songs');
-        if (path == null) {
-            songKey = '${Paths.formatToSongPath(song)}/Inst';
-            path = getSoundFilePath(null, songKey, 'songs');
-        }
-
-        return path;
-    }
-
-    static function voicesPath(song:String, postfix:String = null):String
-    {
-        var songKey:String = '${Paths.formatToSongPath(song)}/voices';
-        if (postfix != null) songKey += '-' + postfix;
-
-        var path = getSoundFilePath(null, songKey, 'songs');
-        if (path == null) {
-            songKey = '${Paths.formatToSongPath(song)}/Voices';
-            if (postfix != null) songKey += '-' + postfix;
-            path = getSoundFilePath(null, songKey, 'songs');
-        }
-        return path;
-    }
-
-    @:noCompletion
-    private static function getSoundFilePath(path:Null<String>, key:String, ?library:String):String
-    {
         #if MODS_ALLOWED
-        var modLibPath:String = '';
-        if (library != null) modLibPath = '$library/';
-        if (path != null) modLibPath += '$path/';
-
         for (ext in Paths.SOUND_EXTS) {
-            var file:String = Mods.modsSounds(modLibPath, key, ext);
-            if(FileSystem.exists(file)) {
+            var file:String = Mods.modsSounds('songs', songKey, ext);
+            if (FileSystem.exists(file)) {
                 return file;
             }
         }
         #end
 
-        var fullKey = (path != null ? '$path/' : '') + key;
+        for (ext in Paths.SOUND_EXTS) {
+            var soundPath:String = Paths.getPath('songs/$songKey.$ext', SOUND, 'songs');
+            if (Assets.exists(soundPath, SOUND)) {
+                return soundPath;
+            }
+        }
+
+        var capitalType = type.charAt(0).toUpperCase() + type.substr(1);
+        var songKeyCapital:String = '${Paths.formatToSongPath(song)}/$capitalType';
+
+        #if MODS_ALLOWED
+        for (ext in Paths.SOUND_EXTS) {
+            var file:String = Mods.modsSounds('songs', songKeyCapital, ext);
+            if (FileSystem.exists(file)) {
+                return file;
+            }
+        }
+        #end
 
         for (ext in Paths.SOUND_EXTS) {
-            var soundPath:String = Paths.getPath('$fullKey.$ext', SOUND, library);
-            if(Assets.exists(soundPath, SOUND)) {
+            var soundPath:String = Paths.getPath('songs/$songKeyCapital.$ext', SOUND, 'songs');
+            if (Assets.exists(soundPath, SOUND)) {
                 return soundPath;
             }
         }
@@ -581,14 +473,7 @@ class LoadingState extends MusicBeatState
 
         try {
             var characterPath:String = 'characters/' + character + '.json';
-            var path:String = Paths.getPath(characterPath, TEXT, null, true);
-
-            var rawJson:String = null;
-            #if MODS_ALLOWED
-            if (sys.FileSystem.exists(path))
-                rawJson = sys.io.File.getContent(path);
-            else #end if (Assets.exists(path))
-                rawJson = Assets.getText(path);
+            var rawJson:String = Paths.getTextFromFile(characterPath);
 
             if (rawJson != null) {
                 var json:Dynamic = haxe.Json.parse(rawJson);
@@ -609,7 +494,7 @@ class LoadingState extends MusicBeatState
         return null;
     }
 
-    public static function loadAndSwitchState(targetFactory:Void->FlxState, stopMusic = false)
+    public static function loadAndSwitchState(targetFactory:Void->NextState, stopMusic = false)
     {
         var targetState = targetFactory();
         var isPlayState = Std.isOfType(targetState, PlayState);
@@ -625,8 +510,6 @@ class LoadingState extends MusicBeatState
         if (PlayState.SONG != null) {
             loaded = isSoundLoaded(getSongPath()) &&
                     (!PlayState.SONG.needsVoices || areVocalsLoaded()) &&
-                    isLibraryLoaded("shared") &&
-                    isLibraryLoaded(directory) &&
                     #if MODS_ALLOWED isModsLoaded() #else true #end &&
                     areCharactersLoaded();
         }
@@ -639,7 +522,7 @@ class LoadingState extends MusicBeatState
 
         if (stopMusic) FlxG.sound?.music?.stop();
 
-        FlxG.switchState(() -> targetState);
+        FlxG.switchState(targetState);
     }
 
     static function areCharactersLoaded():Bool
@@ -677,19 +560,18 @@ class LoadingState extends MusicBeatState
     static function isCharacterLoaded(character:String):Bool
     {
         var pathsToCheck = [
-            Paths.getPath('characters/$character.json', TEXT, null, true),
-            Paths.getPath('images/characters/$character.png', IMAGE, null, true),
-            Paths.getPath('images/characters/$character.xml', TEXT, null, true),
-            Paths.getPath('images/characters/$character.json', TEXT, null, true),
-            Paths.getPath('images/characters/$character.txt', TEXT, null, true)
+            'characters/$character.json',
+            'images/characters/$character.png',
+            'images/characters/$character.xml',
+            'images/characters/$character.json',
+            'images/characters/$character.txt'
         ];
 
         for (path in pathsToCheck)
         {
-            #if MODS_ALLOWED
-            if (sys.FileSystem.exists(path)) return true;
-            #end
-            if (Assets.exists(path)) return true;
+            var assetType:AssetType = path.endsWith('.png') ? IMAGE : TEXT;
+            if (Paths.fileExists(path, assetType, true))
+                return true;
         }
 
         return false;
@@ -698,18 +580,17 @@ class LoadingState extends MusicBeatState
     static function isStageImageLoaded(image:String):Bool
     {
         var pathsToCheck = [
-            Paths.getPath('images/$image.png', IMAGE, null, true),
-            Paths.getPath('images/$image.xml', TEXT, null, true),
-            Paths.getPath('images/$image.json', TEXT, null, true),
-            Paths.getPath('images/$image.txt', TEXT, null, true)
+            'images/$image.png',
+            'images/$image.xml',
+            'images/$image.json',
+            'images/$image.txt'
         ];
 
         for (path in pathsToCheck)
         {
-            #if MODS_ALLOWED
-            if (sys.FileSystem.exists(path)) return true;
-            #end
-            if (Assets.exists(path)) return true;
+            var assetType:AssetType = path.endsWith('.png') ? IMAGE : TEXT;
+            if (Paths.fileExists(path, assetType, true))
+                return true;
         }
 
         return false;
@@ -736,24 +617,14 @@ class LoadingState extends MusicBeatState
     static function isSoundLoaded(path:String):Bool
     {
         #if MODS_ALLOWED
-        if (path.startsWith('${Mods.MODS_FOLDER}/')) return sys.FileSystem.exists(path);
+        if (path.startsWith('${Mods.MODS_FOLDER}/')) return FileSystem.exists(path);
         #end
 
         return Assets.cache.hasSound(path);
     }
 
-    static function isLibraryLoaded(library:String):Bool
-    {
-        return Assets.getLibrary(library) != null;
-    }
-
     override function destroy()
     {
-        if (fileIOPool != null) {
-            fileIOPool.cancel();
-            fileIOPool = null;
-        }
-
         if (imageProcessingPool != null) {
             imageProcessingPool.cancel();
             imageProcessingPool = null;

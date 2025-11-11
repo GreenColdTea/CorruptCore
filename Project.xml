@@ -83,37 +83,23 @@
 	<!--<define name="CHECK_FOR_UPDATES" if="desktop officialBuild"/>-->
 	<!-- NOTE: ITS OUTDATED -->
 
-	<define name="PRELOAD_ALL" unless="web" />
-	<define name="NO_PRELOAD_ALL" unless="PRELOAD_ALL"/>
-
-	<library name="videos"        preload="true" />
-	<section if="PRELOAD_ALL">
-		<library name="songs"         preload="true" />
-		<library name="shared"        preload="true" />
-	</section>
-
-	<section if="NO_PRELOAD_ALL">
-		<library name="songs"         preload="true" />
-		<library name="shared"        preload="false" />
-	</section>
-
-	<assets path="assets/videos"        library="videos"        if="VIDEOS_ALLOWED"/>
-	<assets path="assets/songs"         library="songs"         exclude="*.ogg" if="web"/>
-	<assets path="assets/songs"         library="songs"         exclude="*.mp3" unless="web"/>
-	<assets path="assets/shared"        library="shared"        exclude="*.ogg" if="web"/>
-	<assets path="assets/shared"        library="shared"        exclude="*.mp3" unless="web"/>
+	<assets path="assets/videos" if="VIDEOS_ALLOWED"/>
+	<assets path="assets/songs"  exclude="*.ogg" if="web"/>
+	<assets path="assets/songs"  exclude="*.mp3" unless="web"/>
+	<assets path="assets/shared" exclude="*.ogg" if="web"/>
+	<assets path="assets/shared" exclude="*.mp3" unless="web"/>
 
 	<section if="MODS_ALLOWED">
 		<assets path='contents_file' rename='contents' embed='false'/>
 	</section>
 
 	<section if="INCLUDE_BASE_GAME">
-		<assets path="base_game" rename="contents/base_game" exclude="*.ogg" if="web"/>
-		<assets path="base_game" rename="contents/base_game" exclude="*.mp3" unless="web"/>
+		<assets path="base_game" rename="assets" exclude="*.ogg" if="web"/>
+		<assets path="base_game" rename="assets" exclude="*.mp3" unless="web"/>
 	</section>
 	<!-- <template path='mods' /> -->
 
-	<assets path="psych-ui" library="psych-ui" rename="assets/psych-ui" embed="true" />
+	<assets path="psych-ui" rename="assets/psych-ui" embed="true" />
 
 	<!-- assets path="CHANGELOG.md" rename='changelog.txt' -->
 

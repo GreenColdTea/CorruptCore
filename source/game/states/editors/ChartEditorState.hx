@@ -337,6 +337,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 		vortex = chartEditorSave.data.chart_vortex;
 		ignoreWarnings = chartEditorSave.data.ignoreWarnings;
+		
 		var bg:FlxSprite = new FlxSprite().loadGraphic(Paths.image('menuDesat'));
 		bg.scrollFactor.set();
 		bg.color = gridColors.background;

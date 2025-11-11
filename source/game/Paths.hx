@@ -170,8 +170,13 @@ class Paths
         }
         #end
 
-        if (library != null)
-            return getLibraryPath(file, library);
+        //for backward compatibility
+        if (library != null && library != "preload" && library != "default")
+        {
+            var libraryPath = getLibraryPath(file, library);
+            if (OpenFlAssets.exists(libraryPath, type))
+                return libraryPath;
+        }
 
         if (currentLevel != null)
         {
@@ -198,8 +203,7 @@ class Paths
     inline static function getLibraryPathForce(file:String, library:String, ?level:String)
     {
         level ??= library;
-        var returnPath = '$library:assets/$level/$file';
-        return returnPath;
+        return 'assets/$level/$file';
     }
 
     inline public static function getPreloadPath(file:String = '')
