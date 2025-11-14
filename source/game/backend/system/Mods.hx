@@ -326,8 +326,8 @@ class Mods
         return modFolders('data/$key.json');
     }
 
-    public static function modsVideo(key:String) {
-        return modFolders('videos/$key.${Paths.VIDEO_EXT}');
+    public static function modsVideo(key:String, ext:String) {
+        return modFolders('videos/$key.$ext');
     }
 
     #if NDLL_ALLOWED

@@ -47,7 +47,7 @@ class Paths
         ["ogg", "wav", #if hxflac "flac", #end "mp3"]
         #end;
 
-    inline public static final VIDEO_EXT = "mp4";
+    public static final VIDEO_EXTS:Array<String> = ["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm"];
 
     @:unreflective
     inline public static final OPUS_EXT = "opus";
@@ -55,6 +55,9 @@ class Paths
     //for backward compatibility
     @:unreflective
     public static final SOUND_EXT = SOUND_EXTS[0];
+
+    @:unreflective
+    public static final VIDEO_EXT = VIDEO_EXTS[0];
 
     public static function excludeAsset(key:String) {
         if (!dumpExclusions.contains(key))
@@ -309,19 +312,34 @@ class Paths
     static public function video(key:String)
     {
         #if MODS_ALLOWED
-        var file:String = Mods.modsVideo(key);
-        if(file.startsWith('zip://')) {
-            var parts = file.substr(6).split('/');
-            var mod = parts[0];
-            var filePath = parts.slice(1).join('/');
-            var tempPath = Mods.extractFileFromZipMod(mod, filePath, 'videos');
-            if(tempPath != null) return tempPath;
-        }
-        if(FileSystem.exists(file)) {
-            return file;
+        for (ext in VIDEO_EXTS) {
+            var file:String = Mods.modsVideo(key, ext);
+            if(file.startsWith('zip://')) {
+                var parts = file.substr(6).split('/');
+                var mod = parts[0];
+                var filePath = parts.slice(1).join('/');
+                var tempPath = Mods.extractFileFromZipMod(mod, filePath, 'videos');
+                if(tempPath != null) return tempPath;
+            }
+            if(FileSystem.exists(file)) {
+                return file;
+            }
         }
         #end
-        return 'assets/videos/$key.$VIDEO_EXT';
+        
+        for (ext in VIDEO_EXTS) {
+            var testPath = getPreloadPath('videos/$key.$ext');
+            #if sys
+            if (FileSystem.exists(testPath)) {
+                return testPath;
+            }
+            #end
+            if (OpenFlAssets.exists(testPath)) {
+                return testPath;
+            }
+        }
+        
+        return getPreloadPath('videos/$key.${VIDEO_EXTS[0]}');
     }
 
     inline static public function sound(key:String, ?library:String):Sound

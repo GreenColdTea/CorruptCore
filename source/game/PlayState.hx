@@ -93,7 +93,7 @@ import sys.io.File;
 #end
 
 #if VIDEOS_ALLOWED
-import hxvlc.flixel.FlxVideo as MP4Handler;
+import hxvlc.flixel.FlxVideo;
 #end
 
 #if MODCHART_ALLOWED
@@ -118,6 +118,8 @@ class PlayState extends MusicBeatState
 	private var gameFroze:Bool = false;
 	private var requiresSyncing:Bool = false;
 	private var lastCorrectSongPos:Float = -1.0;
+
+	public var videoStartTime:Float = 0;
 
 	public static var ratingStuff:Array<Dynamic> = [
 		['You Suck!', 0.2], // 0-19%
@@ -1327,13 +1329,13 @@ class PlayState extends MusicBeatState
 		inCutscene = isNotMidPartSong;
 		canPause = !isNotMidPartSong;
 
-		var filepath = (name.startsWith("https://") ? name : Paths.video(name));
+		var filePath = (name.startsWith("https://") ? name : Paths.video(name));
 		
-		var fileExists = #if sys FileSystem.exists(filepath) #else OpenFlAssets.exists(filepath) #end || name.startsWith("https://");
+		var fileExists = #if sys FileSystem.exists(filePath) || #end OpenFlAssets.exists(filePath) || name.startsWith("https://");
 		
 		if(!fileExists) {
 			FlxG.log.warn('Couldnt find video file: $name');
-			if(isNotMidPartSong) startCountdown();
+			if(isNotMidPartSong) startAndEnd();
 			return;
 		}
 
@@ -1358,8 +1360,9 @@ class PlayState extends MusicBeatState
 			if(isNotMidPartSong) startAndEnd();
 		});
 
-		if(video.load(filepath)) {
-			video.delayAndStart();
+		if(video.loadVideo(filePath)) {
+			video.playDelayed();
+			videoStartTime = Conductor.songPosition;
 		} else {
 			FlxG.log.warn('Failed to load video: $name');
 			if(isNotMidPartSong) startAndEnd();
@@ -4544,6 +4547,16 @@ class PlayState extends MusicBeatState
 		{
 			requiresSyncing = false;
 			setSongTime(lastCorrectSongPos);
+
+			#if VIDEOS_ALLOWED
+			if (video?.isPlaying())
+			{
+				var desiredVideoTime = lastCorrectSongPos - videoStartTime;
+				if (desiredVideoTime >= 0) {
+					video.setTime(desiredVideoTime);
+				}
+			}
+			#end
 		}
 
 		gameFroze = false;
