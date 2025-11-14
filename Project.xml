@@ -136,7 +136,7 @@
 
 	<haxelib name="flixel-animate"/>
 	<haxelib name="flixel-waveform"/>
-	<haxelib name="flxsoundfilters" if="cpp"/>
+	<haxelib name="flxsoundfilters" if="lime-openal"/>
 	<haxelib name="flxgif"/>
 	<haxelib name="hxcpp"/>
 
