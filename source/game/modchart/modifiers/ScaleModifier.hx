@@ -72,7 +72,7 @@ class ScaleModifier extends NoteModifier {
      * @param player Player index (0 = BF, 1 = Dad, -1 = Both)
      * @return Modified scale point with all effects applied
      */
-    private function getScale(sprite:Dynamic, baseScale:FlxPoint, noteData:Int, player:Int):FlxPoint {
+    private function getScale(sprite:FlxSprite, baseScale:FlxPoint, noteData:Int, player:Int):FlxPoint {
         var finalScale = baseScale.clone();
         var originalYScale = finalScale.y; // Preserve for sustain notes
 
@@ -93,13 +93,13 @@ class ScaleModifier extends NoteModifier {
      */
     private function applyMiniEffects(scale:FlxPoint, noteData:Int, player:Int):Void {
         // Apply base mini effect (affects both axes)
-        var baseMini = getValue(player);
+        var baseMini:Float = getValue(player);
         scale.x *= 1 - baseMini;
         scale.y *= 1 - baseMini;
 
         // Apply axis-specific mini effects
-        var miniX = getSubmodValue("miniX", player) + getSubmodValue('mini${noteData}X', player);
-        var miniY = getSubmodValue("miniY", player) + getSubmodValue('mini${noteData}Y', player);
+        var miniX:Float = getSubmodValue("miniX", player) + getSubmodValue('mini${noteData}X', player);
+        var miniY:Float = getSubmodValue("miniY", player) + getSubmodValue('mini${noteData}Y', player);
 
         scale.x *= 1 - miniX;
         scale.y *= 1 - miniY;
@@ -110,8 +110,8 @@ class ScaleModifier extends NoteModifier {
      * Creates non-uniform scaling for visual distortion effects
      */
     private function applyStretchAndSquishEffects(scale:FlxPoint, noteData:Int, player:Int):Void {
-        var stretch = getSubmodValue("stretch", player) + getSubmodValue('stretch${noteData}', player);
-        var squish = getSubmodValue("squish", player) + getSubmodValue('squish${noteData}', player);
+        var stretch:Float = getSubmodValue("stretch", player) + getSubmodValue('stretch${noteData}', player);
+        var squish:Float = getSubmodValue("squish", player) + getSubmodValue('squish${noteData}', player);
 
         // Calculate stretch factors (vertical stretch, horizontal compression)
         var stretchFactorX = FlxMath.lerp(1, 0.5, stretch); // Horizontal compression

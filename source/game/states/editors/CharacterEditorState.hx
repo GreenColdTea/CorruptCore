@@ -111,7 +111,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 	override function create()
 	{
 		//FlxG.sound.playMusic(Paths.music('breakfast'), 0.5);
-		camEditor = initFNFCamera();
+		camEditor = initFunkinCamera();
 		camHUD = new FlxCamera();
 		camHUD.bgColor.alpha = 0;
 

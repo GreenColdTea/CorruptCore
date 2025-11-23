@@ -71,12 +71,12 @@
 
 	<define name="NDLL_ALLOWED" /> <!-- Allows for ndll support-->
 
-	<assets path="assets/preload" rename="assets" exclude="*.ogg" if="web"/>
-	<assets path="assets/preload" rename="assets" exclude="*.mp3"  unless="web"/>
+	<assets path="assets/preload" rename="assets" exclude="*.ogg" if="web || flash"/>
+	<assets path="assets/preload" rename="assets" exclude="*.mp3"  unless="web || flash"/>
 
 	<section if="TITLE_SCREEN_EASTER_EGG">
-		<assets path="assets/secrets" rename="assets" exclude="*.ogg" if="web"/>
-		<assets path="assets/secrets" rename="assets" exclude="*.mp3"  unless="web"/>
+		<assets path="assets/secrets" rename="assets" exclude="*.ogg" if="web || flash"/>
+		<assets path="assets/secrets" rename="assets" exclude="*.mp3"  unless="web || flash"/>
 	</section>
 
 	<!-- DONT ENABLE THIS -->
@@ -84,22 +84,21 @@
 	<!-- NOTE: ITS OUTDATED -->
 
 	<assets path="assets/videos" if="VIDEOS_ALLOWED"/>
-	<assets path="assets/songs"  exclude="*.ogg" if="web"/>
-	<assets path="assets/songs"  exclude="*.mp3" unless="web"/>
-	<assets path="assets/shared" exclude="*.ogg" if="web"/>
-	<assets path="assets/shared" exclude="*.mp3" unless="web"/>
+	<assets path="assets/songs"  exclude="*.ogg" if="web || flash"/>
+	<assets path="assets/songs"  exclude="*.mp3" unless="web || flash"/>
+	<assets path="assets/shared" exclude="*.ogg" if="web || flash"/>
+	<assets path="assets/shared" exclude="*.mp3" unless="web || flash"/>
 
 	<section if="MODS_ALLOWED">
 		<assets path='contents_file' rename='contents' embed='false'/>
 	</section>
 
 	<section if="INCLUDE_BASE_GAME">
-		<assets path="base_game" rename="assets" exclude="*.ogg" if="web"/>
-		<assets path="base_game" rename="assets" exclude="*.mp3" unless="web"/>
+		<assets path="base_game" rename="assets" exclude="*.ogg" if="web || flash"/>
+		<assets path="base_game" rename="assets" exclude="*.mp3" unless="web || flash"/>
 	</section>
-	<!-- <template path='mods' /> -->
 
-	<assets path="psych-ui" rename="assets/psych-ui" embed="true" />
+	<!-- <template path='mods' /> -->
 
 	<!-- assets path="CHANGELOG.md" rename='changelog.txt' -->
 
@@ -108,6 +107,9 @@
 		THEN UHHH I USED THE NAME OF THE FONT WITH SETFORMAT() ON THE TEXT!!!
 		NOT USING A DIRECT THING TO THE ASSET!!!
 	-->
+
+	<assets path="psych-ui" rename="assets/psych-ui" embed="true" />
+
 	<assets path="assets/fonts" embed='true'/>
 	<assets path="assets/embed/music" rename="assets/music" embed='true'/>
 	<assets path="assets/embed/sounds" rename="assets/sounds" embed='true'/>

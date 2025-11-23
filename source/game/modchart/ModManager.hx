@@ -30,7 +30,7 @@ class ModManager {
     public var receptors:Array<Array<StrumNote>> = [];
     public var timeline:EventTimeline = new EventTimeline();
 
-    @:deprecated("Use notemodRegister and miscmodRegister instead")
+    @:deprecated("registerByType is deprecated. Use notemodRegister and miscmodRegister instead")
     public var registerByType:Map<ModifierType, Map<String, Modifier>> = [
         NOTE_MOD => [],
         MISC_MOD => []
@@ -44,18 +44,18 @@ class ModManager {
      * Registers all default modifiers used in the game
      */
     public function registerDefaultModifiers() {
-        var defaultModifiers:Array<Any> = [
+        var defaultModifiers:Array<Class<Any>> = [
             FlipModifier, ReverseModifier, InvertModifier, 
             DrunkModifier, BeatModifier, AlphaModifier, 
             ScaleModifier, ConfusionModifier, OpponentModifier, 
-            TransformModifier, InfinitePathModifier, PerspectiveModifier
+            TransformModifier, InfinitePathModifier, PerspectiveModifier,
+            AccelModifier, XModifier, TornadoModifier, ZigZagModifier,
+            SquareModifier
         ];
         
-        for (modClass in defaultModifiers) {
+        for (modClass in defaultModifiers)
             quickRegister(Type.createInstance(modClass, [this]));
-        }
 
-        // Special case modifiers with custom parameters
         quickRegister(new RotateModifier(this));
         quickRegister(new RotateModifier(this, 'center', new Vector3(
             (FlxG.width / 2) - (Note.swagWidth / 2), 
@@ -66,6 +66,9 @@ class ModManager {
         // Note spawn time conf
         quickRegister(new SubModifier("noteSpawnTime", this));
         setValue("noteSpawnTime", 1250);
+        setValue("xmod", 1);
+	    for(i in 0...4)
+		    setValue('xmod$i', 1);
     }
 
     /**
@@ -132,16 +135,27 @@ class ModManager {
             for (playerNum in 0...2) {
                 setValue(modName, value, playerNum);
             }
-        } else {
-            var modifier = register.get(modName);
-            var parentMod = modifier.parent ?? modifier;
-            var parentName = parentMod.getName();
-
-            activeMods[player] ??= [];
-            modifier.setValue(value, player);
-
-            updateActiveModifiersList(modName, parentName, value, player, modifier, parentMod);
+            return;
         }
+
+        var modifier = register.get(modName);
+        if (modifier == null) {
+            trace('Warning: Modifier "$modName" not found in register');
+            return;
+        }
+        
+        var parentMod = modifier?.parent ?? modifier;
+        if (parentMod == null) {
+            trace('Warning: Parent modifier for "$modName" is null');
+            return;
+        }
+        
+        var parentName = parentMod.getName();
+
+        activeMods[player] ??= [];
+        modifier.setValue(value, player);
+
+        updateActiveModifiersList(modName, parentName, value, player, modifier, parentMod);
     }
 
     /**

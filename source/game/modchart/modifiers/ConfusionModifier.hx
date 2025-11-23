@@ -68,8 +68,8 @@ class ConfusionModifier extends NoteModifier {
      */
     private function calculateNoteAngle(note:Note, player:Int):Float {
         var baseConfusion = getValue(player);                           // Global confusion intensity
-        var columnConfusion = getSubmodValue('confusion${note.noteData}', player); // Column-specific confusion
-        var noteAngle = getSubmodValue('note${note.noteData}Angle', player);       // Note-specific angle offset
+        var columnConfusion:Float = getSubmodValue('confusion${note.noteData}', player); // Column-specific confusion
+        var noteAngle:Float = getSubmodValue('note${note.noteData}Angle', player);       // Note-specific angle offset
         
         return baseConfusion + columnConfusion + noteAngle;
     }
@@ -93,9 +93,9 @@ class ConfusionModifier extends NoteModifier {
      * Combines global, per-column, and receptor-specific angle modifiers
      */
     private function calculateReceptorAngle(receptor:StrumNote, player:Int):Float {
-        var baseConfusion = getValue(player);                                    // Global confusion intensity
-        var columnConfusion = getSubmodValue('confusion${receptor.noteData}', player); // Column-specific confusion
-        var receptorAngle = getSubmodValue('receptor${receptor.noteData}Angle', player); // Receptor-specific angle offset
+        var baseConfusion:Float = getValue(player);                                    // Global confusion intensity
+        var columnConfusion:Float = getSubmodValue('confusion${receptor.noteData}', player); // Column-specific confusion
+        var receptorAngle:Float = getSubmodValue('receptor${receptor.noteData}Angle', player); // Receptor-specific angle offset
         
         return baseConfusion + columnConfusion + receptorAngle;
     }

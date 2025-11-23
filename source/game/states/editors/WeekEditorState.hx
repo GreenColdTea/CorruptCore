@@ -486,7 +486,7 @@ class WeekEditorState extends MusicBeatState implements PsychUIEventHandler.Psyc
 		loadedWeek = null;
 		_file = null;
 		#else
-		trace("File couldn't be loaded! You aren't on Desktop, are you?");
+		throw "File couldn't be loaded! You aren't on Desktop, are you?";
 		#end
 	}
 

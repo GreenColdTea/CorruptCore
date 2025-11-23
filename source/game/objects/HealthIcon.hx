@@ -12,6 +12,8 @@ class HealthIcon extends FlxSprite
 	public var targetScale:Float = 1;
 	public var lerpSpeed:Float = 7;
 	public var autoUpdateScale:Bool = true;
+	
+	public var bobbingEnabled:Bool = true;
 
 	public function new(char:String = 'face', isPlayer:Bool = false, ?allowGPU:Bool = false)
 	{
@@ -28,7 +30,7 @@ class HealthIcon extends FlxSprite
 		if (sprTracker != null)
 			setPosition(sprTracker.x + sprTracker.width + 12, sprTracker.y - 30);
 
-		if (autoUpdateScale)
+		if (autoUpdateScale && bobbingEnabled)
 			updateIconScale(elapsed);
 	}
 
@@ -38,7 +40,7 @@ class HealthIcon extends FlxSprite
 	 */
 	public function updateIconScale(elapsed:Float):Void
 	{
-		if (scale.x != targetScale || scale.y != targetScale)
+		if (bobbingEnabled && (scale.x != targetScale || scale.y != targetScale))
 		{
 			var lerpVal:Float = FlxMath.lerp(scale.x, targetScale, 1 - Math.exp(-elapsed * lerpSpeed));
 			scale.set(lerpVal, lerpVal);
@@ -52,7 +54,8 @@ class HealthIcon extends FlxSprite
 	 */
 	public function setTargetScale(newScale:Float):Void
 	{
-		targetScale = newScale;
+		if (bobbingEnabled)
+			targetScale = newScale;
 	}
 
 	/**
@@ -62,9 +65,27 @@ class HealthIcon extends FlxSprite
 	 */
 	public function flash(flashScale:Float = 1.15, resetScale:Float = 1):Void
 	{
-		scale.set(flashScale, flashScale);
-		targetScale = resetScale;
-		updateHitbox();
+		if (bobbingEnabled)
+		{
+			scale.set(flashScale, flashScale);
+			targetScale = resetScale;
+			updateHitbox();
+		}
+	}
+
+	/**
+	 * Enables or disables bobbing animation
+	 * @param enabled Whether bobbing should be enabled
+	 */
+	public function setBobbingEnabled(enabled:Bool):Void
+	{
+		bobbingEnabled = enabled;
+		if (!enabled)
+		{
+			scale.set(1, 1);
+			targetScale = 1;
+			updateHitbox();
+		}
 	}
 
 	private var iconOffsets:Array<Float> = [0, 0];

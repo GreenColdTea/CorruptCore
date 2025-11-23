@@ -1,13 +1,13 @@
-package game.objects;
+package game.backend;
 
-// FNFCamera handles followLerp based on elapsed
+// FunkinCamera handles followLerp based on elapsed
 // and stops camera from snapping at higher framerates
 // author - ShadowMario
 
 import openfl.filters.BitmapFilter;
 import openfl.filters.ShaderFilter;
 
-class FNFCamera extends FlxCamera
+class FunkinCamera extends FlxCamera
 {
 	override public function update(elapsed:Float):Void
 	{

@@ -16,7 +16,8 @@ class ReverseModifier extends NoteModifier {
 	override function getOrder() return REVERSE;
     override function getName() return 'reverse';
 
-    public function getReverseValue(dir:Int, player:Int, ?scrolling=false){
+    public function getReverseValue(dir:Int, player:Int, ?scrolling:Bool = false):Float
+    {
         var suffix = scrolling ? 'Scroll' : '';
         
         var receptors = modMgr.receptors[player];
@@ -52,13 +53,13 @@ class ReverseModifier extends NoteModifier {
         return val;
     }
 
-    public function getScrollReversePerc(dir:Int, player:Int)
+    public function getScrollReversePerc(dir:Int, player:Int):Float
         return getReverseValue(dir,player) * 100;
 
-	override function shouldExecute(player:Int,val:Float)
+	override function shouldExecute(player:Int, val:Float):Bool
         return true;
 
-	override function ignoreUpdateNote()
+	override function ignoreUpdateNote():Bool
 		return false;
     
 	override function updateNote(beat:Float, daNote:Note, pos:Vector3, player:Int)
@@ -66,10 +67,10 @@ class ReverseModifier extends NoteModifier {
 		if (daNote.isSustainNote)
 		{
 			var y = pos.y;
-            var revPerc = getReverseValue(daNote.noteData, player);
+            var revPerc:Float = getReverseValue(daNote.noteData, player);
 			var strumLine = modMgr.receptors[player][daNote.noteData];
 			
-			var shitGotHit = (strumLine.sustainReduce
+			var shitGotHit:Bool = (strumLine.sustainReduce
 				&& daNote.isSustainNote
 				&& (daNote.mustPress || !daNote.ignoreNote)
 				&& (!daNote.mustPress || (daNote.wasGoodHit || (daNote.prevNote.wasGoodHit && !daNote.canBeHit))));
@@ -103,10 +104,10 @@ class ReverseModifier extends NoteModifier {
 	
 	override function getPos(time:Float, visualDiff:Float, timeDiff:Float, beat:Float, pos:Vector3, data:Int, player:Int, obj:FlxSprite)
 	{
-        var perc = getReverseValue(data, player);
-		var shift = MathUtil.scale(perc, 0, 1, 50, FlxG.height - 150);
-		var mult = MathUtil.scale(perc, 0, 1, 1, -1);
-		shift = MathUtil.scale(getSubmodValue("centered", player), 0, 1, shift, (FlxG.height/2) - 56);
+        var perc:Float = getReverseValue(data, player);
+		var shift:Float = MathUtil.scale(perc, 0, 1, 50, FlxG.height - 150);
+		var mult:Float = MathUtil.scale(perc, 0, 1, 1, -1);
+		var shift:Float = MathUtil.scale(getSubmodValue("centered", player), 0, 1, shift, (FlxG.height/2) - 56);
 
 		pos.y = shift + (visualDiff * mult);
 
@@ -131,7 +132,8 @@ class ReverseModifier extends NoteModifier {
 		return pos;
 	}
 
-    override function getSubmods(){
+    override function getSubmods():Array<String>
+    {
         var subMods:Array<String> = ["cross", "split", "alternate", "reverseScroll", "crossScroll", "splitScroll", "alternateScroll", "centered", "unboundedReverse"];
 
         var receptors = modMgr.receptors[0];

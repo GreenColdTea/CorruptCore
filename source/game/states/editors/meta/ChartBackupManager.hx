@@ -60,10 +60,6 @@ class ChartBackupManager
     inline public function createBackup(fileName:String, data:String, type:String = "auto"):Void {
         #if sys
         var backupDir = getBackupDir();
-        
-        // Ensure backup directories exist
-        if (!FileSystem.exists(SUtil.getPath() + 'backups/'))
-            FileSystem.createDirectory(SUtil.getPath() + 'backups/');
 
         if (!FileSystem.exists(backupDir))
             FileSystem.createDirectory(backupDir);

@@ -94,4 +94,15 @@ class MathUtil
 		else
 			return Math.max(value - amount, target);
 	}
+
+	/**
+     * Returns -1.0 or 1.0 based on angle
+	 * 
+	 * @param angle Angle in radians
+	 * @return -1.0 or 1.0 depending on the angle position in
+     */
+    inline public static function square(angle:Float):Float {
+        var fAngle = angle % (Math.PI * 2);
+        return fAngle >= Math.PI ? -1.0 : 1.0;
+    }
 }

@@ -27,6 +27,9 @@ import game.scripting.HScriptParser as HxParser;
 import flixel.group.FlxGroup.FlxTypedGroup;
 import flixel.group.FlxGroup;
 
+import openfl.utils.Assets as OpenFlAssets;
+import lime.utils.Assets;
+
 using StringTools;
 using Lambda;
 
@@ -277,12 +280,11 @@ class FunkinRuleScript {
             throw 'Script file not found: $path';
         }
         #else
-        var resourceName = path.replace("/", "_").replace(".", "_").replace(":", "_");
-        var content = haxe.Resource.getString(resourceName);
-        if (content == null) {
-            throw 'HScript not found in resources: $path (resource name: $resourceName)';
+        if (OpenFlAssets.exists(path)) {
+            return Assets.getText(path);
+        } else {
+            throw 'Script file not found: $path';
         }
-        return content;
         #end
     }
 

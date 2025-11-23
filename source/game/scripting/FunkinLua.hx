@@ -730,8 +730,9 @@ class FunkinLua {
             return str.trim();
         });
 
-        LuaUtils.addFunction(lua, "directoryFileList", function(folder:String):Array<String> {
+       LuaUtils.addFunction(lua, "directoryFileList", function(folder:String):Array<String> {
             var list:Array<String> = [];
+            
             #if sys
             if (FileSystem.exists(folder)) {
                 for (file in FileSystem.readDirectory(folder)) {
@@ -740,7 +741,23 @@ class FunkinLua {
                     }
                 }
             }
+            #else
+            var folderWithSlash:String = folder.endsWith("/") ? folder : folder + "/";
+            var allAssets:Array<String> = Assets.list();
+            
+            for (assetPath in allAssets) {
+                if (assetPath.startsWith(folderWithSlash)) {
+                    var parts:Array<String> = assetPath.split("/");
+                    if (parts.length > 0) {
+                        var fileName:String = parts[parts.length - 1];
+                        if (fileName.length > 0 && !list.contains(fileName)) {
+                            list.push(fileName);
+                        }
+                    }
+                }
+            }
             #end
+            
             return list;
         });
 

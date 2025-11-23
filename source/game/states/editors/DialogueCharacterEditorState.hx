@@ -73,7 +73,7 @@ class DialogueCharacterEditorState extends MusicBeatState implements PsychUIEven
 
 	override function create() {
 		persistentUpdate = persistentDraw = true;
-		camGame = initFNFCamera();
+		camGame = initFunkinCamera();
 		camHUD = new FlxCamera();
 		camGame.bgColor = FlxColor.fromHSL(0, 0, 0.5);
 		camHUD.bgColor.alpha = 0;
@@ -692,7 +692,7 @@ class DialogueCharacterEditorState extends MusicBeatState implements PsychUIEven
 		}
 		_file = null;
 		#else
-		trace("File couldn't be loaded! You aren't on Desktop, are you?");
+		throw "File couldn't be loaded! You aren't on Desktop, are you?";
 		#end
 	}
 

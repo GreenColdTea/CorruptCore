@@ -451,7 +451,7 @@ class FPSCounterPlugin extends Bitmap
 		if (performanceWarnings.length > 0) {
 			output += "\n\n--- WARNINGS ---";
 			for (warning in performanceWarnings) {
-				output += "\n!" + warning;
+				output += '\n$warning';
 			}
 		}
 		

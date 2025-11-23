@@ -78,7 +78,7 @@ class MainMenuState extends MusicBeatState
 	function initCamera()
 	{
 		persistentUpdate = persistentDraw = true;
-		initFNFCamera();
+		initFunkinCamera();
 		add(camFollow = new FlxObject(0, 0, 1, 1));
 	}
 

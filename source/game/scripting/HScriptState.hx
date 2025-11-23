@@ -48,7 +48,7 @@ class HScriptState extends MusicBeatState
                         scriptFiles.push(path);
                     } else {
                         var prefix = path;
-                        for (file in OpenFlAssets.list(AssetType.TEXT)) {
+                        for (file in OpenFlAssets.list(TEXT)) {
                             if (file.startsWith(prefix) && file.endsWith('.hx')) {
                                 scriptFiles.push(file);
                             }

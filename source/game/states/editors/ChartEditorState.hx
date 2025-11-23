@@ -318,7 +318,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			PlayState.SONG = _song;
 		}
 
-		initFNFCamera();
+		initFunkinCamera();
 		camUI = new FlxCamera();
 		camUI.bgColor.alpha = 0;
 		FlxG.cameras.add(camUI, false);

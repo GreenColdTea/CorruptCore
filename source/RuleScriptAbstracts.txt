@@ -12,6 +12,7 @@ flixel.util.typeLimit.OneOfTwo
 flixel.util.typeLimit.OneOfThree
 flixel.util.typeLimit.OneOfFour
 flixel.util.typeLimit.NextState
+flixel.util.FlxAxes.FlxBarFillDirection
 openfl.display.BlendMode
 haxe.CallStack
 haxe.EnumFlags

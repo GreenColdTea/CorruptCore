@@ -468,7 +468,7 @@ class DialogueEditorState extends MusicBeatState implements PsychUIEventHandler.
 		}
 		_file = null;
 		#else
-		trace("File couldn't be loaded! You aren't on Desktop, are you?");
+		throw "File couldn't be loaded! You aren't on Desktop, are you?";
 		#end
 	}
 

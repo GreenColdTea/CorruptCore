@@ -1,6 +1,6 @@
 package game.states.backend;
 
-import game.objects.FNFCamera;
+import game.backend.FunkinCamera;
 import game.backend.Conductor.BPMChangeEvent;
 import game.scripting.FunkinLua;
 
@@ -49,7 +49,7 @@ class MusicBeatState extends FlxState
 	inline function get_controls():Controls
 		return PlayerSettings.player1.controls;
 
-	var _fnfCameraInitialized:Bool = false;
+	var _FunkinCameraInitialized:Bool = false;
 
 	public static var timePassedOnState:Float = 0;
 
@@ -98,7 +98,7 @@ class MusicBeatState extends FlxState
 	}
 
 	override function create() {
-		if(!_fnfCameraInitialized) initFNFCamera();
+		if(!_FunkinCameraInitialized) initFunkinCamera();
 
 		var colorBlindType = ClientPrefs.colorBlindMode;
 		var intensity = ClientPrefs.colorBlindIntensity;
@@ -152,7 +152,7 @@ class MusicBeatState extends FlxState
 					else
 					{
 						var prefix = path;
-						for (file in OpenFlAssets.list(AssetType.TEXT))
+						for (file in OpenFlAssets.list(TEXT))
 						{
 							if (file.startsWith(prefix) && file.endsWith('.hx'))
 							{
@@ -182,12 +182,12 @@ class MusicBeatState extends FlxState
 		quickCallMenuScript("onCreatePost", []);
 	}
 
-	public function initFNFCamera():FNFCamera
+	public function initFunkinCamera():FunkinCamera
 	{
-		var camera = new FNFCamera();
+		var camera = new FunkinCamera();
 		FlxG.cameras.reset(camera);
 		FlxG.cameras.setDefaultDrawTarget(camera, true);
-		_fnfCameraInitialized = true;
+		_FunkinCameraInitialized = true;
 		//trace('initialized psych camera ' + Sys.cpuTime());
 		/*if (Main.colorblindMode != -1) {
 			Main.applyColorblindFilterToCamera(camera, Main.colorblindMode, Main.colorblindIntensity);

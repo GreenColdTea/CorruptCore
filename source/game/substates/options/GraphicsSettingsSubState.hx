@@ -124,7 +124,7 @@ class GraphicsSettingsSubState extends BaseOptionsMenu
 	#if !html5
 	private function updateFramerateVisibility():Void
 	{
-		var shouldHide = ClientPrefs.vsync || ClientPrefs.unlimitedFPS;
+		var shouldHide:Bool = ClientPrefs.vsync || ClientPrefs.unlimitedFPS;
 		framerateOption.visible = !shouldHide;
 		framerateOption.active = !shouldHide;
 
