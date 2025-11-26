@@ -106,7 +106,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	var undos = [];
 	var redos = [];
 	var maxUndoSteps:Int = 50;
-	/*var eventStuff:Array<Dynamic> =
+	/*var eventStuff:Array<Array<String>> =
 	[
 		['', "Nothing. Yep, that's right."],
 		['Dadbattle Spotlight', "Used in Dad Battle,\nValue 1: 0/1 = ON/OFF,\n2 = Target Dad\n3 = Target BF"],
@@ -125,7 +125,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		['Set Property', "Value 1: Variable name\nValue 2: New value"]
 	]; for mods*/
 
-	var eventStuff:Array<Dynamic> =
+	var eventStuff:Array<Array<String>> =
 	[
 		['', "Nothing. Yep, that's right."],
 		['Dadbattle Spotlight', "Used in Dad Battle,\nValue 1: 0/1 = ON/OFF,\n2 = Target Dad\n3 = Target BF"],
@@ -346,13 +346,9 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		gridLayer = new FlxTypedGroup<FlxSprite>();
 		add(gridLayer);
 
-		gridBG = new FlxSprite();
-		prevGridBG = new FlxSprite();
-		nextGridBG = new FlxSprite();
-
-		gridLayer.add(gridBG);
-		gridLayer.add(prevGridBG);
-		gridLayer.add(nextGridBG);
+		gridLayer.add(gridBG = new FlxSprite());
+		gridLayer.add(prevGridBG = new FlxSprite());
+		gridLayer.add(nextGridBG = new FlxSprite());
 
 		waveform = new FlxSprite(gridBG.x + GRID_SIZE, gridBG.y).makeGraphic(1, 1, 0xFF4A3C88);
 		waveform.scrollFactor.x = 0;

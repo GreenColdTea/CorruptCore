@@ -220,6 +220,13 @@
 
 		<!--Allow working memory greater than 1 Gig-->
 		<haxedef name="HXCPP_GC_BIG_BLOCKS" />
+		<haxedef name="HXCPP_GC_DYNAMIC_SIZE" />
+
+		<haxedef name="HXCPP_GC_SUMMARY" if="debug"/>
+		<haxedef name="HXCPP_GC_DEBUG_LEVEL" value="2" if="debug"/>
+		<haxedef name="HXCPP_DEBUGGER" if="debug"/>
+
+		<haxedef name="HXCPP_CPP20" />
 	</section>
 
 	<haxeflag name="--macro" value="game.backend.utils.MacroUtil.addScriptResources()" />
