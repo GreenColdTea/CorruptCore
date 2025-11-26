@@ -31,12 +31,12 @@ class PsychUIRadioGroup extends FlxSpriteGroup
 		
 		_hitbox = new FlxObject();
 
-		arrowUp = new FlxSprite().loadGraphic(Paths.image('arrow_up', 'psych-ui'), true, 24, 18);
+		arrowUp = new FlxSprite().loadGraphic(Paths.image('arrow_up', 'psych-ui').bitmap, true, 24, 18);
 		arrowUp.animation.add('normal', [0]);
 		arrowUp.animation.add('press', [1]);
 		arrowUp.animation.play('normal');
 		arrowUp.visible = false;
-		arrowDown = new FlxSprite().loadGraphic(Paths.image('arrow_down', 'psych-ui'), true, 24, 18);
+		arrowDown = new FlxSprite().loadGraphic(Paths.image('arrow_down', 'psych-ui').bitmap, true, 24, 18);
 		arrowDown.animation.add('normal', [0]);
 		arrowDown.animation.add('press', [1]);
 		arrowDown.animation.play('normal');

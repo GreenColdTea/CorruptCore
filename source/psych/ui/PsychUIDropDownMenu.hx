@@ -32,7 +32,7 @@ class PsychUIDropDownMenu extends PsychUIInputText
 		updateHitbox();
 		textObj.y += 2;
 
-		button = new FlxSprite(behindText.width + 1, 0).loadGraphic(Paths.image('dropdown_button', 'psych-ui'), true, 20, 20);
+		button = new FlxSprite(behindText.width + 1, 0).loadGraphic(Paths.image('dropdown_button', 'psych-ui').bitmap, true, 20, 20);
 		button.animation.add('normal', [0], false);
 		button.animation.add('pressed', [1], false);
 		button.animation.play('normal', true);

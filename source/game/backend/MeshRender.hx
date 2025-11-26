@@ -1,4 +1,4 @@
-package game.objects;
+package game.backend;
 
 import flixel.FlxStrip;
 import flixel.util.FlxColor;

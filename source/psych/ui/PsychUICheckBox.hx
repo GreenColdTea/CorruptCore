@@ -35,7 +35,7 @@ class PsychUICheckBox extends FlxSpriteGroup
 
 	public function boxGraphic()
 	{
-		box.loadGraphic(Paths.image('checkbox', 'psych-ui'), true, 16, 16);
+		box.loadGraphic(Paths.image('checkbox', 'psych-ui').bitmap, true, 16, 16);
 		box.animation.add('false', [0]);
 		box.animation.add('true', [1]);
 		box.animation.play('false');

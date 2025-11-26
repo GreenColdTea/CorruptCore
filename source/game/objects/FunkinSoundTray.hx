@@ -367,16 +367,13 @@ class FunkinSoundTray extends FlxSoundTray
 
         // Draw volume ring with outline
         var volumeAngle:Float = 360 * (globalVolume / 10);
-        
-        // Choose which drawing method to use:
         if (globalVolume > 0) {
             // Ver 1: Continuous ring with outline
-            drawRingWithOutline(_volumeRing, RING_CENTER_X, RING_CENTER_Y, RING_RADIUS, RING_THICKNESS, 
-                    0, volumeAngle, ringColor, outlineColor, outlineThickness, 1.0);
+            /*drawRingWithOutline(_volumeRing, RING_CENTER_X, RING_CENTER_Y, RING_RADIUS, RING_THICKNESS, 
+                    0, volumeAngle, ringColor, outlineColor, outlineThickness, 1.0);*/
             
-            // Ver 2: Segmented ring (uncomment to use instead)
-            // drawSegmentedRing(_volumeRing, RING_CENTER_X, RING_CENTER_Y, RING_RADIUS, RING_THICKNESS,
-            //         0, volumeAngle, ringColor, outlineColor, globalVolume, 1.0);
+            drawSegmentedRing(_volumeRing, RING_CENTER_X, RING_CENTER_Y, RING_RADIUS, RING_THICKNESS,
+                    0, volumeAngle, ringColor, outlineColor, globalVolume, 1.0);
         } else {
             // Clear when volume is 0
             _volumeRing.graphics.clear();
