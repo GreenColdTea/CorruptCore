@@ -528,6 +528,9 @@ class PlayState extends MusicBeatState
 		dadGroup = new FlxSpriteGroup(DAD_X, DAD_Y);
 		gfGroup = new FlxSpriteGroup(GF_X, GF_Y);
 
+		if (Paths.formatToSongPath(SONG.song) != 'tutorial')
+			camZooming = true;
+
 		switch (curStage)
 		{
 			case 'stage': new game.stages.StageWeek1(); //Week 1
@@ -1570,6 +1573,9 @@ class PlayState extends MusicBeatState
 
 	public function updateScore(miss:Bool = false)
 	{
+		var ret:Dynamic = callOnScripts('preUpdateScore', [miss], true);
+		if (ret == FunkinLua.Function_Stop) return;
+
 		scoreTxt.text = 'Score: ' + songScore
 		+ ' | Misses: ' + songMisses
 		+ ' | Rating: ' + ratingName
@@ -2284,9 +2290,7 @@ class PlayState extends MusicBeatState
 
 				callOnLuas('onSpawnNote', [notes.members.indexOf(dunceNote), dunceNote.noteData, dunceNote.noteType, dunceNote.isSustainNote]);
 
-				#if HSCRIPT_ALLOWED
 				callOnHScript('onSpawnNote', [dunceNote]);
-				#end
 
 				var index:Int = unspawnNotes.indexOf(dunceNote);
 				unspawnNotes.splice(index, 1);
@@ -3342,6 +3346,9 @@ class PlayState extends MusicBeatState
 		{
 			if(!boyfriend.stunned && generatedMusic && !endingSong)
 			{
+				var ret:Dynamic = callOnScripts('preKeyPress', [key]);
+				if(ret == FunkinLua.Function_Stop) return;
+
 				//more accurate hit time for the ratings?
 				var lastTime:Float = Conductor.songPosition;
 				Conductor.songPosition = FlxG.sound.music.time;
@@ -3421,6 +3428,10 @@ class PlayState extends MusicBeatState
 	{
 		var eventKey:FlxKey = event.keyCode;
 		var key:Int = getKeyFromEvent(eventKey);
+
+		var ret:Dynamic = callOnScripts('preKeyRelease', [key]);
+		if(ret == FunkinLua.Function_Stop) return;
+
 		if(!cpuControlled && startedCountdown && !paused && key > -1)
 		{
 			var spr:StrumNote = playerStrums.members[key];
@@ -3640,9 +3651,7 @@ class PlayState extends MusicBeatState
 		}
 
 		callOnLuas('noteMiss', [notes.members.indexOf(daNote), daNote.noteData, daNote.noteType, daNote.isSustainNote]);
-		#if HSCRIPT_ALLOWED
 		callOnHScript('noteMiss', [daNote]);
-		#end
 	}
 
 	function noteMissPress(direction:Int = 1, anim:Bool = true):Void //You pressed a key when there was no notes to press for this key
@@ -3678,16 +3687,11 @@ class PlayState extends MusicBeatState
 			vocals.volume = 0;
 		}
 		callOnScripts('noteMissPress', [direction]);
-		#if HSCRIPT_ALLOWED
 		callOnHScript('noteMissPress', [direction]);
-		#end
 	}
 
 	function opponentNoteHit(note:Note):Void
 	{
-		if (Paths.formatToSongPath(SONG.song) != 'tutorial')
-			camZooming = true;
-
 		if(note.noteType == 'Hey!' && dad.animOffsets.exists('hey')) {
 			dad.playAnim('hey', true);
 			dad.specialAnim = true;
@@ -3751,9 +3755,7 @@ class PlayState extends MusicBeatState
 
 		callOnLuas('opponentNoteHit', [notes.members.indexOf(note), Math.abs(note.noteData), note.noteType, note.isSustainNote]);
 
-		#if HSCRIPT_ALLOWED
 		callOnHScript('opponentNoteHit', [note]);
-		#end
 
 		if (!note.isSustainNote) invalidateNote(note);
 	}
@@ -3763,6 +3765,15 @@ class PlayState extends MusicBeatState
 		if (!note.wasGoodHit)
 		{
 			if(cpuControlled && (note.ignoreNote || note.hitCausesMiss)) return;
+
+			var isSus:Bool = note.isSustainNote; //GET OUT OF MY HEAD, GET OUT OF MY HEAD, GET OUT OF MY HEAD
+			var leData:Int = Math.round(Math.abs(note.noteData));
+			var leType:String = note.noteType;
+
+			var result:Dynamic = callOnLuas('preGoodNoteHit', [notes.members.indexOf(note), leData, leType, isSus]);
+			if(result != FunkinLua.Function_Stop) result = callOnHScript('preGoodNoteHit', [note]);
+
+			if(result == FunkinLua.Function_Stop) return;
 
 			if (ClientPrefs.hitsoundVolume > 0 && !note.hitsoundDisabled)
 			{
@@ -3866,17 +3877,10 @@ class PlayState extends MusicBeatState
 
 			iconP1.flash(1.12, 1);
 
-			var isSus:Bool = note.isSustainNote; //GET OUT OF MY HEAD, GET OUT OF MY HEAD, GET OUT OF MY HEAD
-			var leData:Int = Math.round(Math.abs(note.noteData));
-			var leType:String = note.noteType;
-
 			spawnHoldCoverOnNote(note);
 
 			callOnLuas('goodNoteHit', [notes.members.indexOf(note), leData, leType, isSus]);
-
-			#if HSCRIPT_ALLOWED
 			callOnHScript('goodNoteHit', [note]);
-			#end
 
 			if (!note.isSustainNote) invalidateNote(note);
 		}
