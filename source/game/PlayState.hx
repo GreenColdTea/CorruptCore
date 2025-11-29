@@ -2063,6 +2063,7 @@ class PlayState extends MusicBeatState
 	override public function onFocus():Void
 	{
 		shutdownThread = false;
+		runSongSyncThread();
 
 		#if DISCORD_ALLOWED
 		if (health > 0 && !paused)

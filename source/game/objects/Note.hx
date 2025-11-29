@@ -123,11 +123,13 @@ class Note extends FlxSprite
 
 	public function resizeByRatio(ratio:Float) //haha funny twitter shit
 	{
-		if(isSustainNote && !animation.curAnim?.name?.endsWith('end'))
+		if(isSustainNote && !animation?.curAnim?.name?.endsWith('end'))
 		{
-			scale.y *= ratio;
-			defScale.y = scale.y;
-			updateHitbox();
+			if(scale != null && defScale != null) {
+				scale.y *= ratio;
+				defScale.y = scale.y;
+				updateHitbox();
+			}
 		}
 	}
 

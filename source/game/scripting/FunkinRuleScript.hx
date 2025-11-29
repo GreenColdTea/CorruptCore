@@ -273,19 +273,13 @@ class FunkinRuleScript {
     private function loadScriptContent(path:String):String {
         if (path == null || path.length == 0) return "// Empty script lol";
 
-        #if sys
-        if (FileSystem.exists(path)) {
+        #if sys if (FileSystem.exists(path)) {
             return File.getContent(path);
-        } else {
-            throw 'Script file not found: $path';
-        }
-        #else
-        if (OpenFlAssets.exists(path)) {
+        } else #end if (OpenFlAssets.exists(path)) {
             return Assets.getText(path);
         } else {
             throw 'Script file not found: $path';
         }
-        #end
     }
 
     function execute(code:String, skipCreate:Bool) {

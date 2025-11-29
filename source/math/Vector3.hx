@@ -113,7 +113,7 @@ class Vector3
 	**/
 
 	//https://gamedev.stackexchange.com/questions/18615/how-do-i-linearly-interpolate-between-two-vectors
-	public function lerp(goal:Vector3, alpha:Float):Vector3{
+	public inline function lerp(goal:Vector3, alpha:Float):Vector3{
 		return new Vector3(
 			alpha*goal.x + x*(1-alpha),
 			alpha*goal.y + y*(1-alpha),
