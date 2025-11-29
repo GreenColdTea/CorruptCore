@@ -315,6 +315,8 @@ class NoteSplashEditorState extends MusicBeatState
             if (splash.config != null) config = splash.config;
             else config = NoteSplash.createConfig();
 
+            scaleNumericStepper.value = config.scale;
+
             curAnim = null;
             name_input.text = "";
             prefix_input.text = "";        

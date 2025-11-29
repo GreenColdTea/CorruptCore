@@ -579,11 +579,7 @@ class PlayState extends MusicBeatState
 
 		for (folder in foldersToCheck)
 		{
-			#if sys
-			if(FileSystem.exists(folder))
-			#else
-			if(OpenFlAssets.exists(folder))
-			#end
+			if(#if sys FileSystem.exists(folder) || #end OpenFlAssets.exists(folder))
 			{
 				for (folder in foldersToCheck) {
 					#if sys
@@ -591,19 +587,18 @@ class PlayState extends MusicBeatState
 						for (file in sys.FileSystem.readDirectory(folder)) {
 							#if LUA_ALLOWED
 							if (file.endsWith('.lua') && !filesPushed.contains(file)) {
-								luaArray.push(new FunkinLua(folder + file));
-								filesPushed.push(file);
+								if(startLuasOnFolder(folder + file)) filesPushed.push(file);
 							}
 							#end
 							#if HSCRIPT_ALLOWED
 							if (file.endsWith('.hx') && !filesPushed.contains(file)) {
-								hscriptArray.push(new FunkinHScript(folder + file));
-								filesPushed.push(file);
+								if(startHScriptOnFolder(folder + file)) filesPushed.push(file);
 							}
 							#end
 						}
 					}
-					#else
+					#end
+
 					if (OpenFlAssets.exists(folder)) {
 						for (file in OpenFlAssets.list()) {
 							if (file.startsWith(folder)) {
@@ -622,18 +617,13 @@ class PlayState extends MusicBeatState
 							}
 						}
 					}
-					#end
 				}
 			}
 		}
 
 		// STAGE SCRIPTS
-		#if LUA_ALLOWED
 		startLuasOnFolder('stages/' + curStage + '.lua');
-		#end
-		#if HSCRIPT_ALLOWED
 		startHScriptOnFolder('stages/' + curStage + '.hx');
-		#end
 
 		if (!stageData.hide_girlfriend)
 		{
@@ -851,74 +841,15 @@ class PlayState extends MusicBeatState
 		
 		for (notetype in noteTypeMap.keys())
 		{
-			#if LUA_ALLOWED
-			for (notetype in noteTypeMap.keys())
-			{
-				startLuasOnFolder('custom_notetypes/' + notetype + '.lua');
-			}
-			for (event in eventPushedMap.keys())
-			{
-				startLuasOnFolder('custom_events/' + event + '.lua');
-			}
-			#end
-
-			#if HSCRIPT_ALLOWED
-			for (notetype in noteTypeMap.keys())
-			{
-				startHScriptOnFolder('custom_notetypes/' + notetype + '.hx');
-			}
-			for (event in eventPushedMap.keys())
-			{
-				startHScriptOnFolder('custom_events/' + event + '.hx');
-			}
-			#end
+			startLuasOnFolder('custom_notetypes/' + notetype + '.lua');
+			startHScriptOnFolder('custom_notetypes/' + notetype + '.hx');
 		}
 		for (event in eventPushedMap.keys())
 		{
-			#if (LUA_ALLOWED && MODS_ALLOWED)
-			var luaToLoad:String = Mods.modFolders('custom_events/' + event + '.lua');
-			if(FileSystem.exists(luaToLoad))
-			{
-				luaArray.push(new FunkinLua(luaToLoad));
-			}
-			else
-			{
-				luaToLoad = Paths.getPreloadPath('custom_events/' + event + '.lua');
-				if(FileSystem.exists(luaToLoad))
-				{
-					luaArray.push(new FunkinLua(luaToLoad));
-				}
-			}
-			#elseif LUA_ALLOWED
-			var luaToLoad:String = Paths.getPreloadPath('custom_events/' + event + '.lua');
-			if(OpenFlAssets.exists(luaToLoad))
-			{
-				luaArray.push(new FunkinLua(luaToLoad));
-			}
-			#end
-
-			#if (HSCRIPT_ALLOWED && MODS_ALLOWED)
-			var hxToLoad:String = Mods.modFolders('custom_events/' + event + '.hx');
-			if(FileSystem.exists(hxToLoad))
-			{
-				hscriptArray.push(new FunkinHScript(hxToLoad));
-			}
-			else
-			{
-				hxToLoad = Paths.getPreloadPath('custom_events/' + event + '.hx');
-				if(FileSystem.exists(hxToLoad))
-				{
-					hscriptArray.push(new FunkinHScript(hxToLoad));
-				}
-			}
-			#elseif HSCRIPT_ALLOWED
-			var hxToLoad:String = Paths.getPreloadPath('custom_events/' + event + '.hx');
-			if(OpenFlAssets.exists(hxToLoad))
-			{
-				hscriptArray.push(new FunkinHScript(hxToLoad));
-			}
-			#end
+			startLuasOnFolder('custom_events/' + event + '.lua');
+			startHScriptOnFolder('custom_events/' + event + '.hx');
 		}
+
 		noteTypeMap.clear();
 		noteTypeMap = null;
 		eventPushedMap.clear();
@@ -939,11 +870,7 @@ class PlayState extends MusicBeatState
 
 		for (folder in foldersToCheck)
 		{
-			#if sys
-			if(FileSystem.exists(folder))
-			#else
-			if(OpenFlAssets.exists(folder))
-			#end
+			if(#if sys FileSystem.exists(folder) || #end OpenFlAssets.exists(folder))
 			{
 				for (folder in foldersToCheck) {
 					#if sys
@@ -951,19 +878,18 @@ class PlayState extends MusicBeatState
 						for (file in sys.FileSystem.readDirectory(folder)) {
 							#if LUA_ALLOWED
 							if (file.endsWith('.lua') && !filesPushed.contains(file)) {
-								luaArray.push(new FunkinLua(folder + file));
-								filesPushed.push(file);
+								if(startLuasOnFolder(folder + file)) filesPushed.push(file);
 							}
 							#end
 							#if HSCRIPT_ALLOWED
 							if (file.endsWith('.hx') && !filesPushed.contains(file)) {
-								hscriptArray.push(new FunkinHScript(folder + file));
-								filesPushed.push(file);
+								if(startHScriptOnFolder(folder + file)) filesPushed.push(file);
 							}
 							#end
 						}
 					}
-					#else
+					#end
+
 					if (OpenFlAssets.exists(folder)) {
 						for (file in OpenFlAssets.list()) {
 							if (file.startsWith(folder)) {
@@ -982,7 +908,6 @@ class PlayState extends MusicBeatState
 							}
 						}
 					}
-					#end
 				}
 			}
 		}
@@ -4204,9 +4129,9 @@ class PlayState extends MusicBeatState
 			boyfriend?.dance();
 	}
 
-	#if LUA_ALLOWED
 	public function startLuasOnFolder(luaFile:String)
 	{
+		#if LUA_ALLOWED
 		for (script in luaArray)
 		{
 			if(script.scriptName == luaFile) return false;
@@ -4219,6 +4144,8 @@ class PlayState extends MusicBeatState
 			luaArray.push(new FunkinLua(luaToLoad));
 			return true;
 		}
+		#end
+		#if sys
 		else
 		{
 			luaToLoad = Paths.getPreloadPath(luaFile);
@@ -4228,14 +4155,8 @@ class PlayState extends MusicBeatState
 				return true;
 			}
 		}
-		#elseif sys
-		var luaToLoad:String = Paths.getPreloadPath(luaFile);
-		if(FileSystem.exists(luaToLoad))
-		{
-			luaArray.push(new FunkinLua(luaToLoad));
-			return true;
-		}
-		#else
+		#end
+
 		var luaToLoad:String = Paths.getPreloadPath(luaFile);
 		if(OpenFlAssets.exists(luaToLoad))
 		{
@@ -4243,13 +4164,13 @@ class PlayState extends MusicBeatState
 			return true;
 		}
 		#end
+
 		return false;
 	}
-	#end
 
-	#if HSCRIPT_ALLOWED
 	public function startHScriptOnFolder(hscriptFile:String)
 	{
+		#if HSCRIPT_ALLOWED
 		for (script in hscriptArray)
 		{
 			if(script.scriptName == hscriptFile) return false;
@@ -4263,6 +4184,8 @@ class PlayState extends MusicBeatState
 			return true;
 		}
 		else
+		#end
+		#if sys
 		{
 			hscriptToLoad = Paths.getPreloadPath(hscriptFile);
 			if(FileSystem.exists(hscriptToLoad))
@@ -4271,14 +4194,8 @@ class PlayState extends MusicBeatState
 				return true;
 			}
 		}
-		#elseif sys
-		var hscriptToLoad:String = Paths.getPreloadPath(hscriptFile);
-		if(FileSystem.exists(hscriptToLoad))
-		{
-			hscriptArray.push(new FunkinHScript(hscriptToLoad));
-			return true;
-		}
-		#else
+		#end
+
 		var hscriptToLoad:String = Paths.getPreloadPath(hscriptFile);
 		if(OpenFlAssets.exists(hscriptToLoad))
 		{
@@ -4286,9 +4203,9 @@ class PlayState extends MusicBeatState
 			return true;
 		}
 		#end
+
 		return false;
 	}
-	#end
 	public function setOnHScript(variable:String, arg:Dynamic) {
 		#if HSCRIPT_ALLOWED
 		for (script in hscriptArray) {

@@ -125,6 +125,11 @@ class NoteSplash extends FlxSprite
 
         offset.set(10, 10);
 
+        if(config != null) {
+            scale.set(config.scale, config.scale);
+            updateHitbox();
+        }
+
         playRandomAnim(note);
     }
 
