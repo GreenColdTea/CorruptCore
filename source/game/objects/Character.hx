@@ -703,12 +703,77 @@ class Character extends FlxSprite
 		return !isAnimateAtlas ? animation.curAnim.finished : atlas.anim.finished;
 	}
 
+	public function isAnimationLooped():Bool
+	{
+		if (isAnimationNull()) return false;
+		return !isAnimateAtlas ? animation.curAnim.looped : atlas.anim.curAnim.looped;
+	}
+
+	public function getTotalFrames():Int
+	{
+		if (isAnimationNull()) return 0;
+		return !isAnimateAtlas ? animation.curAnim.numFrames : atlas.anim.curAnim.numFrames;
+	}
+
+	public function setCurrentFrameRate(fps:Float):Void
+	{
+		if (isAnimationNull()) return;
+		
+		if (!isAnimateAtlas) {
+			animation.curAnim.frameRate = fps;
+		} else {
+			atlas.anim.curAnim.frameRate = fps;
+		}
+	}
+
+	public function getCurrentFrameRate():Float
+	{
+		if (isAnimationNull()) return 0;
+		return !isAnimateAtlas ? animation.curAnim.frameRate : atlas.anim.curAnim.frameRate;
+	}
+
+	public function setCurrentFrame(frame:Int):Void
+	{
+		if (isAnimationNull()) return;
+		
+		if (!isAnimateAtlas) {
+			animation.curAnim.curFrame = frame;
+		} else {
+			atlas.anim.curAnim.curFrame = frame;
+			atlas.update(0);
+		}
+	}
+
+	public function getCurrentFrame():Int
+	{
+		if (isAnimationNull()) return 0;
+		return !isAnimateAtlas ? animation.curAnim.curFrame : atlas.anim.curAnim.curFrame;
+	}
+
+	public function isPlaying(animName:String):Bool
+	{
+		if (isAnimationNull()) return false;
+		return !isAnimateAtlas ? 
+			(animation.curAnim != null && animation.curAnim.name == animName) : 
+			(atlas.anim.curAnim != null && atlas.anim.curAnim.name == animName);
+	}
+
 	inline public function finishAnimation():Void
 	{
 		if(isAnimationNull()) return;
 
 		if(!isAnimateAtlas) animation.curAnim.finish();
 		else atlas.anim.finish();
+	}
+
+	public function stopAnimation():Void
+	{
+		if (!isAnimateAtlas) {
+			animation.stop();
+		} else {
+			atlas.anim.stop();
+		}
+		_lastPlayedAnimation = '';
 	}
 
 	public var danceEveryNumBeats:Int = 2;
