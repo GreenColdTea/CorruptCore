@@ -3,9 +3,9 @@ package game.backend;
 #if MODS_ALLOWED
 import sys.io.File;
 import sys.FileSystem;
-#else
-import openfl.utils.Assets;
 #end
+import openfl.utils.Assets;
+
 import haxe.Json;
 import haxe.format.JsonParser;
 import game.backend.Song;
@@ -78,16 +78,11 @@ class StageData {
 		var modPath:String = Mods.modFolders('stages/' + stage + '.json');
 		if(FileSystem.exists(modPath)) {
 			rawJson = File.getContent(modPath);
-		} else if(FileSystem.exists(path)) {
+		} else #end #if sys if(FileSystem.exists(path)) {
 			rawJson = File.getContent(path);
-		}
-		#else
-		if(Assets.exists(path)) {
+		} else #end if(Assets.exists(path)) {
 			rawJson = Assets.getText(path);
-		}
-		#end
-		else
-		{
+		} else {
 			return null;
 		}
 		return cast Json.parse(rawJson);
