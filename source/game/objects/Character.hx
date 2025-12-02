@@ -625,6 +625,8 @@ class Character extends FlxSprite
 		ghost.alpha = alpha * 0.6;
 		ghost.visible = true;
 		ghost.angle = angle;
+		ghost.shader = shader;
+		ghost.dirty = dirty;
 		ghost.color = FlxColor.fromRGB(
 			Std.int((healthColorArray[0]/255) * color.red),
 			Std.int((healthColorArray[1]/255) * color.green),
