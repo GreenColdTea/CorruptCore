@@ -937,9 +937,8 @@ class PlayState extends MusicBeatState
 
 		//PRECACHING MISS SOUNDS BECAUSE I THINK THEY CAN LAG PEOPLE AND FUCK THEM UP IDK HOW HAXE WORKS
 		if(ClientPrefs.hitsoundVolume > 0) precacheList.set('hitsound', 'sound');
-		precacheList.set('missnote1', 'sound');
-		precacheList.set('missnote2', 'sound');
-		precacheList.set('missnote3', 'sound');
+		
+		for (i in 1...4) precacheList.set('missnote$i', 'sound');
 
 		if (PauseSubState.songName != null) {
 			precacheList.set(PauseSubState.songName, 'music');
@@ -4389,8 +4388,6 @@ class PlayState extends MusicBeatState
 			}
 			else if (songMisses < 5)
 				ratingFC = "SDCB"; //Single Digit Combo Break
-			else if (songMisses < 15)
-				ratingFC = "Clear";
 			else
 				ratingFC = "Clear";
 		}
@@ -4493,7 +4490,7 @@ class PlayState extends MusicBeatState
 				}
 				gameFroze = true;
 
-				Sys.sleep(0.5);
+				Sys.sleep(0.25);
 			}
 		});
 		#end
