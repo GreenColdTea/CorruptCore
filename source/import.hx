@@ -68,6 +68,7 @@ import haxe.ui.backend.flixel.UIState;
 // Windows API
 #if sl_windows_api
 import winapi.*;
+import winapi.gdi.*;
 #end
 
 #if sys

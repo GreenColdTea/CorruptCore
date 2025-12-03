@@ -177,6 +177,12 @@ class Paths
         if (library != null && library != "preload" && library != "default")
         {
             var libraryPath = getLibraryPath(file, library);
+
+            #if sys
+            if (FileSystem.exists(libraryPath))
+                return libraryPath;
+            #end
+
             if (OpenFlAssets.exists(libraryPath, type))
                 return libraryPath;
         }
@@ -186,11 +192,23 @@ class Paths
             var levelPath:String = '';
             if(currentLevel != 'shared') {
                 levelPath = getLibraryPathForce(file, 'week_assets', currentLevel);
+
+                #if sys
+                if (FileSystem.exists(levelPath))
+                    return levelPath;
+                #end
+
                 if (OpenFlAssets.exists(levelPath, type))
                     return levelPath;
             }
 
             levelPath = getLibraryPathForce(file, "shared");
+
+            #if sys
+            if (FileSystem.exists(levelPath))
+                return levelPath;
+            #end
+
             if (OpenFlAssets.exists(levelPath, type))
                 return levelPath;
         }
