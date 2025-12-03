@@ -442,14 +442,14 @@ class Paths
         var assetsPath = getPreloadPath(path);
         if (OpenFlAssets.exists(assetsPath))
         {
-            #if web
             var prefix = assetsPath + "/";
             for (asset in OpenFlAssets.list())
             {
                 if (asset.startsWith(prefix) && asset != prefix)
                     result.push(asset);
             }
-            #else
+
+            #if sys
             if (FileSystem.exists(assetsPath) && FileSystem.isDirectory(assetsPath))
             {
                 for (file in FileSystem.readDirectory(assetsPath))
@@ -541,6 +541,9 @@ class Paths
             var content = Mods.getFileFromMod(mod, filePath);
             return (content != null) ? content.toString() : null;
         }
+        #end
+
+        #if sys
         if (FileSystem.exists(path)) return File.getContent(path);
         #end
 
@@ -610,13 +613,9 @@ class Paths
                 return FlxAtlasFrames.fromSparrow(imageLoaded, content.toString());
             }
         }
-        else #end if(OpenFlAssets.exists(myXml) #if MODS_ALLOWED || (FileSystem.exists(myXml) && (useMod = true)) #end )
+        else #end if(OpenFlAssets.exists(myXml) #if sys || (FileSystem.exists(myXml) && (useMod = true)) #end )
         {
-            #if MODS_ALLOWED
-            return FlxAtlasFrames.fromSparrow(imageLoaded, (useMod ? File.getContent(myXml) : myXml));
-            #else
-            return FlxAtlasFrames.fromSparrow(imageLoaded, myXml);
-            #end
+            return FlxAtlasFrames.fromSparrow(imageLoaded, (#if sys useMod ? File.getContent(myXml) : #end myXml));
         }
         else
         {
@@ -631,13 +630,9 @@ class Paths
                     return FlxAtlasFrames.fromTexturePackerJson(imageLoaded, content.toString());
                 }
             }
-            else #end if(OpenFlAssets.exists(myJson) #if MODS_ALLOWED || (FileSystem.exists(myJson) && (useMod = true)) #end )
+            else #end if(OpenFlAssets.exists(myJson) #if sys || (FileSystem.exists(myJson) && (useMod = true)) #end )
             {
-                #if MODS_ALLOWED
-                return FlxAtlasFrames.fromTexturePackerJson(imageLoaded, (useMod ? File.getContent(myJson) : myJson));
-                #else
-                return FlxAtlasFrames.fromTexturePackerJson(imageLoaded, myJson);
-                #end
+                return FlxAtlasFrames.fromTexturePackerJson(imageLoaded, (#if sys useMod ? File.getContent(myJson) : #end myJson));
             }
         }
         return getPackerAtlas(key, library);
@@ -645,9 +640,8 @@ class Paths
 
     static public function getSparrowAtlas(key:String, ?library:String = null, ?allowGPU:Bool = false):FlxAtlasFrames
     {
-        if (ClientPrefs.cacheOnGPU) {
-            allowGPU = true;
-        }
+        allowGPU = ClientPrefs.cacheOnGPU;
+        
         var imageLoaded:FlxGraphic = image(key, library, allowGPU);
         #if MODS_ALLOWED
         var xmlExists:Bool = false;
@@ -661,20 +655,15 @@ class Paths
             if (content != null) return FlxAtlasFrames.fromSparrow(imageLoaded, content.toString());
         }
         else if(FileSystem.exists(xml)) xmlExists = true;
-
-        return FlxAtlasFrames.fromSparrow(imageLoaded, (xmlExists ? File.getContent(xml) : getPath('images/$key.xml', library)));
-        #else
-        return FlxAtlasFrames.fromSparrow(imageLoaded, getPath('images/$key.xml', library));
         #end
+
+        return FlxAtlasFrames.fromSparrow(imageLoaded, (#if sys xmlExists ? File.getContent(xml) : #end getPath('images/$key.xml', library)));
     }
 
     static public function getPackerAtlas(key:String, ?library:String = null, ?allowGPU:Bool = false):FlxAtlasFrames
     {
-        if (ClientPrefs.cacheOnGPU) {
-            allowGPU = true;
-        } else {
-            allowGPU = false;
-        }
+        allowGPU = ClientPrefs.cacheOnGPU;
+
         var imageLoaded:FlxGraphic = image(key, library, allowGPU);
         #if MODS_ALLOWED
         var txtExists:Bool = false;
@@ -688,11 +677,9 @@ class Paths
             if (content != null) return FlxAtlasFrames.fromSpriteSheetPacker(imageLoaded, content.toString());
         }
         else if(FileSystem.exists(txt)) txtExists = true;
-
-        return FlxAtlasFrames.fromSpriteSheetPacker(imageLoaded, (txtExists ? File.getContent(txt) : getPath('images/$key.txt', library)));
-        #else
-        return FlxAtlasFrames.fromSpriteSheetPacker(imageLoaded, getPath('images/$key.txt', library));
         #end
+
+        return FlxAtlasFrames.fromSpriteSheetPacker(imageLoaded, (#if sys txtExists ? File.getContent(txt) : #end getPath('images/$key.txt', library)));
     }
 
     static public function getAsepriteAtlas(key:String, ?library:String = null, ?allowGPU:Bool = true):FlxAtlasFrames
@@ -710,26 +697,22 @@ class Paths
             if (content != null) return FlxAtlasFrames.fromTexturePackerJson(imageLoaded, content.toString());
         }
         else if(FileSystem.exists(json)) jsonExists = true;
+        #end
 
-        return FlxAtlasFrames.fromTexturePackerJson(imageLoaded, (jsonExists ? File.getContent(json) : getPath('images/$key.json', library)));
-        #else
-        return FlxAtlasFrames.fromTexturePackerJson(imageLoaded, getPath('images/$key.json', library));
+        return FlxAtlasFrames.fromTexturePackerJson(imageLoaded, (#if sys jsonExists ? File.getContent(json) : #end getPath('images/$key.json', library)));
+    }
+
+    inline static public function getAnimateAtlas(key:String, ?library:String = null):FlxAnimateFrames
+    {
+        #if flixel_animate
+        return FlxAnimateFrames.fromAnimate(getPath('images/$key', TEXT, library, true));
         #end
     }
 
-    #if flixel_animate
-    inline static public function getAnimateAtlas(key:String, ?library:String = null):FlxAnimateFrames
-    {
-        return FlxAnimateFrames.fromAnimate(getPath('images/$key', TEXT, library, true));
-    }
-    #end
-
-    #if flxgif
     inline static public function gif(key:String, ?library:String = null):FlxGifAsset
     {
         return Paths.getPath('images/$key.gif', IMAGE, library, true);
     }
-    #end
 
     inline static public function formatToSongPath(path:String) {
         var invalidChars = ~/[~&\\;:<>#]/;

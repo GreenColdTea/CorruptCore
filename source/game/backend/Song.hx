@@ -195,7 +195,7 @@ class Song
 			gfVersion: 'gf',
 			speed: 1,
 			stage: 'stage',
-			validScore: false
+			validScore: true
 		};
 	}
 }
