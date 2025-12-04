@@ -972,6 +972,8 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 		var pasteButton:PsychUIButton = new PsychUIButton(copyButton.x + 130, copyButton.y, "Paste Section", function()
 		{
+			saveToUndo();
+			
 			if(notesCopied == null || notesCopied.length < 1) return;
 
 			var addToTime:Float = Conductor.stepCrochet * (getSectionBeats() * GRID_COLUMNS_PER_PLAYER * (curSec - sectionToCopy));
@@ -1012,6 +1014,8 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 		var clearSectionButton:PsychUIButton = new PsychUIButton(pasteButton.x + 130, pasteButton.y, "Clear", function()
 		{
+			saveToUndo();
+
 			if(check_notesSec.checked)
 			{
 				_song.notes[curSec].sectionNotes = [];
@@ -1044,10 +1048,16 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 		var swapSection:PsychUIButton = new PsychUIButton(10, check_notesSec.y + 40, "Swap Section", function()
 		{
+			saveToUndo();
+			
 			for (i in 0..._song.notes[curSec].sectionNotes.length)
 			{
 				var note:Array<Dynamic> = _song.notes[curSec].sectionNotes[i];
-				note[1] = (note[1] + GRID_COLUMNS_PER_PLAYER) % GRID_COLUMNS_PER_PLAYER * 2;
+				var isPlayerSide:Bool = note[1] < GRID_COLUMNS_PER_PLAYER;
+				
+				note[1] += isPlayerSide ? GRID_COLUMNS_PER_PLAYER : -GRID_COLUMNS_PER_PLAYER;
+				
+				note[1] = Math.max(0, Math.min(note[1], GRID_COLUMNS_PER_PLAYER * 2 - 1));
 				_song.notes[curSec].sectionNotes[i] = note;
 			}
 			updateGrid();
