@@ -574,6 +574,11 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		var tab_group = UI_characterbox.getTab('Character').menu;
 
 		imageInputText = new PsychUIInputText(15, 30, 200, 'characters/BOYFRIEND', 8);
+		imageInputText.onChange = (_, _) -> {
+			char.imageFile = imageInputText.text;
+			saveHistoryStuff();
+		};
+
 		var reloadImage:PsychUIButton = new PsychUIButton(imageInputText.x + 210, imageInputText.y - 3, "Reload Image", function()
 		{
 			char.imageFile = imageInputText.text;
@@ -595,12 +600,44 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			});
 
 		healthIconInputText = new PsychUIInputText(15, imageInputText.y + 35, 75, leHealthIcon.getCharacter(), 8);
+		healthIconInputText.onChange = (_, _) -> {
+			leHealthIcon.changeIcon(healthIconInputText.text, false);
+			char.healthIcon = healthIconInputText.text;
+			updatePresence();
+			saveHistoryStuff();
+		};
 
 		vocalsInputText = new PsychUIInputText(15, healthIconInputText.y + 35, 75, char.vocalsFile ?? '', 8);
+		vocalsInputText.onChange = (_, _) -> {
+			char.vocalsFile = vocalsInputText.text;
+			saveHistoryStuff();
+		};
 
 		singDurationStepper = new PsychUINumericStepper(15, healthIconInputText.y + 75, 0.1, 4, 0, 999, 1);
+		singDurationStepper.onValueChange = () -> {
+			char.singDuration = singDurationStepper.value;//ermm you forgot this??
+			saveHistoryStuff();
+		};
 
 		scaleStepper = new PsychUINumericStepper(15, singDurationStepper.y + 40, 0.1, 1, 0.05, 10, 1);
+		scaleStepper.onValueChange = () -> {
+			reloadCharacterImage();
+
+			char.jsonScale = scaleStepper.value;
+			char.setGraphicSize(Std.int(char.width * char.jsonScale));
+			char.updateHitbox();
+
+			ghostChar.setGraphicSize(Std.int(ghostChar.width * char.jsonScale));
+			ghostChar.updateHitbox();
+			reloadGhost();
+
+			updatePointerPos(false);
+
+			if(!char.isAnimationNull()) {
+				char.playAnim(char.getAnimationName(), true);
+			}
+			saveHistoryStuff();
+		};
 
 		flipXCheckBox = new PsychUICheckBox(singDurationStepper.x + 80, singDurationStepper.y, "Flip X", 50);
 		flipXCheckBox.checked = char.flipX;
@@ -625,16 +662,57 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		};
 
 		positionXStepper = new PsychUINumericStepper(flipXCheckBox.x + 110, flipXCheckBox.y, 10, char.positionArray[0]);
+		positionXStepper.onValueChange = () -> {
+			char.positionArray[0] = positionXStepper.value;
+			char.x = char.positionArray[0] + OFFSET_X + 100;
+			updatePointerPos();
+			saveHistoryStuff();
+		}
+
 		positionYStepper = new PsychUINumericStepper(positionXStepper.x + 70, positionXStepper.y, 10, char.positionArray[1]);
+		positionYStepper.onValueChange = () -> {
+			char.positionArray[1] = positionYStepper.value;
+			char.y = char.positionArray[1];
+			updatePointerPos();
+			saveHistoryStuff();
+		}
 
 		positionCameraXStepper = new PsychUINumericStepper(positionXStepper.x, positionXStepper.y + 40, 10, char.cameraPosition[0]);
+		positionCameraXStepper.onValueChange = () -> {
+			char.cameraPosition[0] = positionCameraXStepper.value;
+			updatePointerPos();
+			saveHistoryStuff();
+		};
+
 		positionCameraYStepper = new PsychUINumericStepper(positionYStepper.x, positionYStepper.y + 40, 10, char.cameraPosition[1]);
+		positionCameraYStepper.onValueChange = () -> {
+			char.cameraPosition[1] = positionCameraYStepper.value;
+			updatePointerPos();
+			saveHistoryStuff();
+		};
 
 		var saveCharacterButton:PsychUIButton = new PsychUIButton(reloadImage.x, noAntialiasingCheckBox.y + 40, "Save Character", () -> saveCharacter());
 
 		healthColorStepperR = new PsychUINumericStepper(singDurationStepper.x, saveCharacterButton.y, 20, char.healthColorArray[0], 0, 255, 0);
+		healthColorStepperR.onValueChange = () -> {
+			char.healthColorArray[0] = Math.round(healthColorStepperR.value);
+			healthBarBG.color = FlxColor.fromRGB(char.healthColorArray[0], char.healthColorArray[1], char.healthColorArray[2]);
+			saveHistoryStuff();
+		};
+
 		healthColorStepperG = new PsychUINumericStepper(singDurationStepper.x + 65, saveCharacterButton.y, 20, char.healthColorArray[1], 0, 255, 0);
+		healthColorStepperG.onValueChange = () -> {
+			char.healthColorArray[1] = Math.round(healthColorStepperG.value);
+			healthBarBG.color = FlxColor.fromRGB(char.healthColorArray[0], char.healthColorArray[1], char.healthColorArray[2]);
+			saveHistoryStuff();
+		};
+
 		healthColorStepperB = new PsychUINumericStepper(singDurationStepper.x + 130, saveCharacterButton.y, 20, char.healthColorArray[2], 0, 255, 0);
+		healthColorStepperB.onValueChange = () -> {
+			char.healthColorArray[2] = Math.round(healthColorStepperB.value);
+			healthBarBG.color = FlxColor.fromRGB(char.healthColorArray[0], char.healthColorArray[1], char.healthColorArray[2]);
+			saveHistoryStuff();
+		};
 
 		tab_group.add(new FlxText(15, imageInputText.y - 18, 0, 'Image file name:'));
 		tab_group.add(new FlxText(15, healthIconInputText.y - 18, 0, 'Health icon name:'));
@@ -681,7 +759,40 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		animationLoopCheckBox = new PsychUICheckBox(animationNameInputText.x + 170, animationNameInputText.y - 1, "Should it Loop?", 100);
 
 		shadowAnimOffsetXStepper = new PsychUINumericStepper(animationInputText.x + 170, animationInputText.y - 55, 1, 0, -1000, 1000, 0);
+		shadowAnimOffsetXStepper.onValueChange = () -> {
+			if(char.animationsArray[curAnim] != null) {
+				var animName = char.animationsArray[curAnim].anim;
+				var offsets = char.shadowOffsets.get(animName) ?? [0, 0];
+				offsets[0] = Std.int(shadowAnimOffsetXStepper.value);
+				char.shadowOffsets.set(animName, offsets);
+				
+				if(animName == char.getAnimationName()) {
+					char.shadowSprite.offset.x = shadowAnimOffsetXStepper.value;
+					if(char.shadowSprite != null) char.shadowSprite.offset.x = char.shadowOffset.x + shadowAnimOffsetXStepper.value;
+					#if flixel_animate
+					if(char.shadowAtlas != null) char.shadowAtlas.offset.x = char.shadowOffset.x + shadowAnimOffsetXStepper.value;
+					#end
+				}
+			}
+		};
+
 		shadowAnimOffsetYStepper = new PsychUINumericStepper(shadowAnimOffsetXStepper.x + 70, shadowAnimOffsetXStepper.y, 1, 0, -1000, 1000, 0);
+		shadowAnimOffsetYStepper.onValueChange = () -> {
+			if(char.animationsArray[curAnim] != null) {
+				var animName = char.animationsArray[curAnim].anim;
+				var offsets = char.shadowOffsets.get(animName) ?? [0, 0];
+				offsets[1] = Std.int(shadowAnimOffsetYStepper.value);
+				char.shadowOffsets.set(animName, offsets);
+				
+				if(animName == char.getAnimationName()) {
+					char.shadowOffset.y = shadowAnimOffsetYStepper.value;
+					if(char.shadowSprite != null) char.shadowSprite.offset.y = char.offset.y + shadowAnimOffsetYStepper.value;
+					#if flixel_animate
+					if(char.shadowAtlas != null) char.shadowAtlas.offset.y = char.offset.y + shadowAnimOffsetYStepper.value;
+					#end
+				}
+			}
+		};
 
 		animationDropDown = new PsychUIDropDownMenu(15, animationInputText.y - 55, null, (selectedAnimation:Int, pressed:String) -> {
 			var anim:AnimArray = char.animationsArray[selectedAnimation];
@@ -880,8 +991,25 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		};
 
 		shadowColorStepperR = new PsychUINumericStepper(70, 35, 20, char.shadowColor.red, 0, 255, 0);
+		shadowColorStepperR.onValueChange = () -> {
+			char.shadowColor.red = Math.round(shadowColorStepperR.value);
+			char.updateShadow();
+			saveHistoryStuff();
+		};
+
 		shadowColorStepperG = new PsychUINumericStepper(shadowColorStepperR.x + 70, shadowColorStepperR.y, 20, char.shadowColor.green, 0, 255, 0);
+		shadowColorStepperG.onValueChange = () -> {
+			char.shadowColor.green = Math.round(shadowColorStepperG.value);
+			char.updateShadow();
+			saveHistoryStuff();
+		};
+
 		shadowColorStepperB = new PsychUINumericStepper(shadowColorStepperG.x + 70, shadowColorStepperG.y, 20, char.shadowColor.blue, 0, 255, 0);
+		shadowColorStepperB.onValueChange = () -> {
+			char.shadowColor.blue = Math.round(shadowColorStepperB.value);
+			char.updateShadow();
+			saveHistoryStuff();
+		};
 		
 		shadowAlphaSlider = new PsychUISlider(75, 50, (v:Float) -> {
 			char.shadowAlpha = v;
@@ -894,13 +1022,52 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		shadowAlphaSlider.labelText.y += 2.5;
 
 		shadowOffsetXStepper = new PsychUINumericStepper(shadowAlphaSlider.x + 35, 112.5, 1, char.shadowOffset.x, -9999, 9999);
+		shadowOffsetXStepper.onValueChange = () -> {
+			char.shadowOffset.x = shadowOffsetXStepper.value;
+			char.updateShadow();
+			saveHistoryStuff();
+		};
+
 		shadowOffsetYStepper = new PsychUINumericStepper(shadowOffsetXStepper.x + 70, shadowOffsetXStepper.y, 1, char.shadowOffset.y, -9999, 9999);
+		shadowOffsetYStepper.onValueChange = () -> {
+			char.shadowOffset.y = shadowOffsetYStepper.value;
+			char.updateShadow();
+			saveHistoryStuff();
+		};
 
 		shadowSkewXStepper = new PsychUINumericStepper(shadowAlphaSlider.x + 35, 142.5, 1, char.shadowSkew.x, -180, 180, 0);
+		shadowSkewXStepper.onValueChange = () -> {
+			char.shadowSkew.x = shadowSkewXStepper.value;
+			if(char.shadowSprite != null) char.shadowSprite.skew.x = char.shadowSkew.x;
+			#if flixel_animate
+			if(char.shadowAtlas != null) char.shadowAtlas.skew.x = char.shadowSkew.x;
+			#end
+			saveHistoryStuff();
+		};
+
 		shadowSkewYStepper = new PsychUINumericStepper(shadowSkewXStepper.x + 70, shadowSkewXStepper.y, 1, char.shadowSkew.y, -180, 180, 0);
+		shadowSkewYStepper.onValueChange = () -> {
+			char.shadowSkew.y = shadowSkewYStepper.value;
+			if(char.shadowSprite != null) char.shadowSprite.skew.y = char.shadowSkew.y;
+			#if flixel_animate
+			if(char.shadowAtlas != null) char.shadowAtlas.skew.y = char.shadowSkew.y;
+			#end
+			saveHistoryStuff();
+		};
 
 		shadowScaleXStepper = new PsychUINumericStepper(shadowAlphaSlider.x + 35, 172.5, 0.1, char.shadowScale.x, 0.05, 10, 2);
+		shadowScaleXStepper.onValueChange = () -> {
+			char.shadowScale.x = shadowScaleXStepper.value;
+			char.updateShadow();
+			saveHistoryStuff();
+		};
+
 		shadowScaleYStepper = new PsychUINumericStepper(shadowScaleXStepper.x + 70, shadowScaleXStepper.y, 0.1, char.shadowScale.y, 0.05, 10, 2);
+		shadowScaleYStepper.onValueChange = () -> {
+			char.shadowScale.x = shadowScaleXStepper.value;
+			char.updateShadow();
+			saveHistoryStuff();
+		};
 
 		shadowScrollXStepper = new PsychUINumericStepper(shadowAlphaSlider.x + 35, 202.5, 0.1, char.shadowScrollFactor.x, 0, 2, 1);
 		shadowScrollYStepper = new PsychUINumericStepper(shadowScrollXStepper.x + 70, shadowScrollXStepper.y, 0.1, char.shadowScrollFactor.y, 0, 2, 1);
@@ -945,178 +1112,6 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		if (id == PsychUINumericStepper.CHANGE_EVENT) {
         	saveHistoryStuff();
     	}
-		if(id == PsychUIInputText.CHANGE_EVENT && (sender is PsychUIInputText)) {
-			if(sender == healthIconInputText) {
-				leHealthIcon.changeIcon(healthIconInputText.text, false);
-				char.healthIcon = healthIconInputText.text;
-				updatePresence();
-				saveHistoryStuff();
-			}
-			else if(sender == imageInputText) {
-				char.imageFile = imageInputText.text;
-				saveHistoryStuff();
-			}
-		} else if(id == PsychUINumericStepper.CHANGE_EVENT && (sender is PsychUINumericStepper)) {
-			if (sender == scaleStepper)
-			{
-				reloadCharacterImage();
-				char.jsonScale = sender.value;
-				char.setGraphicSize(Std.int(char.width * char.jsonScale));
-				char.updateHitbox();
-				ghostChar.setGraphicSize(Std.int(ghostChar.width * char.jsonScale));
-				ghostChar.updateHitbox();
-				reloadGhost();
-				updatePointerPos(false);
-
-				if(!char.isAnimationNull()) {
-					char.playAnim(char.getAnimationName(), true);
-				}
-				saveHistoryStuff();
-			}
-			else if(sender == positionXStepper)
-			{
-				char.positionArray[0] = positionXStepper.value;
-				char.x = char.positionArray[0] + OFFSET_X + 100;
-				updatePointerPos();
-				saveHistoryStuff();
-			}
-			else if(sender == singDurationStepper)
-			{
-				char.singDuration = singDurationStepper.value;//ermm you forgot this??
-				saveHistoryStuff();
-			}
-			else if(sender == positionYStepper)
-			{
-				char.positionArray[1] = positionYStepper.value;
-				char.y = char.positionArray[1];
-				updatePointerPos();
-				saveHistoryStuff();
-			}
-			else if(sender == positionCameraXStepper)
-			{
-				char.cameraPosition[0] = positionCameraXStepper.value;
-				updatePointerPos();
-				saveHistoryStuff();
-			}
-			else if(sender == positionCameraYStepper)
-			{
-				char.cameraPosition[1] = positionCameraYStepper.value;
-				updatePointerPos();
-				saveHistoryStuff();
-			}
-			else if(sender == vocalsInputText)
-			{
-				char.vocalsFile = vocalsInputText.text;
-			}
-			else if(sender == healthColorStepperR)
-			{
-				char.healthColorArray[0] = Math.round(healthColorStepperR.value);
-				healthBarBG.color = FlxColor.fromRGB(char.healthColorArray[0], char.healthColorArray[1], char.healthColorArray[2]);
-				saveHistoryStuff();
-			}
-			else if(sender == healthColorStepperG)
-			{
-				char.healthColorArray[1] = Math.round(healthColorStepperG.value);
-				healthBarBG.color = FlxColor.fromRGB(char.healthColorArray[0], char.healthColorArray[1], char.healthColorArray[2]);
-				saveHistoryStuff();
-			}
-			else if(sender == healthColorStepperB)
-			{
-				char.healthColorArray[2] = Math.round(healthColorStepperB.value);
-				healthBarBG.color = FlxColor.fromRGB(char.healthColorArray[0], char.healthColorArray[1], char.healthColorArray[2]);
-				saveHistoryStuff();
-			}
-			//shadow thingies
-			else if(sender == shadowColorStepperR) {
-				char.shadowColor.red = Math.round(shadowColorStepperR.value);
-				char.updateShadow();
-				saveHistoryStuff();
-			}
-			else if(sender == shadowColorStepperG) {
-				char.shadowColor.green = Math.round(shadowColorStepperG.value);
-				char.updateShadow();
-				saveHistoryStuff();
-			}
-			else if(sender == shadowColorStepperB) {
-				char.shadowColor.blue = Math.round(shadowColorStepperB.value);
-				char.updateShadow();
-				saveHistoryStuff();
-			}
-			else if(sender == shadowOffsetXStepper)
-			{
-				char.shadowOffset.x = shadowOffsetXStepper.value;
-				char.updateShadow();
-				saveHistoryStuff();
-			}
-			else if(sender == shadowOffsetYStepper)
-			{
-				char.shadowOffset.y = shadowOffsetYStepper.value;
-				char.updateShadow();
-				saveHistoryStuff();
-			}
-			else if(sender == shadowScaleXStepper)
-			{
-				char.shadowScale.x = shadowScaleXStepper.value;
-				char.updateShadow();
-				saveHistoryStuff();
-			}
-			else if(sender == shadowScaleYStepper)
-			{
-				char.shadowScale.x = shadowScaleXStepper.value;
-				char.updateShadow();
-				saveHistoryStuff();
-			}
-			else if(sender == shadowSkewXStepper) {
-				char.shadowSkew.x = shadowSkewXStepper.value;
-				if(char.shadowSprite != null) char.shadowSprite.skew.x = char.shadowSkew.x;
-				#if flixel_animate
-				if(char.shadowAtlas != null) char.shadowAtlas.skew.x = char.shadowSkew.x;
-				#end
-				saveHistoryStuff();
-			}
-			else if(sender == shadowSkewYStepper) {
-				char.shadowSkew.y = shadowSkewYStepper.value;
-				if(char.shadowSprite != null) char.shadowSprite.skew.y = char.shadowSkew.y;
-				#if flixel_animate
-				if(char.shadowAtlas != null) char.shadowAtlas.skew.y = char.shadowSkew.y;
-				#end
-				saveHistoryStuff();
-			}
-			else if(sender == shadowAnimOffsetXStepper)
-			{
-				if(char.animationsArray[curAnim] != null) {
-					var animName = char.animationsArray[curAnim].anim;
-					var offsets = char.shadowOffsets.get(animName) ?? [0, 0];
-					offsets[0] = Std.int(shadowAnimOffsetXStepper.value);
-					char.shadowOffsets.set(animName, offsets);
-					
-					if(animName == char.getAnimationName()) {
-						char.shadowSprite.offset.x = shadowAnimOffsetXStepper.value;
-						if(char.shadowSprite != null) char.shadowSprite.offset.x = char.shadowOffset.x + shadowAnimOffsetXStepper.value;
-						#if flixel_animate
-						if(char.shadowAtlas != null) char.shadowAtlas.offset.x = char.shadowOffset.x + shadowAnimOffsetXStepper.value;
-						#end
-					}
-				}
-			}
-			else if(sender == shadowAnimOffsetYStepper)
-			{
-				if(char.animationsArray[curAnim] != null) {
-					var animName = char.animationsArray[curAnim].anim;
-					var offsets = char.shadowOffsets.get(animName) ?? [0, 0];
-					offsets[1] = Std.int(shadowAnimOffsetYStepper.value);
-					char.shadowOffsets.set(animName, offsets);
-					
-					if(animName == char.getAnimationName()) {
-						char.shadowOffset.y = shadowAnimOffsetYStepper.value;
-						if(char.shadowSprite != null) char.shadowSprite.offset.y = char.offset.y + shadowAnimOffsetYStepper.value;
-						#if flixel_animate
-						if(char.shadowAtlas != null) char.shadowAtlas.offset.y = char.offset.y + shadowAnimOffsetYStepper.value;
-						#end
-					}
-				}
-			}
-		}
 	}
 
 	function reloadCharacterImage() {
@@ -1465,13 +1460,13 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			var animData = findAnimationByName(animToPlay);
 			if (animData != null) {
 				if(ghostChar.isAnimateAtlas) {
-					if(animData.indices != null && animData.indices.length > 0) {
+					if(animData.indices?.length > 0) {
 						ghostChar.atlas.anim.addBySymbolIndices(animData.anim, animData.name, animData.indices, animData.fps, animData.loop);
 					} else {
 						ghostChar.atlas.anim.addBySymbol(animData.anim, animData.name, animData.fps, animData.loop);
 					}
 				} else {
-					if(animData.indices != null && animData.indices.length > 0) {
+					if(animData.indices?.length > 0) {
 						ghostChar.animation.addByIndices(animData.anim, animData.name, animData.indices, "", animData.fps, animData.loop);
 					} else {
 						ghostChar.animation.addByPrefix(animData.anim, animData.name, animData.fps, animData.loop);
@@ -1490,13 +1485,13 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 				var animIndices = anim.indices;
 				
 				if(ghostChar.isAnimateAtlas) {
-					if(animIndices != null && animIndices.length > 0) {
+					if(animIndices?.length > 0) {
 						ghostChar.atlas.anim.addBySymbolIndices(animAnim, animName, animIndices, animFps, animLoop);
 					} else {
 						ghostChar.atlas.anim.addBySymbol(animAnim, animName, animFps, animLoop);
 					}
 				} else {
-					if(animIndices != null && animIndices.length > 0) {
+					if(animIndices?.length > 0) {
 						ghostChar.animation.addByIndices(animAnim, animName, animIndices, "", animFps, animLoop);
 					} else {
 						ghostChar.animation.addByPrefix(animAnim, animName, animFps, animLoop);
@@ -1507,8 +1502,9 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			}
 		}
 		
-		ghostChar.visible = wasVisible;
 		ghostChar.alpha = alpha;
+		ghostChar.visible = wasVisible;
+		ghostChar.jsonScale = char.jsonScale;
 		ghostChar.antialiasing = char.antialiasing;
 	}
 

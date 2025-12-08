@@ -4078,6 +4078,7 @@ class PlayState extends MusicBeatState
 		callOnScripts('onBeatHit');
 	}
 
+	var camZoomingOnSection:Bool = true;
 	override function sectionHit()
 	{
 		super.sectionHit();
@@ -4089,7 +4090,7 @@ class PlayState extends MusicBeatState
 				moveCameraSection();
 			}
 
-			if (camZooming && FlxG.camera.zoom < 1.35 && ClientPrefs.camZooms)
+			if (camZoomingOnSection && FlxG.camera.zoom < 1.35 && ClientPrefs.camZooms)
 			{
 				FlxG.camera.zoom += 0.015 * camZoomingMult;
 				camHUD.zoom += 0.03 * camZoomingMult;
