@@ -530,12 +530,17 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	{
 		var songName:String = Paths.formatToSongPath(_song.song);
 		var file:String = Paths.json(songName + '/events');
-		try
-		{
-			var events:SwagSong = Song.loadFromJson('events', songName);
-			_song.events = events.events;
-			changeSection(curSec);
-		} catch (e) {}
+		
+		if (_song.events == null || _song.events.length == 0) {
+			try
+			{
+				var events:SwagSong = Song.loadFromJson('events', songName);
+				_song.events = events.events;
+				changeSection(curSec);
+			} catch (e) {
+				_song.events = [];
+			}
+		}
 	}
 
 	var sliderBg:FlxSprite;
@@ -1903,6 +1908,8 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	{
 		// playstate but in editor
 		if (FlxG.keys.justPressed.ESCAPE #if mobile || _virtualpad.buttonB.justPressed #end) {
+			PlayState.SONG = _song;
+			
 			FlxG.sound.music.pause();
 			vocals?.pause();
 			opponentVocals?.pause();
