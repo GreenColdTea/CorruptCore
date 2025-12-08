@@ -657,7 +657,7 @@ class Paths
         else if(FileSystem.exists(xml)) xmlExists = true;
         #end
 
-        return FlxAtlasFrames.fromSparrow(imageLoaded, (#if sys xmlExists ? File.getContent(xml) : #end getPath('images/$key.xml', library)));
+        return FlxAtlasFrames.fromSparrow(imageLoaded, (#if MODS_ALLOWED xmlExists ? File.getContent(xml) : #end getPath('images/$key.xml', library)));
     }
 
     static public function getPackerAtlas(key:String, ?library:String = null, ?allowGPU:Bool = false):FlxAtlasFrames
@@ -679,7 +679,7 @@ class Paths
         else if(FileSystem.exists(txt)) txtExists = true;
         #end
 
-        return FlxAtlasFrames.fromSpriteSheetPacker(imageLoaded, (#if sys txtExists ? File.getContent(txt) : #end getPath('images/$key.txt', library)));
+        return FlxAtlasFrames.fromSpriteSheetPacker(imageLoaded, (#if MODS_ALLOWED txtExists ? File.getContent(txt) : #end getPath('images/$key.txt', library)));
     }
 
     static public function getAsepriteAtlas(key:String, ?library:String = null, ?allowGPU:Bool = true):FlxAtlasFrames
@@ -699,7 +699,7 @@ class Paths
         else if(FileSystem.exists(json)) jsonExists = true;
         #end
 
-        return FlxAtlasFrames.fromTexturePackerJson(imageLoaded, (#if sys jsonExists ? File.getContent(json) : #end getPath('images/$key.json', library)));
+        return FlxAtlasFrames.fromTexturePackerJson(imageLoaded, (#if MODS_ALLOWED jsonExists ? File.getContent(json) : #end getPath('images/$key.json', library)));
     }
 
     inline static public function getAnimateAtlas(key:String, ?library:String = null):FlxAnimateFrames

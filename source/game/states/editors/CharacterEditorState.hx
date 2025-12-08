@@ -460,12 +460,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			if(intended == null || intended.length < 1) return;
 
 			var characterPath:String = 'characters/$intended.json';
-			var path:String = Paths.getPath(characterPath, TEXT, null, true);
-			#if MODS_ALLOWED
-			if (FileSystem.exists(path))
-			#else
-			if (OpenFLAssets.exists(path))
-			#end
+			if (Paths.fileExists(characterPath, TEXT))
 			{
 				daAnim = intended;
 				//check_player.checked = character.isPlayer;
@@ -1365,12 +1360,13 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		updatePointerPos();
 	}
 
-	inline function updatePointerPos(?snap:Bool = true)
+	function updatePointerPos(?snap:Bool = true)
 	{
 		if(char == null || cameraFollowPointer == null) return;
 
 		var offX:Float = 0;
 		var offY:Float = 0;
+		
 		if(!char.isPlayer)
 		{
 			offX = char.getMidpoint().x + 100 + char.cameraPosition[0];
@@ -1378,7 +1374,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		}
 		else
 		{
-			offX = char.getMidpoint().x - 150 + char.cameraPosition[0];
+			offX = char.getMidpoint().x - 150 - char.cameraPosition[0];
 			offY = char.getMidpoint().y - 100 + char.cameraPosition[1];
 		}
 		cameraFollowPointer.setPosition(offX, offY);

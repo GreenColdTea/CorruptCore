@@ -26,6 +26,14 @@ import lime.utils.AssetManifest;
 import haxe.Exception;
 import haxe.io.Path;
 
+#if hxopus
+import hxopus.Opus;
+#end
+
+#if hxflac
+import hxflac.FLACHelper;
+#end
+
 import game.backend.StageData.StageFile;
 
 enum LoadTaskType {
@@ -363,8 +371,10 @@ class LoadingState extends MusicBeatState
             var callback = callbacks.add("modSong:" + path);
 
             try {
-                var sound = Sound.fromFile(path);
-                Paths.currentTrackedSounds.set(path, sound);
+                var sound = loadSoundFromPath(path);
+                if (sound != null) {
+                    Paths.currentTrackedSounds.set(path, sound);
+                }
                 callback();
             } catch (e:Dynamic) {
                 trace('Error loading mod sound: $path, error: $e');
@@ -385,6 +395,44 @@ class LoadingState extends MusicBeatState
                 callback();
             }
         }
+    }
+
+    function loadSoundFromPath(path:String):Sound
+    {
+        #if sys
+        if (!FileSystem.exists(path)) {
+            return null;
+        }
+        
+        var extension = Path.extension(path).toLowerCase();
+        
+        try {
+            switch(extension) {
+                #if hxopus
+                case "opus":
+                    var bytes = File.getBytes(path);
+                    return Opus.toOpenFL(bytes);
+                #end
+                
+                #if hxflac
+                case "flac":
+                    var bytes = File.getBytes(path);
+                    return FLACHelper.toOpenFL(bytes);
+                #end
+                
+                case "wav":
+                    return CoolUtil.loadHighBitrateWav(path, path);
+                    
+                default:
+                    return Sound.fromFile(path);
+            }
+        } catch(e:Dynamic) {
+            trace('Error loading sound file $path: $e');
+            return null;
+        }
+        #else
+        return null;
+        #end
     }
 
     function onLoad()
@@ -428,9 +476,20 @@ class LoadingState extends MusicBeatState
     static function getSoundPath(song:String, type:String):String
     {
         var songKey:String = '${Paths.formatToSongPath(song)}/$type';
-
+        var extensions:Array<String> = [];
+        
+        #if hxopus
+        extensions.push(Paths.OPUS_EXT);
+        #end
+        
+        #if hxflac
+        extensions.push("flac");
+        #end
+        
+        extensions = extensions.concat(Paths.SOUND_EXTS);
+        
         #if MODS_ALLOWED
-        for (ext in Paths.SOUND_EXTS) {
+        for (ext in extensions) {
             var file:String = Mods.modsSounds('songs', songKey, ext);
             if (FileSystem.exists(file)) {
                 return file;
@@ -438,7 +497,7 @@ class LoadingState extends MusicBeatState
         }
         #end
 
-        for (ext in Paths.SOUND_EXTS) {
+        for (ext in extensions) {
             var soundPath:String = Paths.getPath('songs/$songKey.$ext', SOUND, 'songs');
             if (Assets.exists(soundPath, SOUND)) {
                 return soundPath;
@@ -449,7 +508,7 @@ class LoadingState extends MusicBeatState
         var songKeyCapital:String = '${Paths.formatToSongPath(song)}/$capitalType';
 
         #if MODS_ALLOWED
-        for (ext in Paths.SOUND_EXTS) {
+        for (ext in extensions) {
             var file:String = Mods.modsSounds('songs', songKeyCapital, ext);
             if (FileSystem.exists(file)) {
                 return file;
@@ -457,7 +516,7 @@ class LoadingState extends MusicBeatState
         }
         #end
 
-        for (ext in Paths.SOUND_EXTS) {
+        for (ext in extensions) {
             var soundPath:String = Paths.getPath('songs/$songKeyCapital.$ext', SOUND, 'songs');
             if (Assets.exists(soundPath, SOUND)) {
                 return soundPath;
@@ -617,10 +676,35 @@ class LoadingState extends MusicBeatState
     static function isSoundLoaded(path:String):Bool
     {
         #if MODS_ALLOWED
-        if (path.startsWith('${Mods.MODS_FOLDER}/')) return FileSystem.exists(path);
+        if (path.startsWith('${Mods.MODS_FOLDER}/')) {
+            return FileSystem.exists(path);
+        }
         #end
 
-        return Assets.cache.hasSound(path);
+        if (Assets.cache.hasSound(path)) {
+            return true;
+        }
+        
+        var extensions:Array<String> = [];
+        
+        #if hxopus
+        extensions.push(Paths.OPUS_EXT);
+        #end
+        
+        #if hxflac
+        extensions.push("flac");
+        #end
+        
+        extensions = extensions.concat(Paths.SOUND_EXTS);
+        
+        for (ext in extensions) {
+            var testPath = Path.withoutExtension(path) + "." + ext;
+            if (Assets.exists(testPath, SOUND)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     override function destroy()

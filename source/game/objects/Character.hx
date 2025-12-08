@@ -18,7 +18,6 @@ import animate.FlxAnimate;
 
 #if MODS_ALLOWED
 import sys.io.File;
-import sys.FileSystem;
 #end
 
 import openfl.utils.AssetType;
@@ -154,63 +153,34 @@ class Character extends FlxSprite
 		#else
 		animOffsets = new Map<String, Array<Dynamic>>();
 		#end
+
 		curCharacter = character;
 		this.isPlayer = isPlayer;
 		antialiasing = ClientPrefs.globalAntialiasing;
-		var library:String = null;
 
+		var library:String = null;
 		var characterPath:String = 'characters/' + curCharacter + '.json';
 
-		#if MODS_ALLOWED
-		var path:String = Mods.modFolders(characterPath);
-		if (!FileSystem.exists(path))
+		if (!Paths.fileExists(characterPath, TEXT))
 		{
-			path = Paths.getPreloadPath(characterPath);
+			characterPath = 'characters/' + DEFAULT_CHARACTER + '.json'; // If a character couldn't be found, change him to BF just to prevent a crash
 		}
 
-		if (!FileSystem.exists(path))
-		#else
-		var path:String = Paths.getPreloadPath(characterPath);
-		if (!Assets.exists(path))
-		#end
-		{
-			path = Paths.getPreloadPath('characters/' + DEFAULT_CHARACTER + '.json'); // If a character couldn't be found, change him to BF just to prevent a crash
-		}
+		var json:CharacterFile = cast Json.parse(Paths.getTextFromFile(characterPath));
+		var spriteType:String = "sparrow";
 
-		#if MODS_ALLOWED
-		var rawJson = File.getContent(path);
-		#else
-		var rawJson = Assets.getText(path);
-		#end
-
-		var json:CharacterFile = cast Json.parse(rawJson);
-		var spriteType = "sparrow";
 		// sparrow
 		// packer
 		// texture
-		#if MODS_ALLOWED
-		var modTxtToFind:String = Mods.modsTxt(json.image);
-		var txtToFind:String = Paths.getPath('images/' + json.image + '.txt', TEXT);
-
-		if (FileSystem.exists(modTxtToFind) || FileSystem.exists(txtToFind) || Assets.exists(txtToFind))
-		#else
-		if (Assets.exists(Paths.getPath('images/' + json.image + '.txt', TEXT)))
-		#end
+		if (Paths.fileExists('images/' + json.image + '.txt', TEXT))
 		{
 			spriteType = "packer";
 		}
 
 		#if flixel_animate
-		#if MODS_ALLOWED
-		var animToFind:String = Paths.getPath('images/' + json.image + '/Animation.json', TEXT, true);
-
 		isAnimateAtlas = false;
-		if (FileSystem.exists(animToFind) || Assets.exists(animToFind))
+		if (Paths.fileExists('images/' + json.image + '/Animation.json', TEXT))
 		{
-		#else
-		if (Assets.exists(Paths.getPath('images/' + json.image + '/Animation.json', TEXT)))
-		{
-		#end
 			spriteType = "texture";
 			isAnimateAtlas = true;
 		}
@@ -260,7 +230,7 @@ class Character extends FlxSprite
 			noAntialiasing = true;
 		}
 
-		if (json.healthbar_colors != null && json.healthbar_colors.length > 2)
+		if (json.healthbar_colors?.length > 2)
 			healthColorArray = json.healthbar_colors;
 
 		if (json.shadow != null)
@@ -461,7 +431,7 @@ class Character extends FlxSprite
 		{
 			animTimer -= elapsed;
 			if(animTimer <= 0){
-				animTimer=0;
+				animTimer = 0;
 				dance();
 			}
 		}

@@ -3980,6 +3980,8 @@ class PlayState extends MusicBeatState
 	}
 
 	override function destroy() {
+		stagesFunc((stage:BaseStage) -> stage.destroy());
+		
 		for (lua in luaArray) {
 			lua.safeCall('onDestroy', []);
 			lua.stop();
@@ -4167,6 +4169,7 @@ class PlayState extends MusicBeatState
 
 	public function startHScriptOnFolder(hscriptFile:String)
 	{
+		var hscriptToLoad:String;
 		#if HSCRIPT_ALLOWED
 		for (script in hscriptArray)
 		{
@@ -4174,7 +4177,7 @@ class PlayState extends MusicBeatState
 		}
 
 		#if MODS_ALLOWED
-		var hscriptToLoad:String = Mods.modFolders(hscriptFile);
+		hscriptToLoad = Mods.modFolders(hscriptFile);
 		if(FileSystem.exists(hscriptToLoad))
 		{
 			hscriptArray.push(new FunkinHScript(hscriptToLoad));
@@ -4193,7 +4196,7 @@ class PlayState extends MusicBeatState
 		}
 		#end
 
-		var hscriptToLoad:String = Paths.getPreloadPath(hscriptFile);
+		hscriptToLoad = Paths.getPreloadPath(hscriptFile);
 		if(OpenFlAssets.exists(hscriptToLoad))
 		{
 			hscriptArray.push(new FunkinHScript(hscriptToLoad));

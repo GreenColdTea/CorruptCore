@@ -44,13 +44,17 @@ class Mods
     public static var zipModsCache:Map<String, Map<String, Bytes>> = new Map();
     public static var tempExtractedFolders:Array<String> = [];
 
-    #if MODS_ALLOWED
     inline public static function getModPath(key:String = ''):String
     {
+        #if MODS_ALLOWED
         return '$MODS_FOLDER/$key';
+        #else
+        return '';
+        #end
     }
 
     public static function normalizePath(path:String):String {
+        #if MODS_ALLOWED
         if (path == null) return path;
 
         while (path.indexOf("//") != -1) {
@@ -59,22 +63,33 @@ class Mods
         if (path.startsWith("/")) {
             path = path.substr(1);
         }
+        #end
+
         return path;
     }
 
     public static function modExists(mod:String):Bool {
+        #if MODS_ALLOWED
         var modPath = getModPath(mod);
         return FileSystem.exists(modPath) || FileSystem.exists('$modPath.zip');
+        #else
+        return false;
+        #end
     }
 
     public static function isZipMod(mod:String):Bool
     {
+        #if MODS_ALLOWED
         var modPath = getModPath(mod);
         return FileSystem.exists('$modPath.zip');
+        #else
+        return false;
+        #end
     }
 
     public static function getModFileContent(path:String):Null<Bytes>
     {
+        #if MODS_ALLOWED
         path = normalizePath(path);
         
         if (currentModDirectory != null && currentModDirectory.length > 0) {
@@ -86,12 +101,14 @@ class Mods
             var content = getFileFromMod(mod, path);
             if (content != null) return content;
         }
+        #end
         
         return null;
     }
 
     public static function getFileFromMod(mod:String, path:String):Null<Bytes>
     {
+        #if MODS_ALLOWED
         path = normalizePath(path);
         var modPath = getModPath(mod);
         
@@ -103,12 +120,14 @@ class Mods
         if (FileSystem.exists(filePath) && !FileSystem.isDirectory(filePath)) {
             return File.getBytes(filePath);
         }
+        #end
         
         return null;
     }
 
     public static function getFileFromZipMod(mod:String, path:String):Null<Bytes>
     {
+        #if MODS_ALLOWED
         path = normalizePath(path);
         var zipPath = '${getModPath(mod)}.zip';
         
@@ -177,11 +196,13 @@ class Mods
                 }
             }
         }
+        #end
         
         return null;
     }
 
     private static function getPathVariants(mod:String, path:String):Array<String> {
+        #if MODS_ALLOWED
         var variants = [
             path,
             '$mod/$path',
@@ -248,10 +269,14 @@ class Mods
             }
         }
         return result;
+        #else
+        return [];
+        #end
     }
 
     public static function loadZipMod(mod:String):Bool
     {
+        #if MODS_ALLOWED
         var zipPath = '${getModPath(mod)}.zip';
         
         if (!FileSystem.exists(zipPath)) {
@@ -304,8 +329,10 @@ class Mods
             return true;
         } catch (e:Dynamic) {
             if (debugMode) trace('Error loading ZIP mod $mod: $e');
-            return false;
         }
+        #end
+
+        return false;
     }
 
     public static function modFileExists(path:String):Bool
@@ -330,8 +357,8 @@ class Mods
         return modFolders('videos/$key.$ext');
     }
 
-    #if NDLL_ALLOWED
     public static function modsNdll(key:String) {
+        #if (NDLL_ALLOWED && MODS_ALLOWED)
         if (currentModDirectory != null && currentModDirectory.length > 0) {
             var fileToCheck:String = getModPath(currentModDirectory + '/ndlls/$key');
             if (FileSystem.exists(fileToCheck)) {
@@ -355,8 +382,10 @@ class Mods
             }
         }
         return '$MODS_FOLDER/ndlls/' + key;
+        #else
+        return '';
+        #end
     }
-    #end
 
     public static function modsSounds(path:String, key:String, ?ext:String = null) {
         if (ext == null) ext = Paths.SOUND_EXT;
@@ -391,6 +420,7 @@ class Mods
     }
 
     static public function modFolders(key:String) {
+        #if MODS_ALLOWED
         key = normalizePath(key);
         
         if (currentModDirectory != null && currentModDirectory.length > 0) {
@@ -415,9 +445,13 @@ class Mods
             }
         }
         return '$MODS_FOLDER/' + key;
+        #else
+        return '';
+        #end
     }
 
     static public function extractFileFromZipMod(mod:String, filePath:String, category:String):String {
+        #if MODS_ALLOWED
         filePath = normalizePath(filePath);
         var content = getFileFromZipMod(mod, filePath);
         if (content == null) return null;
@@ -434,9 +468,13 @@ class Mods
         tempExtractedFolders.push(tempDir);
         
         return tempPath;
+        #else
+        return '';
+        #end
     }
 
     public static function extractZipMod(mod:String):Bool {
+        #if MODS_ALLOWED
         if (!isZipMod(mod)) {
             if (debugMode) trace('Mod $mod is not a ZIP mod or does not exist');
             return false;
@@ -527,12 +565,14 @@ class Mods
             } catch (cleanupError:Dynamic) {
                 trace('Error cleaning up after failed extraction: $cleanupError');
             }
-            
-            return false;
         }
+        #end
+
+        return false;
     }
 
     public static function getZipModInfo(mod:String):{size:Int, fileCount:Int} {
+        #if MODS_ALLOWED
         if (!isZipMod(mod)) {
             return {size: 0, fileCount: 0};
         }
@@ -557,11 +597,14 @@ class Mods
             };
         } catch (e:Dynamic) {
             if (debugMode) trace('Error getting ZIP mod info for $mod: $e');
-            return {size: 0, fileCount: 0};
         }
+        #end
+
+        return {size: 0, fileCount: 0};
     }
 
     public static function clearTempFiles() {
+        #if MODS_ALLOWED
         for (tempDir in tempExtractedFolders) {
             if (FileSystem.exists(tempDir)) {
                 deleteDirectory(tempDir);
@@ -569,9 +612,11 @@ class Mods
         }
         tempExtractedFolders = [];
         zipModsCache.clear();
+        #end
     }
 
     public static function deleteDirectory(path:String) {
+        #if MODS_ALLOWED
         if (FileSystem.exists(path)) {
             for (entry in FileSystem.readDirectory(path)) {
                 var entryPath = path + "/" + entry;
@@ -583,9 +628,11 @@ class Mods
             }
             FileSystem.deleteDirectory(path);
         }
+        #end
     }
 
     public static function deleteZipMod(mod:String):Bool {
+        #if MODS_ALLOWED
         var zipPath = '${getModPath(mod)}.zip';
         if (FileSystem.exists(zipPath)) {
             try {
@@ -597,13 +644,15 @@ class Mods
                 return false;
             }
         }
+        #end
         return false;
     }
 
     static public function getGlobalMods()
         return globalMods;
 
-    static public function pushGlobalMods() {
+    static public function pushGlobalMods():Array<String> {
+        #if MODS_ALLOWED
         globalMods = [];
         var path:String = Paths.txt('modsList');
         if (FileSystem.exists(path)) {
@@ -639,9 +688,13 @@ class Mods
             }
         }
         return globalMods;
+        #else
+        return [];
+        #end
     }
 
     static public function getModDirectories():Array<String> {
+        #if MODS_ALLOWED
         var list:Array<String> = [];
         var modsFolder:String = getModPath();
         if (FileSystem.exists(modsFolder)) {
@@ -659,9 +712,13 @@ class Mods
             }
         }
         return list;
+        #else
+        return [];
+        #end
     }
 
     public static function debugZipMod(mod:String):Void {
+        #if MODS_ALLOWED
         if (!isZipMod(mod)) {
             trace('$mod is not a ZIP mod');
             return;
@@ -688,9 +745,11 @@ class Mods
         
         trace('Total files: $totalFileCount');
         trace('=== END DEBUG ===');
+        #end
     }
 
     public static function analyzeZipStructure(mod:String):Void {
+        #if MODS_ALLOWED
         if (!isZipMod(mod)) {
             trace('$mod is not a ZIP mod');
             return;
@@ -752,8 +811,8 @@ class Mods
         trace('Has mod folder structure: $hasModFolder');
         
         trace('=== END ANALYSIS ===');
+        #end
     }
-    #end
 }
 
 class ModMetadata
@@ -766,6 +825,7 @@ class ModMetadata
     public var alphabet:Alphabet;
     public var icon:AttachedSprite;
 
+    #if MODS_ALLOWED
     public function new(folder:String)
     {
         this.folder = folder;
@@ -814,4 +874,5 @@ class ModMetadata
             }
         }
     }
+    #end
 }

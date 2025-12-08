@@ -41,6 +41,7 @@ import sys.FileSystem;
 
 using StringTools;
 
+#if MODS_ALLOWED
 class ModsMenuState extends MusicBeatState
 {
 	static var changedAThing = false;
@@ -1014,3 +1015,4 @@ class ModExtractProgressSubstate extends MusicBeatSubstate
         }
     }
 }
+#end
