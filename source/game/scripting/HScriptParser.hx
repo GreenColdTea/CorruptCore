@@ -51,7 +51,9 @@ class HScriptParser extends HxParser
         currentActive = true;
         
         try {
-            var processedCode = preprocessCode(code);
+            var preprocessResult = preprocessCode(code);
+            var processedCode = preprocessResult.code;
+            var lineMap = preprocessResult.lineMap;
             
             if (strictMode && !validateBasicSyntax(processedCode)) {
                 throw new haxe.Exception("Basic syntax validation failed");
@@ -69,7 +71,22 @@ class HScriptParser extends HxParser
             }
             
             if (errors.length > 0) {
-                throw new haxe.Exception("Parser errors detected: " + errors.join("; "));
+                var enhancedErrors = [];
+                for (error in errors) {
+                    var lineMatch = ~/Line (\d+), column (\d+): (.*)/;
+                    if (lineMatch.match(error)) {
+                        var processedLine = Std.parseInt(lineMatch.matched(1));
+                        var column = Std.parseInt(lineMatch.matched(2));
+                        var message = lineMatch.matched(3);
+                        
+                        var originalLine = if (processedLine <= lineMap.length) lineMap[processedLine - 1] else processedLine;
+                        enhancedErrors.push('Line $originalLine, column $column: $message');
+                    } else {
+                        enhancedErrors.push(error);
+                    }
+                }
+                
+                throw new haxe.Exception("Parser errors detected: " + enhancedErrors.join("; "));
             }
             
             return result;
@@ -331,17 +348,25 @@ class HScriptParser extends HxParser
         #end
     }
     
-    private function preprocessCode(code:String):String
+    private function preprocessCode(code:String):{code:String, lineMap:Array<Int>}
     {
         var lines = code.split("\n");
         var output = [];
+        var lineMap = [];
         preprocStack = [];
         currentActive = true;
         
+        var inMultiLineComment = false;
+        
         for (i in 0...lines.length) {
             var line = lines[i];
-            var trimmed = line.trim();
             currentLine = i + 1;
+            
+            var result = removeCommentsFromLine(line, inMultiLineComment);
+            line = result.line;
+            inMultiLineComment = result.inMultiLineComment;
+            
+            var trimmed = line.trim();
             
             if (trimmed.startsWith("#")) {
                 if (trimmed.startsWith("#if ")) {
@@ -430,6 +455,7 @@ class HScriptParser extends HxParser
             
             if (currentActive) {
                 output.push(line);
+                lineMap.push(i + 1);
             }
         }
         
@@ -437,7 +463,76 @@ class HScriptParser extends HxParser
             addError("Unclosed #if directive", lines.length, 1);
         }
         
-        return output.join("\n");
+        return {code: output.join("\n"), lineMap: lineMap};
+    }
+    
+    private function removeCommentsFromLine(line:String, inMultiLineComment:Bool):{line:String, inMultiLineComment:Bool}
+    {
+        var result = new StringBuf();
+        var i = 0;
+        var len = line.length;
+        var inString = false;
+        var stringChar:Int = 0;
+        
+        while (i < len) {
+            var char = line.charAt(i);
+            var nextChar = i + 1 < len ? line.charAt(i + 1) : "";
+            
+            if (!inString && !inMultiLineComment) {
+                if (char == '"' || char == "'") {
+                    inString = true;
+                    stringChar = char.charCodeAt(0);
+                    result.add(char);
+                    i++;
+                    continue;
+                }
+                
+                if (char == "/" && nextChar == "/") {
+                    result.add("  ");
+                    i += 2;
+                    while (i < len) {
+                        result.add(" ");
+                        i++;
+                    }
+                    break;
+                }
+                
+                if (char == "/" && nextChar == "*") {
+                    inMultiLineComment = true;
+                    result.add("  ");
+                    i += 2;
+                    continue;
+                }
+                
+                result.add(char);
+                i++;
+            } else if (inString) {
+                if (char == "\\") {
+                    result.add(char);
+                    i++;
+                    if (i < len) {
+                        result.add(line.charAt(i));
+                    }
+                } else if (char.charCodeAt(0) == stringChar) {
+                    inString = false;
+                    result.add(char);
+                } else {
+                    result.add(char);
+                }
+                i++;
+            } else if (inMultiLineComment) {
+                if (char == "*" && nextChar == "/") {
+                    inMultiLineComment = false;
+                    result.add("  ");
+                    i += 2;
+                } else {
+                    result.add(" ");
+                    i++;
+                }
+            }
+        }
+        
+        return {line: result.toString(), inMultiLineComment: inMultiLineComment};
     }
     
     private function evaluatePreprocessorCondition(condition:String):Bool

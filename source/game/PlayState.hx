@@ -3680,7 +3680,6 @@ class PlayState extends MusicBeatState
 			vocals.volume = 0;
 		}
 		callOnScripts('noteMissPress', [direction]);
-		callOnHScript('noteMissPress', [direction]);
 	}
 
 	function opponentNoteHit(note:Note):Void

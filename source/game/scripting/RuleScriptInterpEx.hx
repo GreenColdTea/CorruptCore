@@ -47,6 +47,86 @@ class RuleScriptInterpEx extends RuleScriptInterp
                 return cls.staticFields.get(f);
         }
 
+        if (o == null) return null;
+
+        var value = null;
+        try {
+            value = Reflect.getProperty(o, f);
+        } catch (e:Dynamic) {}
+
+        if (value == null) {
+            try {
+                value = Reflect.field(o, f);
+            } catch (e:Dynamic) {}
+        }
+
+        if (value != null) return value;
+
+        if (Std.isOfType(o, String)) {
+            var str:String = cast o;
+            switch(f) {
+                case "startsWith": 
+                    return function(substr:String):Bool {
+                        return StringTools.startsWith(str, substr);
+                    };
+                case "endsWith": 
+                    return function(substr:String):Bool {
+                        return StringTools.endsWith(str, substr);
+                    };
+                case "length": return str.length;
+                case "toUpperCase": return str.toUpperCase();
+                case "toLowerCase": return str.toLowerCase();
+                case "charAt": return function(index:Int):String {
+                    return str.charAt(index);
+                };
+                case "indexOf": return function(substr:String, ?startIndex:Int):Int {
+                    if (startIndex == null) return str.indexOf(substr);
+                    return str.indexOf(substr, startIndex);
+                };
+                case "substr": return function(start:Int, ?len:Int):String {
+                    if (len == null) return str.substr(start);
+                    return str.substr(start, len);
+                };
+                case "split": return function(delimiter:String):Array<String> {
+                    return str.split(delimiter);
+                };
+                case "trim": return str.trim();
+                case "substring": return function(start:Int, ?end:Int):String {
+                    if (end == null) return str.substring(start);
+                    return str.substring(start, end);
+                };
+            }
+        }
+
+        if (Std.isOfType(o, Array)) {
+            var arr:Array<Dynamic> = cast o;
+            switch(f) {
+                case "length": return arr.length;
+                case "push": return function(item:Dynamic):Void {
+                    arr.push(item);
+                };
+                case "pop": return function():Dynamic {
+                    return arr.pop();
+                };
+                case "concat": return function(other:Array<Dynamic>):Array<Dynamic> {
+                    return arr.concat(other);
+                };
+                case "join": return function(separator:String):String {
+                    return arr.join(separator);
+                };
+                case "shift": return function():Dynamic {
+                    return arr.shift();
+                };
+                case "unshift": return function(item:Dynamic):Void {
+                    arr.unshift(item);
+                };
+                case "slice": return function(start:Int, ?end:Int):Array<Dynamic> {
+                    if (end == null) return arr.slice(start);
+                    return arr.slice(start, end);
+                };
+            }
+        }
+
         return super.get(o, f);
     }
 
@@ -147,6 +227,22 @@ class RuleScriptInterpEx extends RuleScriptInterp
         }
         return v;
     }
+
+    override function call(o:Dynamic, f:Dynamic, args:Array<Dynamic>):Dynamic {
+        if (Reflect.isFunction(o) && f == null) {
+            try {
+                return Reflect.callMethod(null, o, args);
+            } catch (e:Dynamic) {
+                if (args.length == 1) {
+                    return o(args[0]);
+                } else {
+                    return o(args);
+                }
+            }
+        }
+
+        return super.call(o, f, args);
+    }
 }
 
 @:structInit class ScriptClassRef {
@@ -159,6 +255,6 @@ class RuleScriptInterpEx extends RuleScriptInterp
 
 typedef ResolveScriptState = {
     var owner:RuleScriptInterpEx;
-    var mode:String; // resolve or cnew
+    var mode:String;
     var ?args:Array<Dynamic>;
 }
