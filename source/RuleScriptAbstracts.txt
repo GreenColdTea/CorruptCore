@@ -13,6 +13,7 @@ flixel.util.typeLimit.OneOfThree
 flixel.util.typeLimit.OneOfFour
 flixel.util.typeLimit.NextState
 openfl.display.BlendMode
+openfl.utils.AssetType
 haxe.CallStack
 haxe.EnumFlags
 haxe.Int32
