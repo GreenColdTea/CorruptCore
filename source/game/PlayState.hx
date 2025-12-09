@@ -4120,6 +4120,8 @@ class PlayState extends MusicBeatState
 			boyfriend.dance();
 		if (dad != null && beat % dad.danceEveryNumBeats == 0 && !dad.getAnimationName().startsWith('sing') && !dad.stunned)
 			dad.dance();
+
+		callOnScripts('characterBopper', [beat]);
 	}
 
 	public function playerDance():Void
