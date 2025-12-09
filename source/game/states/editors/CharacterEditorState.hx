@@ -74,7 +74,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 	private var camEditor:FlxCamera;
 	private var camHUD:FlxCamera;
 
-	var textAnim:FlxText;
+	var errorAnimText:FlxText;
 
 	var grid:FlxSprite;
 	var gridVisible:Bool = false;
@@ -162,13 +162,13 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		add(dumbTexts);
 		dumbTexts.cameras = [camHUD];
 
-		textAnim = new FlxText(300, 16);
-		textAnim.setFormat(Paths.font("vcr.ttf"), 16, FlxColor.WHITE, RIGHT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
-		textAnim.borderSize = 1;
-		textAnim.size = 32;
-		textAnim.scrollFactor.set();
-		textAnim.cameras = [camHUD];
-		add(textAnim);
+		errorAnimText = new FlxText(300, 16, "ERROR ON LOADING ANIMATION");
+		errorAnimText.setFormat(Paths.font("vcr.ttf"), 32, FlxColor.WHITE, RIGHT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+		errorAnimText.scrollFactor.set();
+		errorAnimText.borderSize = 1;
+		errorAnimText.cameras = [camHUD];
+		errorAnimText.visible = false;
+		add(errorAnimText);
 
 		genBoyOffsets();
 
@@ -589,15 +589,17 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		});
 
 		var decideIconColor:PsychUIButton = new PsychUIButton(reloadImage.x, reloadImage.y + 30, "Get Icon Color", function()
-			{
-				var coolColor = FlxColor.fromInt(CoolUtil.dominantColor(leHealthIcon));
-				healthColorStepperR.value = coolColor.red;
-				healthColorStepperG.value = coolColor.green;
-				healthColorStepperB.value = coolColor.blue;
-				UIEvent(PsychUINumericStepper.CHANGE_EVENT, healthColorStepperR);
-				UIEvent(PsychUINumericStepper.CHANGE_EVENT, healthColorStepperG);
-				UIEvent(PsychUINumericStepper.CHANGE_EVENT, healthColorStepperB);
-			});
+		{
+			var coolColor = FlxColor.fromInt(CoolUtil.dominantColor(leHealthIcon));
+			healthColorStepperR.value = coolColor.red;
+			healthColorStepperG.value = coolColor.green;
+			healthColorStepperB.value = coolColor.blue;
+			
+			healthBarBG.color = FlxColor.fromRGB(coolColor.red, coolColor.green, coolColor.blue);
+			
+			char.healthColorArray = [coolColor.red, coolColor.green, coolColor.blue];
+			saveHistoryStuff();
+		});
 
 		healthIconInputText = new PsychUIInputText(15, imageInputText.y + 35, 75, leHealthIcon.getCharacter(), 8);
 		healthIconInputText.onChange = (_, _) -> {
@@ -1262,13 +1264,12 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			daLoop++;
 		}
 
-		textAnim.visible = true;
 		if(dumbTexts.length < 1) {
 			var text:FlxText = new FlxText(10, 38, 0, "ERROR! No animations found.", 15);
 			text.scrollFactor.set();
 			text.borderSize = 1;
 			dumbTexts.add(text);
-			textAnim.visible = false;
+			errorAnimText.visible = false;
 		}
 
 		 for (i in 0...dumbTexts.length) {
@@ -1580,13 +1581,6 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 	{
 		super.update(elapsed);
 
-		if (FlxG.keys.justPressed.F1) {
-			trace('Char position: ${char.x}, ${char.y}');
-			trace('Camera follow pointer: ${cameraFollowPointer.x}, ${cameraFollowPointer.y}');
-			trace('Camera scroll: ${FlxG.camera.scroll.x}, ${FlxG.camera.scroll.y}');
-			trace('Char visibility: ${char.visible}, Alpha: ${char.alpha}');
-		}
-
 		lastAutoSaveTime += elapsed;
 		if(lastAutoSaveTime >= AUTO_SAVE_INTERVAL) {
 			lastAutoSaveTime = 0;
@@ -1601,14 +1595,12 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 				validAnim = char.atlas.anim.getByName(animName) != null;
 			} else {
 				var anim = char.animation.getByName(animName);
-				validAnim = anim != null && anim.frames.length > 0;
+				validAnim = anim?.frames?.length > 0;
 			}
 			
-			if(!validAnim) {
-				textAnim.text = 'ERROR!';
-			}
+			errorAnimText.visible = !validAnim;
 		} else {
-			textAnim.text = '';
+			errorAnimText.visible = false;
 		}
 
 		if(PsychUIInputText.focusOn != null)

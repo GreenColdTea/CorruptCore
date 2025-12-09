@@ -115,7 +115,7 @@
 	<assets path="assets/embed/sounds" rename="assets/sounds" embed='true'/>
 	<!-- _______________________________ Libraries ______________________________ -->
 
-	<haxelib name="flixel" version="6.1.1"/>
+	<haxelib name="flixel" version="6.1.2"/>
 	<haxedev set='webgl'/>
 
 	<!--<haxelib name="flixel-ui" /> fuck this shit ass creation-->
