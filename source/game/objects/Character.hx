@@ -768,13 +768,7 @@ class Character extends FlxSprite
 		}
 		else if (lastDanceIdle != danceIdle)
 		{
-			var calc:Float = danceEveryNumBeats;
-			if (danceIdle)
-				calc /= 2;
-			else
-				calc *= 2;
-
-			danceEveryNumBeats = Math.round(Math.max(calc, 1));
+			danceEveryNumBeats = Math.round(Math.max(danceIdle ? danceEveryNumBeats * .5 : danceEveryNumBeats * 2, 1));
 		}
 		settingCharacterUp = false;
 	}

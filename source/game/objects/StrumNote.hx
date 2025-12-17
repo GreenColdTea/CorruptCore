@@ -15,12 +15,24 @@ class StrumNote extends FlxSprite
 
 	public var noteData:Int = 0;
 	public var resetAnim:Float = 0;
-	public var direction:Float = 90; //plan on doing scroll directions soon -bb
+	public var direction(default, set):Float;//plan on doing scroll directions soon -bb
 	public var downScroll:Bool = false; //plan on doing scroll directions soon -bb
 	public var sustainReduce:Bool = true;
 	
 	private var player:Int;
 	private var colorSwap:ColorSwap;
+
+	private var _dirSin:Float;
+	private var _dirCos:Float;
+
+	private function set_direction(_fDir:Float):Float
+	{
+		// 0.01745329251 = Math.PI / 180
+		_dirSin = Math.sin(_fDir * 0.01745329251);
+		_dirCos = Math.cos(_fDir * 0.01745329251);
+
+		return direction = _fDir;
+	}
 	
 	public var texture(default, set):String = null;
 	private function set_texture(value:String):String {
@@ -32,6 +44,8 @@ class StrumNote extends FlxSprite
 	}
 
 	public function new(x:Float, y:Float, leData:Int, player:Int) {
+		direction = 90;
+		
 		animation = new PsychAnimationController(this);
 		
 		colorSwap = new ColorSwap();

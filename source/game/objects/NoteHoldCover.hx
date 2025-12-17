@@ -40,7 +40,6 @@ class NoteHoldCover extends FlxSprite {
 
     override function update(elapsed:Float) {
         if (strumNote != null) {
-            alpha = strumNote.alpha;
             if (!isEnding) {
                 var strumAnimName = strumNote.animation.curAnim != null ? strumNote.animation.curAnim.name : "";
                 var isStrumStaticOrPressed = strumAnimName == "static" || strumAnimName == "pressed";
@@ -111,7 +110,8 @@ class NoteHoldCover extends FlxSprite {
         
         animation.onFinish.removeAll();
         
-        if(strumNote.alpha > 0)
+        @:privateAccess
+        if(strumNote.alpha > 0 && strumNote.colorSwap.daAlpha > 0)
             animation.play('holdCoverStart', true);
         
         animation.onFinish.add((name:String) -> {
@@ -129,7 +129,9 @@ class NoteHoldCover extends FlxSprite {
             if (!exists) return;
 
             isEnding = true;
-            final shouldAnimateEnd = strumNote != null && strumNote.alpha > 0 && daNote.mustPress;
+
+            @:privateAccess
+            final shouldAnimateEnd = strumNote != null && strumNote.alpha > 0 && strumNote.colorSwap.daAlpha > 0 && daNote.mustPress;
 
             if (shouldAnimateEnd) {
                 animation.onFinish.removeAll();

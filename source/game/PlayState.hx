@@ -1119,6 +1119,8 @@ class PlayState extends MusicBeatState
 			FlxColor.fromRGB(boyfriend.healthColorArray[0], boyfriend.healthColorArray[1], boyfriend.healthColorArray[2]));
 
 		healthBar.updateBar();
+
+		callOnScripts("onHealthBarColorUpdate", null);
 	}
 
 	public function addCharacterToList(newCharacter:String, type:Int) {
@@ -2341,6 +2343,12 @@ class PlayState extends MusicBeatState
 							var strumAlpha:Float = strumGroup.members[daNote.noteData].alpha;
 							var strumScroll:Bool = strumGroup.members[daNote.noteData].downScroll;
 
+							@:privateAccess
+							var strumDirSin:Float = strumGroup.members[daNote.noteData]._dirSin;
+
+							@:privateAccess
+							var strumDirCos:Float = strumGroup.members[daNote.noteData]._dirCos;
+							
 							strumX += daNote.offsetX;
 							strumY += daNote.offsetY;
 							strumAngle += daNote.offsetAngle;
@@ -2381,7 +2389,6 @@ class PlayState extends MusicBeatState
 							if (!strumScroll) //Downscroll
 								daNote.distance *= -1;
 
-							var angleDir = strumDirection * Math.PI / 180;
 							if (daNote.copyAngle)
 								daNote.angle = strumDirection - 90 + strumAngle;
 
@@ -2389,11 +2396,11 @@ class PlayState extends MusicBeatState
 								daNote.alpha = strumAlpha;
 
 							if(daNote.copyX)
-								daNote.x = strumX + Math.cos(angleDir) * daNote.distance;
+								daNote.x = strumX + strumDirCos * daNote.distance;
 
 							if(daNote.copyY)
 							{
-								daNote.y = strumY + daNote.correctionOffset + Math.sin(angleDir) * daNote.distance;
+								daNote.y = strumY + daNote.correctionOffset + strumDirSin * daNote.distance;
 
 								if(strumScroll && daNote.isSustainNote)
 								{
