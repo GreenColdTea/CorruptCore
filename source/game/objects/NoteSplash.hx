@@ -44,23 +44,22 @@ class NoteSplash extends FlxSprite
     public var copyX:Bool = true;
     public var copyY:Bool = true;
     public var spawned:Bool = false;
+    public var noteData:Int = 0;
+    
+    public var maxAnims(default, set):Int = 0;
+    var noteDataMap:Map<Int, String> = new Map();
 
     public function new(x:Float = 0, y:Float = 0, ?note:Int = 0, ?texture:String = null) {
         super(x, y);
 
         animation = new PsychAnimationController(this);
-
-        var skin:String = texture ?? defaultNoteSplash;
-        if(PlayState.SONG?.splashSkin?.length > 0) 
-            skin = PlayState.SONG.splashSkin;
-
-        loadSplash(skin);
         
         colorSwap = new ColorSwap();
         shader = colorSwap.shader;
 
-        setupNoteSplash(x, y, note, texture);
         antialiasing = ClientPrefs.globalAntialiasing;
+
+        loadSplash(texture);
     }
 
     public function loadSplash(texture:String) {
@@ -70,42 +69,45 @@ class NoteSplash extends FlxSprite
             
             config = loadConfig(texture);
             
-            loadAnims(texture);
+            @:privateAccess
+            animation.clearAnimations();
+            noteDataMap.clear();
+            maxAnims = 0;
             
             if(config?.animations != null) {
                 for (animName => animData in config.animations) {
-                    if(animation.getByName(animName) == null) {
-                        if(animData.indices != null && animData.indices.length > 0) {
-                            animation.addByIndices(animName, animData.prefix, animData.indices, "", animData.fps[0], false);
-                        } else {
-                            animation.addByPrefix(animName, animData.prefix, animData.fps[0], false);
-                        }
+                    if (animData.noteData % Note.colArray.length == 0) {
+                        maxAnims++;
                     }
                 }
+                
+                for (animName => animData in config.animations) {
+                    var frameRate:Int = 24;
+                    if (animData.fps != null && animData.fps.length > 1) {
+                        frameRate = animData.fps[1];
+                    } else if (animData.fps != null && animData.fps.length == 1) {
+                        frameRate = animData.fps[0];
+                    }
+                    
+                    if(animData.indices != null && animData.indices.length > 0) {
+                        animation.addByIndices(animName, animData.prefix, animData.indices, "", frameRate, false);
+                    } else {
+                        animation.addByPrefix(animName, animData.prefix, frameRate, false);
+                    }
+                    
+                    noteDataMap.set(animData.noteData, animName);
+                }
             }
-        }
-    }
-
-    function loadAnims(skin:String) {
-        frames = Paths.getSparrowAtlas(skin);
-        for (i in 1...3) {
-            animation.addByPrefix("note1-" + i, "note splash blue " + i, 24, false);
-            animation.addByPrefix("note2-" + i, "note splash green " + i, 24, false);
-            animation.addByPrefix("note0-" + i, "note splash purple " + i, 24, false);
-            animation.addByPrefix("note3-" + i, "note splash red " + i, 24, false);
+            
+            if(config != null) {
+                scale.set(config.scale, config.scale);
+                updateHitbox();
+            }
         }
     }
 
     public function setupNoteSplash(x:Float, y:Float, note:Int = 0, ?texture:String = null, hueColor:Float = 0, satColor:Float = 0, brtColor:Float = 0) {
         aliveTime = 0;
-
-        if (babyArrow != null && copyX && copyY) {
-            setPosition(babyArrow.x - Note.swagWidth * 0.95, babyArrow.y - Note.swagWidth);
-        } else {
-            setPosition(x - Note.swagWidth * 0.95, y - Note.swagWidth);
-        }
-        
-        alpha = 0.6;
 
         if(texture == null) {
             texture = defaultNoteSplash;
@@ -124,89 +126,68 @@ class NoteSplash extends FlxSprite
         }
 
         offset.set(10, 10);
-
-        if(config != null) {
-            scale.set(config.scale, config.scale);
-            updateHitbox();
-        }
-
-        playRandomAnim(note);
+        
+        spawnSplashNote(x, y, note, texture);
     }
 
-    function playRandomAnim(note:Int) {
-        var anims:Array<String> = [];
-        
-        if(config?.animations != null) {
-            for (animName => animData in config.animations) {
-                if(animData.noteData == note) {
-                    anims.push(animName);
-                }
-            }
-        }
-        
-        if(anims.length == 0) {
-            for (i in 1...3) {
-                anims.push('note$note-$i');
-            }
-        }
-        
-        if(anims.length > 0) {
-            var animNum:Int = FlxG.random.int(0, anims.length - 1);
-            var animName:String = anims[animNum];
+    function playDefaultAnim():String {
+        var anim:String = noteDataMap.get(noteData);
+        if (anim != null && animation.exists(anim)) {
+            animation.play(anim, true);
             
-            if(animation.getByName(animName) != null) {
-                animation.play(animName, true);
-                if(animation.curAnim != null) {
-                    var animData = config?.animations != null ? config.animations.get(animName) : null;
-                    if(animData?.fps.length > 1) {
-                        animation.curAnim.frameRate = FlxG.random.int(animData.fps[0], animData.fps[1]);
-                    } else {
-                        animation.curAnim.frameRate = 24 + FlxG.random.int(-2, 2);
-                    }
-                    
-                    if(animData?.offsets?.length >= 2) {
-                        offset.x = 10 + animData.offsets[0];
-                        offset.y = 10 + animData.offsets[1];
-                    }
+            var animData = config?.animations?.get(anim);
+            if (animData != null) {
+                if (animData.offsets != null && animData.offsets.length >= 2) {
+                    offset.x = 10 + animData.offsets[0];
+                    offset.y = 10 + animData.offsets[1];
+                }
+                
+                if (animation.curAnim != null && animData.fps != null && animData.fps.length >= 2) {
+                    var minFps:Int = animData.fps[0];
+                    var maxFps:Int = animData.fps[1];
+                    if (minFps < 0) minFps = 0;
+                    if (maxFps < 0) maxFps = 0;
+                    animation.curAnim.frameRate = FlxG.random.int(minFps, maxFps);
                 }
             }
         }
+        
+        return anim;
+    }
 
-        animation.onFinish.add((name:String) -> {
-            if (!inEditor) { 
+    public function spawnSplashNote(x:Float, y:Float, noteData:Int, ?texture:String = null, ?randomize:Bool = true) {
+        setPosition(x, y);
+
+        if (babyArrow != null)
+            setPosition(babyArrow.x - Note.swagWidth * 0.95, babyArrow.y - Note.swagWidth);
+
+        if (randomize && maxAnims > 1)
+            noteData = noteData % Note.colArray.length + (FlxG.random.int(0, maxAnims - 1) * Note.colArray.length);
+
+        this.noteData = noteData;
+        playDefaultAnim();
+
+        animation.onFinish.add((_) -> {
+            if (!inEditor) {
                 kill();
                 spawned = false;
             } else {
                 animation.stop();
             }
         });
-    }
 
-    public function spawnSplashNote(x:Float, y:Float, noteData:Int, ?texture:String = null, ?playAnim:Bool = true) {
-        setPosition(x, y);
-        
-        if(texture != null && textureLoaded != texture) {
-            loadSplash(texture);
-        }
-        
-        if(playAnim) {
-            playRandomAnim(noteData);
-        }
-        
-        alpha = 1;
-        
-        if(config != null) {
-            scale.set(config.scale, config.scale);
-            updateHitbox();
-        }
-        
+        alpha = 0.6;
+        antialiasing = ClientPrefs.globalAntialiasing;
+
         spawned = true;
     }
     
     var aliveTime:Float = 0;
     static var buggedKillTime:Float = 0.5;
+    
     override function update(elapsed:Float) {
-        if (spawned) {
+        if (spawned) 
+        {
             aliveTime += elapsed;
             if (animation.curAnim == null && aliveTime >= buggedKillTime && !inEditor) {
                 kill();
@@ -214,7 +195,7 @@ class NoteSplash extends FlxSprite
             }
         }
         
-        if (spawned && babyArrow != null) {
+        if (babyArrow != null) {
             if (copyX)
                 x = babyArrow.x - Note.swagWidth * 0.95;
             if (copyY)
@@ -222,6 +203,15 @@ class NoteSplash extends FlxSprite
         }
 
         super.update(elapsed);
+    }
+
+    function set_maxAnims(value:Int) {
+        if (value > 0)
+            noteData = Std.int(FlxMath.wrap(noteData, 0, (value * Note.colArray.length) - 1));
+        else
+            noteData = 0;
+
+        return maxAnims = value;
     }
 
     public static function createConfig():NoteSplashConfig {
