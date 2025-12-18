@@ -122,8 +122,11 @@ class Main extends Sprite
         }
 	    #end
 
+		lime.RawKeyboard.init();
+
 		lime.Native.fixScaling();
 		lime.Native.registerAsGame();
+		lime.Native.setConsoleOutputToUTF8();
 
 		#if sl_windows_api
 		WindowsAPI.disableWindowsReport();

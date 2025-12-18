@@ -111,8 +111,7 @@
 	<assets path="psych-ui" rename="assets/psych-ui" embed="true" />
 
 	<assets path="assets/fonts" embed='true'/>
-	<assets path="assets/embed/music" rename="assets/music" embed='true'/>
-	<assets path="assets/embed/sounds" rename="assets/sounds" embed='true'/>
+	<assets path="assets/embed" rename="assets" embed='true'/>
 	<!-- _______________________________ Libraries ______________________________ -->
 
 	<haxelib name="flixel" version="6.1.2"/>
