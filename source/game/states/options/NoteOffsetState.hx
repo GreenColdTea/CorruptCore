@@ -608,7 +608,12 @@ class NoteOffsetState extends MusicBeatState
 			dumbTexts.add(text);
 			text.camera = camHUD;
 
-			if(i > 1 || i > 3)
+			if(i > 1)
+			{
+				text.y += 24;
+			}
+
+			if(i > 3)
 			{
 				text.y += 24;
 			}
