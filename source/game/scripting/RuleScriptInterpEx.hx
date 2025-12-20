@@ -23,25 +23,49 @@ class RuleScriptInterpEx extends RuleScriptInterp
         super();
     }
     
-    override function resetVariables():Void {
+    override function resetVariables():Void 
+    {
         super.resetVariables();
         declaredVariables.clear();
         declaredLocalVariables.clear();
     }
     
-    override function resolveType(path:String):Dynamic {
+    override function resolveType(path:String):Dynamic 
+    {
         var resolved = script.resolveType(path);
         if (resolved != null) {
             resolveScriptState = {owner: this, mode: "resolve"};
             return resolved;
         }
         
+        try {
+            var cl = Type.resolveClass(path);
+            if (cl != null) {
+                return cl;
+            }
+        } catch (e:Dynamic) {}
+        
         resolveScriptState = {owner: this, mode: "resolve"};
         return super.resolveType(path);
     }
     
-    override function cnew(cl:String, args:Array<Dynamic>):Dynamic {
+   override function cnew(cl:String, args:Array<Dynamic>):Dynamic 
+    {
         resolveScriptState = {owner: this, mode: "cnew", args: args};
+        
+        var resolvedClass:Dynamic = null;
+        try {
+            resolvedClass = resolveType(cl);
+        } catch (e:Dynamic) {}
+        
+        if (resolvedClass != null && !isScriptedClass(resolvedClass)) {
+            try {
+                return Type.createInstance(resolvedClass, args);
+            } catch (e:Dynamic) {
+                trace('Failed to create instance with Type.createInstance for $cl: $e');
+            }
+        }
+        
         return super.cnew(cl, args);
     }
 
@@ -468,7 +492,30 @@ class RuleScriptInterpEx extends RuleScriptInterp
         }
     }
 
-    override function call(o:Dynamic, f:Dynamic, args:Array<Dynamic>):Dynamic {
+    override function call(o:Dynamic, f:Dynamic, args:Array<Dynamic>):Dynamic 
+    {
+        if (o == Type && f == "createInstance") {
+            if (args.length >= 1) {
+                var cls = args[0];
+                var constructorArgs = args.slice(1);
+                
+                if (!isScriptedClass(cls)) {
+                    return Type.createInstance(cls, constructorArgs);
+                }
+            }
+        }
+        
+        if (f == null) {
+            var className = Type.getClassName(o);
+            if (className != null && className != "Dynamic") {
+                try {
+                    var cls:Class<Dynamic> = cast o;
+                    var instance = Type.createInstance(cls, args);
+                    return instance;
+                } catch (e:Dynamic) {}
+            }
+        }
+        
         if (Reflect.isFunction(o) && f == null) {
             try {
                 return Reflect.callMethod(null, o, args);
@@ -480,7 +527,7 @@ class RuleScriptInterpEx extends RuleScriptInterp
                 }
             }
         }
-
+        
         return super.call(o, f, args);
     }
     
@@ -540,6 +587,23 @@ class RuleScriptInterpEx extends RuleScriptInterp
             className == "haxe.ds.ObjectMap" ||
             className == "haxe.ds.EnumValueMap" ||
             className == "haxe.ds.GenericStack";
+    }
+
+    private function isScriptedClass(cls:Class<Dynamic>):Bool {
+        if (cls == null) return false;
+        
+        var className = Type.getClassName(cls);
+        if (className == null) return false;
+        
+        var superClass = Type.getSuperClass(cls);
+        while (superClass != null) {
+            if (Type.getClassName(superClass) == "rulescript.scriptedClass.RuleScriptedClass") {
+                return true;
+            }
+            superClass = Type.getSuperClass(superClass);
+        }
+        
+        return false;
     }
 }
 
