@@ -14,9 +14,19 @@ class RuleScriptInterpEx extends RuleScriptInterp
     public var ref:ScriptClassRef;
     public var script:FunkinRuleScript;
     
+    public var strictMode:Bool = true;
+    public var declaredVariables:Map<String, {type:Null<String>, value:Dynamic}> = new Map();
+    public var declaredLocalVariables:Map<String, {type:Null<String>, value:Dynamic}> = new Map();
+    
     public function new(?script:FunkinRuleScript) {
         this.script = script;
         super();
+    }
+    
+    override function resetVariables():Void {
+        super.resetVariables();
+        declaredVariables.clear();
+        declaredLocalVariables.clear();
     }
     
     override function resolveType(path:String):Dynamic {
@@ -35,7 +45,80 @@ class RuleScriptInterpEx extends RuleScriptInterp
         return super.cnew(cl, args);
     }
 
-    override function get(o:Dynamic, f:String):Dynamic {
+    override function expr(expr:Expr):Dynamic {
+        #if hscriptPos
+        switch(expr.e) {
+        #else
+        switch(expr) {
+        #end
+            case EVar(name, typeExpr, e, global, _):
+                var typeStr = typeExpr != null ? typeToString(typeExpr) : null;
+                var result = super.expr(expr);
+                if (global) {
+                    declaredVariables.set(name, {type: typeStr, value: null});
+                } else {
+                    declaredLocalVariables.set(name, {type: typeStr, value: null});
+                }
+                return result;
+            case EProp(name, getter, setter, typeExpr, e, global):
+                var typeStr = typeExpr != null ? typeToString(typeExpr) : null;
+                var result = super.expr(expr);
+                if (global) {
+                    declaredVariables.set(name, {type: typeStr, value: null});
+                } else {
+                    declaredLocalVariables.set(name, {type: typeStr, value: null});
+                }
+                return result;
+            default:
+                return super.expr(expr);
+        }
+    }
+    
+    private function typeToString(typeExpr:CType):String {
+        return switch(typeExpr) {
+            case CTPath(path, params):
+                path.join(".");
+            case CTNamed(name, t):
+                typeToString(t);
+            case CTOpt(t):
+                typeToString(t) + "?";
+            default:
+                "Dynamic";
+        }
+    }
+    
+    private function checkType(varName:String, value:Dynamic, expectedType:Null<String>):Bool {
+        if (value == null || expectedType == null || expectedType == "Dynamic") {
+            return true;
+        }
+        
+        switch(expectedType) {
+            case "Int":
+                return Std.isOfType(value, Int);
+            case "Float":
+                return Std.isOfType(value, Float) || Std.isOfType(value, Int);
+            case "Bool":
+                return Std.isOfType(value, Bool);
+            case "String":
+                return Std.isOfType(value, String);
+            default:
+                try {
+                    var cls:Dynamic = resolveType(expectedType);
+                    if (cls != null) {
+                        return Std.isOfType(value, cls);
+                    }
+                } catch (e:Dynamic) {}
+                
+                return true;
+        }
+    }
+
+    override function get(o:Dynamic, f:String):Dynamic 
+    {
+        if (strictMode && o != null && o != this && !Std.isOfType(o, ScriptClassRef)) {
+            validateFieldAccess(o, f);
+        }
+        
         if (o == this) {
             if (this.ref != null && this.ref.staticFields.exists(f))
                 return this.ref.staticFields.get(f);
@@ -67,11 +150,11 @@ class RuleScriptInterpEx extends RuleScriptInterp
             switch(f) {
                 case "startsWith": 
                     return function(substr:String):Bool {
-                        return StringTools.startsWith(str, substr);
+                        return str.startsWith(substr);
                     };
                 case "endsWith": 
                     return function(substr:String):Bool {
-                        return StringTools.endsWith(str, substr);
+                        return str.endsWith(substr);
                     };
                 case "length": return str.length;
                 case "toUpperCase": return str.toUpperCase();
@@ -79,21 +162,67 @@ class RuleScriptInterpEx extends RuleScriptInterp
                 case "charAt": return function(index:Int):String {
                     return str.charAt(index);
                 };
+                case "charCodeAt": return function(index:Int):Int {
+                    return str.charCodeAt(index);
+                };
                 case "indexOf": return function(substr:String, ?startIndex:Int):Int {
                     if (startIndex == null) return str.indexOf(substr);
                     return str.indexOf(substr, startIndex);
+                };
+                case "lastIndexOf": return function(substr:String, ?startIndex:Int):Int {
+                    if (startIndex == null) return str.lastIndexOf(substr);
+                    return str.lastIndexOf(substr, startIndex);
+                };
+                case "split": return function(delimiter:String):Array<String> {
+                    return str.split(delimiter);
                 };
                 case "substr": return function(start:Int, ?len:Int):String {
                     if (len == null) return str.substr(start);
                     return str.substr(start, len);
                 };
-                case "split": return function(delimiter:String):Array<String> {
-                    return str.split(delimiter);
-                };
-                case "trim": return str.trim();
                 case "substring": return function(start:Int, ?end:Int):String {
                     if (end == null) return str.substring(start);
                     return str.substring(start, end);
+                };
+                case "trim": return str.trim();
+                case "ltrim": return StringTools.ltrim(str);
+                case "rtrim": return StringTools.rtrim(str);
+                case "replace": return function(sub:String, by:String):String {
+                    return StringTools.replace(str, sub, by);
+                };
+                case "urlEncode": return StringTools.urlEncode(str);
+                case "urlDecode": return StringTools.urlDecode(str);
+                case "htmlEscape": return StringTools.htmlEscape(str);
+                case "htmlUnescape": return StringTools.htmlUnescape(str);
+                case "contains": return function(value:String):Bool {
+                    return StringTools.contains(str, value);
+                };
+                case "isSpace": return function(pos:Int):Bool {
+                    return StringTools.isSpace(str, pos);
+                };
+                case "lpad": return function(c:String, l:Int):String {
+                    return StringTools.lpad(str, c, l);
+                };
+                case "rpad": return function(c:String, l:Int):String {
+                    return StringTools.rpad(str, c, l);
+                };
+                case "hex": return function(?digits:Int):String {
+                    var n = Std.parseInt(str);
+                    if (n == null) return "0";
+                    return StringTools.hex(n, digits);
+                };
+                case "iterator":
+                    return StringTools.iterator(str);
+                case "keyValueIterator":
+                    return StringTools.keyValueIterator(str);
+                case "fastCodeAt": return function(index:Int):Int {
+                    return StringTools.fastCodeAt(str, index);
+                };
+                case "unsafeCodeAt": return function(index:Int):Int {
+                    return StringTools.unsafeCodeAt(str, index);
+                };
+                case "isEof": return function(c:Int):Bool {
+                    return StringTools.isEof(c);
                 };
             }
         }
@@ -102,28 +231,73 @@ class RuleScriptInterpEx extends RuleScriptInterp
             var arr:Array<Dynamic> = cast o;
             switch(f) {
                 case "length": return arr.length;
-                case "push": return function(item:Dynamic):Void {
-                    arr.push(item);
+                case "concat": return function(a:Array<Dynamic>):Array<Dynamic> {
+                    return arr.concat(a);
+                };
+                case "join": return function(sep:String):String {
+                    return arr.join(sep);
                 };
                 case "pop": return function():Dynamic {
                     return arr.pop();
                 };
-                case "concat": return function(other:Array<Dynamic>):Array<Dynamic> {
-                    return arr.concat(other);
+                case "push": return function(x:Dynamic):Int {
+                    return arr.push(x);
                 };
-                case "join": return function(separator:String):String {
-                    return arr.join(separator);
+                case "reverse": return function():Void {
+                    arr.reverse();
                 };
                 case "shift": return function():Dynamic {
                     return arr.shift();
                 };
-                case "unshift": return function(item:Dynamic):Void {
-                    arr.unshift(item);
+                case "slice": return function(pos:Int, ?end:Int):Array<Dynamic> {
+                    return arr.slice(pos, end);
                 };
-                case "slice": return function(start:Int, ?end:Int):Array<Dynamic> {
-                    if (end == null) return arr.slice(start);
-                    return arr.slice(start, end);
+                case "sort": return function(f:Dynamic->Dynamic->Int):Void {
+                    arr.sort(f);
                 };
+                case "splice": return function(pos:Int, len:Int):Array<Dynamic> {
+                    return arr.splice(pos, len);
+                };
+                case "toString": return function():String {
+                    return arr.toString();
+                };
+                case "unshift": return function(x:Dynamic):Void {
+                    arr.unshift(x);
+                };
+                case "insert": return function(pos:Int, x:Dynamic):Void {
+                    arr.insert(pos, x);
+                };
+                case "remove": return function(x:Dynamic):Bool {
+                    return arr.remove(x);
+                };
+                case "contains": return function(x:Dynamic):Bool {
+                    return arr.contains(x);
+                };
+                case "indexOf": return function(x:Dynamic, ?fromIndex:Int):Int {
+                    return arr.indexOf(x, fromIndex);
+                };
+                case "lastIndexOf": return function(x:Dynamic, ?fromIndex:Int):Int {
+                    return arr.lastIndexOf(x, fromIndex);
+                };
+                case "copy": return function():Array<Dynamic> {
+                    return arr.copy();
+                };
+                case "iterator":
+                    return arr.iterator();
+                case "keyValueIterator":
+                    return arr.keyValueIterator();
+                case "map":
+                    return function(f:Dynamic->Dynamic):Array<Dynamic> {
+                        return arr.map(f);
+                    };
+                case "filter":
+                    return function(f:Dynamic->Bool):Array<Dynamic> {
+                        return arr.filter(f);
+                    };
+                case "resize":
+                    return function(len:Int):Void {
+                        arr.resize(len);
+                    };
             }
         }
 
@@ -131,6 +305,10 @@ class RuleScriptInterpEx extends RuleScriptInterp
     }
 
     override function set(o:Dynamic, f:String, v:Dynamic):Dynamic {
+        if (strictMode && o != null && o != this) {
+            validateFieldAccess(o, f);
+        }
+
         if (o == this) {
             if (this.ref != null && this.ref.staticFields.exists(f)) {
                 this.ref.staticFields.set(f, v);
@@ -152,6 +330,7 @@ class RuleScriptInterpEx extends RuleScriptInterp
     override function assign(e1:Expr, e2:Expr):Dynamic 
     {
         var v = expr(e2);
+        
         #if hscriptPos
         switch(e1.e) {
         #else
@@ -159,18 +338,48 @@ class RuleScriptInterpEx extends RuleScriptInterp
         #end
             case EIdent(id):
                 var l = locals.get(id);
-                if (l == null)
+                if (l == null) {
+                    if (strictMode) {
+                        var isDeclared = declaredVariables.exists(id) || 
+                                        (context != null && (context.staticVariables.exists(id) || context.publicVariables.exists(id))) ||
+                                        (superInstance != null && superFields.contains(id));
+                        
+                        if (!isDeclared && !variables.exists(id)) {
+                            throw new haxe.Exception('Undeclared variable: $id');
+                        }
+                    }
+                    
+                    if (strictMode && declaredVariables.exists(id)) {
+                        var varInfo = declaredVariables.get(id);
+                        if (!checkType(id, v, varInfo.type)) {
+                            throw new haxe.Exception('Type mismatch for variable $id: expected ${varInfo.type}, got ${Type.typeof(v)}');
+                        }
+                    }
+                    
                     setVar(id, v);
+                } 
                 else 
                 {
+                    if (strictMode && declaredLocalVariables.exists(id)) {
+                        var varInfo = declaredLocalVariables.get(id);
+                        if (!checkType(id, v, varInfo.type)) {
+                            throw new haxe.Exception('Type mismatch for local variable $id: expected ${varInfo.type}, got ${Type.typeof(v)}');
+                        }
+                    }
+                    
                     if (l.r != null && Type.getClassName(Type.getClass(l.r)) == "rulescript.types.Property")
                         cast(l.r, rulescript.types.Property).value = v;
                     else
                         l.r = v;
                 }
+                
             case EField(e, f):
                 var obj = expr(e);
                 obj ??= {};
+                
+                if (strictMode && obj != null && obj != this) {
+                    validateFieldAccess(obj, f);
+                }
                 
                 try {
                     Reflect.setProperty(obj, f, v);
@@ -178,6 +387,7 @@ class RuleScriptInterpEx extends RuleScriptInterp
                     Reflect.setField(obj, f, v);
                 }
                 return v;
+                
             case EArray(e, index):
                 var arr:Dynamic = expr(e);
                 var index:Dynamic = expr(index);
@@ -186,6 +396,7 @@ class RuleScriptInterpEx extends RuleScriptInterp
                 } else {
                     arr[index] = v;
                 }
+                
             case ETypeVarPath(path):
                 if (path.length < 2) {
                     throw new haxe.Exception("Invalid ETypeVarPath for assignment: " + path.join("."));
@@ -211,6 +422,10 @@ class RuleScriptInterpEx extends RuleScriptInterp
                     throw new haxe.Exception('Cannot resolve object for assignment: ${objPath.join(".")}');
                 }
                 
+                if (strictMode) {
+                    validateFieldAccess(obj, field);
+                }
+                
                 try {
                     Reflect.setProperty(obj, field, v);
                 } catch (e:Dynamic) {
@@ -228,6 +443,31 @@ class RuleScriptInterpEx extends RuleScriptInterp
         return v;
     }
 
+    override function setVar(name:String, v:Dynamic) {
+        if (strictMode && declaredVariables.exists(name)) {
+            var varInfo = declaredVariables.get(name);
+            if (!checkType(name, v, varInfo.type)) {
+                throw new haxe.Exception('Type mismatch for variable $name: expected ${varInfo.type}, got ${Type.typeof(v)}');
+            }
+        }
+        
+        if (superInstance != null && (superFields.contains(name) || superFields.contains('set_' + name)))
+            Reflect.setProperty(superInstance, name, v);
+        else if (context?.staticVariables.exists(name))
+            context.staticVariables.set(name, v);
+        else if (context?.publicVariables.exists(name))
+            context.publicVariables.set(name, v);
+        else
+        {
+            var lastValue = variables.get(name);
+
+            if (lastValue is Property)
+                cast(lastValue, Property).value = v;
+            else
+                variables.set(name, v);
+        }
+    }
+
     override function call(o:Dynamic, f:Dynamic, args:Array<Dynamic>):Dynamic {
         if (Reflect.isFunction(o) && f == null) {
             try {
@@ -242,6 +482,64 @@ class RuleScriptInterpEx extends RuleScriptInterp
         }
 
         return super.call(o, f, args);
+    }
+    
+    public function addVariableDeclaration(name:String, type:Null<String> = null):Void {
+        declaredVariables.set(name, {type: type, value: null});
+    }
+    
+    private function validateFieldAccess(obj:Dynamic, field:String, ?expr:Expr):Void {
+        if (!strictMode || obj == null) return;
+        
+        if (isMapType(obj)) return;
+        
+        var cls = Type.getClass(obj);
+        if (cls == null) return;
+        
+        var className = Type.getClassName(cls);
+        if (className == null) return;
+        
+        var skipClasses = [
+            "String", "Array", "Int", "Float", "Bool", "Dynamic",
+            "haxe.ds.StringMap", "haxe.ds.IntMap", "haxe.ds.ObjectMap",
+            "haxe.ds.EnumValueMap", "Map", "haxe.ds.Map",
+            "flixel.tweens.misc.VarTween", "flixel.tweens.FlxTween",
+            "haxe.ds.GenericStack", "flixel.ui.FlxBar"
+        ];
+        
+        if (skipClasses.contains(className)) return;
+        
+        function checkField(cls:Class<Dynamic>):Bool {
+            if (cls == null) return false;
+            
+            if (Type.getClassFields(cls).indexOf(field) >= 0 || Type.getInstanceFields(cls).indexOf(field) >= 0) return true;
+            if (Type.getInstanceFields(cls).indexOf('get_$field') >= 0 || Type.getInstanceFields(cls).indexOf('set_$field') >= 0) return true;
+            
+            var superClass = Type.getSuperClass(cls);
+            return checkField(superClass);
+        }
+        
+        if (!checkField(cls)) {
+            throw new haxe.Exception('Field "$field" does not exist on $className');
+        }
+    }
+
+    private function isMapType(obj:Dynamic):Bool 
+    {
+        if (obj == null) return false;
+
+        var cls = Type.getClass(obj);
+        if (cls == null) return false;
+
+        var className = Type.getClassName(cls);
+        if (className == null) return false;
+        
+        return className.indexOf("Map") != -1 || 
+            className == "haxe.ds.StringMap" ||
+            className == "haxe.ds.IntMap" ||
+            className == "haxe.ds.ObjectMap" ||
+            className == "haxe.ds.EnumValueMap" ||
+            className == "haxe.ds.GenericStack";
     }
 }
 
