@@ -1116,27 +1116,43 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
     	}
 	}
 
-	function reloadCharacterImage() {
+	function reloadCharacterImage() 
+	{
 		var lastAnim:String = char.getAnimationName() ?? '';
 		
 		char.atlas = FlxDestroyUtil.destroy(char.atlas);
 		char.isAnimateAtlas = false;
 
+		ghostChar.atlas = FlxDestroyUtil.destroy(ghostChar.atlas);
+		ghostChar.isAnimateAtlas = false;
+
 		if(Paths.fileExists('images/' + char.imageFile + '/Animation.json', TEXT)) {
+			#if flixel_animate
+			char.isAnimateAtlas = true;
+			ghostChar.isAnimateAtlas = true;
+
 			char.atlas = new FlxAnimate();
 			char.atlas.frames = Paths.getAnimateAtlas(char.imageFile);
-			char.isAnimateAtlas = true;
+			
+			ghostChar.atlas = new FlxAnimate();
+			ghostChar.atlas.frames = Paths.getAnimateAtlas(char.imageFile);
+			#end
 		} else {
-			if(Paths.fileExists('images/' + char.imageFile + '.txt', TEXT))
+			if(Paths.fileExists('images/' + char.imageFile + '.txt', TEXT)) {
 				char.frames = Paths.getPackerAtlas(char.imageFile);
-			else if(Paths.fileExists('images/' + char.imageFile + '.json', TEXT))
+				ghostChar.frames = Paths.getPackerAtlas(char.imageFile);
+			}
+			else if(Paths.fileExists('images/' + char.imageFile + '.json', TEXT)) {
 				char.frames = Paths.getAsepriteAtlas(char.imageFile);
-			else
+				ghostChar.frames = Paths.getAsepriteAtlas(char.imageFile);
+			}
+			else {
 				char.frames = Paths.getSparrowAtlas(char.imageFile);
-			ghostChar.frames = char.frames;
+				ghostChar.frames = Paths.getSparrowAtlas(char.imageFile);
+			}
 		}
 
-		if(char.animationsArray != null) {
+		if(char.animationsArray != null && char.animationsArray.length > 0) {
 			for (anim in char.animationsArray) {
 				var animAnim:String = '' + anim.anim;
 				var animName:String = '' + anim.name;
@@ -1145,21 +1161,33 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 				var animIndices = anim.indices;
 				
 				if(char.isAnimateAtlas) {
+					#if flixel_animate
 					if(animIndices != null && animIndices.length > 0) {
 						char.atlas.anim.addBySymbolIndices(animAnim, animName, animIndices, animFps, animLoop);
 					} else {
 						char.atlas.anim.addBySymbol(animAnim, animName, animFps, animLoop);
 					}
+					
+					if(animIndices != null && animIndices.length > 0) {
+						ghostChar.atlas.anim.addBySymbolIndices(animAnim, animName, animIndices, animFps, animLoop);
+					} else {
+						ghostChar.atlas.anim.addBySymbol(animAnim, animName, animFps, animLoop);
+					}
+					#end
 				} else {
 					if(animIndices != null && animIndices.length > 0) {
 						char.animation.addByIndices(animAnim, animName, animIndices, "", animFps, animLoop);
+						ghostChar.animation.addByIndices(animAnim, animName, animIndices, "", animFps, animLoop);
 					} else {
 						char.animation.addByPrefix(animAnim, animName, animFps, animLoop);
+						ghostChar.animation.addByPrefix(animAnim, animName, animFps, animLoop);
 					}
 				}
 
 				if(!char.hasAnimation(animAnim))
 					char.addOffset(animAnim, 0, 0);
+				if(!ghostChar.hasAnimation(animAnim))
+					ghostChar.addOffset(animAnim, 0, 0);
 			}
 		}
 
@@ -1169,11 +1197,24 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		ghostChar.setPosition(char.x, char.y);
 		
 		if(char.animationsArray.length > 1) {
-			if(lastAnim != '') char.playAnim(lastAnim, true);
-			else char.dance();
+			if(lastAnim != '' && char.hasAnimation(lastAnim)) {
+				char.playAnim(lastAnim, true);
+				if(ghostChar.visible) ghostChar.playAnim(lastAnim, true);
+			} else if(char.animationsArray.length > 0) {
+				char.playAnim(char.animationsArray[0].anim, true);
+				if(ghostChar.visible) ghostChar.playAnim(char.animationsArray[0].anim, true);
+			}
 		}
 		
+		ghostChar.isAnimateAtlas = char.isAnimateAtlas;
 		reloadGhost();
+		
+		updatePointerPos(false);
+		
+		if(!char.isAnimationNull()) {
+			char.playAnim(char.getAnimationName(), true);
+		}
+		saveHistoryStuff();
 	}
 
 	function reloadShadowCharImage() {
@@ -1321,6 +1362,8 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		}
 		char.debugMode = true;
 
+		ghostChar.isAnimateAtlas = char.isAnimateAtlas;
+
 		charLayer.add(ghostChar);
 
 		#if flixel_animate
@@ -1443,70 +1486,60 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		genBoyOffsets();
 	}
 
-	function reloadGhost() {
+	function reloadGhost() 
+	{
 		var wasVisible = ghostChar.visible;
 		var alpha = ghostChar.alpha;
 		
 		ghostChar.animOffsets.clear();
 
-		ghostChar.atlas = FlxDestroyUtil.destroy(ghostChar.atlas);
-		ghostChar.isAnimateAtlas = false;
-		ghostChar.color = FlxColor.WHITE;
-		ghostChar.alpha = 1;
-		
-		if (ghostSingleAnimMode && ghostChar.visible) {
-			var animToPlay = ghostAnim;
-			if (animToPlay == null || animToPlay == "") animToPlay = char.animationsArray[0].anim;
-			
-			var animData = findAnimationByName(animToPlay);
-			if (animData != null) {
-				if(ghostChar.isAnimateAtlas) {
-					if(animData.indices?.length > 0) {
-						ghostChar.atlas.anim.addBySymbolIndices(animData.anim, animData.name, animData.indices, animData.fps, animData.loop);
-					} else {
-						ghostChar.atlas.anim.addBySymbol(animData.anim, animData.name, animData.fps, animData.loop);
-					}
-				} else {
-					if(animData.indices?.length > 0) {
-						ghostChar.animation.addByIndices(animData.anim, animData.name, animData.indices, "", animData.fps, animData.loop);
-					} else {
-						ghostChar.animation.addByPrefix(animData.anim, animData.name, animData.fps, animData.loop);
-					}
-				}
-				
-				ghostChar.addOffset(animData.anim, animData.offsets[0], animData.offsets[1]);
-				ghostChar.playAnim(animData.anim, true);
+		if(ghostChar.isAnimateAtlas) {
+			#if flixel_animate
+			if(ghostChar.atlas != null) {
+				ghostChar.atlas.anim.destroyAnimations();
 			}
+			#end
 		} else {
-			for (anim in char.animationsArray) {
-				var animAnim = anim.anim;
-				var animName = anim.name;
-				var animFps = anim.fps;
-				var animLoop = anim.loop;
-				var animIndices = anim.indices;
-				
-				if(ghostChar.isAnimateAtlas) {
-					if(animIndices?.length > 0) {
-						ghostChar.atlas.anim.addBySymbolIndices(animAnim, animName, animIndices, animFps, animLoop);
-					} else {
-						ghostChar.atlas.anim.addBySymbol(animAnim, animName, animFps, animLoop);
-					}
+			ghostChar.animation.destroyAnimations();
+		}
+		
+		for (anim in char.animationsArray) {
+			var animAnim:String = anim.anim;
+			var animName:String = anim.name;
+			var animFps:Int = anim.fps;
+			var animLoop:Bool = anim.loop;
+			var animIndices:Array<Int> = anim.indices;
+			
+			if(ghostChar.isAnimateAtlas) {
+				#if flixel_animate
+				if(animIndices != null && animIndices.length > 0) {
+					ghostChar.atlas.anim.addBySymbolIndices(animAnim, animName, animIndices, animFps, animLoop);
 				} else {
-					if(animIndices?.length > 0) {
-						ghostChar.animation.addByIndices(animAnim, animName, animIndices, "", animFps, animLoop);
-					} else {
-						ghostChar.animation.addByPrefix(animAnim, animName, animFps, animLoop);
-					}
+					ghostChar.atlas.anim.addBySymbol(animAnim, animName, animFps, animLoop);
 				}
-				
-				ghostChar.addOffset(anim.anim, anim.offsets[0], anim.offsets[1]);
+				#end
+			} else {
+				if(animIndices != null && animIndices.length > 0) {
+					ghostChar.animation.addByIndices(animAnim, animName, animIndices, "", animFps, animLoop);
+				} else {
+					ghostChar.animation.addByPrefix(animAnim, animName, animFps, animLoop);
+				}
 			}
+			
+			ghostChar.addOffset(animAnim, anim.offsets[0], anim.offsets[1]);
 		}
 		
 		ghostChar.alpha = alpha;
 		ghostChar.visible = wasVisible;
-		ghostChar.jsonScale = char.jsonScale;
 		ghostChar.antialiasing = char.antialiasing;
+		ghostChar.flipX = char.flipX;
+		
+		if(ghostChar.visible && !char.isAnimationNull()) {
+			var currentAnim = char.getAnimationName();
+			if(ghostChar.hasAnimation(currentAnim)) {
+				ghostChar.playAnim(currentAnim, true);
+			}
+		}
 	}
 
 	function reloadCharacterDropDown() {
