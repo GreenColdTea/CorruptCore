@@ -2203,7 +2203,10 @@ class PlayState extends MusicBeatState
 		
 		if (startedCountdown)
 		{
-			Conductor.songPosition += FlxG.elapsed * 1000 * playbackRate;
+			if (FlxG.sound.music?.playing)
+				Conductor.songPosition = FlxG.sound.music.time + Conductor.offset;
+			else
+				Conductor.songPosition += FlxG.elapsed * 1000 * playbackRate;
 		}
 
 		if (startingSong)

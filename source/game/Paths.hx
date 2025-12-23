@@ -440,6 +440,18 @@ class Paths
         #end
 
         var assetsPath = getPreloadPath(path);
+        #if sys
+        if (FileSystem.exists(assetsPath) && FileSystem.isDirectory(assetsPath))
+        {
+            for (file in FileSystem.readDirectory(assetsPath))
+            {
+                var fullPath = haxe.io.Path.join([assetsPath, file]);
+                if (!FileSystem.isDirectory(fullPath))
+                    result.push(fullPath);
+            }
+        }
+        #end
+
         if (OpenFlAssets.exists(assetsPath))
         {
             var prefix = assetsPath + "/";
@@ -448,18 +460,6 @@ class Paths
                 if (asset.startsWith(prefix) && asset != prefix)
                     result.push(asset);
             }
-
-            #if sys
-            if (FileSystem.exists(assetsPath) && FileSystem.isDirectory(assetsPath))
-            {
-                for (file in FileSystem.readDirectory(assetsPath))
-                {
-                    var fullPath = haxe.io.Path.join([assetsPath, file]);
-                    if (!FileSystem.isDirectory(fullPath))
-                        result.push(fullPath);
-                }
-            }
-            #end
         }
 
         return result;
