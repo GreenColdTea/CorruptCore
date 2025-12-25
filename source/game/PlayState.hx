@@ -1274,9 +1274,6 @@ class PlayState extends MusicBeatState
 
 		video.onEnd(() -> {
 			callOnScripts('onVideoCompleted', [name]);
-			remove(video);
-			video.destroy();
-			video = null;
 			canPause = true;
 			
 			if(isNotMidPartSong) startAndEnd();
