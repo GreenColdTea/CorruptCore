@@ -593,12 +593,16 @@ class Shader
 				return;
 			}
 
-			var _glslesVersion:Int = 120;
-			var prefix = '#version ${_glslesVersion}\n';
+			#if lime_opengles
+			var prefix = "#version 300 es\n";
+			#else
+			var prefix = "#version 330\n";
+			#end
+			
 			#if (js && html5)
 			prefix += (precisionHint == FULL ? "precision mediump float;\n" : "precision lowp float;\n");
 			#else
-			prefix += "#ifdef GL_ES\n" 
+			prefix += "#ifdef GL_ES\n"
 				+ (precisionHint == FULL ? "#ifdef GL_FRAGMENT_PRECISION_HIGH\n"
 					+ "precision highp float;\n"
 					+ "#else\n"
@@ -607,8 +611,21 @@ class Shader
 				+ "#endif\n\n";
 			#end
 
+			#if lime_opengles
+			prefix += "out vec4 output_FragColor;\n";
+			#end
+
 			var vertex = prefix + glVertexSource;
 			var fragment = prefix + glFragmentSource;
+
+			#if lime_opengles
+			vertex = vertex.replace("attribute", "in")
+				.replace("varying", "out");
+			
+			fragment = fragment.replace("varying", "in")
+				.replace("texture2D", "texture")
+				.replace("gl_FragColor", "output_FragColor");
+			#end
 
 			var id = vertex + fragment;
 
