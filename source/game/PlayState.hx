@@ -600,23 +600,19 @@ class PlayState extends MusicBeatState
 			}
 			#end
 
-			if (OpenFlAssets.exists(folder)) {
-				for (file in OpenFlAssets.list()) {
-					if (file.startsWith(folder)) {
-						#if LUA_ALLOWED
-						if (file.endsWith(".lua") && !filesPushed.contains(file)) {
-							luaArray.push(new FunkinLua(folder + file));
-							filesPushed.push(file);
-						}
-						#end
-						#if HSCRIPT_ALLOWED
-						if (file.endsWith(".hx") && !filesPushed.contains(file)) {
-							hscriptArray.push(new FunkinHScript(folder + file));
-							filesPushed.push(file);
-						}
-						#end
-					}
+			for (file in OpenFlAssets.list().filter(f -> f.startsWith(folder))) {
+				#if LUA_ALLOWED
+				if (file.endsWith(".lua") && !filesPushed.contains(file)) {
+					luaArray.push(new FunkinLua(file));
+					filesPushed.push(file);
 				}
+				#end
+				#if HSCRIPT_ALLOWED
+				if (file.endsWith(".hx") && !filesPushed.contains(file)) {
+					hscriptArray.push(new FunkinHScript(file));
+					filesPushed.push(file);
+				}
+				#end
 			}
 		}
 
@@ -888,23 +884,19 @@ class PlayState extends MusicBeatState
 			}
 			#end
 
-			if (OpenFlAssets.exists(folder)) {
-				for (file in OpenFlAssets.list()) {
-					if (file.startsWith(folder)) {
-						#if LUA_ALLOWED
-						if (file.endsWith(".lua") && !filesPushed.contains(file)) {
-							luaArray.push(new FunkinLua(folder + file));
-							filesPushed.push(file);
-						}
-						#end
-						#if HSCRIPT_ALLOWED
-						if (file.endsWith(".hx") && !filesPushed.contains(file)) {
-							hscriptArray.push(new FunkinHScript(folder + file));
-							filesPushed.push(file);
-						}
-						#end
-					}
+			for (file in OpenFlAssets.list().filter(f -> f.startsWith(folder))) {
+				#if LUA_ALLOWED
+				if (file.endsWith(".lua") && !filesPushed.contains(file)) {
+					luaArray.push(new FunkinLua(file));
+					filesPushed.push(file);
 				}
+				#end
+				#if HSCRIPT_ALLOWED
+				if (file.endsWith(".hx") && !filesPushed.contains(file)) {
+					hscriptArray.push(new FunkinHScript(file));
+					filesPushed.push(file);
+				}
+				#end
 			}
 		}
 
@@ -1207,10 +1199,10 @@ class PlayState extends MusicBeatState
 			#if sys
 			if(FileSystem.exists(hxFile))
 				doPush = true;
-			#else
+			#end
+
 			if(OpenFlAssets.exists(hxFile))
 				doPush = true;
-			#end
 		}
 
 		if(doPush)

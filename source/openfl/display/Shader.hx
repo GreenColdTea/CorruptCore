@@ -287,38 +287,13 @@ class Shader
 		}
 	}
 
-	// private function __clone ():Shader {
-	// var classType = Type.getClass (this);
-	// var shader = Type.createInstance (classType, []);
-	// for (input in __inputBitmapData) {
-	// 	if (input.input != null) {
-	// 		var field = Reflect.field (shader.data, input.name);
-	// 		field.channels = input.channels;
-	// 		field.height = input.height;
-	// 		field.input = input.input;
-	// 		field.smoothing = input.smoothing;
-	// 		field.width = input.width;
-	// 	}
-	// }
-	// for (param in __paramBool) {
-	// 	if (param.value != null) {
-	// 		Reflect.field (shader.data, param.name).value = param.value.copy ();
-	// 	}
-	// }
-	// for (param in __paramFloat) {
-	// 	if (param.value != null) {
-	// 		Reflect.field (shader.data, param.name).value = param.value.copy ();
-	// 	}
-	// }
-	// for (param in __paramInt) {
-	// 	if (param.value != null) {
-	// 		Reflect.field (shader.data, param.name).value = param.value.copy ();
-	// 	}
-	// }
-	// return shader;
-	// }
 	@:noCompletion private function __createGLShader(source:String, type:Int):GLShader {
 		var gl = __context.gl;
+		
+		if (gl == null) {
+			Log.error("WebGL context is null, cannot create shader");
+			return null;
+		}
 		
 		var shader = gl.createShader(type);
 		if (shader == null) {
@@ -402,7 +377,7 @@ class Shader
 
 				#if !macro
 				FlxG.sound?.music?.stop();
-				FlxG.sound.list.forEach((sound:FlxSound) -> {
+				FlxG.sound?.list?.forEach((sound:FlxSound) -> {
 					if (sound != null && sound != FlxG.sound.music && sound.playing)
 						sound.stop();
 				});
@@ -593,15 +568,15 @@ class Shader
 				return;
 			}
 
-			#if lime_opengles
-			var prefix = "#version 300 es\n";
-			#else
-			var prefix = "#version 330\n";
-			#end
-			
+			var prefix:String = "";
 			#if (js && html5)
+			prefix = (precisionHint == FULL ? "precision mediump float;\n" : "precision lowp float;\n");
+			#elseif lime_opengles
+			prefix = "#version 300 es\n";
 			prefix += (precisionHint == FULL ? "precision mediump float;\n" : "precision lowp float;\n");
+			prefix += "out vec4 output_FragColor;\n";
 			#else
+			prefix = "#version 330\n";
 			prefix += "#ifdef GL_ES\n"
 				+ (precisionHint == FULL ? "#ifdef GL_FRAGMENT_PRECISION_HIGH\n"
 					+ "precision highp float;\n"
@@ -609,10 +584,6 @@ class Shader
 					+ "precision mediump float;\n"
 					+ "#endif\n" : "precision lowp float;\n")
 				+ "#endif\n\n";
-			#end
-
-			#if lime_opengles
-			prefix += "out vec4 output_FragColor;\n";
 			#end
 
 			var vertex = prefix + glVertexSource;

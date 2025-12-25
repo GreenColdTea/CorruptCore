@@ -30,6 +30,7 @@ import flixel.math.FlxMath;
 import flixel.util.FlxSave;
 import flixel.addons.transition.FlxTransitionableState;
 import flixel.addons.display.FlxBackdrop;
+import flixel.system.FlxAssets.FlxShader;
 
 import openfl.Lib;
 import openfl.display.BitmapData;
@@ -48,7 +49,6 @@ import game.PlayState;
 import game.backend.Controls;
 import game.objects.Character;
 import game.objects.StrumNote;
-import game.shaders.flixel.FlxShader;
 
 #if HSCRIPT_ALLOWED
 import game.scripting.HScriptParser as HxParser;

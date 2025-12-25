@@ -40,12 +40,7 @@ using StringTools;
 @:access(openfl.display.BitmapData)
 class Paths
 {
-    public static final SOUND_EXTS:Array<String> =
-        #if web
-        ["mp3"]
-        #else
-        ["ogg", "wav", #if hxflac "flac", #end "mp3"]
-        #end;
+    public static final SOUND_EXTS:Array<String> = ["ogg", "wav", #if hxflac "flac", #end "mp3"];
 
     public static final VIDEO_EXTS:Array<String> = ["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm"];
 
@@ -530,7 +525,7 @@ class Paths
         return graph;
     }
 
-    inline static public function getTextFromFile(key:String, ?ignoreMods:Bool = false):String
+    static public function getTextFromFile(key:String, ?ignoreMods:Bool = false):String
     {
         var path:String = getPath(key, TEXT, !ignoreMods);
         #if MODS_ALLOWED
@@ -781,16 +776,16 @@ class Paths
                             if (FileSystem.exists(tempPath))
                                 currentTrackedSounds.set(file, CoolUtil.loadHighBitrateWav(key, tempPath));
                             else
-                                currentTrackedSounds.set(file, Sound.fromFile(tempPath));
+                                currentTrackedSounds.set(file, OpenFlAssets.getSound(tempPath));
                             #else
-                            currentTrackedSounds.set(file, Sound.fromFile(tempPath));
+                            currentTrackedSounds.set(file, OpenFlAssets.getSound(tempPath));
                             #end
                         #if hxflac
                         } else if (ext == "flac") {
                             var bytes = File.getBytes(tempPath);
                             currentTrackedSounds.set(file, hxflac.FLACHelper.toOpenFL(bytes)); #end
                         } else {
-                            currentTrackedSounds.set(file, Sound.fromFile(tempPath));
+                            currentTrackedSounds.set(file, OpenFlAssets.getSound(tempPath));
                         }
                     }
                     localTrackedAssets.push(file);
@@ -806,7 +801,7 @@ class Paths
                         var bytes = File.getBytes(file);
                         currentTrackedSounds.set(file, hxflac.FLACHelper.toOpenFL(bytes)); #end
                     } else {
-                        currentTrackedSounds.set(file, Sound.fromFile(file));
+                        currentTrackedSounds.set(file, OpenFlAssets.getSound(file));
                     }
                 }
                 localTrackedAssets.push(file);
