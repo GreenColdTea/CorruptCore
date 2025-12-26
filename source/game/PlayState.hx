@@ -585,32 +585,38 @@ class PlayState extends MusicBeatState
 			if (FileSystem.exists(folder)) {
 				for (file in sys.FileSystem.readDirectory(folder)) {
 					#if LUA_ALLOWED
-						if (file.endsWith(".lua") && !filesPushed.contains(file)) {
-							luaArray.push(new FunkinLua(folder + file));
-							filesPushed.push(file);
-						}
-						#end
-						#if HSCRIPT_ALLOWED
-						if (file.endsWith(".hx") && !filesPushed.contains(file)) {
-							hscriptArray.push(new FunkinHScript(folder + file));
-							filesPushed.push(file);
-						}
-						#end
+					if (file.endsWith(".lua") && !filesPushed.contains(file)) {
+						luaArray.push(new FunkinLua(folder + file));
+						filesPushed.push(file);
+					}
+					#end
+					#if HSCRIPT_ALLOWED
+					if (file.endsWith(".hx") && !filesPushed.contains(file)) {
+						hscriptArray.push(new FunkinHScript(folder + file));
+						filesPushed.push(file);
+					}
+					#end
 				}
 			}
 			#end
 
 			for (file in OpenFlAssets.list().filter(f -> f.startsWith(folder))) {
 				#if LUA_ALLOWED
-				if (file.endsWith(".lua") && !filesPushed.contains(file)) {
-					luaArray.push(new FunkinLua(file));
-					filesPushed.push(file);
+				if (file.endsWith(".lua")) {
+					var fileName:String = file.substring(file.lastIndexOf("/") + 1);
+					if (!filesPushed.contains(fileName)) {
+						luaArray.push(new FunkinLua(file));
+						filesPushed.push(fileName);
+					}
 				}
 				#end
 				#if HSCRIPT_ALLOWED
-				if (file.endsWith(".hx") && !filesPushed.contains(file)) {
-					hscriptArray.push(new FunkinHScript(file));
-					filesPushed.push(file);
+				if (file.endsWith(".hx")) {
+					var fileName:String = file.substring(file.lastIndexOf("/") + 1);
+					if (!filesPushed.contains(fileName)) {
+						hscriptArray.push(new FunkinHScript(file));
+						filesPushed.push(fileName);
+					}
 				}
 				#end
 			}
@@ -869,32 +875,38 @@ class PlayState extends MusicBeatState
 			if (FileSystem.exists(folder)) {
 				for (file in sys.FileSystem.readDirectory(folder)) {
 					#if LUA_ALLOWED
-						if (file.endsWith(".lua") && !filesPushed.contains(file)) {
-							luaArray.push(new FunkinLua(folder + file));
-							filesPushed.push(file);
-						}
-						#end
-						#if HSCRIPT_ALLOWED
-						if (file.endsWith(".hx") && !filesPushed.contains(file)) {
-							hscriptArray.push(new FunkinHScript(folder + file));
-							filesPushed.push(file);
-						}
-						#end
+					if (file.endsWith(".lua") && !filesPushed.contains(file)) {
+						luaArray.push(new FunkinLua(folder + file));
+						filesPushed.push(file);
+					}
+					#end
+					#if HSCRIPT_ALLOWED
+					if (file.endsWith(".hx") && !filesPushed.contains(file)) {
+						hscriptArray.push(new FunkinHScript(folder + file));
+						filesPushed.push(file);
+					}
+					#end
 				}
 			}
 			#end
 
 			for (file in OpenFlAssets.list().filter(f -> f.startsWith(folder))) {
 				#if LUA_ALLOWED
-				if (file.endsWith(".lua") && !filesPushed.contains(file)) {
-					luaArray.push(new FunkinLua(file));
-					filesPushed.push(file);
+				if (file.endsWith(".lua")) {
+					var fileName:String = file.substring(file.lastIndexOf("/") + 1);
+					if (!filesPushed.contains(fileName)) {
+						luaArray.push(new FunkinLua(file));
+						filesPushed.push(fileName);
+					}
 				}
 				#end
 				#if HSCRIPT_ALLOWED
-				if (file.endsWith(".hx") && !filesPushed.contains(file)) {
-					hscriptArray.push(new FunkinHScript(file));
-					filesPushed.push(file);
+				if (file.endsWith(".hx")) {
+					var fileName:String = file.substring(file.lastIndexOf("/") + 1);
+					if (!filesPushed.contains(fileName)) {
+						hscriptArray.push(new FunkinHScript(file));
+						filesPushed.push(fileName);
+					}
 				}
 				#end
 			}
