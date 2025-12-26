@@ -4144,35 +4144,41 @@ class PlayState extends MusicBeatState
 	public function startLuasOnFolder(luaFile:String)
 	{
 		#if LUA_ALLOWED
+		var fileName:String = luaFile.substring(luaFile.lastIndexOf("/") + 1);
+		
 		for (script in luaArray)
 		{
-			if(script.scriptName == luaFile) return false;
+			var scriptName:String = script.scriptName;
+			var scriptFileName:String = scriptName.substring(scriptName.lastIndexOf("/") + 1);
+			
+			if(scriptFileName == fileName)
+				return false;
 		}
 
+		var doPush:Bool = false;
 		#if MODS_ALLOWED
-		var luaToLoad:String = Mods.modFolders(luaFile);
-		if(FileSystem.exists(luaToLoad))
+		var replacePath:String = Mods.modFolders(luaFile);
+		if(FileSystem.exists(replacePath))
 		{
-			luaArray.push(new FunkinLua(luaToLoad));
-			return true;
+			luaFile = replacePath;
+			doPush = true;
 		}
 		else
 		#end
-		#if sys
 		{
-			luaToLoad = Paths.getPreloadPath(luaFile);
-			if(FileSystem.exists(luaToLoad))
-			{
-				luaArray.push(new FunkinLua(luaToLoad));
-				return true;
-			}
-		}
-		#end
+			luaFile = Paths.getPreloadPath(luaFile);
+			#if sys
+			if(FileSystem.exists(luaFile))
+				doPush = true;
+			#end
 
-		var luaToLoad:String = Paths.getPreloadPath(luaFile);
-		if(OpenFlAssets.exists(luaToLoad))
+			if(OpenFlAssets.exists(luaFile))
+				doPush = true;
+		}
+
+		if(doPush)
 		{
-			luaArray.push(new FunkinLua(luaToLoad));
+			luaArray.push(new FunkinLua(luaFile));
 			return true;
 		}
 		#end
@@ -4182,37 +4188,42 @@ class PlayState extends MusicBeatState
 
 	public function startHScriptOnFolder(hscriptFile:String)
 	{
-		var hscriptToLoad:String;
 		#if HSCRIPT_ALLOWED
+		var fileName:String = hscriptFile.substring(hscriptFile.lastIndexOf("/") + 1);
+		
 		for (script in hscriptArray)
 		{
-			if(script.scriptName == hscriptFile) return false;
+			var scriptName:String = script.scriptName;
+			var scriptFileName:String = scriptName.substring(scriptName.lastIndexOf("/") + 1);
+
+			if(scriptFileName == fileName)
+				return false;
 		}
 
+		var doPush:Bool = false;
 		#if MODS_ALLOWED
-		hscriptToLoad = Mods.modFolders(hscriptFile);
-		if(FileSystem.exists(hscriptToLoad))
+		var replacePath:String = Mods.modFolders(hscriptFile);
+		if(FileSystem.exists(replacePath))
 		{
-			hscriptArray.push(new FunkinHScript(hscriptToLoad));
-			return true;
+			hscriptFile = replacePath;
+			doPush = true;
 		}
 		else
 		#end
-		#if sys
 		{
-			hscriptToLoad = Paths.getPreloadPath(hscriptFile);
-			if(FileSystem.exists(hscriptToLoad))
-			{
-				hscriptArray.push(new FunkinHScript(hscriptToLoad));
-				return true;
-			}
-		}
-		#end
+			hscriptFile = Paths.getPreloadPath(hscriptFile);
+			#if sys
+			if(FileSystem.exists(hscriptFile))
+				doPush = true;
+			#end
 
-		hscriptToLoad = Paths.getPreloadPath(hscriptFile);
-		if(OpenFlAssets.exists(hscriptToLoad))
+			if(OpenFlAssets.exists(hscriptFile))
+				doPush = true;
+		}
+
+		if(doPush)
 		{
-			hscriptArray.push(new FunkinHScript(hscriptToLoad));
+			hscriptArray.push(new FunkinHScript(hscriptFile));
 			return true;
 		}
 		#end

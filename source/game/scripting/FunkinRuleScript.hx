@@ -284,6 +284,7 @@ class FunkinRuleScript {
 
     function execute(code:String, skipCreate:Bool) {
         presetVariables();
+        
         rule.tryExecute(code);
         if (!skipCreate) call("onCreate");
     }
@@ -305,19 +306,14 @@ class FunkinRuleScript {
         if (isPlayState) {
             set("game", PlayState.instance);
             
-            set("add", function(basic:flixel.FlxBasic, ?frontOfChars:Bool = false) {
-                if (frontOfChars) {
-                    PlayState.instance.add(basic);
-                    return;
-                }
-
+            set("add", function(obj:flixel.FlxBasic) {
                 var position:Int = PlayState.instance.members.indexOf(PlayState.instance.gfGroup);
                 if(PlayState.instance.members.indexOf(PlayState.instance.boyfriendGroup) < position) 
                     position = PlayState.instance.members.indexOf(PlayState.instance.boyfriendGroup);
                 else if(PlayState.instance.members.indexOf(PlayState.instance.dadGroup) < position) 
                     position = PlayState.instance.members.indexOf(PlayState.instance.dadGroup);
                 
-                PlayState.instance.insert(position, basic);
+                PlayState.instance.insert(position, obj);
             });
             
             set("insert", PlayState.instance.insert);
@@ -438,8 +434,17 @@ class FunkinRuleScript {
         return null;
     }
 
-    public function call(event:String, ?args:Array<Dynamic>):Dynamic {
+    public function call(event:String, ?args:Array<Dynamic>):Dynamic 
+    {
         if (!active) return null;
+        
+        var originalAdd = null;
+        if (event == "onCreatePost" && PlayState.instance != null) {
+            originalAdd = get("add");
+            set("add", function(obj:flixel.FlxBasic) {
+                PlayState.instance.add(obj);
+            });
+        }
         
         if (callbacks.exists(event)) {
             for (cb in callbacks.get(event)) {
@@ -452,15 +457,21 @@ class FunkinRuleScript {
             }
         }
         
-        if (!exists(event)) return null;
-        
-        try {
-            return Reflect.callMethod(null, get(event), args ?? []);
-        } catch (e:Dynamic) {
-            @:privateAccess
-            onError(haxe.Exception.caught(e));
-            return null;
+        var result:Dynamic = null;
+        if (exists(event)) {
+            try {
+                result = Reflect.callMethod(null, get(event), args ?? []);
+            } catch (e:Dynamic) {
+                @:privateAccess
+                onError(haxe.Exception.caught(e));
+            }
         }
+        
+        if (event == "onCreatePost" && originalAdd != null) {
+            set("add", originalAdd);
+        }
+        
+        return result;
     }
 
     public function exists(variable:String):Bool {
