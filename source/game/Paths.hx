@@ -40,7 +40,7 @@ using StringTools;
 @:access(openfl.display.BitmapData)
 class Paths
 {
-    public static final SOUND_EXTS:Array<String> = ["ogg", "wav", #if hxflac "flac", #end #if hxopus "opus", #end "mp3"];
+    public static final SOUND_EXTS:Array<String> = [#if !flash "ogg", "wav", #if (hxflac || web) "flac", #end #if hxopus "opus", #end #end "mp3"];
 
     public static final VIDEO_EXTS:Array<String> = ["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm"];
 
