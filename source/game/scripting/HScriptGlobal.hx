@@ -50,11 +50,7 @@ class HScriptGlobal {
         #end
         
         if (scriptPath != null || scriptContent != null) {
-            #if sys
             globalScript = new FunkinHScript(scriptPath);
-            #else
-            globalScript = createScriptFromContent(scriptContent, scriptPath);
-            #end
             
             globalScriptActive = true;            
             setupGlobalScriptEvents();
@@ -62,41 +58,6 @@ class HScriptGlobal {
             globalScript?.call("onCreatePost", []);
         }
     }
-    
-    #if !sys
-    private static function createScriptFromContent(content:String, path:String):FunkinHScript {
-        var script = Type.createEmptyInstance(FunkinHScript);
-        script.scriptName = path;
-        script.active = true;
-        
-        script.set("FlxG", flixel.FlxG);
-        script.set("Paths", game.Paths);
-        script.set("CoolUtil", game.backend.utils.CoolUtil);
-        
-        try {
-            var executeMethod = Reflect.field(script, "execute");
-            if (executeMethod != null) {
-                Reflect.callMethod(script, executeMethod, [content, false]);
-            } else {
-                var parser = new HScriptParser();
-                parser.allowAll();
-                parser.preprocesorValues = FunkinHScript.getHScriptPreprocessors();
-
-                var ruleScript = new rulescript.RuleScript(new RuleScriptInterpEx(), parser);
-                ruleScript.execute(content);
-                
-                for (key in ruleScript.variables.keys()) {
-                    script.set(key, ruleScript.variables.get(key));
-                }
-            }
-        } catch (e:Dynamic) {
-            trace('Failed to execute global script: ${e.message}');
-            return null;
-        }
-        
-        return script;
-    }
-    #end
     
     private static function setupGlobalScriptEvents():Void {
         FlxG.signals.postGameStart.add(() -> globalScript?.call("onGameStart", []));

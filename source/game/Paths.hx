@@ -40,12 +40,9 @@ using StringTools;
 @:access(openfl.display.BitmapData)
 class Paths
 {
-    public static final SOUND_EXTS:Array<String> = ["ogg", "wav", #if hxflac "flac", #end "mp3"];
+    public static final SOUND_EXTS:Array<String> = ["ogg", "wav", #if hxflac "flac", #end #if hxopus "opus", #end "mp3"];
 
     public static final VIDEO_EXTS:Array<String> = ["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm"];
-
-    @:unreflective
-    inline public static final OPUS_EXT = "opus";
 
     //for backward compatibility
     @:unreflective
@@ -178,7 +175,7 @@ class Paths
                 return libraryPath;
             #end
 
-            if (OpenFlAssets.exists(libraryPath, type))
+            if (OpenFlAssets.exists(libraryPath))
                 return libraryPath;
         }
 
@@ -193,7 +190,7 @@ class Paths
                     return levelPath;
                 #end
 
-                if (OpenFlAssets.exists(levelPath, type))
+                if (OpenFlAssets.exists(levelPath))
                     return levelPath;
             }
 
@@ -204,7 +201,7 @@ class Paths
                 return levelPath;
             #end
 
-            if (OpenFlAssets.exists(levelPath, type))
+            if (OpenFlAssets.exists(levelPath))
                 return levelPath;
         }
 
@@ -736,32 +733,6 @@ class Paths
         if (library != null) modLibPath = '$library/';
         if (path != null) modLibPath += '$path';
 
-        #if (hxopus && sys)
-        var opusFile:String = Mods.modsSounds(modLibPath, key, OPUS_EXT);
-        if(opusFile.startsWith('zip://')) {
-            var parts = opusFile.substr(6).split('/');
-            var mod = parts[0];
-            var filePath = parts.slice(1).join('/');
-            var tempPath = Mods.extractFileFromZipMod(mod, filePath, 'sounds');
-            if(tempPath != null) {
-                if(!currentTrackedSounds.exists(opusFile)) {
-                    var bytes = File.getBytes(tempPath);
-                    currentTrackedSounds.set(opusFile, hxopus.Opus.toOpenFL(bytes));
-                }
-                localTrackedAssets.push(opusFile);
-                return currentTrackedSounds.get(opusFile);
-            }
-        }
-        else if(FileSystem.exists(opusFile)) {
-            if(!currentTrackedSounds.exists(opusFile)) {
-                var bytes = File.getBytes(opusFile);
-                currentTrackedSounds.set(opusFile, hxopus.Opus.toOpenFL(bytes));
-            }
-            localTrackedAssets.push(opusFile);
-            return currentTrackedSounds.get(opusFile);
-        }
-        #end
-
         for (ext in SOUND_EXTS) {
             var file:String = Mods.modsSounds(modLibPath, key, ext);
             if(file.startsWith('zip://')) {
@@ -771,21 +742,26 @@ class Paths
                 var tempPath = Mods.extractFileFromZipMod(mod, filePath, 'sounds');
                 if(tempPath != null) {
                     if(!currentTrackedSounds.exists(file)) {
-                        if (ext == "wav") {
+                        #if hxopus
+                        if (ext == "opus") {
+                            var bytes = File.getBytes(tempPath);
+                            currentTrackedSounds.set(file, hxopus.Opus.toOpenFL(bytes));
+                        } else #end if (ext == "wav") {
                             #if (sys && !web)
                             if (FileSystem.exists(tempPath))
                                 currentTrackedSounds.set(file, CoolUtil.loadHighBitrateWav(key, tempPath));
                             else
-                                currentTrackedSounds.set(file, OpenFlAssets.getSound(tempPath));
+                                currentTrackedSounds.set(file, Sound.fromFile(tempPath));
                             #else
-                            currentTrackedSounds.set(file, OpenFlAssets.getSound(tempPath));
+                            currentTrackedSounds.set(file, Sound.fromFile(tempPath));
                             #end
                         #if hxflac
                         } else if (ext == "flac") {
                             var bytes = File.getBytes(tempPath);
-                            currentTrackedSounds.set(file, hxflac.FLACHelper.toOpenFL(bytes)); #end
+                            currentTrackedSounds.set(file, hxflac.FLACHelper.toOpenFL(bytes));
+                        #end
                         } else {
-                            currentTrackedSounds.set(file, OpenFlAssets.getSound(tempPath));
+                            currentTrackedSounds.set(file, Sound.fromFile(tempPath));
                         }
                     }
                     localTrackedAssets.push(file);
@@ -794,14 +770,19 @@ class Paths
             }
             else if(FileSystem.exists(file)) {
                 if(!currentTrackedSounds.exists(file)) {
-                    if (ext == "wav") {
+                    #if hxopus
+                    if (ext == "opus") {
+                        var bytes = File.getBytes(file);
+                        currentTrackedSounds.set(file, hxopus.Opus.toOpenFL(bytes));
+                    } else #end if (ext == "wav") {
                         currentTrackedSounds.set(file, CoolUtil.loadHighBitrateWav(key, file));
                     #if hxflac
                     } else if (ext == "flac") {
                         var bytes = File.getBytes(file);
-                        currentTrackedSounds.set(file, hxflac.FLACHelper.toOpenFL(bytes)); #end
+                        currentTrackedSounds.set(file, hxflac.FLACHelper.toOpenFL(bytes));
+                    #end
                     } else {
-                        currentTrackedSounds.set(file, OpenFlAssets.getSound(file));
+                        currentTrackedSounds.set(file, Sound.fromFile(file));
                     }
                 }
                 localTrackedAssets.push(file);
@@ -810,23 +791,15 @@ class Paths
         }
         #end
 
-        #if hxopus
-        var opusPath:String = getPath((path != null ? '$path/' : '') + '$key.$OPUS_EXT', SOUND, library);
-        if(OpenFlAssets.exists(opusPath, SOUND)) {
-            if(!currentTrackedSounds.exists(opusPath)) {
-                var bytes = OpenFlAssets.getBytes(opusPath);
-                currentTrackedSounds.set(opusPath, hxopus.Opus.toOpenFL(bytes));
-            }
-            localTrackedAssets.push(opusPath);
-            return currentTrackedSounds.get(opusPath);
-        }
-        #end
-
         for (ext in SOUND_EXTS) {
             var soundPath:String = getPath((path != null ? '$path/' : '') + '$key.$ext', SOUND, library);
-            if(OpenFlAssets.exists(soundPath, SOUND)) {
+            if(OpenFlAssets.exists(soundPath)) {
                 if(!currentTrackedSounds.exists(soundPath)) {
-                    if (ext == "wav") {
+                    #if hxopus
+                    if (ext == "opus") {
+                        var bytes = OpenFlAssets.getBytes(soundPath);
+                        currentTrackedSounds.set(soundPath, hxopus.Opus.toOpenFL(bytes));
+                    } else #end if (ext == "wav") {
                         #if (sys && !web)
                         var absolutePath = getAbsolutePath(soundPath);
                         if (FileSystem.exists(absolutePath))
@@ -838,7 +811,8 @@ class Paths
                         #end
                     #if hxflac
                     } else if (ext == "flac") {
-                        currentTrackedSounds.set(soundPath, hxflac.FLACHelper.toOpenFLFromFile(soundPath)); #end
+                        currentTrackedSounds.set(soundPath, hxflac.FLACHelper.toOpenFLFromFile(soundPath));
+                    #end
                     } else {
                         currentTrackedSounds.set(soundPath, OpenFlAssets.getSound(soundPath));
                     }

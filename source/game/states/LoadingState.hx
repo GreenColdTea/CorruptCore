@@ -149,7 +149,7 @@ class LoadingState extends MusicBeatState
         add(percentText);
 
         @:privateAccess
-        startTimer = new FlxTimer().start(CustomFadeTransition.lastDuration, (_) -> {
+        startTimer = new FlxTimer().start(CustomShapeTransition.lastDuration, (_) -> {
             loadingStarted = true;
             startLoading();
         });
@@ -476,17 +476,7 @@ class LoadingState extends MusicBeatState
     static function getSoundPath(song:String, type:String):String
     {
         var songKey:String = '${Paths.formatToSongPath(song)}/$type';
-        var extensions:Array<String> = [];
-        
-        #if hxopus
-        extensions.push(Paths.OPUS_EXT);
-        #end
-        
-        #if hxflac
-        extensions.push("flac");
-        #end
-        
-        extensions = extensions.concat(Paths.SOUND_EXTS);
+        var extensions:Array<String> = Paths.SOUND_EXTS;
         
         #if MODS_ALLOWED
         for (ext in extensions) {
@@ -499,7 +489,7 @@ class LoadingState extends MusicBeatState
 
         for (ext in extensions) {
             var soundPath:String = Paths.getPath('songs/$songKey.$ext', SOUND, 'songs');
-            if (Assets.exists(soundPath, SOUND)) {
+            if (Assets.exists(soundPath)) {
                 return soundPath;
             }
         }
@@ -518,7 +508,7 @@ class LoadingState extends MusicBeatState
 
         for (ext in extensions) {
             var soundPath:String = Paths.getPath('songs/$songKeyCapital.$ext', SOUND, 'songs');
-            if (Assets.exists(soundPath, SOUND)) {
+            if (Assets.exists(soundPath)) {
                 return soundPath;
             }
         }
@@ -685,21 +675,9 @@ class LoadingState extends MusicBeatState
             return true;
         }
         
-        var extensions:Array<String> = [];
-        
-        #if hxopus
-        extensions.push(Paths.OPUS_EXT);
-        #end
-        
-        #if hxflac
-        extensions.push("flac");
-        #end
-        
-        extensions = extensions.concat(Paths.SOUND_EXTS);
-        
-        for (ext in extensions) {
+        for (ext in Paths.SOUND_EXTS) {
             var testPath = Path.withoutExtension(path) + "." + ext;
-            if (Assets.exists(testPath, SOUND)) {
+            if (Assets.exists(testPath)) {
                 return true;
             }
         }

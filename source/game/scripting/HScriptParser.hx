@@ -10,14 +10,16 @@ using rulescript.Tools;
 
 class HScriptParser extends HxParser
 {
+    private var warnedLines:Map<Int, Array<String>>;
+
     public var strictMode:Bool = true;
-    public var requireSemicolons:Bool = true;
     public var reportWarnings:Bool = true;
     
     private var errors:Array<String>;
     private var warnings:Array<String>;
     private var currentLine:Int = 1;
     private var currentColumn:Int = 1;
+    public var scriptPath:String = "";
     
     public var preprocessorValues:Map<String, Dynamic>;
     private var preprocStack:Array<{active:Bool, elseFound:Bool}>;
@@ -39,12 +41,14 @@ class HScriptParser extends HxParser
         this.warnings = [];
         this.preprocessorValues = new Map();
         this.preprocStack = [];
+        this.warnedLines = new Map();
     }
     
     override public function parse(code:String):Expr
     {
         errors = [];
         warnings = [];
+        warnedLines.clear();
         currentLine = 1;
         currentColumn = 1;
         preprocStack = [];
@@ -56,7 +60,9 @@ class HScriptParser extends HxParser
             var lineMap = preprocessResult.lineMap;
             
             if (strictMode && !validateBasicSyntax(processedCode)) {
-                throw new haxe.Exception("Basic syntax validation failed");
+                var errorMsg = errors.length > 0 ? errors.join("; ") : "Basic syntax validation failed";
+                var pathPrefix = scriptPath != "" ? '[$scriptPath] ' : '';
+                throw new haxe.Exception(pathPrefix + errorMsg);
             }
             
             var result = super.parse(processedCode);
@@ -64,14 +70,17 @@ class HScriptParser extends HxParser
             result = transformFieldAssignments(result);
             
             if (reportWarnings && warnings.length > 0) {
-                trace('Parser warnings:');
+                var pathPrefix = scriptPath != "" ? '[$scriptPath] ' : '';
+                trace('${pathPrefix}Parser warnings:');
                 for (warning in warnings) {
-                    trace('  $warning');
+                    trace('  ${pathPrefix}$warning');
                 }
             }
             
             if (errors.length > 0) {
                 var enhancedErrors = [];
+                var pathPrefix = scriptPath != "" ? '[$scriptPath] ' : '';
+                
                 for (error in errors) {
                     var lineMatch = ~/Line (\d+), column (\d+): (.*)/;
                     if (lineMatch.match(error)) {
@@ -80,9 +89,9 @@ class HScriptParser extends HxParser
                         var message = lineMatch.matched(3);
                         
                         var originalLine = if (processedLine <= lineMap.length) lineMap[processedLine - 1] else processedLine;
-                        enhancedErrors.push('Line $originalLine, column $column: $message');
+                        enhancedErrors.push('${pathPrefix}Line $originalLine, column $column: $message');
                     } else {
-                        enhancedErrors.push(error);
+                        enhancedErrors.push(pathPrefix + error);
                     }
                 }
                 
@@ -91,9 +100,10 @@ class HScriptParser extends HxParser
             
             return result;
         } catch (e:haxe.Exception) {
-            var enhancedError = 'Error at line $currentLine, column $currentColumn: ${e.message}';
+            var pathPrefix = scriptPath != "" ? '[$scriptPath] ' : '';
+            var enhancedError = '${pathPrefix}Error at line $currentLine, column $currentColumn: ${e.message}';
             if (errors.length > 0) {
-                enhancedError += "\nAdditional errors: " + errors.join("; ");
+                enhancedError += "\n" + pathPrefix + "Additional errors: " + errors.join("; ");
             }
             throw new haxe.Exception(enhancedError);
         }
@@ -655,8 +665,8 @@ class HScriptParser extends HxParser
     private function validateBasicSyntax(code:String):Bool
     {
         var lines = code.split("\n");
-        var inComment = false;
-        var inString = false;
+        var inComment:Bool = false;
+        var inString:Bool = false;
         var stringChar:Int = 0;
         var braceStack:Array<String> = [];
         var bracketStack:Array<String> = [];
@@ -685,9 +695,10 @@ class HScriptParser extends HxParser
             }
             
             var j = 0;
-            while (j < line.length) {
+            var lineLength = line.length;
+            while (j < lineLength) {
                 var char = line.charAt(j);
-                var nextChar = j + 1 < line.length ? line.charAt(j + 1) : "";
+                var nextChar = j + 1 < lineLength ? line.charAt(j + 1) : "";
                 
                 if (!inString && !inComment) {
                     if (char == "/" && nextChar == "*") {
@@ -720,10 +731,6 @@ class HScriptParser extends HxParser
                                 addError('Unmatched closing parenthesis: )', i + 1, j + 1);
                             }
                     }
-                    
-                    if (requireSemicolons && strictMode) {
-                        checkSemicolonRequirement(line, i + 1, j);
-                    }
                 } else if (inString) {
                     if (char == "\\") {
                         j++;
@@ -736,11 +743,11 @@ class HScriptParser extends HxParser
             }
             
             if (inString) {
-                addWarning('Unclosed string literal', i + 1, line.length);
+                addWarning('Unclosed string literal', i + 1, lineLength);
             }
             
             if (inComment && i == lines.length - 1) {
-                addWarning('Unclosed multi-line comment', i + 1, line.length);
+                addWarning('Unclosed multi-line comment', i + 1, lineLength);
             }
         }
         
@@ -763,29 +770,6 @@ class HScriptParser extends HxParser
         }
         
         return errors.length == 0;
-    }
-    
-    private function checkSemicolonRequirement(line:String, lineNum:Int, pos:Int):Void
-    {
-        var trimmed = line.trim();
-        if (trimmed == "" || trimmed.startsWith("//")) return;
-        
-        var noSemicolonEndings = [
-            "{", "}", 
-            "function", "class", "enum", "typedef", "interface",
-            "if", "for", "while", "switch", "do",
-            "try", "catch", "finally"
-        ];
-        
-        for (ending in noSemicolonEndings) {
-            if (trimmed.endsWith(ending) || trimmed.endsWith(ending + " ")) {
-                return;
-            }
-        }
-        
-        if (!trimmed.endsWith(";") && !trimmed.endsWith("{") && !trimmed.endsWith("}")) {
-            addWarning('Missing semicolon', lineNum, trimmed.length);
-        }
     }
     
     private function addError(message:String, line:Int, column:Int):Void
@@ -861,20 +845,12 @@ class HScriptParser extends HxParser
         warnings = [];
     }
     
-    public function setStrictMode(enabled:Bool):Void
-    {
-        strictMode = enabled;
-        requireSemicolons = enabled;
-    }
-    
     public function setParserParameters(params:{
         ?strictMode:Bool,
-        ?requireSemicolons:Bool,
         ?reportWarnings:Bool
     }):Void
     {
         if (params.strictMode != null) strictMode = params.strictMode;
-        if (params.requireSemicolons != null) requireSemicolons = params.requireSemicolons;
         if (params.reportWarnings != null) reportWarnings = params.reportWarnings;
     }
 }

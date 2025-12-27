@@ -122,6 +122,7 @@ class FunkinRuleScript {
         "flixel.input.keyboard.FlxKey",
         "flixel.tweens.FlxTween.FlxTweenType",
         "flixel.text.FlxText.FlxTextAlign",
+        "flixel.util.FlxAxes",
         #if flxgif
         "flxgif.FlxGifAsset",
         #end

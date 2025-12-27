@@ -28,9 +28,9 @@ class FunkinHScript extends FunkinRuleScript
         hxParser.setPreprocessorValues(preprocessors);
         hxParser.setParserParameters({
             strictMode: true,
-            requireSemicolons: false,
             reportWarnings: true
         });
+        hxParser.scriptPath = path;
 
         var scriptToRun:String = loadScriptContent(path);
         execute(scriptToRun, skipCreate);
