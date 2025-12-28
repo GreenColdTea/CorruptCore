@@ -226,63 +226,61 @@ class Paths
 
     #if SCRIPTABLE_STATES
     static public function getStateScripts(statePath:String):Array<String> {
-        var foldersToCheck:Array<String> = [
-            Paths.getPreloadPath('scripts/states/$statePath/'),
-            #if MODS_ALLOWED
-            Mods.getModPath('scripts/states/$statePath/'),
-            #end
-        ];
-
+        var foldersToCheck:Array<String> = [];
+        var scriptPaths:Array<String> = [];
+        
+        foldersToCheck.push(Paths.getPreloadPath('scripts/states/$statePath/'));
         #if MODS_ALLOWED
+        foldersToCheck.push(Mods.getModPath('scripts/states/$statePath/'));
         if (Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0) {
             foldersToCheck.insert(0, Mods.getModPath('${Mods.currentModDirectory}/scripts/states/$statePath/'));
         }
-
         for (mod in Mods.getGlobalMods()) {
             foldersToCheck.insert(0, Mods.getModPath('$mod/scripts/states/$statePath/'));
         }
         #end
-
-        foldersToCheck.push(Paths.getPreloadPath('scripts/states/$statePath.hx'));
+        
+        scriptPaths.push(Paths.getPreloadPath('scripts/states/$statePath.hx'));
         #if MODS_ALLOWED
-        foldersToCheck.push(Mods.getModPath('scripts/states/$statePath.hx'));
-        foldersToCheck.push(Mods.getModPath('${Mods.currentModDirectory}/scripts/states/$statePath.hx'));
+        scriptPaths.push(Mods.getModPath('scripts/states/$statePath.hx'));
+        if (Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0) {
+            scriptPaths.push(Mods.getModPath('${Mods.currentModDirectory}/scripts/states/$statePath.hx'));
+        }
         for (mod in Mods.getGlobalMods()) {
-            foldersToCheck.push(Mods.getModPath('$mod/scripts/states/$statePath.hx'));
+            scriptPaths.push(Mods.getModPath('$mod/scripts/states/$statePath.hx'));
         }
         #end
-
-        return foldersToCheck;
+        
+        return foldersToCheck.concat(scriptPaths);
     }
 
     static public function getSubstateScripts(statePath:String):Array<String> {
-        var foldersToCheck:Array<String> = [
-            Paths.getPreloadPath('scripts/substates/$statePath/'),
-            #if MODS_ALLOWED
-            Mods.getModPath('scripts/substates/$statePath/'),
-            #end
-        ];
-
+        var foldersToCheck:Array<String> = [];
+        var scriptPaths:Array<String> = [];
+        
+        foldersToCheck.push(Paths.getPreloadPath('scripts/substates/$statePath/'));
         #if MODS_ALLOWED
+        foldersToCheck.push(Mods.getModPath('scripts/substates/$statePath/'));
         if (Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0) {
             foldersToCheck.insert(0, Mods.getModPath('${Mods.currentModDirectory}/scripts/substates/$statePath/'));
         }
-
         for (mod in Mods.getGlobalMods()) {
             foldersToCheck.insert(0, Mods.getModPath('$mod/scripts/substates/$statePath/'));
         }
         #end
-
-        foldersToCheck.push(Paths.getPreloadPath('scripts/substates/$statePath.hx'));
+        
+        scriptPaths.push(Paths.getPreloadPath('scripts/substates/$statePath.hx'));
         #if MODS_ALLOWED
-        foldersToCheck.push(Mods.getModPath('scripts/substates/$statePath.hx'));
-        foldersToCheck.push(Mods.getModPath('${Mods.currentModDirectory}/scripts/substates/$statePath.hx'));
+        scriptPaths.push(Mods.getModPath('scripts/substates/$statePath.hx'));
+        if (Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0) {
+            scriptPaths.push(Mods.getModPath('${Mods.currentModDirectory}/scripts/substates/$statePath.hx'));
+        }
         for (mod in Mods.getGlobalMods()) {
-            foldersToCheck.push(Mods.getModPath('$mod/scripts/substates/$statePath.hx'));
+            scriptPaths.push(Mods.getModPath('$mod/scripts/substates/$statePath.hx'));
         }
         #end
-
-        return foldersToCheck;
+        
+        return foldersToCheck.concat(scriptPaths);
     }
     #end
 

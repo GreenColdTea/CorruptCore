@@ -27,35 +27,53 @@ class HScriptState extends MusicBeatState
             var scriptFiles:Array<String> = [];
             var folders:Array<String> = Paths.getStateScripts(stateName);
             
+            var processedFiles:Map<String, Bool> = new Map();
+            
             for (path in folders) {
+                var isDirectory = false;
+                var isFile = false;
+                
                 #if sys
                 if (FileSystem.exists(path)) {
                     if (FileSystem.isDirectory(path)) {
+                        isDirectory = true;
                         for (file in FileSystem.readDirectory(path)) {
                             if (file.endsWith('.hx')) {
                                 var fullPath = haxe.io.Path.join([path, file]);
-                                scriptFiles.push(fullPath);
+                                if (!processedFiles.exists(fullPath)) {
+                                    scriptFiles.push(fullPath);
+                                    processedFiles.set(fullPath, true);
+                                }
                             }
                         }
-                    }
-                    else if (path.endsWith('.hx')) {
-                        scriptFiles.push(path);
-                    }
-                }
-                #else
-                if (OpenFlAssets.exists(path)) {
-                    if (path.endsWith('.hx')) {
-                        scriptFiles.push(path);
-                    } else {
-                        var prefix = path;
-                        for (file in OpenFlAssets.list(TEXT)) {
-                            if (file.startsWith(prefix) && file.endsWith('.hx')) {
-                                scriptFiles.push(file);
-                            }
+                    } else if (path.endsWith('.hx')) {
+                        isFile = true;
+                        if (!processedFiles.exists(path)) {
+                            scriptFiles.push(path);
+                            processedFiles.set(path, true);
                         }
                     }
                 }
                 #end
+                
+                if (!isDirectory && !isFile) {
+                    if (OpenFlAssets.exists(path)) {
+                        if (path.endsWith('.hx')) {
+                            if (!processedFiles.exists(path)) {
+                                scriptFiles.push(path);
+                                processedFiles.set(path, true);
+                            }
+                        } else {
+                            var prefix = path.endsWith('/') ? path : path + '/';
+                            for (file in OpenFlAssets.list(TEXT)) {
+                                if (file.startsWith(prefix) && file.endsWith('.hx') && !processedFiles.exists(file)) {
+                                    scriptFiles.push(file);
+                                    processedFiles.set(file, true);
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             for (path in scriptFiles) {

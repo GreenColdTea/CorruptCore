@@ -49,41 +49,66 @@ class MusicBeatSubstate extends FlxSubState
 		initializeSubStateCamera();
 		
 		#if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
-		if (!excludeSubStates.contains(Type.getClass(this)))
-		{
-			var substatePath = Type.getClassName(Type.getClass(this)).split(".");
-			var substateString = substatePath[substatePath.length - 1];
-
-			var scriptFiles:Array<String> = [];
-			var folders:Array<String> = Paths.getSubstateScripts(substateString);
+		var substatePath = Type.getClassName(Type.getClass(this)).split(".");
+		var substateString = substatePath[substatePath.length - 1];
+		
+		var scriptFiles:Array<String> = [];
+		var folders:Array<String> = Paths.getSubstateScripts(substateString);
+		var processedFiles:Map<String, Bool> = new Map();
+		
+		for (path in folders) {
+			var isDirectory:Bool = false;
+			var isFile:Bool = false;
 			
-			for (folder in folders) {
-				#if sys
-				if (FileSystem.exists(folder) && FileSystem.isDirectory(folder)) {
-					for (file in FileSystem.readDirectory(folder)) {
+			#if sys
+			if (FileSystem.exists(path)) {
+				if (FileSystem.isDirectory(path)) {
+					isDirectory = true;
+					for (file in FileSystem.readDirectory(path)) {
 						if (file.endsWith('.hx')) {
-							var fullPath = haxe.io.Path.join([folder, file]);
-							scriptFiles.push(fullPath);
+							var fullPath = haxe.io.Path.join([path, file]);
+							if (!processedFiles.exists(fullPath)) {
+								scriptFiles.push(fullPath);
+								processedFiles.set(fullPath, true);
+							}
+						}
+					}
+				} else if (path.endsWith('.hx')) {
+					isFile = true;
+					if (!processedFiles.exists(path)) {
+						scriptFiles.push(path);
+						processedFiles.set(path, true);
+					}
+				}
+			}
+			#end
+			
+			if (!isDirectory && !isFile) {
+				if (OpenFlAssets.exists(path)) {
+					if (path.endsWith('.hx')) {
+						if (!processedFiles.exists(path)) {
+							scriptFiles.push(path);
+							processedFiles.set(path, true);
+						}
+					} else {
+						var prefix = path.endsWith('/') ? path : path + '/';
+						for (file in OpenFlAssets.list(TEXT)) {
+							if (file.startsWith(prefix) && file.endsWith('.hx') && !processedFiles.exists(file)) {
+								scriptFiles.push(file);
+								processedFiles.set(file, true);
+							}
 						}
 					}
 				}
-				#else
-				var prefix = folder.replace("_append", "");
-				for (asset in OpenFlAssets.list(TEXT)) {
-					if (asset.startsWith(prefix) && asset.endsWith('.hx')) {
-						scriptFiles.push(asset);
-					}
-				}
-				#end
 			}
-
-			for (path in scriptFiles) {
-				menuScriptArray.push(new FunkinHScript(path, this));
-				if (path.contains('${Mods.MODS_FOLDER}/'))
-					trace('Loaded mod substate script: $path');
-				else
-					trace('Loaded base game substate script: $path');
-			}
+		}
+		
+		for (path in scriptFiles) {
+			menuScriptArray.push(new FunkinHScript(path, this));
+			if (path.contains('${Mods.MODS_FOLDER}/'))
+				trace('Loaded mod substate script: $path');
+			else
+				trace('Loaded base game substate script: $path');
 		}
 		#end
 	}
@@ -100,10 +125,7 @@ class MusicBeatSubstate extends FlxSubState
 			}
 		}
 		
-		if (camSubState == null)
-		{
-			camSubState = cameras != null && cameras.length > 0 ? cameras[0] : FlxG.camera;
-		}
+		camSubState ??= cameras != null && cameras.length > 0 ? cameras[0] : FlxG.camera;
 	}
 
 	public function showSubStateCamera():Void

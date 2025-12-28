@@ -585,13 +585,13 @@ class PlayState extends MusicBeatState
 			if (FileSystem.exists(folder)) {
 				for (file in sys.FileSystem.readDirectory(folder)) {
 					#if LUA_ALLOWED
-					if (file.endsWith(".lua") && !filesPushed.contains(file)) {
+					if (!filesPushed.contains(file) && file.endsWith(".lua") && !file.contains("/states/") && !file.contains("/substates/")) {
 						luaArray.push(new FunkinLua(folder + file));
 						filesPushed.push(file);
 					}
 					#end
 					#if HSCRIPT_ALLOWED
-					if (file.endsWith(".hx") && !filesPushed.contains(file)) {
+					if (!filesPushed.contains(file) && file.endsWith(".hx") && !file.contains("/states/") && !file.contains("/substates/")) {
 						hscriptArray.push(new FunkinHScript(folder + file));
 						filesPushed.push(file);
 					}
@@ -604,7 +604,7 @@ class PlayState extends MusicBeatState
 				#if LUA_ALLOWED
 				if (file.endsWith(".lua")) {
 					var fileName:String = file.substring(file.lastIndexOf("/") + 1);
-					if (!filesPushed.contains(fileName)) {
+					if (!filesPushed.contains(fileName) && !file.contains("/states/") && !file.contains("/substates/")) {
 						luaArray.push(new FunkinLua(file));
 						filesPushed.push(fileName);
 					}
@@ -613,7 +613,7 @@ class PlayState extends MusicBeatState
 				#if HSCRIPT_ALLOWED
 				if (file.endsWith(".hx")) {
 					var fileName:String = file.substring(file.lastIndexOf("/") + 1);
-					if (!filesPushed.contains(fileName)) {
+					if (!filesPushed.contains(fileName) && !file.contains("/states/") && !file.contains("/substates/")) {
 						hscriptArray.push(new FunkinHScript(file));
 						filesPushed.push(fileName);
 					}
