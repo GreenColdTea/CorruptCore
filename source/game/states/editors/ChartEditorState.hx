@@ -511,10 +511,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		selectBoxOutline.visible = false;
 		add(selectBoxOutline);
 
-		#if mobile
-	  	addVirtualPad(LEFT_FULL, A_B_C_X_Y_Z);
-		#end
-
 		autoBackupTimer = new FlxTimer();
 		autoBackupTimer.start(backupInterval, (tmr:FlxTimer) -> {
 			backupManager.createAutoBackup(_song);
@@ -1907,7 +1903,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	function handleKeyboardInput():Void
 	{
 		// playstate but in editor
-		if (FlxG.keys.justPressed.ESCAPE #if mobile || _virtualpad.buttonB.justPressed #end) {
+		if (FlxG.keys.justPressed.ESCAPE) {
 			PlayState.SONG = _song;
 			
 			FlxG.sound.music.pause();
@@ -1917,7 +1913,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		}
 		
 		// Song play button
-		if (FlxG.keys.justPressed.ENTER #if mobile || _virtualpad.buttonA.justPressed #end) {
+		if (FlxG.keys.justPressed.ENTER) {
 			FlxG.mouse.visible = false;
 			PlayState.SONG = _song;
 			FlxG.sound.music.stop();
@@ -1943,11 +1939,11 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		if (FlxG.keys.justPressed.BACKSPACE #if android || FlxG.android.justReleased.BACK #end) exitToMenu();
 		
 		// Toggle zoom
-		if(FlxG.keys.justPressed.Z #if mobile || _virtualpad.buttonZ.justPressed #end && curZoom > 0 && !FlxG.keys.pressed.CONTROL) {
+		if(FlxG.keys.justPressed.Z && curZoom > 0 && !FlxG.keys.pressed.CONTROL) {
 			--curZoom;
 			updateZoom();
 		}
-		if(FlxG.keys.justPressed.X #if mobile || _virtualpad.buttonC.justPressed #end && curZoom < zoomList.length-1) {
+		if(FlxG.keys.justPressed.X && curZoom < zoomList.length-1) {
 			curZoom++;
 			updateZoom();
 		}
@@ -1956,23 +1952,23 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		if (FlxG.keys.justPressed.TAB) switchTabs();
 		
 		// Play/Pause
-		if (FlxG.keys.justPressed.SPACE #if mobile || _virtualpad.buttonX.justPressed #end) togglePlayback();
+		if (FlxG.keys.justPressed.SPACE) togglePlayback();
 		
 		// Section reset
 		if (!FlxG.keys.pressed.ALT && FlxG.keys.justPressed.R)
-			resetSection(FlxG.keys.pressed.SHIFT #if mobile || _virtualpad.buttonY.pressed #end);
+			resetSection(FlxG.keys.pressed.SHIFT);
 		
 		// Section navigating
-		var shiftThing:Int = (FlxG.keys.pressed.SHIFT #if mobile || _virtualpad.buttonY.pressed #end) ? 4 : 1;
-		if (FlxG.keys.justPressed.D #if mobile || _virtualpad.buttonRight.justPressed #end) changeSection(curSec + shiftThing);
-		if (FlxG.keys.justPressed.A #if mobile || _virtualpad.buttonLeft.justPressed #end)
+		var shiftThing:Int = (FlxG.keys.pressed.SHIFT) ? 4 : 1;
+		if (FlxG.keys.justPressed.D) changeSection(curSec + shiftThing);
+		if (FlxG.keys.justPressed.A)
 			changeSection((curSec <= 0) ? 0 : curSec - shiftThing);
 		
 		// Cursor control thingie
-		if (FlxG.keys.pressed.W || FlxG.keys.pressed.S #if mobile || _virtualpad.buttonUp.pressed || _virtualpad.buttonDown.pressed #end)
+		if (FlxG.keys.pressed.W || FlxG.keys.pressed.S)
 			handlePlaybackSeeking();
 
-		if(FlxG.keys.justPressed.RIGHT #if mobile || _virtualpad.buttonRight.justPressed #end){
+		if(FlxG.keys.justPressed.RIGHT){
 			curQuant++;
 			if(curQuant > quantizations.length - 1)
 				curQuant = 0;
@@ -1980,7 +1976,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			quantization = quantizations[curQuant];
 		}
 
-		if(FlxG.keys.justPressed.LEFT  #if mobile || _virtualpad.buttonLeft.justPressed #end){
+		if(FlxG.keys.justPressed.LEFT){
 			curQuant--;
 			if(curQuant < 0)
 				curQuant = quantizations.length-1;
@@ -2413,11 +2409,11 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 		var holdingShift:Float = 1;
 		if (FlxG.keys.pressed.CONTROL) holdingShift = 0.25;
-		else if (FlxG.keys.pressed.SHIFT #if mobile || _virtualpad.buttonY.pressed #end) holdingShift = 3;
+		else if (FlxG.keys.pressed.SHIFT) holdingShift = 3;
 
 		var daTime:Float = 700 * FlxG.elapsed * holdingShift;
 
-		if (FlxG.keys.pressed.W #if mobile || _virtualpad.buttonUp.pressed #end)
+		if (FlxG.keys.pressed.W)
 			FlxG.sound.music.time = Math.max(0, FlxG.sound.music.time - daTime);
 		else
 			FlxG.sound.music.time += daTime;
@@ -2464,7 +2460,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			}
 		}
 
-		if (FlxG.keys.justPressed.UP || FlxG.keys.justPressed.DOWN #if mobile || _virtualpad.buttonUp.justPressed || _virtualpad.buttonDown.justPressed #end)
+		if (FlxG.keys.justPressed.UP || FlxG.keys.justPressed.DOWN)
 		{
 			FlxG.sound.music.pause();
 
@@ -2473,7 +2469,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			var beat:Float = curDecBeat;
 			var snap:Float = quantization / 4;
 			var increase:Float = 1 / snap;
-			if (FlxG.keys.pressed.UP #if mobile || _virtualpad.buttonUp.pressed #end)
+			if (FlxG.keys.pressed.UP)
 			{
 				var fuck:Float = MathUtil.quantize(beat, snap) - increase;
 				time = Conductor.beatToSeconds(fuck);
@@ -3767,15 +3763,11 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		if ((data != null) && (data.length > 0))
 		{
 			//backupManager.createBackup(Paths.formatToSongPath(_song.song) + ".json", data.trim(), "save");
-			#if mobile
-			SUtil.saveContent(Paths.formatToSongPath(_song.song) + ".json", data.trim());
-			#else
 			_file = new FileReference();
 			_file.addEventListener(#if desktop Event.SELECT #else Event.COMPLETE #end, onSaveComplete);
 			_file.addEventListener(Event.CANCEL, onSaveCancel);
 			_file.addEventListener(IOErrorEvent.IO_ERROR, onSaveError);
 			_file.save(data.trim(), Paths.formatToSongPath(_song.song) + ".json");
-			#end
 		}
 	}
 
@@ -3821,15 +3813,11 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 		if ((data != null) && (data.length > 0))
 		{
-			#if mobile
-			SUtil.saveContent("events.json", data.trim());
-			#else
 			_file = new FileReference();
 			_file.addEventListener(#if desktop Event.SELECT #else Event.COMPLETE #end, onSaveComplete);
 			_file.addEventListener(Event.CANCEL, onSaveCancel);
 			_file.addEventListener(IOErrorEvent.IO_ERROR, onSaveError);
 			_file.save(data.trim(), "events.json");
-			#end
 		}
 	}
 

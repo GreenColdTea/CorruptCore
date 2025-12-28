@@ -33,6 +33,8 @@ import lime.utils.Assets;
 using StringTools;
 using Lambda;
 
+using rulescript.Tools;
+
 class FunkinRuleScript {
 
     @:unreflective
@@ -160,7 +162,7 @@ class FunkinRuleScript {
     private function initScriptedClasses() {
         ScriptedTypeUtil.resolveModule = function(name:String):Array<ModuleDecl>
         {
-            var path = parseTypePath(name);
+            var path = Tools.parseTypePath(name);
             if (path.name == null || path.name.length == 0) {
                 if (shouldTraceErrors())
                     trace('Invalid module path: $name');
@@ -223,14 +225,14 @@ class FunkinRuleScript {
 
         ScriptedTypeUtil.resolveScript = function(name:String):Dynamic
         {
-            var path = parseTypePath(name);
+            var path = Tools.parseTypePath(name);
             if (path.name == null || path.name.length == 0) {
                 if (shouldTraceErrors())
                     trace('Invalid script path: $name');
                 return null;
             }
 
-            final module:Array<ModuleDecl> = ScriptedTypeUtil.resolveModule(path.name);
+            final module:Array<ModuleDecl> = ScriptedTypeUtil.resolveModule(path.modulePath());
             if (module == null) {
                 //trace('Module not found for script: $name');
                 return null;
@@ -238,36 +240,13 @@ class FunkinRuleScript {
 
             try {
                 @:privateAccess
-                var scriptedModule = new ScriptedModule(path.name, module, ScriptedTypeUtil._currentContext);
+                var scriptedModule = new ScriptedModule(path.modulePath(), module, ScriptedTypeUtil._currentContext);
                 return scriptedModule.types[path.typeName];
             } catch (e:Dynamic) {
                 if (shouldTraceErrors())
                     trace('Failed to create scripted module for $name: $e');
                 return null;
             }
-        };
-    }
-
-    private function parseTypePath(name:String):{name:String, typeName:String} {
-        if (name == null || name.length == 0) {
-            return {name: "", typeName: ""};
-        }
-
-        var path:Array<String> = name.split('.');
-        if (path.length == 0) {
-            return {name: "", typeName: ""};
-        }
-
-        var typeName = path.pop();
-        var moduleName = path.join('.');
-        
-        if (moduleName.length == 0) {
-            moduleName = typeName;
-        }
-        
-        return {
-            name: moduleName,
-            typeName: typeName
         };
     }
 

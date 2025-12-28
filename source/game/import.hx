@@ -27,11 +27,6 @@ import flixel.animation.PsychAnimationController;
 import flixel.sound.filters.*;
 #end
 
-// that too
-#if mobile
-import game.backend.mobile.*;
-#end
-
 import game.shaders.*;
 #end
 
