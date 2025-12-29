@@ -268,7 +268,11 @@ class TitleState extends MusicBeatState
 		if (!FileSystem.exists(path)){
 			path = Paths.getPath('images/titleEnter.png');
 		}
-		titleText.frames = FlxAtlasFrames.fromSparrow(BitmapData.fromFile(path),File.getContent(StringTools.replace(path,".png",".xml")));
+
+		var titleXml = File.getContent(StringTools.replace(path,".png",".xml"));
+		titleXml ??= Assets.getText(StringTools.replace(path,".png",".xml"));
+		
+		titleText.frames = FlxAtlasFrames.fromSparrow(BitmapData.fromFile(path), titleXml);
 		#else
 		titleText.frames = Paths.getSparrowAtlas('titleEnter');
 		#end

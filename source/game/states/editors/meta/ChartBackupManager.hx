@@ -262,6 +262,6 @@ class ChartBackupManager
      * @return String path to backup directory
      */
     inline private function getBackupDir():String {
-        return SUtil.getPath() + 'backups/charts/';
+        return 'backups/charts/';
     }
 }
