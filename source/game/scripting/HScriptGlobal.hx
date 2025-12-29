@@ -4,6 +4,7 @@ import flixel.FlxG;
 #if sys
 import sys.FileSystem;
 #end
+import openfl.utils.Assets as OpenFlAssets;
 using StringTools;
 using Lambda;
 
@@ -13,48 +14,53 @@ class HScriptGlobal {
     public static var stateRedirectMap:Map<String, Bool> = new Map();
     
     public static function addGlobalScript() {
-        var scriptContent:String = null;
         var scriptPath:String = null;
+        var foldersToCheck:Array<String> = [Paths.getPreloadPath('data/')];
         
-        #if sys
-        var foldersToCheck:Array<String> = [Paths.getPreloadPath('scripts/') #if MODS_ALLOWED , Mods.getModPath('scripts/') #end];
         #if MODS_ALLOWED
+        foldersToCheck.insert(0, Mods.getModPath('data/'));
         if(Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0) 
-            foldersToCheck.insert(0, Mods.getModPath('${Mods.currentModDirectory}/scripts/'));
+            foldersToCheck.insert(0, Mods.getModPath('${Mods.currentModDirectory}/data/'));
         for(mod in Mods.getGlobalMods()) 
-            foldersToCheck.insert(0, Mods.getModPath('$mod/scripts/states/'));
+            foldersToCheck.insert(0, Mods.getModPath('$mod/data/'));
         #end
         
         for (folder in foldersToCheck) {
-            if(FileSystem.exists(folder)) {
+            #if sys
+            if (FileSystem.exists(folder) && FileSystem.isDirectory(folder)) {
                 for (file in FileSystem.readDirectory(folder)) {
-                    #if HSCRIPT_ALLOWED
-                    if (file.endsWith('Global.hx') || file.endsWith('global.hx')) {
-                        scriptPath = folder + file;
-                        break;
+                    var fullPath = haxe.io.Path.join([folder, file]);
+                    if (!FileSystem.isDirectory(fullPath)) {
+                        #if HSCRIPT_ALLOWED
+                        if (file.toLowerCase() == 'global.hx') {
+                            scriptPath = fullPath;
+                            break;
+                        }
+                        #end
                     }
-                    #end
                 }
                 if (scriptPath != null) break;
             }
-        }
-        #else
-        var resourceNames = haxe.Resource.listNames();
-        for (name in resourceNames) {
-            if (name.endsWith('_global_hx') || name.endsWith('_Global_hx')) {
-                scriptContent = haxe.Resource.getString(name);
-                scriptPath = "resource:" + name;
-                break;
-            }
-        }
-        #end
-        
-        if (scriptPath != null || scriptContent != null) {
-            globalScript = new FunkinHScript(scriptPath);
+            #end
+
+            var possiblePaths:Array<String> = [
+                folder + "Global.hx",
+                folder + "global.hx"
+            ];
             
+            for (path in possiblePaths) {
+                if (OpenFlAssets.exists(path)) {
+                    scriptPath = path;
+                    break;
+                }
+            }
+            if (scriptPath != null) break;
+        }
+        
+        if (scriptPath != null) {
+            globalScript = new FunkinHScript(scriptPath);
             globalScriptActive = true;            
             setupGlobalScriptEvents();
-
             globalScript?.call("onCreatePost", []);
         }
     }

@@ -138,8 +138,12 @@ class CoolUtil
 	}
 
 	public static dynamic function hxTrace(text:Dynamic, color:FlxColor) {
-		if(FlxG.state is PlayState) PlayState.instance.addTextToDebug(Std.string(text), color);
-		else trace(text);
+		if(FlxG.state is PlayState) 
+			PlayState.instance.addTextToDebug(Std.string(text), color);
+		else {
+			showPopUp(text, 'Error on HScript!');
+			FlxG.resetState();
+		}
 	}
 
 	public static function getModSetting(saveTag:String, ?modName:String = null)
