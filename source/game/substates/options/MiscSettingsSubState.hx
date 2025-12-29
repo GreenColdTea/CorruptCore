@@ -41,6 +41,16 @@ class MiscSettingsSubState extends BaseOptionsMenu
 		title = 'Misc';
 		rpcTitle = 'Misc Settings Menu';
 
+		#if mobile
+		var option:Option = new Option('Borderless Screen', //Name
+			'If checked, the game window will be resized to remove black borders(16:9)', //Description
+			'noBordersScreen', //Save data variable name
+			'bool', //Variable type
+			false); //Default value
+		option.onChange = () -> ClientPrefs.noBordersScreen ? new flixel.system.scaleModes.BaseScaleMode() : new flixel.system.scaleModes.RatioScaleMode();
+		addOption(option);
+		#end
+
 		var option:Option = new Option('Adaptive Caching',
 			"If checked, it will use your GPU with RAM to cache sprites.\nTurn it on, if you have a good GPU.",
 			'adaptiveCache',

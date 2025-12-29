@@ -288,6 +288,8 @@ class ClientPrefs {
 			}
 		}
 		#end
+
+        FlxG.scaleMode = noBordersScreen ? new flixel.system.scaleModes.BaseScaleMode() : new flixel.system.scaleModes.RatioScaleMode();
         
         if (FlxG.save.data.volume != null) FlxG.sound.volume = FlxG.save.data.volume;
         if (FlxG.save.data.mute != null) FlxG.sound.muted = FlxG.save.data.mute;
