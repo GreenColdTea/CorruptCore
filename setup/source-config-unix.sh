@@ -8,7 +8,7 @@ haxelib setup ~/haxelib
 
 haxelib install tjson --quiet
 haxelib install hxjsonast --quiet
-haxelib set flixel 6.1.2
+haxelib git flixel https://github.com/GreenColdTea/flixel.git
 haxelib git lime https://github.com/GreenColdTea/lime-9.0.0
 haxelib git openfl https://github.com/GreenColdTea/openfl.git
 haxelib install format --quiet
