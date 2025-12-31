@@ -114,7 +114,7 @@
 	<assets path="assets/embed" rename="assets" embed='true'/>
 	<!-- _______________________________ Libraries ______________________________ -->
 
-	<haxelib name="flixel" version="6.1.2"/>
+	<haxelib name="flixel" />
 	<haxedev set='webgl'/>
 
 	<!--<haxelib name="flixel-ui" /> fuck this shit ass creation-->
