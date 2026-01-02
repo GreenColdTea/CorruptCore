@@ -535,7 +535,7 @@ class LoadingState extends MusicBeatState
 
         if (PlayState.SONG != null) {
             if (character == PlayState.SONG.player1)
-                return "Player";
+                return "";
             else if (character == PlayState.SONG.player2)
                 return "Opponent";
         }
@@ -548,9 +548,11 @@ class LoadingState extends MusicBeatState
         var targetState = targetFactory();
         var isPlayState = Std.isOfType(targetState, PlayState);
 
-        var directory:String = 'shared';
-        var weekDir:String = StageData.forceNextDirectory;
+        var directory:String = StageData.forceNextDirectory;
         StageData.forceNextDirectory = null;
+
+        if (directory == null || directory.length == 0)
+            directory = 'shared';
 
         Paths.setCurrentLevel(directory);
         trace('Setting asset folder to ' + directory);
