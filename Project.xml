@@ -246,6 +246,9 @@
 	<haxeflag name="--macro" value="allowPackage('flash')" />
 	<haxeflag name="--macro" value="include('hxvlc')" if="VIDEOS_ALLOWED"/>
 
+	<haxeflag name="--macro" value="include('flixel.effects',true)"/>
+	<haxeflag name="--macro" value="include('away3d.*',true)" if="away3d"/>
+
 	<!--Analyzer Optimization-->
 	<haxedef name="analyzer-optimize" unless="HSCRIPT_ALLOWED || LUA_ALLOWED"/>
 

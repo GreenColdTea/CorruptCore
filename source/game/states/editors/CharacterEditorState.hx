@@ -1023,14 +1023,14 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		shadowAlphaSlider.label = 'Alpha:';
 		shadowAlphaSlider.labelText.y += 2.5;
 
-		shadowOffsetXStepper = new PsychUINumericStepper(shadowAlphaSlider.x + 35, 112.5, 1, char.shadowOffset.x, -9999, 9999);
+		shadowOffsetXStepper = new PsychUINumericStepper(shadowAlphaSlider.x + 35, 112.5, 1, char.shadowOffset.x);
 		shadowOffsetXStepper.onValueChange = () -> {
 			char.shadowOffset.x = shadowOffsetXStepper.value;
 			char.updateShadow();
 			saveHistoryStuff();
 		};
 
-		shadowOffsetYStepper = new PsychUINumericStepper(shadowOffsetXStepper.x + 70, shadowOffsetXStepper.y, 1, char.shadowOffset.y, -9999, 9999);
+		shadowOffsetYStepper = new PsychUINumericStepper(shadowOffsetXStepper.x + 70, shadowOffsetXStepper.y, 1, char.shadowOffset.y);
 		shadowOffsetYStepper.onValueChange = () -> {
 			char.shadowOffset.y = shadowOffsetYStepper.value;
 			char.updateShadow();
