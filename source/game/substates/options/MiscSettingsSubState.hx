@@ -47,7 +47,7 @@ class MiscSettingsSubState extends BaseOptionsMenu
 			'noBordersScreen', //Save data variable name
 			'bool', //Variable type
 			false); //Default value
-		option.onChange = () -> ClientPrefs.noBordersScreen ? new flixel.system.scaleModes.BaseScaleMode() : new flixel.system.scaleModes.RatioScaleMode();
+		option.onChange = () -> FlxG.scaleMode = ClientPrefs.noBordersScreen ? new flixel.system.scaleModes.BaseScaleMode() : new flixel.system.scaleModes.RatioScaleMode();
 		addOption(option);
 		#end
 

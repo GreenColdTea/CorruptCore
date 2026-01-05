@@ -75,8 +75,17 @@ class GraphicsSettingsSubState extends BaseOptionsMenu
 			false);
 		addOption(option);
 		option.onChange = () -> {
-			var vsyncMode:WindowVSyncMode = ClientPrefs.vsync ? WindowVSyncMode.ON : WindowVSyncMode.OFF;
+			final vsyncMode:WindowVSyncMode = ClientPrefs.vsync ? WindowVSyncMode.ON : WindowVSyncMode.OFF;
 			Lib.application.window.setVSyncMode(vsyncMode);
+
+			if (ClientPrefs.vsync) {
+				final targetFPS = Lib.application.window.displayMode.refreshRate ?? 60;
+				FlxG.drawFramerate = targetFPS;
+				FlxG.updateFramerate = targetFPS;
+			} else {
+				onChangeUnlimitedFPS();
+			}
+
 			FlxG.save.flush();
 			
 			#if !html5

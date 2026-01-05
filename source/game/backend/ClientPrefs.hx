@@ -273,20 +273,27 @@ class ClientPrefs {
 			FlxG.drawFramerate = 0;
 			FlxG.updateFramerate = 0;
 		}
-		else
-		{
-			var targetFPS:Int = framerate;
-			if(targetFPS > FlxG.drawFramerate)
-			{
-				FlxG.updateFramerate = targetFPS;
-				FlxG.drawFramerate = targetFPS;
-			}
-			else
-			{
-				FlxG.drawFramerate = targetFPS;
-				FlxG.updateFramerate = targetFPS;
-			}
-		}
+		else if (vsync)
+        {
+            final targetFPS = openfl.Lib.application.window.displayMode.refreshRate ?? 60;
+            
+            FlxG.drawFramerate = targetFPS;
+            FlxG.updateFramerate = targetFPS;
+        }
+        else
+        {
+            final targetFPS:Int = framerate;
+            if(targetFPS > FlxG.drawFramerate)
+            {
+                FlxG.updateFramerate = targetFPS;
+                FlxG.drawFramerate = targetFPS;
+            }
+            else
+            {
+                FlxG.drawFramerate = targetFPS;
+                FlxG.updateFramerate = targetFPS;
+            }
+        }
 		#end
 
         FlxG.scaleMode = noBordersScreen ? new flixel.system.scaleModes.BaseScaleMode() : new flixel.system.scaleModes.RatioScaleMode();
