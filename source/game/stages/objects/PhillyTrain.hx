@@ -9,7 +9,7 @@ class PhillyTrain extends BGSprite
 		active = true; //Allow update
 		antialiasing = ClientPrefs.globalAntialiasing;
 
-		this.sound = new FlxSound().loadEmbedded(Paths.sound(sound));
+		this.sound = new FlxSound().load(Paths.sound(sound));
 		FlxG.sound.list.add(this.sound);
 	}
 

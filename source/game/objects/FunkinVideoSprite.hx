@@ -149,10 +149,7 @@ class FunkinVideoSprite extends FlxVideoSprite
     {
         if (bitmap != null) {
             var microSeconds:Float = time * 1000;
-            var high:Int = Std.int(microSeconds / 4294967296.0);
-            var low:Int = Std.int(microSeconds % 4294967296.0);
-
-            bitmap.time = haxe.Int64.make(high, low);
+            bitmap.time = haxe.Int64.fromFloat(microSeconds);
         }
     }
 
@@ -164,7 +161,7 @@ class FunkinVideoSprite extends FlxVideoSprite
     {
         if (bitmap != null) {
             var time64 = bitmap.time;
-            var microSeconds:Float = (haxe.Int64.getHigh(time64) * 4294967296.0) + haxe.Int64.getLow(time64);
+            var microSeconds:Float = (time64.high * 4294967296.0) + time64.low;
 
             return microSeconds / 1000;
         }

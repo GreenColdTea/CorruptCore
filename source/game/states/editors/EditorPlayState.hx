@@ -116,7 +116,7 @@ class EditorPlayState extends MusicBeatState
 		splash.alpha = 0.0;
 		
 		if (PlayState.SONG.needsVoices)
-			vocals = new FlxSound().loadEmbedded(Paths.voices(PlayState.SONG.song));
+			vocals = new FlxSound().load(Paths.voices(PlayState.SONG.song));
 		else
 			vocals = new FlxSound();
 

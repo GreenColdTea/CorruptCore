@@ -1669,9 +1669,9 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		{
 			var playerVocals = Paths.voices(currentSongName, (characterData.vocalsP1 == null || characterData.vocalsP1.length < 1) ? 'Player' : characterData.vocalsP1);
 			if (playerVocals != null)
-				vocals.loadEmbedded(playerVocals);
+				vocals.load(playerVocals);
 			else
-				vocals.loadEmbedded(Paths.voices(currentSongName));
+				vocals.load(Paths.voices(currentSongName));
 		}
 		catch (e:Dynamic)
 		{
@@ -1685,7 +1685,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		try
 		{
 			var oppVocals = Paths.voices(currentSongName, (characterData.vocalsP2 == null || characterData.vocalsP2.length < 1) ? 'Opponent' : characterData.vocalsP2);
-			if(oppVocals != null) opponentVocals.loadEmbedded(oppVocals);
+			if(oppVocals != null) opponentVocals.load(oppVocals);
 		}
 		catch (e:Dynamic)
 		{

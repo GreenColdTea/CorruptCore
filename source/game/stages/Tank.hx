@@ -199,9 +199,9 @@ class Tank extends BaseStage
 		Paths.sound('killYou');
 		Paths.sound('bfBeep');
 
-		var wellWellWell:FlxSound = new FlxSound().loadEmbedded(Paths.sound('wellWellWell'));
+		var wellWellWell:FlxSound = new FlxSound().load(Paths.sound('wellWellWell'));
 		FlxG.sound.list.add(wellWellWell);
-		var killYou:FlxSound = new FlxSound().loadEmbedded(Paths.sound('killYou'));
+		var killYou:FlxSound = new FlxSound().load(Paths.sound('killYou'));
 		FlxG.sound.list.add(killYou);
 
 		tankman.anim.addBySymbol('wellWell', 'TANK TALK 1 P1', 24, false);
@@ -250,7 +250,7 @@ class Tank extends BaseStage
 		cutsceneHandler.music = 'DISTORTO';
 		Paths.sound('tankSong2');
 
-		var tightBars:FlxSound = new FlxSound().loadEmbedded(Paths.sound('tankSong2'));
+		var tightBars:FlxSound = new FlxSound().load(Paths.sound('tankSong2'));
 		FlxG.sound.list.add(tightBars);
 
 		tankman.anim.addBySymbol('tightBars', 'TANK TALK 2', 24, false);
@@ -338,7 +338,7 @@ class Tank extends BaseStage
 		addBehindBF(boyfriendCutscene);
 		cutsceneHandler.push(boyfriendCutscene);
 
-		var cutsceneSnd:FlxSound = new FlxSound().loadEmbedded(Paths.sound('stressCutscene'));
+		var cutsceneSnd:FlxSound = new FlxSound().load(Paths.sound('stressCutscene'));
 		FlxG.sound.list.add(cutsceneSnd);
 
 		tankman.anim.addBySymbol('godEffingDamnIt', 'TANK TALK 3 P1 UNCUT', 24, false);
