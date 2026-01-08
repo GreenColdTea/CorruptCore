@@ -2462,7 +2462,12 @@ class PlayState extends MusicBeatState
 							}
 
 							// Kill extremely late notes and cause misses
-							if (Conductor.songPosition > noteKillOffset + daNote.strumTime)
+							var killTime:Float = daNote.strumTime;
+							if(daNote.isSustainNote && daNote.parent != null) {
+								killTime = daNote.parent.strumTime + daNote.parent.sustainLength;
+							}
+
+							if (Conductor.songPosition > noteKillOffset + killTime)
 							{
 								if (daNote.mustPress && !cpuControlled &&!daNote.ignoreNote && !endingSong && (daNote.tooLate || !daNote.wasGoodHit)) {
 									noteMiss(daNote);
