@@ -7,6 +7,8 @@ import flixel.util.FlxDestroyUtil;
 import lime.system.Clipboard;
 
 import openfl.events.KeyboardEvent;
+import openfl.text.TextField;
+import openfl.text.TextFormat;
 import openfl.ui.Keyboard;
 import openfl.ui.Mouse;
 import openfl.ui.MouseCursor;
@@ -57,6 +59,10 @@ class PsychUIInputText extends FlxSpriteGroup
 	private var _capsLockEnabled:Bool = false;
 	private var _numLockEnabled:Bool = true;
 
+	@:unreflective
+	@:noPrivateAccess
+	private var _lastFormat:TextFormat;
+
 	public var name:String;
 	public var bg:FlxSprite;
 	public var behindText:FlxSprite;
@@ -77,8 +83,16 @@ class PsychUIInputText extends FlxSpriteGroup
 	public var selectedFormat:FlxTextFormat = new FlxTextFormat(FlxColor.WHITE);
 
 	// Undo/Redo system
+	@:unreflective
+	@:noPrivateAccess
 	private var _undoHistory:Array<String> = [];
+
+	@:unreflective
+	@:noPrivateAccess
 	private var _redoHistory:Array<String> = [];
+
+	@:unreflective
+	@:noPrivateAccess
 	private var _currentState:String = "";
 	private var _ignoreHistory:Bool = false;
 
@@ -102,6 +116,8 @@ class PsychUIInputText extends FlxSpriteGroup
 		this.textObj.textField.wordWrap = false;
 		this.textObj.textField.multiline = false;
 		this.selection.color = FlxColor.BLUE;
+
+		_lastFormat = textObj.textField.defaultTextFormat;
 
 		@:bypassAccessor fieldWidth = wid;
 		setGraphicSize(wid + 2, this.textObj.height + 2);
@@ -169,9 +185,11 @@ class PsychUIInputText extends FlxSpriteGroup
 					updateCaret();
 
 				case X, C: //cut/copy selected text to clipboard
-					if(caretIndex >= 0 && selectIndex != 0 && caretIndex != selectIndex)
+					if(selectIndex >= 0 && caretIndex != selectIndex)
 					{
-						Clipboard.text = text.substring(caretIndex, selectIndex);
+						var start = Math.min(caretIndex, selectIndex);
+						var end = Math.max(caretIndex, selectIndex);
+						Clipboard.text = text.substring(Std.int(start), Std.int(end));
 						if(flxKey == X)
 							deleteSelection();
 					}
@@ -626,10 +644,10 @@ class PsychUIInputText extends FlxSpriteGroup
 		if(focusOn == this)
 		{
 			_caretTime = (_caretTime + elapsed) % 1;
-			if(textObj != null && textObj.exists)
+			if(textObj?.exists)
 			{
 				var drewSelection:Bool = false;
-				if(selection != null && selection.exists)
+				if(selection?.exists)
 				{
 					if(selectIndex != -1 && selectIndex != caretIndex)
 					{
@@ -639,7 +657,7 @@ class PsychUIInputText extends FlxSpriteGroup
 					else selection.visible = false;
 				}
 		
-				if(caret != null && caret.exists)
+				if(caret?.exists)
 				{
 					if(!drewSelection && _caretTime < 0.5 && caret.x >= textObj.x)
 					{
@@ -654,8 +672,13 @@ class PsychUIInputText extends FlxSpriteGroup
 		{
 			_caretTime = 0;
 			inInsertMode = false;
-			if(selection != null && selection.exists) selection.visible = false;
-			if(caret != null && caret.exists) caret.visible = false;
+			if(selection?.exists) selection.visible = false;
+			if(caret?.exists) caret.visible = false;
+		}
+
+		if (_lastFormat != textObj.textField.defaultTextFormat) {
+			_charWidthCache.clear();
+			_lastFormat = textObj.textField.defaultTextFormat;
 		}
 	}
 
@@ -784,11 +807,11 @@ class PsychUIInputText extends FlxSpriteGroup
 		super.setGraphicSize(width, height);
 		bg.setGraphicSize(width, height);
 		behindText.setGraphicSize(width - 2, height - 2);
-		if(textObj != null && textObj.exists)
+		if(textObj?.exists)
 		{
 			textObj.scale.x = 1;
 			textObj.scale.y = 1;
-			if(caret != null && caret.exists) caret.setGraphicSize(1, textObj.height - 4);
+			if(caret?.exists) caret.setGraphicSize(1, textObj.height - 4);
 		}
 	}
 	
@@ -797,10 +820,10 @@ class PsychUIInputText extends FlxSpriteGroup
 		super.updateHitbox();
 		bg.updateHitbox();
 		behindText.updateHitbox();
-		if(textObj != null && textObj.exists)
+		if(textObj?.exists)
 		{
 			textObj.updateHitbox();
-			if(caret != null && caret.exists) caret.updateHitbox();
+			if(caret?.exists) caret.updateHitbox();
 		}
 	}
 
@@ -834,29 +857,60 @@ class PsychUIInputText extends FlxSpriteGroup
 	var _boundaries:Array<Float> = [];
 	function set_text(v:String)
 	{
-		for (i in 0..._boundaries.length) _boundaries.pop();
 		v = filter(v);
-
-		textObj.text = '';
-		if(v != null && v.length > 0)
-		{
-			if(v.length > 1)
-				for (i in 0...v.length)
-				{
-					var toPrint:String = v.substr(i, 1);
-					if(toPrint == '\n') toPrint = ' ';
-					textObj.textField.appendText(!passwordMask ? toPrint : '*');
-					_boundaries.push(textObj.textField.textWidth);
-				}
-			else
-			{
-				textObj.text = !passwordMask ? v : '*';
-				_boundaries.push(textObj.textField.textWidth);
-			}
+		
+		_boundaries = [];
+		
+		var displayText = if (passwordMask) {
+			var result = "";
+			for (i in 0...v.length) result += "*";
+			result;
+		} else {
+			v.split('\n').join(' ');
 		}
+		
+		textObj.text = displayText;
+		
+		if (v.length > 0) {
+			var textField = textObj.textField;
+			_boundaries = computeBoundaries(textField, v, passwordMask);
+		}
+		
 		text = v;
 		updateCaret();
 		return v;
+	}
+
+	function computeBoundaries(textField:TextField, text:String, passwordMask:Bool):Array<Float>
+	{
+		var boundaries:Array<Float> = [];
+		var currentWidth:Float = 0;
+		
+		for (i in 0...text.length) {
+			var char = text.charAt(i);
+			var displayChar = passwordMask ? "*" : (char == '\n' ? ' ' : char);
+			var charWidth = getCharWidth(displayChar);
+
+			currentWidth += charWidth;
+			boundaries.push(currentWidth);
+		}
+		
+		return boundaries;
+	}
+
+	var _charWidthCache:Map<String, Float> = new Map();
+	function getCharWidth(char:String):Float
+	{
+		if (_charWidthCache.exists(char))
+			return _charWidthCache[char];
+		
+		var tempField = new TextField();
+		tempField.defaultTextFormat = textObj.textField.defaultTextFormat;
+		tempField.text = char;
+		var width = tempField.textWidth;
+		
+		_charWidthCache[char] = width;
+		return width;
 	}
 
 	inline public static function getAccentCharCode(accent:AccentCode)
