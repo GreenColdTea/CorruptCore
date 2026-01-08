@@ -1671,6 +1671,8 @@ class PlayState extends MusicBeatState
 		FlxTween.tween(timeBar, {alpha: 1}, 0.5, {ease: FlxEase.circOut});
 		FlxTween.tween(timeTxt, {alpha: 1}, 0.5, {ease: FlxEase.circOut});
 
+		camZoomingOnSection = true;
+
 		#if DISCORD_ALLOWED
 		// Updating Discord Rich Presence (with Time Left)
 		DiscordClient.changePresence(detailsText, SONG.song.replace('-', ' ') + " (" + storyDifficultyText + ")", iconP2.getCharacter(), true, songLength);
@@ -4088,7 +4090,7 @@ class PlayState extends MusicBeatState
 		callOnScripts('onBeatHit');
 	}
 
-	var camZoomingOnSection:Bool = true;
+	var camZoomingOnSection:Bool = false;
 	override function sectionHit()
 	{
 		super.sectionHit();

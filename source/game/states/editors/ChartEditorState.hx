@@ -77,7 +77,6 @@ enum abstract WaveformTarget(String)
 #end
 @:access(openfl.media.Sound.__buffer)
 class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.PsychUIEvent
-
 {
 	public static final GRID_SIZE:Int = 40;
 	public static final GRID_COLUMNS_PER_PLAYER:Int = 4;
@@ -100,9 +99,8 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		'GF Sing',
 		'No Animation'
 	];
-	private var noteTypeIntMap:Map<Int, String> = new Map<Int, String>();
-	private var noteTypeMap:Map<String, Null<Int>> = new Map<String, Null<Int>>();
 	public var ignoreWarnings = false;
+	var curNoteTypes:Array<String> = [];
 	var undos = [];
 	var redos = [];
 	var maxUndoSteps:Int = 50;
@@ -327,6 +325,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		chartEditorSave.bind('chart_editor_data', CoolUtil.getSavePath());
 
 		FlxG.mouse.visible = true;
+		PlayState.chartingMode = true;
 
 		backupManager = new ChartBackupManager(this);
 
@@ -708,6 +707,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		stepperBPM.name = 'song_bpm';
 		stepperBPM.onValueChange = () -> {
 			tempBpm = stepperBPM.value;
+			if (!check_changeBPM.checked) metronomeStepper.value = stepperBPM.value;
 			Conductor.mapBPMChanges(_song);
 			Conductor.changeBPM(stepperBPM.value);
 			updateWaveform();
@@ -926,6 +926,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		check_changeBPM.name = 'check_changeBPM';
 		check_changeBPM.onClick = () -> {
 			_song.notes[curSec].changeBPM = check_changeBPM.checked;
+			metronomeStepper.value = check_changeBPM.checked ? _song.notes[curSec].bpm : stepperBPM.value;
 			reloadGridLayer();
 			updateGrid();
 			updateNoteUI();
@@ -937,6 +938,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		stepperSectionBPM.name = 'section_bpm';
 		stepperSectionBPM.onValueChange = () -> {
 			_song.notes[curSec].bpm = stepperSectionBPM.value;
+			if (check_changeBPM.checked) metronomeStepper.value = stepperSectionBPM.value;
 			updateGrid();
 			updateNoteUI();
 		}
@@ -1197,9 +1199,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		var key:Int = 0;
 		var displayNameList:Array<String> = [];
 		while (key < noteTypeList.length) {
-			displayNameList.push(noteTypeList[key]);
-			noteTypeMap.set(noteTypeList[key], key);
-			noteTypeIntMap.set(key, noteTypeList[key]);
+			curNoteTypes.push(noteTypeList[key]);
 			key++;
 		}
 
@@ -1216,13 +1216,12 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			var directory:String =  directories[i];
 			if(FileSystem.exists(directory)) {
 				for (file in FileSystem.readDirectory(directory)) {
-					var path = haxe.io.Path.join([directory, file]);
-					if (!FileSystem.isDirectory(path) && (file.endsWith('.lua') || file.endsWith('.hx'))) {
-						var fileToCheck:String = file.substr(0, file.length - 4);
-						if(!noteTypeMap.exists(fileToCheck)) {
-							displayNameList.push(fileToCheck);
-							noteTypeMap.set(fileToCheck, key);
-							noteTypeIntMap.set(key, fileToCheck);
+					var fileName:String = file.toLowerCase().trim();
+					var wordLen:Int = 4;
+					if (#if LUA_ALLOWED fileName.endsWith('.lua') || #end #if HSCRIPT_ALLOWED (fileName.endsWith('.hx') && (wordLen = 3) == 3) #else true #end) {
+						var fileToCheck:String = file.substr(0, file.length - wordLen);
+						if(!curNoteTypes.contains(fileToCheck)) {
+							curNoteTypes.push(fileToCheck);
 							key++;
 						}
 					}
@@ -1232,6 +1231,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		#end
 		#end
 
+		var displayNameList:Array<String> = curNoteTypes.copy();
 		for (i in 1...displayNameList.length) {
 			displayNameList[i] = i + '. ' + displayNameList[i];
 		}
@@ -1241,15 +1241,13 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			if (selectedNotes.length > 0) {
 				for (note in selectedNotes) {
 					if (note.noteData > -1) {
-						note.rawData[3] = noteTypeIntMap.get(id);
+						note.rawData[3] = curNoteTypes[id];
 					}
 				}
-				currentType = id;
 				updateGrid();
 			}
 			else if (curSelectedNote != null && curSelectedNote[1] > -1) {
-				curSelectedNote[3] = noteTypeIntMap.get(id);
-				currentType = id;
+				curSelectedNote[3] = curNoteTypes[id];
 				updateGrid();
 			}
 		});
@@ -1905,7 +1903,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		// playstate but in editor
 		if (FlxG.keys.justPressed.ESCAPE) {
 			PlayState.SONG = _song;
-			
+
 			FlxG.sound.music.pause();
 			vocals?.pause();
 			opponentVocals?.pause();
@@ -2114,7 +2112,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 					else if (FlxG.keys.pressed.ALT)
 					{
 						selectNote(note);
-						curSelectedNote[3] = noteTypeIntMap.get(currentType);
+						curSelectedNote[3] = curNoteTypes[currentType];
 						updateGrid();
 					}
 					else
@@ -2795,6 +2793,11 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			reloadGridLayer();
 			updateSectionUI();
 
+			if (sec == 0)
+				metronomeStepper.value = _song.notes[curSec].changeBPM ? _song.notes[curSec].bpm : stepperBPM.value;
+			else if (_song.notes[curSec].changeBPM)
+				metronomeStepper.value = _song.notes[curSec].bpm;
+
 			updateWaveform();
 		}
 		else
@@ -2908,7 +2911,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			if (firstNote.noteData > -1) // normal notes
 			{
 				stepperSusLength.value = allSameSustain ? firstNote.rawData[2] : 0;
-				currentType = allSameType ? noteTypeMap.get(firstNote.rawData[3]) : 0;
+				currentType = allSameType ? curNoteTypes.indexOf(firstNote.rawData[3]) : 0;
 				noteTypeDropDown.selectedLabel = allSameType ? currentType + '. ' + firstNote.rawData[3] : '[Multiple]';
 				strumTimeInputText.text = '';
 			}
@@ -2940,7 +2943,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			if(curSelectedNote[2] != null) {
 				stepperSusLength.value = curSelectedNote[2];
 				if(curSelectedNote[3] != null) {
-					currentType = noteTypeMap.get(curSelectedNote[3]);
+					currentType = curNoteTypes.indexOf(curSelectedNote[3]);
 					if(currentType <= 0) {
 						noteTypeDropDown.selectedLabel = '';
 					} else {
@@ -3035,8 +3038,8 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			}
 
 			if(i[3] != null && note.noteType != null && note.noteType.length > 0) {
-				var typeInt:Null<Int> = noteTypeMap.get(i[3]);
-				var theType:String = typeInt != null ? '$typeInt' : '?';
+				var typeInt:Int = curNoteTypes.indexOf(i[3]);
+				var theType:String = typeInt > 0 ? '$typeInt' : '?';
 
 				var daNoteType = new FlxText(0, 0, 100, theType, 18);
 				daNoteType.setFormat(Paths.font("pixel-latin.ttf"), 18, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
@@ -3165,7 +3168,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			if(daSus != null) { //Common note
 				if(!Std.isOfType(i[3], String)) //Convert old note type to new note type format
 				{
-					i[3] = noteTypeIntMap.get(i[3]);
+					i[3] = curNoteTypes[i[3]];
 				}
 				if(i.length > 3 && (i[3] == null || i[3].length < 1))
 				{
@@ -3467,22 +3470,21 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		#else
 		noteData = Math.floor((FlxG.mouse.x - gridBG.x) / GRID_SIZE) - 1;
 		#end
+
 		var noteSus = 0;
 		var daAlt = false;
-		var daType = currentType;
+		var daType = type ?? currentType;
 
 		if (strum != null) noteStrum = strum;
 		if (data != null) noteData = data;
-		if (type != null) daType = type;
 
 		if(noteData > -1)
 		{
-			var noteTypeValue = noteTypeIntMap.exists(daType) ? noteTypeIntMap.get(daType) : "";
 			_song.notes[curSec].sectionNotes.push([
 				noteStrum, 
 				noteData, 
 				noteSus, 
-				noteTypeValue
+				curNoteTypes[daType]
 			]);
 			curSelectedNote = _song.notes[curSec].sectionNotes[_song.notes[curSec].sectionNotes.length - 1];
 		}
@@ -3499,7 +3501,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 		if (FlxG.keys.pressed.CONTROL && noteData > -1)
 		{
-			_song.notes[curSec].sectionNotes.push([noteStrum, (noteData + 4) % 8, noteSus, noteTypeIntMap.get(daType)]);
+			_song.notes[curSec].sectionNotes.push([noteStrum, (noteData + 4) % 8, noteSus, curNoteTypes[daType]]);
 		}
 
 		//trace(noteData + ', ' + noteStrum + ', ' + curSec);
