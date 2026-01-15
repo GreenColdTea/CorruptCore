@@ -797,7 +797,6 @@ class HScriptParser extends HxParser
             case TBrClose: "}";
             case TDot: ".";
             case TQuestionDot: "?.";
-            case TQuestionDouble: "??";
             case TComma: ",";
             case TSemicolon: ";";
             case TBkOpen: "[";
