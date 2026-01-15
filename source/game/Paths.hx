@@ -28,6 +28,7 @@ import lime.utils.Assets;
 #if flixel_animate
 import animate.FlxAnimateFrames.SpritemapInput;
 import animate.FlxAnimateFrames.FilterQuality;
+import game.backend.AtlasSpriteSettings;
 #end
 
 #if sys
@@ -692,10 +693,31 @@ class Paths
         return FlxAtlasFrames.fromTexturePackerJson(imageLoaded, (#if MODS_ALLOWED jsonExists ? File.getContent(json) : #end getPath('images/$key.json', library)));
     }
 
-    inline static public function getAnimateAtlas(key:String, ?library:String = null):FlxAnimateFrames
+    inline static public function getAnimateAtlas(key:String, ?library:String = null, ?settings:AtlasSpriteSettings):FlxAnimateFrames
     {
+        final validatedSettings:AtlasSpriteSettings =
+        {
+            swfMode: settings?.swfMode ?? false,
+            cacheOnLoad: settings?.cacheOnLoad ?? (ClientPrefs.cacheOnGPU || ClientPrefs.adaptiveCache),
+            filterQuality: settings?.filterQuality ?? (!ClientPrefs.lowQuality ? MEDIUM : LOW),
+            spritemaps: settings?.spritemaps ?? null,
+            metadataJson: settings?.metadataJson ?? null,
+            cacheKey: settings?.cacheKey ?? null,
+            uniqueInCache: settings?.uniqueInCache ?? false,
+            onSymbolCreate: settings?.onSymbolCreate ?? null,
+            applyStageMatrix: settings?.applyStageMatrix ?? false,
+            useRenderTexture: settings?.useRenderTexture ?? false
+        };
+
         #if flixel_animate
-        return FlxAnimateFrames.fromAnimate(getPath('images/$key', TEXT, library, true));
+        return FlxAnimateFrames.fromAnimate(getPath('images/$key', TEXT, library, true), validatedSettings.spritemaps, validatedSettings.metadataJson, validatedSettings.cacheKey,
+            validatedSettings.uniqueInCache, {
+                swfMode: validatedSettings.swfMode,
+                cacheOnLoad: validatedSettings.cacheOnLoad,
+                filterQuality: validatedSettings.filterQuality,
+                onSymbolCreate: validatedSettings.onSymbolCreate
+            }
+        );
         #end
     }
 
