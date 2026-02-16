@@ -171,12 +171,7 @@ class Paths
         {
             var libraryPath = getLibraryPath(file, library);
 
-            #if sys
-            if (FileSystem.exists(libraryPath))
-                return libraryPath;
-            #end
-
-            if (OpenFlAssets.exists(libraryPath))
+            if (#if sys FileSystem.exists(libraryPath) || #end OpenFlAssets.exists(libraryPath))
                 return libraryPath;
         }
 
@@ -185,24 +180,13 @@ class Paths
             var levelPath:String = '';
             if(currentLevel != 'shared') {
                 levelPath = getLibraryPathForce(file, 'week_assets', currentLevel);
-
-                #if sys
-                if (FileSystem.exists(levelPath))
-                    return levelPath;
-                #end
-
-                if (OpenFlAssets.exists(levelPath))
+                if (#if sys FileSystem.exists(levelPath) || #end OpenFlAssets.exists(levelPath))
                     return levelPath;
             }
 
             levelPath = getLibraryPathForce(file, "shared");
 
-            #if sys
-            if (FileSystem.exists(levelPath))
-                return levelPath;
-            #end
-
-            if (OpenFlAssets.exists(levelPath))
+            if (#if sys FileSystem.exists(levelPath) || #end OpenFlAssets.exists(levelPath))
                 return levelPath;
         }
 
@@ -290,39 +274,41 @@ class Paths
         return getPath(file, type, library);
     }
 
-    inline static public function txt(key:String, ?library:String)
+    inline static public function txt(key:String, ?library:String, ?modsAllowed:Bool = true)
     {
-        return getPath('data/$key.txt', TEXT, library);
+        return getPath('data/$key.txt', TEXT, library, modsAllowed);
     }
 
-    inline static public function xml(key:String, ?library:String)
+    inline static public function xml(key:String, ?library:String, ?modsAllowed:Bool = true)
     {
-        return getPath('data/$key.xml', TEXT, library);
+        return getPath('data/$key.xml', TEXT, library, modsAllowed);
     }
 
-    inline static public function json(key:String, ?library:String)
+    inline static public function json(key:String, ?library:String, ?modsAllowed:Bool = true)
     {
-        return getPath('data/$key.json', TEXT, library);
+        return getPath('data/$key.json', TEXT, library, modsAllowed);
     }
 
-    inline static public function shaderFragment(key:String, ?library:String)
+    inline static public function shaderFragment(key:String, ?library:String, ?modsAllowed:Bool = true)
     {
-        return getPath('shaders/$key.frag', TEXT, library);
+        return getPath('shaders/$key.frag', TEXT, library, modsAllowed);
     }
-    inline static public function shaderVertex(key:String, ?library:String)
+    inline static public function shaderVertex(key:String, ?library:String, ?modsAllowed:Bool = true)
     {
-        return getPath('shaders/$key.vert', TEXT, library);
+        return getPath('shaders/$key.vert', TEXT, library, modsAllowed);
     }
-    inline static public function lua(key:String, ?library:String)
+    inline static public function lua(key:String, ?library:String, ?modsAllowed:Bool = true)
     {
-        return getPath('$key.lua', TEXT, library);
+        return getPath('$key.lua', TEXT, library, modsAllowed);
     }
 
-    static public function video(key:String)
+    static public function video(key:String, ?ignoreMods:Bool = false):String
     {
         #if MODS_ALLOWED
         for (ext in VIDEO_EXTS) {
-            var file:String = Mods.modsVideo(key, ext);
+            if (ignoreMods) continue;
+
+            final file:String = Mods.modFolders('videos/$key.$ext');
             if(file.startsWith('zip://')) {
                 var parts = file.substr(6).split('/');
                 var mod = parts[0];
@@ -330,22 +316,16 @@ class Paths
                 var tempPath = Mods.extractFileFromZipMod(mod, filePath, 'videos');
                 if(tempPath != null) return tempPath;
             }
-            if(FileSystem.exists(file)) {
+
+            if(FileSystem.exists(file))
                 return file;
-            }
         }
         #end
         
         for (ext in VIDEO_EXTS) {
-            var testPath = getPreloadPath('videos/$key.$ext');
-            #if sys
-            if (FileSystem.exists(testPath)) {
+            final testPath = getPreloadPath('videos/$key.$ext');
+            if (#if sys FileSystem.exists(testPath) || #end OpenFlAssets.exists(testPath))
                 return testPath;
-            }
-            #end
-            if (OpenFlAssets.exists(testPath)) {
-                return testPath;
-            }
         }
         
         return getPreloadPath('videos/$key.${VIDEO_EXTS[0]}');
@@ -541,25 +521,26 @@ class Paths
         return (OpenFlAssets.exists(path, TEXT)) ? Assets.getText(path) : null;
     }
 
-    static public function font(key:String)
+    static public function font(key:String, ?ignoreMods:Bool = false):String
     {
         #if MODS_ALLOWED
-        var file:String = Mods.modsFont(key);
-        if(file.startsWith('zip://')) {
-            var parts = file.substr(6).split('/');
-            var mod = parts[0];
-            var filePath = parts.slice(1).join('/');
-            var tempPath = Mods.extractFileFromZipMod(mod, filePath, 'fonts');
-            if(tempPath != null) return tempPath;
-        }
-        if(FileSystem.exists(file)) {
-            return file;
+        if (!ignoreMods) {
+            var file:String = Mods.modFolders('fonts/$key');
+            if(file.startsWith('zip://')) {
+                var parts = file.substr(6).split('/');
+                var mod = parts[0];
+                var filePath = parts.slice(1).join('/');
+                var tempPath = Mods.extractFileFromZipMod(mod, filePath, 'fonts');
+                if(tempPath != null) return tempPath;
+            }
+
+            if(FileSystem.exists(file)) return file;
         }
         #end
         return 'assets/fonts/$key';
     }
 
-    public static function fileExists(key:String, type:AssetType, ?ignoreMods:Bool = false, ?library:String = null)
+    public static function fileExists(key:String, ?type:AssetType, ?ignoreMods:Bool = false, ?library:String = null)
 	{
 		#if MODS_ALLOWED
 		if(!ignoreMods)
@@ -637,7 +618,7 @@ class Paths
         #if MODS_ALLOWED
         var xmlExists:Bool = false;
 
-        var xml:String = Mods.modsXml(key);
+        var xml:String = Mods.modFolders('images/$key.xml');
         if(xml.startsWith('zip://')) {
             var parts = xml.substr(6).split('/');
             var mod = parts[0];
@@ -659,7 +640,7 @@ class Paths
         #if MODS_ALLOWED
         var txtExists:Bool = false;
 
-        var txt:String = Mods.modsTxt(key);
+        var txt:String = Mods.modFolders('images/$key.txt');
         if(txt.startsWith('zip://')) {
             var parts = txt.substr(6).split('/');
             var mod = parts[0];
@@ -679,7 +660,7 @@ class Paths
         #if MODS_ALLOWED
         var jsonExists:Bool = false;
 
-        var json:String = Mods.modsImagesJson(key);
+        var json:String = Mods.modFolders('images/$key.json');
         if(json.startsWith('zip://')) {
             var parts = json.substr(6).split('/');
             var mod = parts[0];
@@ -723,7 +704,7 @@ class Paths
 
     inline static public function gif(key:String, ?library:String = null):FlxGifAsset
     {
-        return Paths.getPath('images/$key.gif', IMAGE, library, true);
+        return getPath('images/$key.gif', IMAGE, library, true);
     }
 
     inline static public function formatToSongPath(path:String) {

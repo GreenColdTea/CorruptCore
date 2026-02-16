@@ -8,7 +8,7 @@ import math.Vector3;
 
 using StringTools;
 
-class StrumNote extends FlxSprite
+class StrumNote extends flixel.addons.effects.FlxSkewedSprite
 {
 	public var vec3Cache:Vector3 = new Vector3(1, 1); // for vector3 operations in modchart code
 	public var defScale:FlxPoint = FlxPoint.get(); // for modcharts to keep the scaling

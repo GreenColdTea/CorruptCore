@@ -66,71 +66,66 @@ class ReverseModifier extends NoteModifier {
 	{
 		if (daNote.isSustainNote)
 		{
-			var y = pos.y;
-            var revPerc:Float = getReverseValue(daNote.noteData, player);
-			var strumLine = modMgr.receptors[player][daNote.noteData];
-			
-			var shitGotHit:Bool = (strumLine.sustainReduce
-				&& daNote.isSustainNote
-				&& (daNote.mustPress || !daNote.ignoreNote)
-				&& (!daNote.mustPress || (daNote.wasGoodHit || (daNote.prevNote.wasGoodHit && !daNote.canBeHit))));
-				
-			if (shitGotHit)
-			{
-				var center:Float = strumLine.y + Note.swagWidth / 2;
-				
-                var swagRect = new FlxRect(0, 0, daNote.frameWidth, daNote.frameHeight);
-				if (revPerc >= 0.5) // Downscroll behavior'
-				{
-					if (y - daNote.offset.y * daNote.scale.y + daNote.height >= center)
-					{
-						swagRect.height = (center - y) / daNote.scale.y;
-						swagRect.y = daNote.frameHeight - swagRect.height;
-					}
-				}
-				else // Upscroll behavior
-				{
-					if (y + daNote.offset.y * daNote.scale.y <= center)
-					{
-						swagRect.y = (center - y) / daNote.scale.y;
-						swagRect.height -= swagRect.y;
-					}
-				}
+			var revPerc:Float = getReverseValue(daNote.noteData, player);
 
+            var y = pos.y;
+            var strumLine = modMgr.receptors[player][daNote.noteData];
+            var shitGotHit:Bool = (strumLine.sustainReduce
+                && daNote.isSustainNote
+                && (daNote.mustPress || !daNote.ignoreNote)
+                && (!daNote.mustPress || (daNote.wasGoodHit || (daNote.prevNote.wasGoodHit && !daNote.canBeHit))));
+
+            if (shitGotHit)
+            {
+                var center:Float = strumLine.y + Note.swagWidth / 2;
+                var swagRect = new FlxRect(0, 0, daNote.frameWidth, daNote.frameHeight);
+                if (revPerc >= 0.5) // Downscroll behavior
+                {
+                    if (y - daNote.offset.y * daNote.scale.y + daNote.height >= center)
+                    {
+                        swagRect.height = (center - y) / daNote.scale.y;
+                        swagRect.y = daNote.frameHeight - swagRect.height;
+                    }
+                }
+                else // Upscroll behavior
+                {
+                    if (y + daNote.offset.y * daNote.scale.y <= center)
+                    {
+                        swagRect.y = (center - y) / daNote.scale.y;
+                        swagRect.height -= swagRect.y;
+                    }
+                }
                 daNote.clipRect = swagRect;
-			}
-		}
+            }
+        }
     }
 	
 	override function getPos(time:Float, visualDiff:Float, timeDiff:Float, beat:Float, pos:Vector3, data:Int, player:Int, obj:FlxSprite)
-	{
+    {
         var perc:Float = getReverseValue(data, player);
-		var shift:Float = MathUtil.scale(perc, 0, 1, 50, FlxG.height - 150);
-		var mult:Float = MathUtil.scale(perc, 0, 1, 1, -1);
-		var shift:Float = MathUtil.scale(getSubmodValue("centered", player), 0, 1, shift, (FlxG.height/2) - 56);
+        var shift:Float = MathUtil.scale(perc, 0, 1, 50, FlxG.height - 150);
+        var mult:Float = MathUtil.scale(perc, 0, 1, 1, -1);
+        var shift:Float = MathUtil.scale(getSubmodValue("centered", player), 0, 1, shift, (FlxG.height/2) - 56);
 
-		pos.y = shift + (visualDiff * mult);
+        pos.y = shift + (visualDiff * mult);
 
-		// Sus note positioning adjustments 
-        // Using in-game logic
-        if(obj is Note)
-		{
+        if (obj is Note)
+        {
             var note:Note = cast obj;
-            if (note.isSustainNote)
+            if (note.isSustainNote && note.parent != null)
             {
-                if (perc >= 0.5) // Downscroll behavior
+                if (perc < 0.5) // upscroll
+                    pos.y += note.parent.height / 2;
+                else // downscroll
                 {
-                    if (PlayState.isPixelStage)
-                    {
-                        pos.y -= PlayState.daPixelZoom * 9.5;
-                    }
                     pos.y -= (note.frameHeight * note.scale.y) - (Note.swagWidth / 2);
+                    if (PlayState.isPixelStage)
+                        pos.y -= PlayState.daPixelZoom * 9.5;
                 }
             }
         }
-
-		return pos;
-	}
+        return pos;
+    }
 
     override function getSubmods():Array<String>
     {

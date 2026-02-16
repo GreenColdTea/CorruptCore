@@ -5,6 +5,8 @@ import haxe.Json;
 import haxe.format.JsonParser;
 import lime.utils.Assets;
 
+import thx.semver.Version;
+
 #if sys
 import sys.io.File;
 import sys.FileSystem;
@@ -37,10 +39,13 @@ typedef SwagSong =
 	@:optional var gameOverSound:String;
 	@:optional var gameOverLoop:String;
 	@:optional var gameOverEnd:String;
+	@:optional var version:String;
 }
 
 class Song
 {
+	public static final CHART_VERSION:Version = "1.0.1";
+
 	public var song:String;
 	public var notes:Array<SwagSection>;
 	public var events:Array<Dynamic>;
@@ -78,45 +83,69 @@ class Song
 		if(songJson.events == null)
 		{
 			songJson.events = [];
-			for (secNum in 0...songJson.notes.length)
+			if (songJson.notes != null && Std.isOfType(songJson.notes, Array))
 			{
-				var sec:SwagSection = songJson.notes[secNum];
-
-				var i:Int = 0;
-				var notes:Array<Dynamic> = sec.sectionNotes;
-				var len:Int = notes.length;
-				while(i < len)
+				for (secNum in 0...songJson.notes.length)
 				{
-					var note:Array<Dynamic> = notes[i];
-					if(note[1] < 0)
+					var sec:Dynamic = songJson.notes[secNum];
+
+					var i:Int = 0;
+					if (sec.sectionNotes != null && Std.isOfType(sec.sectionNotes, Array))
 					{
-						//hl fix
-						try {
-							songJson.events.push([note[0], [[note[2], note[3], note[4]]]]);
-						} catch (e) {}
-						notes.remove(note);
-						len = notes.length;
+						var notes:Array<Dynamic> = cast sec.sectionNotes;
+						var len:Int = notes.length;
+						while(i < len)
+						{
+							var note:Array<Dynamic> = notes[i];
+							if(note[1] < 0)
+							{
+								//hl fix
+								try {
+									songJson.events.push([note[0], [[note[2], note[3], note[4]]]]);
+								} catch (e) {}
+								notes.remove(note);
+								len = notes.length;
+							}
+							else i++;
+						}
 					}
-					else i++;
 				}
 			}
 		}
-
-        // thanks to heaven that shadowmario added format variable to the new charts
-		if (songJson.format != null)
+		
+		final versionString:String = songJson.version != null ? Std.string(songJson.version) : "0.0.0";
+		final chartVersion:Version = Version.stringToVersion(versionString);
+		
+		if (chartVersion < CHART_VERSION)
 		{
-			var sectionsData:Array<SwagSection> = songJson.notes;
+			var sectionsData:Array<Dynamic> = cast songJson.notes;
 
 			if (sectionsData == null) return;
 			
 			for (section in sectionsData)
 			{
-				for (note in section.sectionNotes)
+				if (section.sectionNotes != null && Std.isOfType(section.sectionNotes, Array))
 				{
-					var gottaHitNote:Bool = (note[1] < 4) ? section.mustHitSection : !section.mustHitSection;
-					note[1] = (note[1] % 4) + (gottaHitNote ? 0 : 4);
+					var notes:Array<Dynamic> = cast section.sectionNotes;
+					for (note in notes)
+					{
+						if (songJson.format == null) {
+							final gottaHitNote = section.mustHitSection != (note[1] < 4);
+							note[1] = (note[1] % 4) + (gottaHitNote ? 0 : 4);
+						} else {
+							if (note[1] < 4)
+								note[1] += 4;
+							else if (note[1] < 8)
+								note[1] -= 4;
+						}
+
+						if(!Std.isOfType(note[3], String))
+							note[3] = game.states.editors.ChartEditorState.noteTypeList[note[3]]; //compatibility with Week 7 and 0.1-0.3 psych charts
+					}
 				}
 			}
+			
+			songJson.version = CHART_VERSION.toString();
 		}
 	}
 
@@ -134,18 +163,12 @@ class Song
 		var formattedFolder:String = Paths.formatToSongPath(folder);
 		var formattedSong:String = Paths.formatToSongPath(jsonInput);
 
-		#if MODS_ALLOWED
-		var moddyFile:String = Mods.modsJson(formattedFolder + '/' + formattedSong);
-		if(FileSystem.exists(moddyFile)) {
-			rawJson = File.getContent(moddyFile).trim();
-		}
-		#end
-
 		#if sys
-		rawJson ??= File.getContent(Paths.json(formattedFolder + '/' + formattedSong)).trim();
+		if (FileSystem.exists(Paths.json('songs/$formattedFolder/$formattedSong'))) 
+			rawJson = File.getContent(Paths.json('songs/$formattedFolder/$formattedSong')).trim();
+		else
 		#end
-		
-		rawJson ??= Assets.getText(Paths.json(formattedFolder + '/' + formattedSong)).trim();
+			rawJson = Assets.getText(Paths.json('songs/$formattedFolder/$formattedSong')).trim();
 
 		while (!rawJson.endsWith("}"))
 		{
@@ -166,9 +189,7 @@ class Song
 		
 		switch (Type.typeof(parsedJson)) {
 			case TObject:
-				if (parsedJson.format != null)
-					swagShit = cast parsedJson;
-				else if (parsedJson.song != null && Type.typeof(parsedJson.song) == TObject)
+				if (parsedJson.song != null && Type.typeof(parsedJson.song) == TObject)
 					swagShit = cast parsedJson.song;
 				else
 					swagShit = cast parsedJson;
@@ -188,14 +209,15 @@ class Song
 			bpm: 150.0,
 			needsVoices: true,
 			arrowSkin: '',
-			splashSkin: 'noteSplashes',//idk it would crash if i didn't
+			splashSkin: 'BloodSplash',//idk it would crash if i didn't
 			holdCoverSkin: 'holdCovers',
 			player1: 'bf',
 			player2: 'dad',
 			gfVersion: 'gf',
 			speed: 1,
 			stage: 'stage',
-			validScore: true
+			validScore: true,
+			version: CHART_VERSION.toString()
 		};
 	}
 }

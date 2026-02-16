@@ -664,13 +664,13 @@ class PlayState extends MusicBeatState
 			
 		}
 
-		var file:String = Paths.json(songName + '/dialogue'); //Checks for json/Psych Engine dialogue
-		if (OpenFlAssets.exists(file)) {
+		var file:String = Paths.json('songs/$songName/dialogue'); //Checks for json/Psych Engine dialogue
+		if (OpenFlAssets.exists(file) #if sys || FileSystem.exists(file) #end) {
 			dialogueJson = DialogueBoxPsych.parseDialogue(file);
 		}
 
-		var file:String = Paths.txt(songName + '/' + songName + 'Dialogue'); //Checks for vanilla/Senpai dialogue
-		if (OpenFlAssets.exists(file)) {
+		var file:String = Paths.txt('songs/$songName/${songName}Dialogue'); //Checks for vanilla/Senpai dialogue
+		if (OpenFlAssets.exists(file) #if sys || FileSystem.exists(file) #end) {
 			dialogue = CoolUtil.coolTextFile(file);
 		}
 
@@ -858,15 +858,14 @@ class PlayState extends MusicBeatState
 
 		// SONG SPECIFIC SCRIPTS
 		var filesPushed:Array<String> = [];
-		var foldersToCheck:Array<String> = [Paths.getPreloadPath('data/' + Paths.formatToSongPath(SONG.song) + '/')];
+		var foldersToCheck:Array<String> = [Paths.getPreloadPath('data/songs/' + Paths.formatToSongPath(SONG.song) + '/')];
 
 		#if MODS_ALLOWED
-		foldersToCheck.insert(0, Mods.getModPath('data/' + Paths.formatToSongPath(SONG.song) + '/'));
+		foldersToCheck.insert(0, Mods.getModPath('data/songs/' + Paths.formatToSongPath(SONG.song) + '/'));
 		if(Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0)
-			foldersToCheck.insert(0, Mods.getModPath(Mods.currentModDirectory + '/data/' + Paths.formatToSongPath(SONG.song) + '/'));
+			foldersToCheck.insert(0, Mods.getModPath(Mods.currentModDirectory + '/data/songs/' + Paths.formatToSongPath(SONG.song) + '/'));
 
 		for(mod in Mods.getGlobalMods())
-			foldersToCheck.insert(0, Mods.getModPath(mod + '/data/' + Paths.formatToSongPath(SONG.song) + '/' ));// using push instead of insert because these should run after everything else
 		#end
 
 		for (folder in foldersToCheck)
@@ -1166,7 +1165,7 @@ class PlayState extends MusicBeatState
 	{
 		#if LUA_ALLOWED
 		var doPush:Bool = false;
-		var luaFile:String = 'characters/' + name + '.lua';
+		var luaFile:String = 'data/characters/' + name + '.lua';
 		#if MODS_ALLOWED
 		if(FileSystem.exists(Mods.modFolders(luaFile))) {
 			luaFile = Mods.modFolders(luaFile);
@@ -1196,7 +1195,7 @@ class PlayState extends MusicBeatState
 
 		#if HSCRIPT_ALLOWED
 		var doPush:Bool = false;
-		var hxFile:String = 'characters/' + name + '.hx';
+		var hxFile:String = 'data/characters/' + name + '.hx';
 		#if MODS_ALLOWED
 		var replacePath:String = Mods.modFolders(hxFile);
 		if(FileSystem.exists(replacePath))
@@ -1392,11 +1391,7 @@ class PlayState extends MusicBeatState
 			//modchart calling func
 			#if MODCHART_ALLOWED
 			modManager.receptors = [playerStrums.members, opponentStrums.members];
-
-			callOnScripts('onModchartCall', []);
 			modManager.registerDefaultModifiers();
-
-			callOnScripts('onModchartCallPost', []);
 			Modcharts.loadModchart(modManager, SONG.song);
 			#end
 
@@ -1749,7 +1744,7 @@ class PlayState extends MusicBeatState
 		var daBpm:Float = Conductor.bpm;
 
 		var songName:String = Paths.formatToSongPath(SONG.song);
-		var file:String = Paths.json(songName + '/events');
+		var file:String = Paths.json('songs/$songName/events');
 		try {
 			var eventsData:Array<Dynamic> = Song.loadFromJson('events', songName).events;
 			for (event in eventsData) //Event Notes
@@ -1784,23 +1779,17 @@ class PlayState extends MusicBeatState
 				var daNoteData:Int = Std.int(songNotes[1] % 4);
 				var holdLength:Float = songNotes[2];
 
-				var gottaHitNote:Bool = section.mustHitSection;
+				var gottaHitNote:Bool = (songNotes[1] >= 4);
 
 				if (Math.isNaN(holdLength))
 					holdLength = 0.0;
-
-				if (songNotes[1] > 3)
-				{
-					gottaHitNote = !section.mustHitSection;
-				}
 
 				var swagNote:Note = new Note(daStrumTime, daNoteData, oldNote);
 				swagNote.mustPress = gottaHitNote;
 				swagNote.sustainLength = holdLength;
 				swagNote.gfNote = (section.gfSection && (songNotes[1]<4));
 				swagNote.row = Conductor.secsToRow(daStrumTime);
-				swagNote.noteType = songNotes[3];
-				if(!Std.isOfType(songNotes[3], String)) swagNote.noteType = game.states.editors.ChartEditorState.noteTypeList[songNotes[3]]; //Backward compatibility + compatibility with Week 7 charts
+				swagNote.noteType = !Std.isOfType(songNotes[3], String) ? game.states.editors.ChartEditorState.noteTypeList[songNotes[3]] : songNotes[3];
 
 				var idx = swagNote.gfNote ? 2 : gottaHitNote ? 0 : 1;
 				noteRows[idx][swagNote.row] ??= [];
@@ -2314,6 +2303,31 @@ class PlayState extends MusicBeatState
 			strum.x = pos.x;
 			strum.y = pos.y;
 		});
+
+		/*grpNoteSplashes.forEachAlive((splash:NoteSplash) -> {
+			if (splash.babyArrow != null) {
+				var player:Int = -1;
+				if (playerStrums.members.contains(splash.babyArrow)) player = 0;
+				else if (opponentStrums.members.contains(splash.babyArrow)) player = 1;
+				
+				if (player != -1) {
+					var pos = modManager.getPos(0, 0, 0, curDecBeat, splash.noteData, player, splash, [], splash.vec3Cache);
+					modManager.updateObject(curDecBeat, splash, pos, player);
+					splash.x = pos.x;
+					splash.y = pos.y;
+				}
+			}
+		});*/
+
+		grpHoldCovers.forEachAlive((cover:NoteHoldCover) -> {
+			if (cover.curNote != null) {
+				var player = cover.curNote.mustPress ? 0 : 1;
+				var pos = modManager.getPos(0, 0, 0, curDecBeat, cover.curNote.noteData, player, cover, [], cover.vec3Cache);
+				modManager.updateObject(curDecBeat, cover, pos, player);
+				cover.x = pos.x;
+				cover.y = pos.y;
+			}
+		});
 		#end
 
 		if (generatedMusic)
@@ -2360,8 +2374,9 @@ class PlayState extends MusicBeatState
 							strumAngle += daNote.offsetAngle;
 							strumAlpha *= daNote.multAlpha;
 
+							final pN:Int = daNote.mustPress ? 0 : 1;
+							var hasMods:Bool = false;
 							#if MODCHART_ALLOWED
-							var pN:Int = daNote.mustPress ? 0 : 1;
 							var pos = modManager.getPos(daNote.strumTime, modManager.getVisPos(Conductor.songPosition, daNote.strumTime, songSpeed),
 								daNote.strumTime - Conductor.songPosition, curDecBeat, daNote.noteData, pN, daNote, [], daNote.vec3Cache);
 							
@@ -2371,6 +2386,13 @@ class PlayState extends MusicBeatState
 							pos.y += daNote.offsetY;
 							daNote.x = pos.x;
 							daNote.y = pos.y;
+
+							hasMods = modManager.activeMods[pN].length > 0;
+							if (hasMods)
+							{
+								daNote.copyX = false;
+								daNote.copyY = false;
+							}
 
 							if (daNote.isSustainNote)
 							{
@@ -2388,6 +2410,21 @@ class PlayState extends MusicBeatState
 								var deg = rad * (180 / Math.PI);
 
 								daNote.mAngle = (deg != 0 ? deg + 90 : 0);
+
+								if (daNote.animation?.curAnim?.name.endsWith('end') && hasMods)
+								{
+									final reverseMod = cast(modManager.get('reverse'), game.modchart.modifiers.ReverseModifier);
+									if (reverseMod != null)
+									{
+										final shouldFlip = reverseMod.getReverseValue(daNote.noteData, pN) >= 0.5;
+										if (daNote.flipX != shouldFlip)
+										{
+											daNote.flipX = shouldFlip;
+											if (shouldFlip)
+												daNote.centerOffsets();
+										}
+									}
+								}
 							}
 							#end
 
@@ -2429,14 +2466,10 @@ class PlayState extends MusicBeatState
 
 							var center:Float = strumY + Note.swagWidth / 2;
 							if(strumGroup.members[daNote.noteData].sustainReduce && daNote.isSustainNote && (daNote.mustPress || !daNote.ignoreNote) &&
-								(!daNote.mustPress || (daNote.wasGoodHit || (daNote.prevNote.wasGoodHit && !daNote.canBeHit))))
+								(!daNote.mustPress || (daNote.wasGoodHit || (daNote.prevNote.wasGoodHit && !daNote.canBeHit))) && !hasMods)
 							{
-								#if !MODCHART_ALLOWED
 								var swagRect = daNote.clipRect;
 								swagRect ??= new FlxRect(0, 0, daNote.frameWidth, daNote.frameHeight);
-								#else
-								var swagRect = new FlxRect(0, 0, daNote.frameWidth, daNote.frameHeight);
-								#end
 								if (strumScroll)
 								{
 									if(daNote.y - daNote.offset.y * daNote.scale.y + daNote.height >= center)

@@ -3,7 +3,7 @@ package psych.ui;
 import flixel.util.FlxDestroyUtil;
 import flixel.FlxObject;
 
-class PsychUIRadioGroup extends FlxSpriteGroup
+class PsychUIRadioGroup extends PsychUIGroup
 {
 	@:unreflective public static final CLICK_EVENT = 'radiogroup_click';
 

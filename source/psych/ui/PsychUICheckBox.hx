@@ -3,7 +3,7 @@ package psych.ui;
 import openfl.ui.Mouse;
 import openfl.ui.MouseCursor;
 
-class PsychUICheckBox extends FlxSpriteGroup
+class PsychUICheckBox extends PsychUIGroup
 {
 	@:unreflective
 	public static final CLICK_EVENT = 'checkbox_click';

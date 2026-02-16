@@ -3,6 +3,7 @@ package game.modchart.modifiers;
 import flixel.math.FlxPoint;
 
 import game.modchart.Modifier.ModifierOrder;
+import game.objects.*;
 import math.Vector3;
 
 /**
@@ -38,6 +39,14 @@ class ScaleModifier extends NoteModifier {
 
     override function ignoreUpdateNote():Bool {
         return false; // This modifier affects notes
+    }
+
+    override function ignoreUpdateSplash():Bool {
+        return false; // This modifier affects splash effects
+    }
+
+    override function ignoreUpdateHoldCover():Bool {
+        return false; // This modifier affects hold covers
     }
 
     /**
@@ -165,5 +174,32 @@ class ScaleModifier extends NoteModifier {
         receptor.scale.copyFrom(finalScale);
         finalScale.putWeak();
         baseScale.putWeak();
+    }
+
+    override function updateSplash(beat:Float, splash:NoteSplash, pos:Vector3, player:Int) {
+        if (splash.babyArrow != null) {
+            var baseScale = FlxPoint.weak(1, 1);
+            if (splash.config != null) {
+                baseScale.set(splash.config.scale, splash.config.scale);
+            }
+            
+            var finalScale = getScale(splash, baseScale, splash.noteData, player);
+            splash.scale.copyFrom(finalScale);
+            
+            finalScale.putWeak();
+            baseScale.putWeak();
+        }
+    }
+
+    override function updateHoldCover(beat:Float, cover:NoteHoldCover, pos:Vector3, player:Int) {
+        if (cover.curNote != null) {
+            var baseScale = FlxPoint.weak(1, 1);
+            var finalScale = getScale(cover, baseScale, cover.curNote.noteData, player);
+            
+            cover.scale.copyFrom(finalScale);
+            
+            finalScale.putWeak();
+            baseScale.putWeak();
+        }
     }
 }

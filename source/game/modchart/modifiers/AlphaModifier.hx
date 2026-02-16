@@ -3,8 +3,9 @@ package game.modchart.modifiers;
 import flixel.FlxG;
 import flixel.math.FlxMath;
 import flixel.math.FlxPoint;
-import math.*;
 import game.modchart.*;
+import game.objects.*;
+import math.*;
 
 /**
  * Handles note and receptor visibility effects including:
@@ -232,5 +233,27 @@ class AlphaModifier extends NoteModifier {
 
         @:privateAccess
         receptor.colorSwap.daAlpha = alpha;
+    }
+
+    override function updateSplash(beat:Float, splash:NoteSplash, pos:Vector3, player:Int) {
+        var visibility = getVisibility(pos.y, player, null);
+        var alphaBase = (1 - getSubmodValue("alpha", player))
+                    * (1 - getSubmodValue('alpha${splash.noteData}', player));
+        var darkVal = getSubmodValue("dark", player) + getSubmodValue('dark${splash.noteData}', player);
+        if (darkVal != 0) alphaBase *= (1 - darkVal);
+
+        splash.colorSwap.daAlpha = visibility * alphaBase;
+    }
+
+    override function updateHoldCover(beat:Float, cover:NoteHoldCover, pos:Vector3, player:Int) {
+        if (cover.curNote == null) return;
+        
+        var visibility = getVisibility(pos.y, player, null);
+        var alphaBase = (1 - getSubmodValue("alpha", player))
+                    * (1 - getSubmodValue('alpha${cover.curNote.noteData}', player));
+        var darkVal = getSubmodValue("dark", player) + getSubmodValue('dark${cover.curNote.noteData}', player);
+        if (darkVal != 0) alphaBase *= (1 - darkVal);
+
+        cover.colorSwap.daAlpha = visibility * alphaBase;
     }
 }

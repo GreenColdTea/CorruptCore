@@ -30,6 +30,7 @@ haxelib git sl-windows-api https://github.com/GreenColdTea/windows-api-improved.
 haxelib git flixel-animate https://github.com/FNF-CC-ENGINE/flixel-animate.git
 haxelib git hxluajit https://github.com/MAJigsaw77/hxluajit.git
 haxelib git hxluajit-wrapper https://github.com/MAJigsaw77/hxluajit-wrapper.git --skip-dependencies
+haxelib git thx.semver https://github.com/fponticelli/thx.semver.git
 haxelib list
 echo.
 echo Done! Press any key to close the app!

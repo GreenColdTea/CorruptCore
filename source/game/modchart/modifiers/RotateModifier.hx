@@ -54,6 +54,10 @@ class RotateModifier extends NoteModifier {
         ];
     }
 
+    override function shouldExecute(player:Int, val:Float):Bool {
+        return (val != 0 || getSubmodValue('${prefix}rotateY', player) != 0 || getSubmodValue('${prefix}rotateZ', player) != 0);
+    }
+
     /**
      * Applies 3D rotation to a vector using Z-X-Y Euler angle order
      * Based on Schmovin' rotation implementation

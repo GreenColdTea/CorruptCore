@@ -21,9 +21,9 @@ class Conductor
     public static var bpm:Float = 100;
     public static var crochet:Float = ((60 / bpm) * 1000); // beats in milliseconds
     public static var stepCrochet:Float = crochet / 4; // steps in milliseconds
-    public static var songPosition:Float=0;
-    public static var lastSongPos:Float;
-    public static var offset:Float = 0;
+    public static var songPosition:Float = 0;
+    public static var lastSongPos:Float = 0;
+    public static var offset:Float = ClientPrefs.noteOffset;
 
     public static final ROWS_PER_BEAT = 48; // from Stepmania
     public static final BEATS_PER_MEASURE = 4;

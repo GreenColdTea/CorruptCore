@@ -8,7 +8,7 @@ import psych.ui.PsychUIBox.UIStyleData;
 import openfl.ui.Mouse;
 import openfl.ui.MouseCursor;
 
-class PsychUIButton extends FlxSpriteGroup
+class PsychUIButton extends PsychUIGroup
 {
 	@:unreflective
 	public static final CLICK_EVENT = 'button_click';

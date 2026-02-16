@@ -34,8 +34,9 @@ class MasterEditorMenu extends MusicBeatState
 	private var grpTexts:FlxTypedGroup<Alphabet>;
 	private var directories:Array<String> = [null];
 
-	private var curSelected = 0;
-	private var curDirectory = 0;
+	private static var curSelected = 0;
+	private static var curDirectory = 0;
+	
 	private var directoryTxt:FlxText;
 
 	override function create()

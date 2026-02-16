@@ -14,6 +14,7 @@ import openfl.display.Sprite;
 import openfl.events.KeyboardEvent;
 import openfl.events.TextEvent;
 import openfl.events.MouseEvent;
+import openfl.events.Event;
 import openfl.ui.Keyboard;
 import openfl.desktop.Clipboard;
 import openfl.desktop.ClipboardFormats;
@@ -29,7 +30,8 @@ class DebugConsolePlugin extends FlxBasic
     static var instance:Null<DebugConsolePlugin> = null;
     
     var console:Sprite;
-    var consoleText:TextField;
+    var outputText:TextField;
+    var inputText:TextField;
     var consoleVisible:Bool = false;
     var consoleWidth:Int = 700;
     var consoleHeight:Int = 400;
@@ -41,7 +43,7 @@ class DebugConsolePlugin extends FlxBasic
     
     var cursorVisible:Bool = true;
     var cursorTimer:Float = 0;
-    var cursorBlinkRate:Float = 0.5; // seconds
+    var cursorBlinkRate:Float = 0.5;
     
     var cursorPosition:Int = 0;
     
@@ -50,10 +52,6 @@ class DebugConsolePlugin extends FlxBasic
     var hscript:FunkinHScript;
     var hscriptMode:Bool = false;
     
-    var lastDisplayText:String = "";
-    
-    var preventTextSelection:Bool = false;
-    
     var isDragging:Bool = false;
     var dragOffsetX:Float = 0;
     var dragOffsetY:Float = 0;
@@ -61,7 +59,16 @@ class DebugConsolePlugin extends FlxBasic
     var titleBar:Sprite;
     
     var autoScrollToBottom:Bool = true;
-    var userScrolledManually:Bool = false;
+    
+    var maxHistorySize:Int = 100;
+    var maxOutputLines:Int = 500;
+    
+    var hiddenInputField:TextField;
+    
+    var selectionStart:Int = -1;
+    var selectionEnd:Int = -1;
+    var isSelecting:Bool = false;
+    var copyOnRelease:Bool = false;
     
     public static function init()
     {
@@ -86,11 +93,11 @@ class DebugConsolePlugin extends FlxBasic
         hscript.set("console", this);
         hscript.set("print", (v:Dynamic) -> addOutput(Std.string(v), 0xFFFFFF));
         hscript.set("clearConsole", () -> {
-            consoleText.text = "Debug Console (F12 to toggle)\nDrag title bar to move | Shift+Enter for new line\n" + prompt;
-            lastDisplayText = consoleText.text;
-            userScrolledManually = false;
-            autoScrollToBottom = true;
+            outputText.text = "Debug Console (F12 to toggle)\nDrag title bar to move | Shift+Enter for new line\n";
+            inputText.text = prompt;
         });
+        hscript.set("copySelectedText", copySelectedText);
+        hscript.set("copyAllText", copyAllOutputText);
     }
     
     function createConsole():Void
@@ -115,7 +122,7 @@ class DebugConsolePlugin extends FlxBasic
         titleText.width = consoleWidth - 20;
         titleText.height = 20;
         titleText.defaultTextFormat = new TextFormat("Consolas", 12, 0xE0E0E0);
-        titleText.text = "Debug Console (Drag to move)";
+        titleText.text = "Debug Console (Drag to move | Ctrl+C to copy)";
         titleText.selectable = false;
         titleText.mouseEnabled = false;
         titleBar.addChild(titleText);
@@ -125,54 +132,150 @@ class DebugConsolePlugin extends FlxBasic
         console.x = (FlxG.stage.stageWidth - consoleWidth) / 2;
         console.y = 20;
         
-        consoleText = new TextField();
-        consoleText.x = 12;
-        consoleText.y = 30;
-        consoleText.width = consoleWidth - 24;
-        consoleText.height = consoleHeight - 40;
-        consoleText.multiline = true;
-        consoleText.wordWrap = true;
-        consoleText.defaultTextFormat = new TextFormat("Consolas", 14, 0xE0E0E0);
-        consoleText.background = false;
-        consoleText.border = false;
+        outputText = new TextField();
+        outputText.x = 12;
+        outputText.y = 30;
+        outputText.width = consoleWidth - 24;
+        outputText.height = consoleHeight - 80;
+        outputText.multiline = true;
+        outputText.wordWrap = true;
+        outputText.defaultTextFormat = new TextFormat("Consolas", 14, 0xE0E0E0);
+        outputText.background = false;
+        outputText.border = false;
         
-        consoleText.type = openfl.text.TextFieldType.DYNAMIC;
-        consoleText.selectable = true;
-        consoleText.mouseEnabled = true;
-        consoleText.tabEnabled = false;
+        outputText.type = openfl.text.TextFieldType.DYNAMIC;
+        outputText.selectable = true;
+        outputText.mouseEnabled = true;
+        outputText.tabEnabled = false;
         
-        consoleText.text = "Debug Console (F12 to toggle)\nDrag title bar to move | Shift+Enter for new line\n" + prompt;
-        lastDisplayText = consoleText.text;
+        outputText.text = "Debug Console (F12 to toggle)\nDrag title bar to move | Shift+Enter for new line | Ctrl+C to copy selected text\n";
         
-        console.addChild(consoleText);
+        outputText.addEventListener(Event.SCROLL, (e:Event) -> autoScrollToBottom = (outputText.scrollV >= outputText.maxScrollV - 1));
+        
+        outputText.addEventListener(MouseEvent.MOUSE_DOWN, onOutputMouseDown);
+        outputText.addEventListener(MouseEvent.MOUSE_MOVE, onOutputMouseMove);
+        outputText.addEventListener(MouseEvent.MOUSE_UP, onOutputMouseUp);
+        
+        inputText = new TextField();
+        inputText.x = 12;
+        inputText.y = consoleHeight - 45;
+        inputText.width = consoleWidth - 24;
+        inputText.height = 20;
+        inputText.multiline = false;
+        inputText.wordWrap = false;
+        inputText.defaultTextFormat = new TextFormat("Consolas", 14, 0xE0E0E0);
+        inputText.background = false;
+        inputText.border = false;
+        
+        inputText.type = openfl.text.TextFieldType.DYNAMIC;
+        inputText.selectable = false;
+        inputText.mouseEnabled = false;
+        inputText.tabEnabled = false;
+        
+        inputText.text = prompt;
+        
+        console.addChild(outputText);
+        console.addChild(inputText);
         console.visible = false;
         
         console.tabEnabled = true;
         console.focusRect = false;
+        
+        hiddenInputField = new TextField();
+        hiddenInputField.type = openfl.text.TextFieldType.INPUT;
+        hiddenInputField.width = 1;
+        hiddenInputField.height = 1;
+        hiddenInputField.x = -1000;
+        hiddenInputField.y = -1000;
+        hiddenInputField.visible = false;
+        FlxG.stage.addChild(hiddenInputField);
         
         FlxG.stage.addChild(console);
         
         FlxG.stage.addEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
         FlxG.stage.addEventListener(TextEvent.TEXT_INPUT, onTextInput);
         
-        consoleText.addEventListener(MouseEvent.MOUSE_DOWN, onTextMouseDown);
-        consoleText.addEventListener(MouseEvent.MOUSE_UP, onTextMouseUp);
-
         console.addEventListener(MouseEvent.MOUSE_WHEEL, onMouseWheel);
+        console.addEventListener(MouseEvent.MOUSE_DOWN, onConsoleMouseDown);
         
         titleBar.addEventListener(MouseEvent.MOUSE_DOWN, onTitleBarMouseDown);
-
+        
         FlxG.stage.addEventListener(MouseEvent.MOUSE_UP, onStageMouseUp);
         FlxG.stage.addEventListener(MouseEvent.MOUSE_MOVE, onStageMouseMove);
+    }
+    
+    private function onOutputMouseMove(event:MouseEvent):Void
+    {
+        if (!consoleVisible) return;
+        
+        if (event.buttonDown)
+        {
+            var charIndex = outputText.getCharIndexAtPoint(event.localX, event.localY);
+            if (charIndex >= 0)
+            {
+                if (selectionStart < 0)
+                {
+                    selectionStart = outputText.caretIndex;
+                    isSelecting = true;
+                }
+                
+                if (charIndex < selectionStart) 
+                    outputText.setSelection(charIndex, selectionStart);
+                else 
+                    outputText.setSelection(selectionStart, charIndex);
+            }
+        }
+        else
+        {
+            isSelecting = false;
+        }
+    }
+
+    private function onOutputMouseDown(event:MouseEvent):Void
+    {
+        if (!consoleVisible) return;
+        
+        outputText.setSelection(0, 0);
+        selectionStart = -1;
+        selectionEnd = -1;
+        isSelecting = false;
+        
+        FlxG.stage.focus = outputText;
+        event.stopPropagation();
+    }
+
+    private function onOutputMouseUp(event:MouseEvent):Void
+    {
+        if (!consoleVisible) return;
+        
+        isSelecting = false;
+        
+        if (copyOnRelease)
+        {
+            copySelectedText();
+            copyOnRelease = false;
+        }
+        
+        event.stopPropagation();
+    }
+    
+    private function onConsoleMouseDown(event:MouseEvent):Void
+    {
+        if (consoleVisible && event.target != outputText && event.target != titleBar)
+        {
+            FlxG.stage.focus = hiddenInputField;
+            outputText.setSelection(0, 0);
+        }
     }
     
     private function onTitleBarMouseDown(event:MouseEvent):Void
     {
         isDragging = true;
-
         dragOffsetX = event.stageX - console.x;
         dragOffsetY = event.stageY - console.y;
         event.stopPropagation();
+        
+        FlxG.stage.focus = hiddenInputField;
     }
     
     private function onStageMouseUp(event:MouseEvent):Void
@@ -224,43 +327,15 @@ class DebugConsolePlugin extends FlxBasic
         }
     }
     
-    private function onTextMouseDown(event:MouseEvent):Void
-    {
-        var lines = consoleText.text.split("\n");
-        var clickY = event.localY;
-        var lineHeight = consoleText.textHeight / lines.length;
-        var clickedLine = Math.floor(clickY / lineHeight);
-        
-        if (clickedLine >= lines.length - 1) {
-            preventTextSelection = true;
-            event.stopPropagation();
-            
-            FlxG.stage.focus = console;
-        } else {
-            preventTextSelection = false;
-        }
-    }
-    
-    private function onTextMouseUp(event:MouseEvent)
-    {
-        if (preventTextSelection) {
-            consoleText.setSelection(consoleText.length, consoleText.length);
-            event.stopPropagation();
-        }
-    }
-    
     private function onMouseWheel(event:MouseEvent):Void
     {
         if (!consoleVisible) return;
         
         var scrollAmount = event.delta > 0 ? -1 : 1;
-        consoleText.scrollV += scrollAmount * 3;
+        outputText.scrollV += scrollAmount * 3;
         
-        if (consoleText.scrollV < 1) consoleText.scrollV = 1;
-        if (consoleText.scrollV > consoleText.maxScrollV) consoleText.scrollV = consoleText.maxScrollV;
-        
-        userScrolledManually = true;
-        autoScrollToBottom = (consoleText.scrollV == consoleText.maxScrollV);
+        if (outputText.scrollV < 1) outputText.scrollV = 1;
+        if (outputText.scrollV > outputText.maxScrollV) outputText.scrollV = outputText.maxScrollV;
         
         event.stopPropagation();
     }
@@ -293,6 +368,7 @@ class DebugConsolePlugin extends FlxBasic
                     }
                     executeCommand();
                     resetCursor();
+                    event.preventDefault();
                 }
                 
             case Keyboard.BACKSPACE:
@@ -305,47 +381,68 @@ class DebugConsolePlugin extends FlxBasic
                 event.preventDefault();
                 
             case Keyboard.LEFT:
-                if (cursorPosition > 0) {
-                    cursorPosition--;
-                    updateDisplay();
-                    resetCursor();
+                if (event.shiftKey && FlxG.stage.focus == outputText) {
+                    if (!isSelecting) {
+                        isSelecting = true;
+                        selectionStart = outputText.caretIndex;
+                    }
+                } else {
+                    if (cursorPosition > 0) {
+                        cursorPosition--;
+                        updateDisplay();
+                        resetCursor();
+                    }
                 }
                 event.preventDefault();
                 
             case Keyboard.RIGHT:
-                if (cursorPosition < currentInput.length) {
-                    cursorPosition++;
+                if (event.shiftKey && FlxG.stage.focus == outputText) {
+                    if (!isSelecting) {
+                        isSelecting = true;
+                        selectionStart = outputText.caretIndex;
+                    }
+                } else {
+                    if (cursorPosition < currentInput.length) {
+                        cursorPosition++;
+                        updateDisplay();
+                        resetCursor();
+                    }
+                }
+                event.preventDefault();
+                
+            case Keyboard.HOME:
+                if (event.shiftKey && FlxG.stage.focus == outputText) {
+                    if (!isSelecting) {
+                        isSelecting = true;
+                        selectionStart = outputText.caretIndex;
+                    }
+                    outputText.setSelection(0, selectionStart);
+                } else {
+                    cursorPosition = 0;
                     updateDisplay();
                     resetCursor();
                 }
                 event.preventDefault();
                 
-            case Keyboard.UP:
-                navigateHistory(-1);
-                event.preventDefault();
-                resetCursor();
-                
-            case Keyboard.DOWN:
-                navigateHistory(1);
-                event.preventDefault();
-                resetCursor();
-                
-            case Keyboard.HOME:
-                cursorPosition = 0;
-                updateDisplay();
-                resetCursor();
-                event.preventDefault();
-                
             case Keyboard.END:
-                cursorPosition = currentInput.length;
-                updateDisplay();
-                resetCursor();
+                if (event.shiftKey && FlxG.stage.focus == outputText) {
+                    if (!isSelecting) {
+                        isSelecting = true;
+                        selectionStart = outputText.caretIndex;
+                    }
+                    outputText.setSelection(selectionStart, outputText.length);
+                } else {
+                    cursorPosition = currentInput.length;
+                    updateDisplay();
+                    resetCursor();
+                }
                 event.preventDefault();
                 
             case Keyboard.TAB:
-                autoComplete();
-                event.preventDefault();
-                resetCursor();
+                if (currentInput.trim() != "") {
+                    autoComplete();
+                    event.preventDefault();
+                }
                 
             case Keyboard.ESCAPE:
                 hideConsole();
@@ -355,7 +452,6 @@ class DebugConsolePlugin extends FlxBasic
                 hscriptMode = !hscriptMode;
                 addOutput("HScript mode: " + (hscriptMode ? "ON" : "OFF"), hscriptMode ? 0x88FF88 : 0xFF8888);
                 event.preventDefault();
-                resetCursor();
                 
             case Keyboard.V:
                 if (event.ctrlKey || event.commandKey) {
@@ -363,10 +459,95 @@ class DebugConsolePlugin extends FlxBasic
                     event.preventDefault();
                 }
                 
-            default:
-                if (FlxG.stage.focus == console) {
+            case Keyboard.C:
+                if (event.ctrlKey || event.commandKey) {
+                    if (FlxG.stage.focus == outputText && outputText.selectionBeginIndex != outputText.selectionEndIndex)
+                        copySelectedText();
+                    else if (event.shiftKey)
+                        copyAllOutputText();
+                    else if (currentInput.length > 0 && FlxG.stage.focus == hiddenInputField)
+                        copyCurrentInput();
+
                     event.preventDefault();
                 }
+                
+            case Keyboard.A:
+                if ((event.ctrlKey || event.commandKey) && FlxG.stage.focus == outputText) {
+                    outputText.setSelection(0, outputText.length);
+                    isSelecting = true;
+                    selectionStart = 0;
+                    copyOnRelease = event.shiftKey;
+                    event.preventDefault();
+                } else if ((event.ctrlKey || event.commandKey) && FlxG.stage.focus == hiddenInputField) {
+                    hiddenInputField.setSelection(0, hiddenInputField.length);
+                    event.preventDefault();
+                }
+                
+            default:
+                if (FlxG.stage.focus == hiddenInputField)
+                    event.preventDefault();
+        }
+    }
+    
+    private function copySelectedText():Void
+    {
+        try {
+            if (outputText.selectionBeginIndex == outputText.selectionEndIndex) {
+                addOutput("No text selected", 0xFFFF88);
+                return;
+            }
+            
+            var selectedText = outputText.text.substring(outputText.selectionBeginIndex, outputText.selectionEndIndex);
+            if (selectedText.length > 0) {
+                #if (sys || desktop)
+                Clipboard.generalClipboard.setData(ClipboardFormats.TEXT_FORMAT, selectedText);
+                #end
+                var len = selectedText.length;
+                if (len > 100) {
+                    addOutput('Copied $len characters to clipboard', 0x88FF88);
+                } else {
+                    var displayText = selectedText;
+                    if (displayText.contains("\n")) {
+                        displayText = displayText.replace("\n", "\\n");
+                    }
+                    addOutput('Copied to clipboard: "$displayText"', 0x88FF88);
+                }
+            }
+        } catch (e:Dynamic) {
+            addOutput('Failed to copy: $e', 0xFF8888);
+        }
+    }
+    
+    private function copyAllOutputText():Void
+    {
+        try {
+            var text = outputText.text;
+            if (text.length > 0) {
+                #if (sys || desktop)
+                Clipboard.generalClipboard.setData(ClipboardFormats.TEXT_FORMAT, text);
+                #end
+                addOutput('Copied all ${text.length} characters to clipboard', 0x88FF88);
+            } else {
+                addOutput("No text to copy", 0xFFFF88);
+            }
+        } catch (e:Dynamic) {
+            addOutput('Failed to copy all text: $e', 0xFF8888);
+        }
+    }
+    
+    private function copyCurrentInput():Void
+    {
+        try {
+            if (currentInput.length > 0) {
+                #if (sys || desktop)
+                Clipboard.generalClipboard.setData(ClipboardFormats.TEXT_FORMAT, currentInput);
+                #end
+                addOutput('Copied input to clipboard: "$currentInput"', 0x88FF88);
+            } else {
+                addOutput("Input is empty", 0xFFFF88);
+            }
+        } catch (e:Dynamic) {
+            addOutput('Failed to copy input: $e', 0xFF8888);
         }
     }
     
@@ -397,12 +578,23 @@ class DebugConsolePlugin extends FlxBasic
     
     private function onTextInput(event:TextEvent):Void
     {
-        if (!consoleVisible) return;
+        if (!consoleVisible || FlxG.stage.focus == outputText) return;
         
         var char = event.text;
         if (char == null || char.length == 0) return;
         
-        insertTextAtCursor(char);
+        var charCode = char.charCodeAt(0);
+        if (charCode < 32 && char != "\n" && char != "\r" && char != "\t") return;
+        
+        if (char == "\n" || char == "\r") {
+            event.preventDefault();
+            return;
+        }
+        
+        currentInput = currentInput.substring(0, cursorPosition) + char + currentInput.substring(cursorPosition);
+        cursorPosition++;
+        
+        updateDisplay();
         event.preventDefault();
     }
     
@@ -435,10 +627,9 @@ class DebugConsolePlugin extends FlxBasic
     
     private function autoComplete():Void
     {
-        if (currentInput == "") return;
+        if (currentInput.trim() == "") return;
         
         var suggestions = getAutoCompleteSuggestions(currentInput);
-        
         if (suggestions.length == 1)
         {
             currentInput = suggestions[0];
@@ -447,7 +638,7 @@ class DebugConsolePlugin extends FlxBasic
         }
         else if (suggestions.length > 1)
         {
-            addOutput("Possible completions: " + suggestions.join(", "), 0xFFFF88);
+            addOutput("Suggestions: " + suggestions.join(", "), 0xFFFF88);
         }
     }
     
@@ -455,7 +646,7 @@ class DebugConsolePlugin extends FlxBasic
     {
         var suggestions:Array<String> = [];
         
-        var commands = ["help", "clear", "objects", "fields", "call", "set", "new", "cursor", "hscript"];
+        var commands = ["help", "clear", "objects", "fields", "call", "set", "new", "cursor", "hscript", "memory", "copy"];
         for (cmd in commands)
         {
             if (cmd.toLowerCase().startsWith(input.toLowerCase()))
@@ -469,59 +660,36 @@ class DebugConsolePlugin extends FlxBasic
     
     private function updateDisplay():Void
     {
-        var wasAtBottom = consoleText.scrollV == consoleText.maxScrollV;
-        
-        var lines = lastDisplayText.split("\n");
-        
-        var lastPromptIndex = -1;
-        for (i in 0...lines.length) {
-            if (lines[i].startsWith(prompt) || lines[i].startsWith("[HS] " + prompt)) {
-                lastPromptIndex = i;
-            }
-        }
-        
-        var outputLines = lastPromptIndex >= 0 ? lines.slice(0, lastPromptIndex) : lines;
-        
         var modePrefix = hscriptMode ? "[HS] " : "";
         var inputBeforeCursor = modePrefix + prompt + currentInput.substring(0, cursorPosition);
         var inputAfterCursor = currentInput.substring(cursorPosition);
-        var inputLine = inputBeforeCursor + (cursorVisible ? "|" : "") + inputAfterCursor;
+        var cursorChar = cursorVisible ? "▌" : " ";
+        var inputLine = inputBeforeCursor + cursorChar + inputAfterCursor;
         
-        var newText = outputLines.join("\n") + "\n" + inputLine;
-        consoleText.text = newText;
-        lastDisplayText = newText;
-        
-        if (autoScrollToBottom && wasAtBottom) {
-            consoleText.scrollV = consoleText.maxScrollV;
-        }
+        inputText.text = inputLine;
     }
     
     private function addOutput(message:String, color:Int = 0xE0E0E0):Void
     {
-        var wasAtBottom = consoleText.scrollV == consoleText.maxScrollV;
+        var currentScrollV = outputText.scrollV;
+        var currentMaxScrollV = outputText.maxScrollV;
         
-        var lines = lastDisplayText.split("\n");
-
-        var lastPromptIndex = -1;
-        for (i in 0...lines.length) {
-            if (lines[i].startsWith(prompt) || lines[i].startsWith("[HS] " + prompt)) {
-                lastPromptIndex = i;
-            }
+        var colorHex = StringTools.hex(color, 6);
+        var coloredMessage = '<font color="#${colorHex}">${StringTools.htmlEscape(message)}</font>';
+        
+        var currentText = outputText.htmlText;
+        outputText.htmlText = currentText == "" ? coloredMessage : currentText + "\n" + coloredMessage;
+        
+        var lines = outputText.text.split("\n");
+        if (lines.length > maxOutputLines) {
+            var startIndex = lines.length - maxOutputLines;
+            outputText.text = lines.slice(startIndex).join("\n");
         }
         
-        var outputLines = lastPromptIndex >= 0 ? lines.slice(0, lastPromptIndex) : lines;
-        
-        var modePrefix = hscriptMode ? "[HS] " : "";
-        var inputBeforeCursor = modePrefix + prompt + currentInput.substring(0, cursorPosition);
-        var inputAfterCursor = currentInput.substring(cursorPosition);
-        var inputLine = inputBeforeCursor + (cursorVisible ? "|" : "") + inputAfterCursor;
-        
-        var formattedText = outputLines.join("\n") + "\n" + message + "\n" + inputLine;
-        consoleText.text = formattedText;
-        lastDisplayText = formattedText;
-        
-        if (autoScrollToBottom && wasAtBottom) {
-            consoleText.scrollV = consoleText.maxScrollV;
+        if (autoScrollToBottom) {
+            outputText.scrollV = outputText.maxScrollV;
+        } else {
+            outputText.scrollV = currentScrollV;
         }
     }
     
@@ -530,27 +698,30 @@ class DebugConsolePlugin extends FlxBasic
         var command:String = StringTools.trim(currentInput);
 
         if (command == "") {
+            addOutput("Empty command", 0xFFFF88);
+            currentInput = "";
+            cursorPosition = 0;
+            updateDisplay();
             return;
         }
         
         commandHistory.push(command);
+        
+        if (commandHistory.length > maxHistorySize)
+            commandHistory.shift();
+        
         historyIndex = commandHistory.length;
+        
+        addOutput((hscriptMode ? "[HS] " : "") + prompt + command, 0x88FF88);
         
         currentInput = "";
         cursorPosition = 0;
         
-        addOutput((hscriptMode ? "[HS] " : "") + prompt + command, 0x88FF88);
-        
-        userScrolledManually = false;
-        autoScrollToBottom = true;
-        
-        if (hscriptMode)
-        {
-            executeHScript(command);
-        }
-        else
-        {
-            processCommand(command);
+        try {
+            if (hscriptMode) executeHScript(command);
+            else processCommand(command);
+        } catch (e:Dynamic) {
+            addOutput('Error: $e', 0xFF8888);
         }
         
         updateDisplay();
@@ -583,10 +754,8 @@ class DebugConsolePlugin extends FlxBasic
                 showHelp();
                 
             case "clear", "cls":
-                consoleText.text = "Debug Console (F12 to toggle)\nDrag title bar to move | Shift+Enter for new line\n" + prompt;
-                lastDisplayText = consoleText.text;
-                userScrolledManually = false;
-                autoScrollToBottom = true;
+                outputText.text = "Debug Console (F12 to toggle)\nDrag title bar to move | Shift+Enter for new line | Ctrl+C to copy selected text\n";
+                inputText.text = prompt;
                 
             case "objects", "obj":
                 listAvailableObjects();
@@ -659,6 +828,31 @@ class DebugConsolePlugin extends FlxBasic
                 hscriptMode = !hscriptMode;
                 addOutput("HScript mode: " + (hscriptMode ? "ON" : "OFF"), hscriptMode ? 0x88FF88 : 0xFF8888);
                 
+            case "memory", "mem":
+                var stats = getMemoryStats();
+                addOutput('Memory Stats:', 0x88FFFF);
+                addOutput('Command history: ${commandHistory.length}/${maxHistorySize}', 0x88FFFF);
+                addOutput('Output lines: ${outputText.text.split("\n").length}', 0x88FFFF);
+                addOutput('HScript variables: ${countHScriptVariables()}', 0x88FFFF);
+                
+            case "copy":
+                if (args.length > 1)
+                {
+                    switch(args[1].toLowerCase())
+                    {
+                        case "all":
+                            copyAllOutputText();
+                        case "input":
+                            copyCurrentInput();
+                        default:
+                            addOutput("Usage: copy [all|input]", 0xFF8888);
+                    }
+                }
+                else
+                {
+                    addOutput("Usage: copy [all|input]", 0xFF8888);
+                }
+                
             default:
                 addOutput("Unknown command: '" + cmd + "'. Type 'help' for available commands.", 0xFF8888);
         }
@@ -676,20 +870,25 @@ class DebugConsolePlugin extends FlxBasic
                 "call <object> <method> [args] - call method",
                 "new <class> [args] - create new instance",
                 "cursor [show|hide] - show/hide mouse cursor",
-                "hscript - toggle HScript mode"
+                "hscript - toggle HScript mode",
+                "memory - show memory usage",
+                "copy all - copy all console output",
+                "copy input - copy current input"
+            ],
+            "Copy/Paste:" => [
+                "Ctrl+C - copy selected text",
+                "Ctrl+Shift+C - copy all output text",
+                "Ctrl+V - paste from clipboard",
+                "Ctrl+A - select all text in output",
+                "Ctrl+Shift+A - select all and copy"
             ],
             "Navigation:" => [
                 "Arrow keys - move cursor",
+                "Shift+Arrows - select text in output",
                 "Home/End - move to start/end of line", 
-                "Shift+Enter - new line (in HScript mode)",
+                "Shift+Home/End - select to start/end",
+                "Shift+Enter - new line",
                 "Drag title bar - move console"
-            ],
-            "Examples:" => [
-                "FlxG.camera.zoom",
-                "FlxG.fullscreen = true",
-                "state.members.length", 
-                "new flixel.FlxSprite",
-                "cursor show"
             ],
             "HScript Examples:" => [
                 "> FlxG.camera.zoom = 1.5",
@@ -896,12 +1095,12 @@ class DebugConsolePlugin extends FlxBasic
         wasMouseVisible = FlxG.mouse.visible;
         FlxG.mouse.visible = true;
         
-        FlxG.stage.focus = console;
+        console.stage.focus = hiddenInputField;
+        hiddenInputField.text = "";
+        
         currentInput = "";
         cursorPosition = 0;
-        
-        userScrolledManually = false;
-        autoScrollToBottom = true;
+        historyIndex = commandHistory.length;
         
         resetCursor();
         updateDisplay();
@@ -915,6 +1114,40 @@ class DebugConsolePlugin extends FlxBasic
         FlxG.mouse.visible = wasMouseVisible;
         
         FlxG.stage.focus = FlxG.stage;
+    }
+    
+    private function getMemoryStats():Dynamic
+    {
+        return {
+            historySize: commandHistory.length,
+            maxHistorySize: maxHistorySize,
+            outputLines: outputText.text.split("\n").length,
+            maxOutputLines: maxOutputLines,
+            hscriptVars: countHScriptVariables()
+        };
+    }
+    
+    private function countHScriptVariables():Int
+    {
+        var count = 0;
+        try
+        {
+            var ruleField = Reflect.field(hscript, "rule");
+            if (ruleField != null)
+            {
+                var variablesField = Reflect.field(ruleField, "variables");
+                if (variablesField != null)
+                {
+                    var map:Map<String, Dynamic> = cast variablesField;
+                    for (_ in map.keys())
+                    {
+                        count++;
+                    }
+                }
+            }
+        }
+        catch (e:Dynamic) {}
+        return count;
     }
     
     override function update(elapsed:Float)
@@ -943,6 +1176,10 @@ class DebugConsolePlugin extends FlxBasic
                 updateDisplay();
             }
             
+            if (FlxG.stage.focus != hiddenInputField && FlxG.stage.focus != console && FlxG.stage.focus != outputText) {
+                FlxG.stage.focus = hiddenInputField;
+            }
+
             FlxG.keys.reset();
         }
     }
@@ -951,16 +1188,18 @@ class DebugConsolePlugin extends FlxBasic
     {
         FlxG.stage.removeEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
         FlxG.stage.removeEventListener(TextEvent.TEXT_INPUT, onTextInput);
-        consoleText.removeEventListener(MouseEvent.MOUSE_DOWN, onTextMouseDown);
-        consoleText.removeEventListener(MouseEvent.MOUSE_UP, onTextMouseUp);
         console.removeEventListener(MouseEvent.MOUSE_WHEEL, onMouseWheel);
-
+        console.removeEventListener(MouseEvent.MOUSE_DOWN, onConsoleMouseDown);
         titleBar.removeEventListener(MouseEvent.MOUSE_DOWN, onTitleBarMouseDown);
-
         FlxG.stage.removeEventListener(MouseEvent.MOUSE_UP, onStageMouseUp);
         FlxG.stage.removeEventListener(MouseEvent.MOUSE_MOVE, onStageMouseMove);
+        
+        outputText.removeEventListener(MouseEvent.MOUSE_DOWN, onOutputMouseDown);
+        outputText.removeEventListener(MouseEvent.MOUSE_MOVE, onOutputMouseMove);
+        outputText.removeEventListener(MouseEvent.MOUSE_UP, onOutputMouseUp);
 
         console?.parent?.removeChild(console);
+        hiddenInputField?.parent?.removeChild(hiddenInputField);
         hscript?.stop();
 
         super.destroy();

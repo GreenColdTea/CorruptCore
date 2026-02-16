@@ -94,6 +94,14 @@ class Modifier {
         return true;
     }
 
+    public function ignoreUpdateSplash():Bool {
+        return true;
+    }
+
+    public function ignoreUpdateHoldCover():Bool {
+        return true;
+    }
+
     /**
      * Determines if modifier should execute based on current value
      * Override for modifiers that need to run even at 0% intensity
@@ -211,6 +219,10 @@ class Modifier {
     public function updateNote(beat:Float, note:Note, pos:Vector3, player:Int) {
         // Base implementation - override in subclasses
     }
+
+    public function updateSplash(beat:Float, splash:game.objects.NoteSplash, pos:Vector3, player:Int) {}
+
+    public function updateHoldCover(beat:Float, cover:game.objects.NoteHoldCover, pos:Vector3, player:Int) {}
 
     /**
      * Calculates and returns modified position for game objects

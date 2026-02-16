@@ -3,6 +3,8 @@ package game.objects;
 import flixel.FlxG;
 import flixel.FlxSprite;
 import flixel.graphics.frames.FlxAtlasFrames;
+import flixel.math.FlxPoint;
+import flixel.math.FlxMath;
 
 #if sys
 import sys.io.File;
@@ -12,6 +14,8 @@ import sys.FileSystem;
 import openfl.utils.Assets as OpenFlAssets;
 
 import lime.utils.Assets;
+
+import math.Vector3;
 
 typedef NoteSplashConfig = {
     var scale:Float;
@@ -29,10 +33,13 @@ typedef NoteSplashAnimConfig = {
     var noteData:Int;
 }
 
-class NoteSplash extends FlxSprite
+class NoteSplash extends flixel.addons.effects.FlxSkewedSprite
 {
     public static var configs:Map<String, NoteSplashConfig> = new Map();
-    public static final defaultNoteSplash:String = 'noteSplashes';
+    public static final defaultNoteSplash:String = 'BloodSplash';
+
+    public var vec3Cache:Vector3 = new Vector3(); // for vector3 operations in modchart code
+    public var defScale:FlxPoint; // for modcharts to keep the scaling
     
     public var colorSwap:ColorSwap = null;
     private var textureLoaded:String = null;
@@ -58,6 +65,8 @@ class NoteSplash extends FlxSprite
         shader = colorSwap.shader;
 
         antialiasing = ClientPrefs.globalAntialiasing;
+        
+        defScale = FlxPoint.get(scale.x, scale.y);
 
         loadSplash(texture);
     }
@@ -102,6 +111,8 @@ class NoteSplash extends FlxSprite
             if(config != null) {
                 scale.set(config.scale, config.scale);
                 updateHitbox();
+                
+                defScale.set(scale.x, scale.y);
             }
         }
     }
@@ -176,7 +187,7 @@ class NoteSplash extends FlxSprite
             }
         });
 
-        alpha = 0.6;
+        //alpha = 0.6;
         antialiasing = ClientPrefs.globalAntialiasing;
 
         spawned = true;
@@ -279,5 +290,14 @@ class NoteSplash extends FlxSprite
 
     public static function getSplashSkinPostfix():String {
         return '';
+    }
+    
+    override function destroy() {
+        if (defScale != null) {
+            defScale.put();
+            defScale = null;
+        }
+        
+        super.destroy();
     }
 }

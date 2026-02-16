@@ -6,7 +6,7 @@ typedef UIStyleData = {
 	var bgAlpha:Float;
 }
 
-class PsychUIBox extends FlxSpriteGroup
+class PsychUIBox extends PsychUIGroup
 {
 	@:unreflective public static final CLICK_EVENT = "uibox_click";
 	@:unreflective public static final MINIMIZE_EVENT = "uibox_minimize"; //called on both minimizing and maximizing

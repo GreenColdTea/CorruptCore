@@ -3,15 +3,21 @@ package game.objects;
 import flixel.FlxSprite;
 import flixel.util.FlxTimer;
 import flixel.math.FlxRect;
+import flixel.math.FlxPoint;
 
 import game.PlayState;
 import game.objects.Note;
 import game.objects.StrumNote;
 
-class NoteHoldCover extends FlxSprite {
+import math.Vector3;
+
+class NoteHoldCover extends flixel.addons.effects.FlxSkewedSprite {
+    public var vec3Cache:Vector3 = new Vector3(); // for vector3 operations in modchart code
+    public var defScale:FlxPoint; // for modcharts to keep the scaling
+    
     public var colorSwap:ColorSwap = null;
     public var startCrochet:Float;
-    public var frameRate:Int;
+    public var frameRate:Int = 24;
     public var strumNote:StrumNote;
     public var curNote:Note;
     
@@ -29,13 +35,15 @@ class NoteHoldCover extends FlxSprite {
         super();
 
         animation = new PsychAnimationController(this);
-        antialiasing = ClientPrefs.globalAntialiasing;
+        antialiasing = !PlayState.isPixelStage ? ClientPrefs.globalAntialiasing : false;
 
-        var skin:String = 'holdCovers';
+        var skin:String = !PlayState.isPixelStage ? 'holdCovers' : 'pixelUI/holdCoversPixel';
         if(PlayState.SONG.holdCoverSkin != null && PlayState.SONG.holdCoverSkin.length > 1) skin = PlayState.SONG.holdCoverSkin;
 
         colorSwap = new ColorSwap();
         shader = colorSwap.shader;
+        
+        defScale = FlxPoint.get(scale.x, scale.y);
     }
 
     override function update(elapsed:Float) {
@@ -79,7 +87,7 @@ class NoteHoldCover extends FlxSprite {
         final timeThingy = (startCrochet * lengthToGet + (strumTime - Conductor.songPosition + ClientPrefs.ratingOffset)) / 1000;
 
         if(texture == null) {
-            texture = 'holdCovers';
+            texture = !PlayState.isPixelStage ? 'holdCovers' : 'pixelUI/holdCoversPixel';
             if(PlayState.SONG.holdCoverSkin != null && PlayState.SONG.holdCoverSkin.length > 1) texture = PlayState.SONG.holdCoverSkin;
         }
 
@@ -99,14 +107,25 @@ class NoteHoldCover extends FlxSprite {
         
         frames = Paths.getSparrowAtlas(texture);
         
-        if (animation.getByName('holdCover') == null)
-            animation.addByPrefix('holdCover', 'holdCover$colorSuffix', 20, true);
+        if (PlayState.isPixelStage) {
+            if (animation.getByName('holdCover') == null)
+                animation.addByPrefix('holdCover', 'loop', 20, true);
 
-        if (animation.getByName('holdCoverStart') == null)
-            animation.addByPrefix('holdCoverStart', 'holdCoverStart$colorSuffix', 24, false);
+            if (animation.getByName('holdCoverStart') == null)
+                animation.addByPrefix('holdCoverStart', 'loop', 24, false);
 
-        if (animation.getByName('holdCoverEnd') == null)
-            animation.addByPrefix('holdCoverEnd', 'holdCoverEnd$colorSuffix', 24, false);
+            if (animation.getByName('holdCoverEnd') == null)
+                animation.addByPrefix('holdCoverEnd', 'explode', 24, false);
+        } else {
+            if (animation.getByName('holdCover') == null)
+                animation.addByPrefix('holdCover', 'holdCover$colorSuffix', 20, true);
+
+            if (animation.getByName('holdCoverStart') == null)
+                animation.addByPrefix('holdCoverStart', 'holdCoverStart$colorSuffix', 24, false);
+
+            if (animation.getByName('holdCoverEnd') == null)
+                animation.addByPrefix('holdCoverEnd', 'holdCoverEnd$colorSuffix', 24, false);
+        }
         
         animation.onFinish.removeAll();
         
@@ -120,7 +139,25 @@ class NoteHoldCover extends FlxSprite {
             }
         });
         
-        clipRect = new FlxRect(0, PlayState.isPixelStage ? PIXEL_OFFSET_Y : 0, frameWidth, frameHeight);
+        if (!PlayState.isPixelStage) {
+            clipRect = new FlxRect(0, 0, frameWidth, frameHeight);
+        } else {
+            clipRect = null;
+            
+            width = frameWidth;
+            height = frameHeight;
+            
+            setGraphicSize(Std.int(width * PlayState.daPixelZoom));
+            updateHitbox();
+            
+            var actualScale = scale.x;
+            if (actualScale > 0) {
+                offset.x /= actualScale - 1.5;
+                offset.y /= actualScale;
+            }
+        }
+
+        defScale.set(scale.x, scale.y);
 
         endingTimer?.cancel();
         endingTimer = null;
@@ -137,7 +174,11 @@ class NoteHoldCover extends FlxSprite {
                 animation.onFinish.removeAll();
                 
                 animation.play('holdCoverEnd', true);
-                animation.curAnim.frameRate = frameRate;
+                
+                if (animation.curAnim != null) {
+                    animation.curAnim.frameRate = frameRate;
+                }
+                
                 clipRect = null;
                 
                 animation.onFinish.add((name:String) -> {
@@ -162,6 +203,8 @@ class NoteHoldCover extends FlxSprite {
     }
     
     private function getColorSuffixFromNoteData(noteData:Int):String {
+        if (PlayState.isPixelStage) return '';
+        
         return switch(noteData % 4) {
             case 0: 'Purple';
             case 1: 'Blue';
@@ -177,6 +220,11 @@ class NoteHoldCover extends FlxSprite {
         
         if (strumNote != null && activeCovers.get(strumNote) == this)
             activeCovers.remove(strumNote);
+        
+        if (defScale != null) {
+            defScale.put();
+            defScale = null;
+        }
         
         super.destroy();
     }

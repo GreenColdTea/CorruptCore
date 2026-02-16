@@ -22,9 +22,10 @@ typedef EventNote = {
 	value2:String
 }
 
-class Note extends FlxSprite
+class Note extends flixel.addons.effects.FlxSkewedSprite
 {
 	public static final SUSTAIN_SIZE:Int = 44;
+	public static final defaultNoteSkin:String = 'NOTE_assets';
 
 	public var vec3Cache:Vector3 = new Vector3(1, 1, 0); // for vector3 operations in modchart code
 	public var defScale:FlxPoint = FlxPoint.get(1, 1); // for modcharts to keep the scaling
@@ -287,9 +288,7 @@ class Note extends FlxSprite
 		var skin:String = texture;
 		if(texture.length < 1) {
 			skin = PlayState.SONG.arrowSkin;
-			if(skin == null || skin.length < 1) {
-				skin = 'NOTE_assets';
-			}
+			if(skin == null || skin.length < 1) skin = defaultNoteSkin;
 		}
 
 		var animName:String = null;

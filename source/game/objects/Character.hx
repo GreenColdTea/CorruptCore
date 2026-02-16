@@ -6,6 +6,7 @@ import flixel.addons.effects.FlxTrail;
 import flixel.animation.FlxBaseAnimation;
 import flixel.graphics.frames.FlxAtlasFrames;
 import flixel.tweens.FlxTween;
+import flixel.tweens.FlxEase;
 import flixel.math.FlxPoint;
 import flixel.util.FlxSort;
 import flixel.util.FlxColor;
@@ -82,7 +83,6 @@ class Character extends FlxSprite
 
 	public var voicelining:Bool = false;
 
-	//for double note ghosts anim
 	public var mostRecentRow:Int = 0;
 	public var ghostIdx:Int = 0;
 	public var ghostAnim:String = '';
@@ -96,9 +96,9 @@ class Character extends FlxSprite
 	public var specialAnim:Bool = false;
 	public var animationNotes:Array<Dynamic> = [];
 	public var stunned:Bool = false;
-	public var singDuration:Float = 4; // Multiplier of how long a character holds the sing pose
+	public var singDuration:Float = 4;
 	public var idleSuffix:String = '';
-	public var danceIdle:Bool = false; // Character use "danceLeft" and "danceRight" instead of "idle"
+	public var danceIdle:Bool = false;
 	public var skipDance:Bool = false;
 
 	public var healthIcon:String = 'face';
@@ -133,20 +133,11 @@ class Character extends FlxSprite
 	public var shadowAtlas:FlxAnimate;
 	#end
 
-	public static final DEFAULT_CHARACTER:String = 'bf'; // In case a character is missing, it will use BF on its place
+	public static final DEFAULT_CHARACTER:String = 'bf';
 
 	public function new(x:Float, y:Float, ?character:String = 'bf', ?isPlayer:Bool = false, ?isChibiChar:Bool = false)
 	{
 		super(x, y);
-
-		for(i in 0...4){
-			var ghost = new FlxSprite();
-			ghost.visible = false;
-			ghost.antialiasing = ClientPrefs.globalAntialiasing;
-			ghost.alpha = 0.6;
-			animGhosts.push(ghost);
-			ghostTweens.push(null);
-		}
 
 		#if (haxe >= "4.0.0")
 		animOffsets = new Map();
@@ -159,19 +150,16 @@ class Character extends FlxSprite
 		antialiasing = ClientPrefs.globalAntialiasing;
 
 		var library:String = null;
-		var characterPath:String = 'characters/' + curCharacter + '.json';
+		var characterPath:String = 'data/characters/' + curCharacter + '.json';
 
 		if (!Paths.fileExists(characterPath, TEXT))
 		{
-			characterPath = 'characters/' + DEFAULT_CHARACTER + '.json'; // If a character couldn't be found, change him to BF just to prevent a crash
+			characterPath = 'data/characters/' + DEFAULT_CHARACTER + '.json';
 		}
 
 		var json:CharacterFile = cast Json.parse(Paths.getTextFromFile(characterPath));
 		var spriteType:String = "sparrow";
 
-		// sparrow
-		// packer
-		// texture
 		if (Paths.fileExists('images/' + json.image + '.txt', TEXT))
 		{
 			spriteType = "packer";
@@ -223,7 +211,7 @@ class Character extends FlxSprite
 		healthIcon = json.healthicon;
 		singDuration = json.sing_duration;
 		vocalsFile = json.vocals_file != null ? json.vocals_file : '';
-		flipX = !!json.flip_x; //bruhhh
+		flipX = !!json.flip_x;
 		if (json.no_antialiasing)
 		{
 			antialiasing = shadowAntialiasing = false;
@@ -258,7 +246,7 @@ class Character extends FlxSprite
 				var animAnim:String = '' + anim.anim;
 				var animName:String = '' + anim.name;
 				var animFps:Int = anim.fps;
-				var animLoop:Bool = !!anim.loop; // Bruh
+				var animLoop:Bool = !!anim.loop;
 				var animIndices:Array<Int> = anim.indices;
 
 				if (!isAnimateAtlas)
@@ -273,9 +261,9 @@ class Character extends FlxSprite
 				{
 					if (animIndices != null && animIndices.length > 0)
 						atlas.anim.addBySymbolIndices(animAnim, animName, animIndices, animFps, animLoop);
-					else if (atlas.library.getSymbol(animName) != null) // ? Allow us to use labels please
+					else if (atlas.library.getSymbol(animName) != null)
 						atlas.anim.addBySymbol(animAnim, animName, animFps, animLoop);
-					else // ? Allow us to use labels please
+					else
 						atlas.anim.addByFrameLabel(animAnim, animName, animFps, animLoop);
 				}
 				#end
@@ -397,6 +385,55 @@ class Character extends FlxSprite
 				loadMappedAnims();
 				playAnim("shoot1");
 		}
+
+		initGhosts();
+	}
+
+	private function initGhosts():Void
+	{
+		for (i in 0...4)
+		{
+			var ghost:FlxSprite;
+			#if flixel_animate
+			if (isAnimateAtlas)
+			{
+				var animateGhost = new FlxAnimate();
+				try
+				{
+					animateGhost.frames = Paths.getAnimateAtlas(imageFile);
+				}
+				catch (e:Dynamic)
+				{
+					FlxG.log.warn('Could not load ghost atlas for $imageFile: $e');
+				}
+				
+				for (anim in animationsArray)
+				{
+					var animAnim:String = '' + anim.anim;
+					var animName:String = '' + anim.name;
+					var animFps:Int = anim.fps;
+					var animLoop:Bool = !!anim.loop;
+					var animIndices:Array<Int> = anim.indices;
+
+					if (animIndices != null && animIndices.length > 0)
+						animateGhost.anim.addBySymbolIndices(animAnim, animName, animIndices, animFps, animLoop);
+					else
+						animateGhost.anim.addBySymbol(animAnim, animName, animFps, animLoop);
+				}
+				ghost = animateGhost;
+			}
+			else
+			#end
+			{
+				ghost = new FlxSprite();
+			}
+
+			ghost.visible = false;
+			ghost.antialiasing = ClientPrefs.globalAntialiasing;
+			ghost.alpha = 0.6;
+			animGhosts.push(ghost);
+			ghostTweens.push(null);
+		}
 	}
 
 	override function update(elapsed:Float)
@@ -476,7 +513,6 @@ class Character extends FlxSprite
 		for (ghost in animGhosts)
 			ghost.update(elapsed);
 
-		// update shadow
 		if (shadowVisible)
 		{
 			updateShadow();
@@ -498,9 +534,6 @@ class Character extends FlxSprite
 
 	public var danced:Bool = false;
 
-	/**
-	 * FOR GF DANCING SHIT
-	 */
 	inline public function dance()
 	{
 		if (!debugMode && !skipDance && animTimer <= 0 && !specialAnim && !voicelining)
@@ -545,7 +578,6 @@ class Character extends FlxSprite
 		else
 			shadowOffset.set(0, 0);
 
-		// play shadow anim
 		if (shadowVisible)
 		{
 			#if flixel_animate
@@ -583,26 +615,71 @@ class Character extends FlxSprite
 		if (GhostIdx < 0 || GhostIdx >= animGhosts.length) return;
 
 		var ghost = animGhosts[GhostIdx];
-		ghost.scale.set(scale.x, scale.y);
-		ghost.updateHitbox();
-		ghost.frames = frames;
-		ghost.animation.copyFrom(animation);
-		ghost.antialiasing = antialiasing;
-		ghost.x = x;
-		ghost.y = y;
-		ghost.flipX = flipX;
-		ghost.flipY = flipY;
-		ghost.alpha = alpha * 0.6;
-		ghost.visible = true;
-		ghost.angle = angle;
-		ghost.shader = shader;
-		ghost.dirty = dirty;
-		ghost.color = FlxColor.fromRGB(
-			Std.int((healthColorArray[0]/255) * color.red),
-			Std.int((healthColorArray[1]/255) * color.green),
-			Std.int((healthColorArray[2]/255) * color.blue)
-		);
-		ghost.animation.play(AnimName, Force, Reversed, Frame);
+		
+		#if flixel_animate
+		if (isAnimateAtlas && Std.isOfType(ghost, FlxAnimate))
+		{
+			var animateGhost:FlxAnimate = cast ghost;
+			
+			animateGhost.scale.set(scale.x, scale.y);
+			animateGhost.x = x;
+			animateGhost.y = y;
+			animateGhost.flipX = flipX;
+			animateGhost.flipY = flipY;
+			animateGhost.alpha = alpha * 0.6;
+			animateGhost.visible = true;
+			animateGhost.angle = angle;
+			animateGhost.shader = shader;
+			animateGhost.color = FlxColor.fromRGB(
+				Std.int((healthColorArray[0]/255) * color.red),
+				Std.int((healthColorArray[1]/255) * color.green),
+				Std.int((healthColorArray[2]/255) * color.blue)
+			);
+			animateGhost.antialiasing = antialiasing;
+			animateGhost.scrollFactor.copyFrom(scrollFactor);
+			
+			animateGhost.origin.copyFrom(origin);
+			
+			animateGhost.anim.play(AnimName, Force, Reversed, Frame);
+			animateGhost.update(0);
+			
+			var daOffset = animOffsets.get(AnimName);
+			if (daOffset != null)
+				animateGhost.offset.set(daOffset[0], daOffset[1]);
+			else
+				animateGhost.offset.set(0, 0);
+		}
+		else
+		#end
+		{
+			ghost.scale.set(scale.x, scale.y);
+			ghost.updateHitbox();
+			ghost.frames = frames;
+			ghost.animation.copyFrom(animation);
+			ghost.antialiasing = antialiasing;
+			ghost.x = x;
+			ghost.y = y;
+			ghost.flipX = flipX;
+			ghost.flipY = flipY;
+			ghost.alpha = alpha * 0.6;
+			ghost.visible = true;
+			ghost.angle = angle;
+			ghost.shader = shader;
+			ghost.dirty = dirty;
+			ghost.color = FlxColor.fromRGB(
+				Std.int((healthColorArray[0]/255) * color.red),
+				Std.int((healthColorArray[1]/255) * color.green),
+				Std.int((healthColorArray[2]/255) * color.blue)
+			);
+			ghost.animation.play(AnimName, Force, Reversed, Frame);
+			
+			var daOffset = animOffsets.get(AnimName);
+			if (daOffset != null)
+				ghost.offset.set(daOffset[0], daOffset[1]);
+			else
+				ghost.offset.set(0, 0);
+		}
+
 		if (GhostIdx < ghostTweens.length && ghostTweens[GhostIdx] != null) {
 			ghostTweens[GhostIdx].cancel();
 		}
@@ -617,12 +694,6 @@ class Character extends FlxSprite
 				}
 			});
 		}
-
-		var daOffset = animOffsets.get(AnimName);
-		if (hasAnimation(AnimName))
-			ghost.offset.set(daOffset[0], daOffset[1]);
-		else
-			ghost.offset.set(0, 0);
 	}
 
 	inline function loadMappedAnims():Void
@@ -773,8 +844,6 @@ class Character extends FlxSprite
 		settingCharacterUp = false;
 	}
 
-	// Atlas support
-	// special thanks ne_eo for the references, you're the goat!!
 	public var isAnimateAtlas:Bool = false;
 	#if flixel_animate
 	public var atlas:FlxAnimate;
@@ -847,11 +916,8 @@ class Character extends FlxSprite
 		var lastAlpha:Float = alpha;
 		var lastColor:FlxColor = color;
 
-		// draw shadow first
 		if (shadowVisible)
 		{
-			//updateShadow();
-
 			#if flixel_animate
 			if (isAnimateAtlas)
 			{
@@ -864,6 +930,12 @@ class Character extends FlxSprite
 			}
 		}
 
+		for (ghost in animGhosts)
+		{
+			if (ghost.visible)
+				ghost.draw();
+		}
+
 		#if flixel_animate
 		if (isAnimateAtlas)
 		{
@@ -874,16 +946,12 @@ class Character extends FlxSprite
 				alpha = lastAlpha;
 				color = lastColor;
 			}
-			return;
 		}
+		else
 		#end
-
-		for(ghost in animGhosts){
-			if(ghost.visible)
-				ghost.draw();
+		{
+			super.draw();
 		}
-
-		super.draw();
 	}
 
 	#if flixel_animate
@@ -913,7 +981,6 @@ class Character extends FlxSprite
 
 	public override function destroy()
 	{
-		// destroy shadow
 		#if flixel_animate
 		if (shadowAtlas != null)
 		{
@@ -933,7 +1000,6 @@ class Character extends FlxSprite
 		shadowScale.put();
 		shadowScrollFactor.put();
 
-		// Destroy ghosts
 		for (ghost in animGhosts)
 		{
 			ghost?.destroy();

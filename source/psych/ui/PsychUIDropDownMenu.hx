@@ -251,7 +251,7 @@ class PsychUIDropDownMenu extends PsychUIInputText
 	}
 }
 
-class PsychUIDropDownItem extends FlxSpriteGroup
+class PsychUIDropDownItem extends PsychUIGroup
 {
 	public var hoverStyle:UIStyleData = {
 		bgColor: 0xFF0066FF,

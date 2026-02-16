@@ -9,7 +9,7 @@ class PsychUITab extends FlxSprite
 {
 	public var name(default, set):String;
 	public var text:FlxText;
-	public var menu:FlxSpriteGroup = new FlxSpriteGroup();
+	public var menu:PsychUIGroup = new PsychUIGroup();
 	
 	private var _isHovered:Bool = false;
 

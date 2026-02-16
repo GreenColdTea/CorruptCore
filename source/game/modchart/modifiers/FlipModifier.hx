@@ -62,7 +62,7 @@ class FlipModifier extends NoteModifier {
         // - data=2 moves 0.5 spaces left
         // - data=3 (rightmost) moves 1.5 spaces left
         var mirrorDistanceMultiplier = (receptorCount / 2) - 0.5 - noteData;
-        var flipDistance = Note.swagWidth * mirrorDistanceMultiplier * getValue(player);
+        var flipDistance = Note.swagWidth * mirrorDistanceMultiplier * 2 * getValue(player);
         
         return flipDistance;
     }

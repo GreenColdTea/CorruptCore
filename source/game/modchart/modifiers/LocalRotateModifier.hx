@@ -49,11 +49,8 @@ class LocalRotateModifier extends NoteModifier {
         ];
     }
 
-    /**
-     * Linear interpolation helper function
-     */
-    private inline function lerp(start:Float, end:Float, ratio:Float):Float {
-        return start + (end - start) * ratio;
+    override function shouldExecute(player:Int, val:Float):Bool {
+        return (val != 0 || getSubmodValue('${prefix}rotateY', player) != 0 || getSubmodValue('${prefix}rotateZ', player) != 0);
     }
 
     /**

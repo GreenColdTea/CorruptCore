@@ -340,23 +340,6 @@ class Mods
         return getModFileContent(path) != null;
     }
 
-    #if SCRIPTABLE_STATES
-    public static function modsStates(key:String, state:String)
-        return modFolders('scripts/states/$state/$key.hx');
-    #end
-
-    public static function modsFont(key:String) {
-        return modFolders('fonts/$key');
-    }
-
-    public static function modsJson(key:String) {
-        return modFolders('data/$key.json');
-    }
-
-    public static function modsVideo(key:String, ext:String) {
-        return modFolders('videos/$key.$ext');
-    }
-
     public static function modsNdll(key:String) {
         #if (NDLL_ALLOWED && MODS_ALLOWED)
         if (currentModDirectory != null && currentModDirectory.length > 0) {
@@ -388,35 +371,9 @@ class Mods
     }
 
     public static function modsSounds(path:String, key:String, ?ext:String = null) {
-        if (ext == null) ext = Paths.SOUND_EXT;
+        ext ??= Paths.SOUND_EXT;
         var fullPath = normalizePath('$path/$key.$ext');
         return modFolders(fullPath);
-    }
-
-    public static function modsImages(key:String, ?imgFormat:String = "png") {
-        return modFolders('images/$key.$imgFormat');
-    }
-
-    public static function modsImagesJson(key:String) {
-        return modFolders('images/$key.json');
-    }
-
-    public static function modsXml(key:String) {
-        return modFolders('images/$key.xml');
-    }
-
-    public static function modsTxt(key:String) {
-        return modFolders('images/$key.txt');
-    }
-
-    public static function modsShaderFragment(key:String, ?library:String)
-    {
-        return modFolders('shaders/$key.frag');
-    }
-    
-    public static function modsShaderVertex(key:String, ?library:String)
-    {
-        return modFolders('shaders/$key.vert');
     }
 
     static public function modFolders(key:String) {
