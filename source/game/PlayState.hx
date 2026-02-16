@@ -866,6 +866,7 @@ class PlayState extends MusicBeatState
 			foldersToCheck.insert(0, Mods.getModPath(Mods.currentModDirectory + '/data/songs/' + Paths.formatToSongPath(SONG.song) + '/'));
 
 		for(mod in Mods.getGlobalMods())
+			foldersToCheck.insert(0, Mods.getModPath(mod + '/data/songs/' + Paths.formatToSongPath(SONG.song) + '/' ));// using push instead of insert because these should run after everything else
 		#end
 
 		for (folder in foldersToCheck)
