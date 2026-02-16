@@ -36,7 +36,7 @@ typedef NoteSplashAnimConfig = {
 class NoteSplash extends flixel.addons.effects.FlxSkewedSprite
 {
     public static var configs:Map<String, NoteSplashConfig> = new Map();
-    public static final defaultNoteSplash:String = 'BloodSplash';
+    public static final defaultNoteSplash:String = 'noteSplashes';
 
     public var vec3Cache:Vector3 = new Vector3(); // for vector3 operations in modchart code
     public var defScale:FlxPoint; // for modcharts to keep the scaling
