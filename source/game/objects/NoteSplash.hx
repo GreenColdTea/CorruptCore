@@ -12,16 +12,17 @@ import sys.FileSystem;
 #end
 
 import openfl.utils.Assets as OpenFlAssets;
-
 import lime.utils.Assets;
-
 import math.Vector3;
+
+import game.shaders.PixelShader;
 
 typedef NoteSplashConfig = {
     var scale:Float;
     var animations:Map<String, NoteSplashAnimConfig>;
     @:optional var allowRGB:Bool;
     @:optional var allowPixel:Bool;
+    @:optional var allowHSB:Bool;
     @:optional var rgb:Array<Dynamic>;
 }
 
@@ -39,9 +40,12 @@ class NoteSplash extends flixel.addons.effects.FlxSkewedSprite
     public static final defaultNoteSplash:String = 'noteSplashes';
 
     public var vec3Cache:Vector3 = new Vector3(); // for vector3 operations in modchart code
-    public var defScale:FlxPoint; // for modcharts to keep the scaling
+    public var defScale:FlxPoint = FlxPoint.get(1, 1); // for modcharts to keep the scaling
     
     public var colorSwap:ColorSwap = null;
+    public var pixelShader:PixelShader;
+    public var allowPixel:Bool = false;
+    
     private var textureLoaded:String = null;
 
     public var config:NoteSplashConfig;
@@ -62,11 +66,10 @@ class NoteSplash extends flixel.addons.effects.FlxSkewedSprite
         animation = new PsychAnimationController(this);
         
         colorSwap = new ColorSwap();
+        pixelShader = new PixelShader();
         shader = colorSwap.shader;
 
         antialiasing = ClientPrefs.globalAntialiasing;
-        
-        defScale = FlxPoint.get(scale.x, scale.y);
 
         loadSplash(texture);
     }
@@ -77,6 +80,7 @@ class NoteSplash extends flixel.addons.effects.FlxSkewedSprite
             textureLoaded = texture;
             
             config = loadConfig(texture);
+            allowPixel = config?.allowPixel ?? false;
             
             @:privateAccess
             animation.clearAnimations();
@@ -110,9 +114,8 @@ class NoteSplash extends flixel.addons.effects.FlxSkewedSprite
             
             if(config != null) {
                 scale.set(config.scale, config.scale);
+                defScale.copyFrom(scale);
                 updateHitbox();
-                
-                defScale.set(scale.x, scale.y);
             }
         }
     }
@@ -130,10 +133,26 @@ class NoteSplash extends flixel.addons.effects.FlxSkewedSprite
             loadSplash(texture);
         }
         
-        if(colorSwap != null) {
+        var useHSB = (config?.allowHSB != false);
+        
+        if (useHSB && colorSwap != null) {
             colorSwap.hue = hueColor;
             colorSwap.saturation = satColor;
             colorSwap.brightness = brtColor;
+        }
+
+        if (allowPixel) {
+            if (useHSB) {
+                pixelShader.copyFromColorSwap(colorSwap);
+            } else {
+                pixelShader.hue = 0;
+                pixelShader.saturation = 0;
+                pixelShader.brightness = 0;
+            }
+            pixelShader.pixelAmount = PlayState.isPixelStage ? PlayState.daPixelZoom : 1;
+            shader = pixelShader.shader;
+        } else {
+            shader = useHSB ? colorSwap.shader : null;
         }
 
         offset.set(10, 10);
@@ -187,7 +206,6 @@ class NoteSplash extends flixel.addons.effects.FlxSkewedSprite
             }
         });
 
-        //alpha = 0.6;
         antialiasing = ClientPrefs.globalAntialiasing;
 
         spawned = true;
@@ -230,7 +248,8 @@ class NoteSplash extends flixel.addons.effects.FlxSkewedSprite
             scale: 1,
             animations: new Map(),
             allowRGB: false,
-            allowPixel: false
+            allowPixel: true,
+            allowHSB: true
         };
     }
 
@@ -260,6 +279,8 @@ class NoteSplash extends flixel.addons.effects.FlxSkewedSprite
                 var jsonData:Dynamic = haxe.Json.parse(rawJson);
                 
                 config.scale = Reflect.hasField(jsonData, "scale") ? Reflect.field(jsonData, "scale") : 1;
+                config.allowPixel = Reflect.hasField(jsonData, "allowPixel") ? Reflect.field(jsonData, "allowPixel") : false;
+                config.allowHSB = Reflect.hasField(jsonData, "allowHSB") ? Reflect.field(jsonData, "allowHSB") : true;
                 
                 if(Reflect.hasField(jsonData, "animations")) {
                     var animsData:Dynamic = Reflect.field(jsonData, "animations");

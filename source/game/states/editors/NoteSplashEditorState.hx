@@ -433,6 +433,16 @@ class NoteSplashEditorState extends MusicBeatState
 
         var loadButton:PsychUIButton = new PsychUIButton(180, 185, "Convert TXT", loadTxt);
         ui.add(loadButton);
+
+        var allowPixelCheck:PsychUICheckBox = new PsychUICheckBox(180, 105, "Allow Pixel?");
+        allowPixelCheck.onClick = () -> if (config != null) config.allowPixel = allowPixelCheck.checked;
+        allowPixelCheck.checked = config != null && cast(config.allowPixel, Null<Bool>) != null ? config.allowPixel : false;
+        ui.add(allowPixelCheck);
+
+        var allowHSBCheck:PsychUICheckBox = new PsychUICheckBox(180, allowPixelCheck.y + 20, "Allow HSB?");
+        allowHSBCheck.onClick = () -> if (config != null) config.allowHSB = allowHSBCheck.checked;
+        allowHSBCheck.checked = config != null && cast(config.allowHSB, Null<Bool>) != null ? config.allowHSB : false;
+        ui.add(allowHSBCheck);
     }
 
     function updateGhosts() {

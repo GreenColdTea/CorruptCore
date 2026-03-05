@@ -36,11 +36,7 @@ class ReverseModifier extends NoteModifier {
             val += getSubmodValue("cross" + suffix, player);
         
 
-        if(suffix == '')
-            val += getValue(player) + getSubmodValue("reverse" + Std.string(dir), player);
-        else
-            val += getSubmodValue("reverse" + suffix, player);
-        
+        val += suffix == '' ? getValue(player) + getSubmodValue("reverse" + Std.string(dir), player) : getSubmodValue("reverse" + suffix, player);
 
         if(getSubmodValue("unboundedReverse", player) == 0){
             val %= 2;
@@ -117,11 +113,7 @@ class ReverseModifier extends NoteModifier {
                 if (perc < 0.5) // upscroll
                     pos.y += note.parent.height / 2;
                 else // downscroll
-                {
                     pos.y -= (note.frameHeight * note.scale.y) - (Note.swagWidth / 2);
-                    if (PlayState.isPixelStage)
-                        pos.y -= PlayState.daPixelZoom * 9.5;
-                }
             }
         }
         return pos;

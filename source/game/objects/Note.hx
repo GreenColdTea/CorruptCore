@@ -280,7 +280,7 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 	var lastNoteOffsetXForPixelAutoAdjusting:Float = 0;
 	public var originalHeightForCalcs:Float = 6;
 	public var correctionOffset:Float = 0; //dont mess with this
-	public function reloadNote(prefix:String = '', texture:String = '', postfix:String = '') {
+	public function reloadNote(?prefix:String, ?texture:String, ?postfix:String) {
 		prefix ??= '';
 		texture ??= '';
 		postfix ??= '';

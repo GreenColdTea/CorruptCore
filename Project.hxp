@@ -149,7 +149,7 @@ class Project extends HXProject
     {
         MODS_ALLOWED.apply(this, isDesktop());
         LUA_ALLOWED.apply(this, isCPP());
-        HSCRIPT_ALLOWED.apply(this, true); // always enabled per XML
+        HSCRIPT_ALLOWED.apply(this, true);
         MODCHART_ALLOWED.apply(this, true);
         DISCORD_ALLOWED.apply(this, isDesktop() && isCPP());
         VIDEOS_ALLOWED.apply(this, isCPP());
@@ -554,10 +554,7 @@ class Project extends HXProject
 
     public function setHaxedef(name:String, ?value:String)
     {
-        if (value != null)
-            haxedefs.set(name, value);
-        else
-            haxedefs.set(name, "");
+        haxedefs.set(name, value ?? "");
     }
 
     function addAssetRecursive(path:String, rename:String, ?library:String, ?include:Array<String>, ?exclude:Array<String>, embed:Bool = false)
@@ -612,8 +609,7 @@ class Project extends HXProject
 
     function matchesPattern(file:String, pattern:String):Bool
     {
-        if (pattern == "*") return true;
-        if (pattern == file) return true;
+        if (pattern == "*" || pattern == file) return true;
         
         if (pattern.indexOf("*") != -1)
         {
@@ -621,6 +617,15 @@ class Project extends HXProject
             return regex.match(file);
         }
         
+        return false;
+    }
+
+    function hasLib(name:String):Bool
+    {
+        for (lib in haxelibs)
+            if (lib.name == name)
+                return true;
+
         return false;
     }
 

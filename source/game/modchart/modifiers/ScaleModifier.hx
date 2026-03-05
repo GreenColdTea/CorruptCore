@@ -102,13 +102,13 @@ class ScaleModifier extends NoteModifier {
      */
     private function applyMiniEffects(scale:FlxPoint, noteData:Int, player:Int):Void {
         // Apply base mini effect (affects both axes)
-        var baseMini:Float = getValue(player);
+        final baseMini:Float = getValue(player);
         scale.x *= 1 - baseMini;
         scale.y *= 1 - baseMini;
 
         // Apply axis-specific mini effects
-        var miniX:Float = getSubmodValue("miniX", player) + getSubmodValue('mini${noteData}X', player);
-        var miniY:Float = getSubmodValue("miniY", player) + getSubmodValue('mini${noteData}Y', player);
+        final miniX:Float = getSubmodValue("miniX", player) + getSubmodValue('mini${noteData}X', player);
+        final miniY:Float = getSubmodValue("miniY", player) + getSubmodValue('mini${noteData}Y', player);
 
         scale.x *= 1 - miniX;
         scale.y *= 1 - miniY;
@@ -119,23 +119,23 @@ class ScaleModifier extends NoteModifier {
      * Creates non-uniform scaling for visual distortion effects
      */
     private function applyStretchAndSquishEffects(scale:FlxPoint, noteData:Int, player:Int):Void {
-        var stretch:Float = getSubmodValue("stretch", player) + getSubmodValue('stretch${noteData}', player);
-        var squish:Float = getSubmodValue("squish", player) + getSubmodValue('squish${noteData}', player);
+        final stretch:Float = getSubmodValue("stretch", player) + getSubmodValue('stretch${noteData}', player);
+        final squish:Float = getSubmodValue("squish", player) + getSubmodValue('squish${noteData}', player);
 
         // Calculate stretch factors (vertical stretch, horizontal compression)
-        var stretchFactorX = FlxMath.lerp(1, 0.5, stretch); // Horizontal compression
-        var stretchFactorY = FlxMath.lerp(1, 2, stretch);   // Vertical stretch
+        final stretchFactorX = FlxMath.lerp(1, 0.5, stretch); // Horizontal compression
+        final stretchFactorY = FlxMath.lerp(1, 2, stretch);   // Vertical stretch
 
         // Calculate squish factors (horizontal stretch, vertical compression)  
-        var squishFactorX = FlxMath.lerp(1, 2, squish);     // Horizontal stretch
-        var squishFactorY = FlxMath.lerp(1, 0.5, squish);   // Vertical compression
+        final squishFactorX = FlxMath.lerp(1, 2, squish);     // Horizontal stretch
+        final squishFactorY = FlxMath.lerp(1, 0.5, squish);   // Vertical compression
 
         // Current implementation uses angle 0, so trigonometric functions simplify
         // These would be more complex with rotation, but currently:
         // sin(0) = 0, cos(0) = 1
-        var angle = 0;
-        var sinAngle = Math.sin(angle * Math.PI / 180); // = 0
-        var cosAngle = Math.cos(angle * Math.PI / 180); // = 1
+        final angle = 0;
+        final sinAngle = Math.sin(angle * Math.PI / 180); // = 0
+        final cosAngle = Math.cos(angle * Math.PI / 180); // = 1
 
         // Apply stretch effects (simplified due to angle 0)
         scale.x *= (sinAngle * stretchFactorY) + (cosAngle * stretchFactorX); // = stretchFactorX
@@ -178,14 +178,10 @@ class ScaleModifier extends NoteModifier {
 
     override function updateSplash(beat:Float, splash:NoteSplash, pos:Vector3, player:Int) {
         if (splash.babyArrow != null) {
-            var baseScale = FlxPoint.weak(1, 1);
-            if (splash.config != null) {
-                baseScale.set(splash.config.scale, splash.config.scale);
-            }
-            
+            var baseScale = FlxPoint.weak(splash.defScale.x, splash.defScale.y);
             var finalScale = getScale(splash, baseScale, splash.noteData, player);
+
             splash.scale.copyFrom(finalScale);
-            
             finalScale.putWeak();
             baseScale.putWeak();
         }
@@ -193,11 +189,10 @@ class ScaleModifier extends NoteModifier {
 
     override function updateHoldCover(beat:Float, cover:NoteHoldCover, pos:Vector3, player:Int) {
         if (cover.curNote != null) {
-            var baseScale = FlxPoint.weak(1, 1);
+            var baseScale = FlxPoint.weak(cover.defScale.x, cover.defScale.y);
             var finalScale = getScale(cover, baseScale, cover.curNote.noteData, player);
             
             cover.scale.copyFrom(finalScale);
-            
             finalScale.putWeak();
             baseScale.putWeak();
         }

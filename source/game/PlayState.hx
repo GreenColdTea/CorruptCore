@@ -192,12 +192,13 @@ class PlayState extends MusicBeatState
 	public var dadGroup:FlxSpriteGroup;
 	public var gfGroup:FlxSpriteGroup;
 	public static var curStage:String = '';
-	public static var isPixelStage:Bool = false;
 	public static var SONG:SwagSong = null;
 	public static var isStoryMode:Bool = false;
 	public static var storyWeek:Int = 0;
 	public static var storyPlaylist:Array<String> = [];
 	public static var storyDifficulty:Int = 1;
+
+	public static var isPixelStage(default, set):Bool = false;
 
 	public var spawnTime:Float = 2000;
 
@@ -363,6 +364,15 @@ class PlayState extends MusicBeatState
 	public var endCallback:Void->Void = null;
 
 	public var playFreakyMenuAfterEnd:Bool = true;
+
+	private static function set_isPixelStage(value:Bool):Bool {
+		if (isPixelStage == value) 
+			return value;
+
+		isPixelStage = value;
+		instance?.updatePixelStage();
+		return value;
+	}
 
 	override public function create()
 	{
@@ -547,10 +557,6 @@ class PlayState extends MusicBeatState
 		{
 			case 'stress':
 				GameOverSubstate.characterName = 'bf-holding-gf-dead';
-		}
-
-		if(isPixelStage) {
-			introSoundsSuffix = '-pixel';
 		}
 
 		add(gfGroup);
@@ -2419,11 +2425,7 @@ class PlayState extends MusicBeatState
 									{
 										final shouldFlip = reverseMod.getReverseValue(daNote.noteData, pN) >= 0.5;
 										if (daNote.flipX != shouldFlip)
-										{
 											daNote.flipX = shouldFlip;
-											if (shouldFlip)
-												daNote.centerOffsets();
-										}
 									}
 								}
 							}
@@ -3988,22 +3990,19 @@ class PlayState extends MusicBeatState
 	}
 
 	public function spawnHoldCover(note:Note) {
-		var skin:String = 'holdCovers';
-		if(PlayState.SONG.holdCoverSkin != null && PlayState.SONG.holdCoverSkin.length > 0) skin = PlayState.SONG.holdCoverSkin;
-		
 		//same as above
-		if (note == null || !note.active || note.animation == null || note.animation.curAnim == null 
+		if (note == null || !note.active || note.animation == null || note.animation.curAnim == null
 			|| !StringTools.endsWith(note.animation.curAnim.name, 'end')) return;
-		
+
 		var parentNote = note.parent;
 		var noteData = parentNote != null ? parentNote.noteData : note.noteData;
-		
+
 		var strum:StrumNote = (note.mustPress ? playerStrums : opponentStrums).members[noteData];
 
 		var hueColor:Float = 0;
 		var satColor:Float = 0;
 		var brtColor:Float = 0;
-		
+
 		if (strum != null) {
 			var dynStrum:Dynamic = cast strum;
 			if (dynStrum.colorSwap != null) {
@@ -4012,22 +4011,22 @@ class PlayState extends MusicBeatState
 				brtColor = dynStrum.colorSwap.brightness;
 			}
 		}
-		
+
 		if (NoteHoldCover.activeCovers.exists(strum)) {
 			var existingCover = NoteHoldCover.activeCovers.get(strum);
-			existingCover.setupHoldCover(strum, note, skin, hueColor, satColor, brtColor);
+			existingCover.setupHoldCover(strum, note, hueColor, satColor, brtColor);
 			return;
 		}
-		
+
 		var holdCover:NoteHoldCover = grpHoldCovers.recycle(NoteHoldCover);
 		holdCover.startCrochet = Conductor.stepCrochet / playbackRate;
-		holdCover.frameRate = Math.floor(24 / 100 * SONG.bpm);
-		
-		holdCover.setupHoldCover(strum, note, skin, hueColor, satColor, brtColor);
+		holdCover.frameRate = Math.floor((isPixelStage ? 20 : 24) / 100 * Conductor.bpm);
+
+		holdCover.setupHoldCover(strum, note, hueColor, satColor, brtColor);
 		grpHoldCovers.add(holdCover);
-		
+
 		note.extraData ??= new Map<String, Dynamic>();
-		note.extraData[skin] = holdCover;
+		note.extraData['holdCover'] = holdCover;
 	}
 
 	override function destroy() {
@@ -4404,6 +4403,23 @@ class PlayState extends MusicBeatState
 		note.kill();
 		notes.remove(note, true);
 		note.destroy();
+	}
+
+	public function updatePixelStage() {
+		introSoundsSuffix = isPixelStage ? '-pixel' : '';
+		
+		for (note in unspawnNotes)
+			note?.reloadNote();
+		
+		notes?.forEachAlive((note:Note) -> note.reloadNote());
+		playerStrums?.forEachAlive((strum:StrumNote) -> strum.reloadNote());
+		opponentStrums?.forEachAlive((strum:StrumNote) -> strum.reloadNote());
+		grpHoldCovers?.forEach((cover:NoteHoldCover) -> cover.reloadCover());
+
+		grpNoteSplashes?.forEachAlive((splash:NoteSplash) -> {
+			if (splash.allowPixel)
+				splash.pixelShader.pixelAmount = isPixelStage ? daPixelZoom : 1;
+		});
 	}
 
 	public var ratingName:String = '?';
