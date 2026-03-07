@@ -443,6 +443,11 @@ class NoteSplashEditorState extends MusicBeatState
         allowHSBCheck.onClick = () -> if (config != null) config.allowHSB = allowHSBCheck.checked;
         allowHSBCheck.checked = config != null && cast(config.allowHSB, Null<Bool>) != null ? config.allowHSB : false;
         ui.add(allowHSBCheck);
+
+        var noAntialiasingCheck:PsychUICheckBox = new PsychUICheckBox(180, allowHSBCheck.y + 20, "No Antialiasing");
+        noAntialiasingCheck.onClick = () -> if (config != null) config.no_antialiasing = noAntialiasingCheck.checked;
+        noAntialiasingCheck.checked = config != null && cast(config.no_antialiasing, Null<Bool>) != null ? config.no_antialiasing : false;
+        ui.add(noAntialiasingCheck);
     }
 
     function updateGhosts() {

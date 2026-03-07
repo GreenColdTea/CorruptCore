@@ -79,6 +79,8 @@ class NoteSplash extends flixel.addons.effects.FlxSkewedSprite
             textureLoaded = texture;
             
             config = loadConfig(texture);
+            antialiasing = !(config?.no_antialiasing ?? true) && ClientPrefs.globalAntialiasing;
+            allowPixel = (config?.allowPixel ?? false) && PlayState.isPixelStage;
             
             @:privateAccess
             animation.clearAnimations();
