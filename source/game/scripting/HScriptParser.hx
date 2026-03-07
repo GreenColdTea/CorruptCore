@@ -21,17 +21,8 @@ class HScriptParser extends HxParser
     private var currentColumn:Int = 1;
     public var scriptPath:String = "";
     
-    public var preprocessorValues:Map<String, Dynamic>;
     private var preprocStack:Array<{active:Bool, elseFound:Bool}>;
     private var currentActive:Bool = true;
-
-    public function setPreprocessorValues(values:Map<String, Dynamic>):Void {
-        this.preprocessorValues = values;
-    }
-    
-    public function setDefines(values:Map<String, Dynamic>):Void {
-        this.preprocessorValues = values;
-    }
     
     public function new(?strictMode:Bool = true)
     {
@@ -39,7 +30,6 @@ class HScriptParser extends HxParser
         this.strictMode = strictMode;
         this.errors = [];
         this.warnings = [];
-        this.preprocessorValues = new Map();
         this.preprocStack = [];
         this.warnedLines = new Map();
     }

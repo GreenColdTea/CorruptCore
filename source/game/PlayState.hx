@@ -4415,11 +4415,6 @@ class PlayState extends MusicBeatState
 		playerStrums?.forEachAlive((strum:StrumNote) -> strum.reloadNote());
 		opponentStrums?.forEachAlive((strum:StrumNote) -> strum.reloadNote());
 		grpHoldCovers?.forEach((cover:NoteHoldCover) -> cover.reloadCover());
-
-		grpNoteSplashes?.forEachAlive((splash:NoteSplash) -> {
-			if (splash.allowPixel)
-				splash.pixelShader.pixelAmount = isPixelStage ? daPixelZoom : 1;
-		});
 	}
 
 	public var ratingName:String = '?';

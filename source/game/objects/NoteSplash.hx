@@ -20,6 +20,7 @@ import game.shaders.PixelShader;
 typedef NoteSplashConfig = {
     var scale:Float;
     var animations:Map<String, NoteSplashAnimConfig>;
+    var no_antialiasing:Bool;
     @:optional var allowRGB:Bool;
     @:optional var allowPixel:Bool;
     @:optional var allowHSB:Bool;
@@ -69,8 +70,6 @@ class NoteSplash extends flixel.addons.effects.FlxSkewedSprite
         pixelShader = new PixelShader();
         shader = colorSwap.shader;
 
-        antialiasing = ClientPrefs.globalAntialiasing;
-
         loadSplash(texture);
     }
 
@@ -80,7 +79,6 @@ class NoteSplash extends flixel.addons.effects.FlxSkewedSprite
             textureLoaded = texture;
             
             config = loadConfig(texture);
-            allowPixel = config?.allowPixel ?? false;
             
             @:privateAccess
             animation.clearAnimations();
@@ -141,6 +139,9 @@ class NoteSplash extends flixel.addons.effects.FlxSkewedSprite
             colorSwap.brightness = brtColor;
         }
 
+        antialiasing = !(config?.no_antialiasing ?? true) && ClientPrefs.globalAntialiasing;
+        allowPixel = (config?.allowPixel ?? false) && PlayState.isPixelStage;
+
         if (allowPixel) {
             if (useHSB) {
                 pixelShader.copyFromColorSwap(colorSwap);
@@ -149,7 +150,7 @@ class NoteSplash extends flixel.addons.effects.FlxSkewedSprite
                 pixelShader.saturation = 0;
                 pixelShader.brightness = 0;
             }
-            pixelShader.pixelAmount = PlayState.isPixelStage ? PlayState.daPixelZoom : 1;
+            pixelShader.pixelAmount = PlayState.daPixelZoom;
             shader = pixelShader.shader;
         } else {
             shader = useHSB ? colorSwap.shader : null;
@@ -206,8 +207,6 @@ class NoteSplash extends flixel.addons.effects.FlxSkewedSprite
             }
         });
 
-        antialiasing = ClientPrefs.globalAntialiasing;
-
         spawned = true;
     }
     
@@ -247,6 +246,7 @@ class NoteSplash extends flixel.addons.effects.FlxSkewedSprite
         return {
             scale: 1,
             animations: new Map(),
+            no_antialiasing: false,
             allowRGB: false,
             allowPixel: true,
             allowHSB: true
@@ -281,6 +281,7 @@ class NoteSplash extends flixel.addons.effects.FlxSkewedSprite
                 config.scale = Reflect.hasField(jsonData, "scale") ? Reflect.field(jsonData, "scale") : 1;
                 config.allowPixel = Reflect.hasField(jsonData, "allowPixel") ? Reflect.field(jsonData, "allowPixel") : false;
                 config.allowHSB = Reflect.hasField(jsonData, "allowHSB") ? Reflect.field(jsonData, "allowHSB") : true;
+                config.no_antialiasing = Reflect.hasField(jsonData, "no_antialiasing") ? Reflect.field(jsonData, "no_antialiasing") : false;
                 
                 if(Reflect.hasField(jsonData, "animations")) {
                     var animsData:Dynamic = Reflect.field(jsonData, "animations");

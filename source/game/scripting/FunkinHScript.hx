@@ -19,13 +19,12 @@ class FunkinHScript extends FunkinRuleScript
         
         hxParser.allowAll();
         
-        var preprocessors = getHScriptPreprocessors();
         /*trace('HScript Preprocessors for $path:');
         for (key => value in preprocessors) {
             trace('  $key = $value (type: ${Type.typeof(value)})');
         }*/
         
-        hxParser.setPreprocessorValues(preprocessors);
+        hxParser.preprocessorValues = getHScriptPreprocessors();
         hxParser.setParserParameters({
             strictMode: true,
             reportWarnings: true
