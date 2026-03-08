@@ -292,7 +292,8 @@ class NoteSplashEditorState extends MusicBeatState
             var image = Paths.image(imageSkin);
             if (image == null)
             {
-                errorText.text = 'ERROR! Couldn\'t find $imageSkin.png';
+                var triedExtensions:String = Paths.IMAGE_EXTS.join(", ");
+                errorText.text = 'ERROR! Couldn\'t find $imageSkin.[$triedExtensions]';
                 errorText.alpha = 1;
                 return;
             }
@@ -300,7 +301,7 @@ class NoteSplashEditorState extends MusicBeatState
             {
                 errorText.color = FlxColor.GREEN;
                 errorText.alpha = 1;
-                errorText.text = 'Succesfully loaded $imageSkin.png';
+                errorText.text = 'Successfully loaded $imageSkin (format auto-detected)';
             }
 
             NoteSplash.configs.clear();

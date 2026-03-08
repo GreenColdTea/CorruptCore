@@ -312,16 +312,17 @@ class WeekEditorState extends MusicBeatState implements PsychUIEventHandler.Psyc
 	function reloadBG() {
 		bgSprite.visible = true;
 		var assetName:String = weekFile.weekBackground;
-
 		var isMissing:Bool = true;
-		if(assetName?.length > 0) {
-			if(Paths.fileExists('images/menubackgrounds/menu_' + assetName + '.png', IMAGE)) {
-				bgSprite.loadGraphic(Paths.image('menubackgrounds/menu_' + assetName));
+
+		if (assetName?.length > 0) {
+			var graphic = Paths.image('menubackgrounds/menu_$assetName');
+			if (graphic != null) {
+				bgSprite.loadGraphic(graphic);
 				isMissing = false;
 			}
 		}
 
-		if(isMissing) {
+		if (isMissing) {
 			bgSprite.visible = false;
 		}
 	}
@@ -330,24 +331,24 @@ class WeekEditorState extends MusicBeatState implements PsychUIEventHandler.Psyc
 		weekThing.visible = true;
 		missingFileText.visible = false;
 		var assetName:String = weekFileInputText.text.trim();
-		
 		var isMissing:Bool = true;
-		if(assetName?.length > 0) {
-			if(Paths.fileExists('images/storymenu/' + assetName + '.png', IMAGE)) {
-				weekThing.loadGraphic(Paths.image('storymenu/' + assetName));
+
+		if (assetName?.length > 0) {
+			var graphic = Paths.image('storymenu/$assetName');
+			if (graphic != null) {
+				weekThing.loadGraphic(graphic);
 				isMissing = false;
 			}
 		}
 
-		if(isMissing) {
+		if (isMissing) {
 			weekThing.visible = false;
 			missingFileText.visible = true;
-			missingFileText.text = 'MISSING FILE: images/storymenu/' + assetName + '.png';
+			missingFileText.text = 'MISSING FILE: images/storymenu/' + assetName + ' (any format)';
 		}
 		recalculateStuffPosition();
 
 		#if DISCORD_ALLOWED
-		// Updating Discord Rich Presence
 		DiscordClient.changePresence("Week Editor", "Editting: " + weekFileName);
 		#end
 	}

@@ -335,7 +335,11 @@ class ModsMenuState extends MusicBeatState
             add(newMod.alphabet);
             
             var loadedIcon:BitmapData = null;
-            var iconBytes = Mods.getFileFromMod(values[0], 'pack.png');
+            var iconBytes = null;
+            for (ext in Paths.IMAGE_EXTS) {
+                iconBytes = Mods.getFileFromMod(values[0], 'pack.$ext');
+                if (iconBytes != null) break;
+            }
             if(iconBytes != null)
             {
                 try {

@@ -911,7 +911,7 @@ class CalibrationNote extends FlxSprite
 		super(x, y);
 		this.noteData = noteData;
 		
-		if (Paths.fileExists('images/NOTE_assets.png', IMAGE))
+		if (Paths.image('NOTE_assets') != null)
 		{
 			frames = Paths.getSparrowAtlas('NOTE_assets');
 			antialiasing = ClientPrefs.globalAntialiasing;
@@ -971,9 +971,9 @@ class CalibrationStrum extends FlxSprite
 	}
 
 	function loadStrumTexture():Void {
-		var skin:String = 'NOTE_assets';
-		
-		if(Paths.fileExists('images/NOTE_assets.png', IMAGE)) {
+		final skin:String = 'NOTE_assets';
+		if(Paths.image(skin) != null) 
+		{
 			frames = Paths.getSparrowAtlas(skin);
 			
 			setGraphicSize(Std.int(width * 0.7));
