@@ -88,29 +88,37 @@ class HealthIcon extends FlxSprite
 		}
 	}
 
-	private var iconOffsets:Array<Float> = [0, 0];
-	public function changeIcon(char:String, ?allowGPU:Bool = false) {
-		if(this.char != char) {
-			var name:String = 'icons/' + char;
-			for (ext in Paths.IMAGE_EXTS) {
-				if(!Paths.fileExists('images/$name.$ext', IMAGE)) name = 'icons/icon-' + char; //Older versions of psych engine's support
-				if(!Paths.fileExists('images/$name.$ext', IMAGE)) name = 'icons/icon-face'; //Prevents crash from missing icon
+	var iconOffsets:Array<Float> = [0, 0];
+	public function changeIcon(char:String, ?allowGPU:Bool = false) 
+	{
+		if (this.char != char) {
+			var usedName:String = 'icons/$char';
+			var graphic:flixel.graphics.FlxGraphic = Paths.image(usedName, allowGPU);
+
+			if (graphic == null) {
+				usedName = 'icons/icon-$char';
+				graphic = Paths.image(usedName, allowGPU);
 			}
 			
-			var graphic = Paths.image(name, allowGPU);
+			if (graphic == null) {
+				usedName = 'icons/icon-face';
+				graphic = Paths.image(usedName, allowGPU);
+			}
+
 			var iSize:Float = Math.round(graphic.width / graphic.height);
 			loadGraphic(graphic, true, Math.floor(graphic.width / iSize), Math.floor(graphic.height));
+			
 			iconOffsets[0] = (width - 150) / iSize;
 			iconOffsets[1] = (height - 150) / iSize;
 
 			scale.set(targetScale, targetScale);
 			updateHitbox();
 
-			animation.add(char, [for(i in 0...frames.frames.length) i], 0, false, isPlayer);
+			animation.add(char, [for (i in 0...frames.frames.length) i], 0, false, isPlayer);
 			animation.play(char);
+			
 			this.char = char;
-
-			antialiasing = char.endsWith('-pixel') ? false : ClientPrefs.globalAntialiasing;
+			antialiasing = (char.endsWith('-pixel') ? false : ClientPrefs.globalAntialiasing);
 		}
 	}
 
