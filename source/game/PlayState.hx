@@ -3966,21 +3966,19 @@ class PlayState extends MusicBeatState
 	public function spawnHoldCoverOnNote(note:Note) {
 		if(!ClientPrefs.noteHoldCovers) return;
 
-		var skin:String = 'holdCovers';
-		if(PlayState.SONG.holdCoverSkin != null && PlayState.SONG.holdCoverSkin.length > 0) skin = PlayState.SONG.holdCoverSkin;
-
 		var endNote:Note = note;
-		if (note.parent != null && note.parent.tail != null && note.parent.tail.length > 0) {
+		if (note.parent?.tail?.length > 0) {
 			endNote = note.isSustainNote ? note.parent.tail[note.parent.tail.length - 1] : note.tail[note.tail.length - 1];
 		}
-		
+
 		//to prevent crash when its null
-		if (endNote == null || !endNote.active || endNote.animation == null || endNote.animation.curAnim == null 
+		if (endNote == null || !endNote.active || endNote.animation == null || endNote.animation.curAnim == null
 			|| !StringTools.endsWith(endNote.animation.curAnim.name, 'end')) return;
-		
+
 		if (endNote != null) {
 			endNote.extraData ??= new Map<String, Dynamic>();
-			var leSplash:NoteHoldCover = endNote.extraData[skin];
+
+			var leSplash:NoteHoldCover = endNote.extraData['holdCover'];
 			if (leSplash == null) {
 				spawnHoldCover(endNote);
 			} else {
