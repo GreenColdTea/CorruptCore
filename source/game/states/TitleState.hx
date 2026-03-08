@@ -610,7 +610,7 @@ class TitleState extends MusicBeatState
 		#if SCRIPTABLE_STATES
 		var ret = callOnMenuScript("onIntroSkip", [(!skippedIntro)]);
 		#end
-		if (!skippedIntro #if SCRIPTABLE_STATES && ret != FunkinLua.Function_Stop #end)
+		if (!skippedIntro #if SCRIPTABLE_STATES && ret != ScriptResult.Function_Stop #end)
 		{
 			if (playJingle)
 			{
