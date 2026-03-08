@@ -4046,6 +4046,8 @@ class PlayState extends MusicBeatState
 		if(FunkinLua.hscript != null) FunkinLua.hscript = null;
 		#end
 
+		isPixelStage = false;
+
 		if(!ClientPrefs.controllerMode)
 		{
 			FlxG.stage.removeEventListener(KeyboardEvent.KEY_DOWN, onKeyPress);

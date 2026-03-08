@@ -160,7 +160,7 @@ class MetaNote extends Note
 			{
 				txt = new FlxText(0, 0, ChartEditorState.GRID_SIZE, (num > 0) ? Std.string(num) : '?', 14);
 				txt.setFormat(Paths.font("pixel-latin.ttf"), 14, FlxColor.WHITE, CENTER, FlxTextBorderStyle.SHADOW, FlxColor.BLACK);
-				txt.shadowOffset.set(2, 2);
+				txt.setBorderStyle(SHADOW_XY(2, 2));
 				txt.autoSize = false;
 				txt.scrollFactor.x = 0;
 				noteTypeTexts.set(num, txt);

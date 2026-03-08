@@ -214,10 +214,8 @@ class CreditsState extends MusicBeatState
 		if (entry[5] != null)
 			Mods.currentModDirectory = entry[5];
 
-		var icon = new AttachedSprite('credits/' + entry[1]);
-		for (ext in Paths.IMAGE_EXTS)
-			if(!Paths.fileExists('images/credits/${entry[1]}.$ext', IMAGE)) 
-				icon = new AttachedSprite('credits/missing_icon');
+		var iconPath = 'credits/' + entry[1];
+		var icon = new AttachedSprite(Paths.image(iconPath) != null ? iconPath : 'credits/missing_icon');
 
 		icon.xAdd = text.width + 10;
 		icon.sprTracker = text;

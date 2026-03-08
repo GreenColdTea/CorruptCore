@@ -48,6 +48,7 @@ class ClientPrefs {
     public static var cacheOnGPU:Bool = #if !switch false #else true #end;
     public static var noBordersScreen:Bool = #if mobile false #else true #end;
     public static var adaptiveCache:Bool = false;
+    public static var useStreamingAudio:Bool = false;
     
     public static var comboOffset:Array<Int> = [0, 0, 0, 0, 0, 0];
     public static var ratingOffset:Int = 0;
@@ -134,6 +135,7 @@ class ClientPrefs {
         cacheOnGPU = #if !switch false #else true #end;
         noBordersScreen = #if mobile false #else true #end;
         adaptiveCache = false;
+        useStreamingAudio = false;
         comboOffset = [0, 0, 0, 0, 0, 0];
         ratingOffset = 0;
         sickWindow = 45;
@@ -188,6 +190,7 @@ class ClientPrefs {
         FlxG.save.data.cacheOnGPU = cacheOnGPU;
         FlxG.save.data.noBordersScreen = noBordersScreen;
         FlxG.save.data.adaptiveCache = adaptiveCache;
+        FlxG.save.data.useStreamingAudio = useStreamingAudio;
         FlxG.save.data.comboOffset = comboOffset;
         FlxG.save.data.ratingOffset = ratingOffset;
         FlxG.save.data.sickWindow = sickWindow;
@@ -239,6 +242,7 @@ class ClientPrefs {
         if (FlxG.save.data.cacheOnGPU != null) cacheOnGPU = FlxG.save.data.cacheOnGPU;
         if (FlxG.save.data.noBordersScreen != null) noBordersScreen = FlxG.save.data.noBordersScreen;
         if (FlxG.save.data.adaptiveCache != null) adaptiveCache = FlxG.save.data.adaptiveCache;
+        if (FlxG.save.data.useStreamingAudio != null) useStreamingAudio = FlxG.save.data.useStreamingAudio;
         if (FlxG.save.data.comboOffset != null) comboOffset = FlxG.save.data.comboOffset;
         if (FlxG.save.data.ratingOffset != null) ratingOffset = FlxG.save.data.ratingOffset;
         if (FlxG.save.data.sickWindow != null) sickWindow = FlxG.save.data.sickWindow;
@@ -297,6 +301,7 @@ class ClientPrefs {
 		#end
 
         FlxG.scaleMode = noBordersScreen ? new flixel.system.scaleModes.BaseScaleMode() : new flixel.system.scaleModes.RatioScaleMode();
+        FlxG.sound.useStreamingForAll = ClientPrefs.useStreamingAudio;
         
         if (FlxG.save.data.volume != null) FlxG.sound.volume = FlxG.save.data.volume;
         if (FlxG.save.data.mute != null) FlxG.sound.muted = FlxG.save.data.mute;
