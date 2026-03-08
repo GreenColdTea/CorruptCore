@@ -14,6 +14,8 @@ import game.objects.AttachedSprite;
 import game.objects.CustomFadeTransition;
 import game.objects.BGSprite;
 
+import game.scripting.ScriptResult;
+
 import game.stages.backend.BaseStage;
 
 import game.states.backend.MusicBeatState;

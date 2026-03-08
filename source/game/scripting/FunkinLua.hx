@@ -65,15 +65,6 @@ import game.scripting.lua.*;
 using StringTools;
 
 class FunkinLua {
-    @:unreflective
-    public static final Function_Stop:Dynamic = 1;
-
-    @:unreflective
-    public static final Function_Continue:Dynamic = 0;
-
-    @:unreflective
-    public static final Function_StopLua:Dynamic = 2;
-
     #if LUA_ALLOWED
     public var lua:cpp.RawPointer<Lua_State> = null;
     #end
@@ -142,9 +133,9 @@ class FunkinLua {
 
         trace((isString ? 'lua string loaded succesfully' : 'lua file loaded succesfully: $script'));
 
-        set('Function_StopLua', Function_StopLua);
-        set('Function_Stop', Function_Stop);
-        set('Function_Continue', Function_Continue);
+        set('Function_Stop_Lua', ScriptResult.Function_Stop_Lua);
+        set('Function_Stop', ScriptResult.Function_Stop);
+        set('Function_Continue', ScriptResult.Function_Continue);
 
         set('luaDebugMode', false);
         set('luaDeprecatedWarnings', true);

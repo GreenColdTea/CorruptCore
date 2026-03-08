@@ -6,14 +6,9 @@ import hxvlc.util.Handle;
 
 class FunkinVideoSprite extends FlxVideoSprite
 {
-	@:unreflective
-    public static final ARG_LOOPING:String = ':input-repeat=65535';
-
-	@:unreflective
-    public static final ARG_MUTED:String = ':no-audio';
-
-	@:unreflective
-    public static final ARG_HW_ACCEL:String = ':avcodec-hw=any';
+	public static final ARG_LOOPING:String = ':input-repeat=2147483647';
+	public static final ARG_MUTED:String = ':no-audio';
+	public static final ARG_HW_ACCEL:String = ':avcodec-hw=any';
     
     public var isStateAffected:Bool = true;
     public var autoDestroyOnComplete:Bool = true;
@@ -148,7 +143,7 @@ class FunkinVideoSprite extends FlxVideoSprite
     public function setTime(time:Float):Void
     {
         if (bitmap != null) {
-            var microSeconds:Float = time * 1000;
+            final microSeconds:Float = time * 1000;
             bitmap.time = haxe.Int64.fromFloat(microSeconds);
         }
     }
@@ -160,12 +155,68 @@ class FunkinVideoSprite extends FlxVideoSprite
     public function getTime():Float
     {
         if (bitmap != null) {
-            var time64 = bitmap.time;
-            var microSeconds:Float = (time64.high * 4294967296.0) + time64.low;
-
+            final time64 = bitmap.time;
+            final microSeconds:Float = (time64.high * 4294967296.0) + time64.low;
             return microSeconds / 1000;
         }
         return 0;
+    }
+
+    /**
+     * Sets the video position as a percentage (0.0 to 1.0)
+     * @param percent Position as a percentage (0.0 = start, 1.0 = end)
+     */
+    public function setVideoPercent(percent:Float):Void
+    {
+        if (bitmap != null) {
+            final newPos = Math.max(0, Math.min(1, percent));
+            bitmap.position = newPos;
+            
+            if (!bitmap.isPlaying)
+                bitmap.play();
+        }
+    }
+
+    /**
+     * Gets the current video position as a percentage (0.0 to 1.0)
+     * @return Current position as a percentage
+     */
+    public function getVideoPercent():Float
+    {
+        return bitmap != null ? bitmap.position : 0;
+    }
+
+    /**
+     * Seek to a specific time in milliseconds using position (more reliable)
+     * @param ms Time in milliseconds
+     */
+    public function seekToMs(ms:Float):Void
+    {
+        if (bitmap == null) return;
+        
+        final durationMicro = bitmap.length;
+        if (haxe.Int64.compare(durationMicro, haxe.Int64.ofInt(0)) <= 0) {
+            setTime(ms);
+            return;
+        }
+        
+        final targetMicro = haxe.Int64.fromFloat(ms * 1000);
+        final durationFloat = haxe.Int64.toInt(durationMicro);
+        final targetFloat = haxe.Int64.toInt(targetMicro);
+        
+        if (durationFloat > 0) {
+            final percent = targetFloat / durationFloat;
+            setVideoPercent(percent);
+        }
+    }
+
+    /**
+     * Seek to a specific time in seconds using position (more reliable)
+     * @param seconds Time in seconds
+     */
+    public function seekToSeconds(seconds:Float):Void
+    {
+        seekToMs(seconds * 1000);
     }
 
     /**

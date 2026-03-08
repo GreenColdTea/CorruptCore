@@ -1,3 +1,4 @@
+game.scripting.ScriptResult
 #if flixel_animate
 animate.FlxAnimateFrames.FilterQuality
 #end
