@@ -14,7 +14,9 @@ import game.Paths;
 
 class Mods
 {
-    public static final MODS_FOLDER = "contents";
+    @:unreflective
+    inline public static final MODS_FOLDER = "contents";
+    
     public static var debugMode:Bool = #if DEBUG_MODS true #else false #end;
     
     public static var ignoreModFolders:Array<String> = [

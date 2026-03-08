@@ -249,16 +249,15 @@ class MusicBeatSubstate extends FlxSubState
 	public function quickCallMenuScript(func:String, ?args:Dynamic):Dynamic
 	{
 		#if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
-		var returnThing:Dynamic = ScriptResult.Function_Continue;
+		var returnThing:Dynamic = FunkinLua.Function_Continue;
 		for (script in menuScriptArray)
 		{
 			var scriptThing = script.call(func, args);
-			if (scriptThing == null) continue;
-			if (scriptThing == ScriptResult.Function_Stop) returnThing = scriptThing;
+			if (scriptThing == FunkinLua.Function_Stop) returnThing = scriptThing;
 		}
 		return returnThing;
 		#else
-		return ScriptResult.Function_Continue;
+		return FunkinLua.Function_Continue;
 		#end
 	}
 }

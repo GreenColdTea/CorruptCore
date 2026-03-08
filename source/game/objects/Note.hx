@@ -299,9 +299,7 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 		var arraySkin:Array<String> = skin.split('/');
 		arraySkin[arraySkin.length-1] = prefix + arraySkin[arraySkin.length-1] + postfix;
 
-		var lastScaleY:Float = scale?.y ?? 1.0;
-		scale ??= FlxPoint.get(1, 1);
-		
+		var lastScaleY:Float = scale.y;
 		var skinName:String = arraySkin.join('/');
 		if(PlayState.isPixelStage) {
 			if(isSustainNote) {

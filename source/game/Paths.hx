@@ -46,7 +46,10 @@ class Paths
     public static final VIDEO_EXTS:Array<String> = ["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm"];
 
     //for backward compatibility
+    @:unreflective
     public static final SOUND_EXT = SOUND_EXTS[0];
+
+    @:unreflective
     public static final VIDEO_EXT = VIDEO_EXTS[0];
 
     public static function excludeAsset(key:String) {

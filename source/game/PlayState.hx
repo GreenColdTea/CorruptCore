@@ -1380,7 +1380,7 @@ class PlayState extends MusicBeatState
 		seenCutscene = true;
 		inCutscene = false;
 		var ret:Dynamic = callOnScripts('onStartCountdown', null, true);
-		if(ret != ScriptResult.Function_Stop) {
+		if(ret != FunkinLua.Function_Stop) {
 			if (skipCountdown || startOnTime > 0) skipArrowStartTween = true;
 
 			generateStaticArrows(0);
@@ -1571,7 +1571,7 @@ class PlayState extends MusicBeatState
 	public function updateScore(miss:Bool = false)
 	{
 		var ret:Dynamic = callOnScripts('preUpdateScore', [miss], true);
-		if (ret == ScriptResult.Function_Stop) return;
+		if (ret == FunkinLua.Function_Stop) return;
 
 		scoreTxt.text = 'Score: ' + songScore
 		+ ' | Misses: ' + songMisses
@@ -2161,7 +2161,7 @@ class PlayState extends MusicBeatState
 		if (controls.PAUSE && startedCountdown && canPause)
 		{
 			var ret:Dynamic = callOnScripts('onPause', [], false);
-			if(ret != ScriptResult.Function_Stop) {
+			if(ret != FunkinLua.Function_Stop) {
 				openPauseMenu();
 			}
 		}
@@ -2595,7 +2595,7 @@ class PlayState extends MusicBeatState
 		if (((skipHealthCheck && instakillOnMiss) || health <= 0) && !practiceMode && !isDead)
 		{
 			var ret:Dynamic = callOnScripts('onGameOver', null, false);
-			if(ret != ScriptResult.Function_Stop) {
+			if(ret != FunkinLua.Function_Stop) {
 				FlxG.animationTimeScale = 1;
 				boyfriend.stunned = true;
 				deathCounter++;
@@ -3052,7 +3052,7 @@ class PlayState extends MusicBeatState
 		#end
 
 		var ret:Dynamic = callOnScripts('onEndSong', [], false);
-		if(ret != ScriptResult.Function_Stop && !transitioning) {
+		if(ret != FunkinLua.Function_Stop && !transitioning) {
 			#if !switch
 			var percent:Float = ratingPercent;
 			if(Math.isNaN(percent)) percent = 0;
@@ -3394,7 +3394,7 @@ class PlayState extends MusicBeatState
 			if(!boyfriend.stunned && generatedMusic && !endingSong)
 			{
 				var ret:Dynamic = callOnScripts('preKeyPress', [key]);
-				if(ret == ScriptResult.Function_Stop) return;
+				if(ret == FunkinLua.Function_Stop) return;
 
 				//more accurate hit time for the ratings?
 				var lastTime:Float = Conductor.songPosition;
@@ -3477,7 +3477,7 @@ class PlayState extends MusicBeatState
 		var key:Int = getKeyFromEvent(eventKey);
 
 		var ret:Dynamic = callOnScripts('preKeyRelease', [key]);
-		if(ret == ScriptResult.Function_Stop) return;
+		if(ret == FunkinLua.Function_Stop) return;
 
 		if(!cpuControlled && startedCountdown && !paused && key > -1)
 		{
@@ -3817,9 +3817,9 @@ class PlayState extends MusicBeatState
 			var leType:String = note.noteType;
 
 			var result:Dynamic = callOnLuas('preGoodNoteHit', [notes.members.indexOf(note), leData, leType, isSus]);
-			if(result != ScriptResult.Function_Stop) result = callOnHScript('preGoodNoteHit', [note]);
+			if(result != FunkinLua.Function_Stop) result = callOnHScript('preGoodNoteHit', [note]);
 
-			if(result == ScriptResult.Function_Stop) return;
+			if(result == FunkinLua.Function_Stop) return;
 
 			if (ClientPrefs.hitsoundVolume > 0 && !note.hitsoundDisabled)
 			{
@@ -4278,7 +4278,7 @@ class PlayState extends MusicBeatState
 		#end
 	}
 	public function callOnHScript(event:String, args:Array<Dynamic>, ignoreStops = true, exclusions:Array<String> = null, excludeValues:Array<Dynamic> = null):Dynamic {
-		var returnVal = ScriptResult.Function_Continue;
+		var returnVal = FunkinLua.Function_Continue;
 		#if HSCRIPT_ALLOWED
 		exclusions ??= [];
 		excludeValues ??= [];
@@ -4288,21 +4288,22 @@ class PlayState extends MusicBeatState
 				continue;
 
 			var myValue = sc.call(event, args);
-			if(myValue == ScriptResult.Function_Stop_Lua && !ignoreStops)
+			if(myValue == FunkinLua.Function_StopLua && !ignoreStops)
 				break;
 			
-			if(myValue != ScriptResult.Function_Continue)
+			if(myValue != null && myValue != FunkinLua.Function_Continue) {
 				returnVal = myValue;
+			}
 		}
 		#end
 		return returnVal;
 	}
 	
 	public function callOnScripts(funcToCall:String, args:Array<Dynamic> = null, ignoreStops = false, exclusions:Array<String> = null, excludeValues:Array<Dynamic> = null):Dynamic {
-		var returnVal = ScriptResult.Function_Continue;
+		var returnVal = FunkinLua.Function_Continue;
 		args ??= [];
 		exclusions ??= [];
-		excludeValues ??= [ScriptResult.Function_Continue];
+		excludeValues ??= [FunkinLua.Function_Continue];
 
 		var result = callOnLuas(funcToCall, args, ignoreStops, exclusions, excludeValues);
 		if(result == null || excludeValues.contains(result)) result = callOnHScript(funcToCall, args, ignoreStops, exclusions, excludeValues);
@@ -4317,7 +4318,7 @@ class PlayState extends MusicBeatState
 	}
 
 	public function callOnLuas(event:String, args:Array<Dynamic>, ignoreStops = true, exclusions:Array<String> = null, excludeValues:Array<Dynamic> = null):Dynamic {
-		var returnVal = ScriptResult.Function_Continue;
+		var returnVal = FunkinLua.Function_Continue;
 		#if LUA_ALLOWED
 		exclusions ??= [];
 		excludeValues ??= [];
@@ -4327,11 +4328,12 @@ class PlayState extends MusicBeatState
 				continue;
 
 			var myValue = script.safeCall(event, args);
-			if(myValue == ScriptResult.Function_Stop_Lua && !ignoreStops)
+			if(myValue == FunkinLua.Function_StopLua && !ignoreStops)
 				break;
 			
-			if(myValue != ScriptResult.Function_Continue)
+			if(myValue != null && myValue != FunkinLua.Function_Continue) {
 				returnVal = myValue;
+			}
 		}
 		#end
 		return returnVal;
@@ -4424,7 +4426,7 @@ class PlayState extends MusicBeatState
 		setOnScripts('hits', songHits);
 
 		var ret:Dynamic = callOnScripts('onRecalculateRating', [], false);
-		if(ret != ScriptResult.Function_Stop)
+		if(ret != FunkinLua.Function_Stop)
 		{
 			if(totalPlayed < 1) //Prevent divide by 0
 				ratingName = '?';
@@ -4536,8 +4538,19 @@ class PlayState extends MusicBeatState
 		{
 			requiresSyncing = false;
 			setSongTime(lastCorrectSongPos);
-			gameFroze = false;
+
+			#if VIDEOS_ALLOWED
+			if (video?.isPlaying())
+			{
+				var desiredVideoTime = lastCorrectSongPos - videoStartTime;
+				if (desiredVideoTime >= 0) {
+					video.setTime(desiredVideoTime);
+				}
+			}
+			#end
 		}
+
+		gameFroze = false;
 	}
 
 	public function runSongSyncThread()
