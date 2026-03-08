@@ -4536,8 +4536,9 @@ class PlayState extends MusicBeatState
 		{
 			requiresSyncing = false;
 			setSongTime(lastCorrectSongPos);
-			gameFroze = false;
 		}
+
+		gameFroze = false;
 	}
 
 	public function runSongSyncThread()
