@@ -267,6 +267,7 @@ class Project extends HXProject
         {
             haxelibs.push(new Haxelib("rulescript"));
             haxelibs.push(new Haxelib("hscript"));
+            if (isHashLink()) setHaxedef("rulescript_use_hl_fixes");
             setHaxedef("hscriptPos");
         }
 
@@ -299,10 +300,6 @@ class Project extends HXProject
             }
             haxelibs.push(new Haxelib("hxflac"));
             haxelibs.push(new Haxelib("hxopus"));
-        }
-
-        if (!(isFlash() || isWeb() || isAIR()))
-        {
             haxelibs.push(new Haxelib("flxsoundfilters"));
         }
 

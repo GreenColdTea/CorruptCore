@@ -668,7 +668,7 @@ class LoadingState extends MusicBeatState
     static function isSoundLoaded(path:String):Bool
     {
         #if MODS_ALLOWED
-        if (path.startsWith('${Mods.MODS_FOLDER}/')) {
+        if (path?.startsWith('${Mods.MODS_FOLDER}/')) {
             return FileSystem.exists(path);
         }
         #end

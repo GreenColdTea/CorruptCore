@@ -2663,7 +2663,10 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		var foundNextSec:Bool = false;
 
 		if(curSec > 0 && sectionStartTime(-1) >= 0) {
-			prevGridBG = FlxGridOverlay.create(GRID_SIZE, GRID_SIZE, GRID_SIZE * (GRID_COLUMNS_TOTAL + 1), Std.int(GRID_SIZE * getSectionBeats(curSec - 1) * GRID_COLUMNS_PER_PLAYER * zoomList[curZoom]), true, gridColors.background, gridColors.mainLines);
+			var prevGridHeight:Int = Std.int(GRID_SIZE * getSectionBeats(curSec - 1) * GRID_COLUMNS_PER_PLAYER * zoomList[curZoom]);
+			if (prevGridHeight < GRID_SIZE) prevGridHeight = GRID_SIZE;
+
+			prevGridBG = FlxGridOverlay.create(GRID_SIZE, GRID_SIZE, GRID_SIZE * (GRID_COLUMNS_TOTAL + 1), prevGridHeight, true, gridColors.background, gridColors.mainLines);
 			prevGridBG.screenCenter(X);
 			foundPrevSec = true;
 		} else {
