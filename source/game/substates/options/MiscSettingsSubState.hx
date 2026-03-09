@@ -57,7 +57,7 @@ class MiscSettingsSubState extends BaseOptionsMenu
 			'bool',
 			false);
 		addOption(option);
-		option.onChange = () -> FlxG.sound.useStreamingForAll = ClientPrefs.useStreamingForAll;
+		option.onChange = () -> FlxG.sound.useStreamingForAll = ClientPrefs.useStreamingAudio;
 
 		var option:Option = new Option('Adaptive Caching',
 			"If checked, it will use your GPU with RAM to cache sprites.\nTurn it on, if you have a good GPU.",
@@ -69,7 +69,7 @@ class MiscSettingsSubState extends BaseOptionsMenu
 		option.onChange = updateCacheOptionsVisibility;
 
 		var option:Option = new Option('GPU Caching',
-			"The same is above but GPU only.",
+			"The same as above but GPU only.",
 			'cacheOnGPU',
 			'bool',
 			false);

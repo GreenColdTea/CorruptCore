@@ -21,9 +21,8 @@ import game.stages.backend.BaseStage;
 import game.states.backend.MusicBeatState;
 import game.substates.backend.MusicBeatSubstate;
 
+import game.backend.animation.PsychAnimationController;
 import game.backend.system.Mods;
-
-import flixel.animation.PsychAnimationController;
 
 #if flxsoundfilters
 import flixel.sound.filters.*;

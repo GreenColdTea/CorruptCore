@@ -144,6 +144,23 @@ class Shader
     public var vertPath:String;
 
 	/**
+		Get or set the GLSL version used in the header when compiling with GLSL.
+		- `120` is required for initialization (i.e. providing a default value for) `uniform` variables
+		@default The default value is determined at compile time.
+	**/
+	public var glVersion(get, set):String;
+
+	/**
+		Provides additional `#extension` directives to insert in the vertex shader.
+	**/
+	public var glVertexExtensions(get, set):Array<{name:String, behavior:String}>;
+
+	/**
+		Provides additional `#extension` directives to insert in the fragment shader.
+	**/
+	public var glFragmentExtensions(get, set):Array<{name:String, behavior:String}>;
+
+	/**
 		Get or set the fragment source used when compiling with GLSL.
 
 		This property is not available on the Flash target.
@@ -234,6 +251,10 @@ class Shader
 	@:noCompletion private var __texture:ShaderInput<BitmapData>;
 	@:noCompletion private var __textureSize:ShaderParameter<Float>;
 
+	@:noCompletion private var __glVersion:String;
+	@:noCompletion private var __glVertexExtensions:Array<{name:String, behavior:String}>;
+	@:noCompletion private var __glFragmentExtensions:Array<{name:String, behavior:String}>;
+
 	#if openfljs
 	@:noCompletion private static function __init__()
 	{
@@ -241,6 +262,18 @@ class Shader
 			"data": {
 				get: untyped #if haxe4 js.Syntax.code #else __js__ #end ("function () { return this.get_data (); }"),
 				set: untyped #if haxe4 js.Syntax.code #else __js__ #end ("function (v) { return this.set_data (v); }")
+			},
+			"glVersion": {
+				get: untyped #if haxe4 js.Syntax.code #else __js__ #end ("function () { return this.get_glVersion (); }"),
+				set: untyped #if haxe4 js.Syntax.code #else __js__ #end ("function (v) { return this.set_glVersion (v); }")
+			},
+			"glVertexExtensions": {
+				get: untyped #if haxe4 js.Syntax.code #else __js__ #end ("function () { return this.get_glVertexExtensions (); }"),
+				set: untyped #if haxe4 js.Syntax.code #else __js__ #end ("function (v) { return this.set_glVertexExtensions (v); }")
+			},
+			"glFragmentExtensions": {
+				get: untyped #if haxe4 js.Syntax.code #else __js__ #end ("function () { return this.get_glFragmentExtensions (); }"),
+				set: untyped #if haxe4 js.Syntax.code #else __js__ #end ("function (v) { return this.set_glFragmentExtensions (v); }")
 			},
 			"glFragmentSource": {
 				get: untyped #if haxe4 js.Syntax.code #else __js__ #end ("function () { return this.get_glFragmentSource (); }"),
@@ -542,6 +575,198 @@ class Shader
 		}
 	}
 
+	/**
+	 * Builds the proper GLSL prefix (version, extensions, precision) for a shader stage.
+	 * @param isFragment true for fragment shader, false for vertex shader.
+	 */
+	@:noCompletion private function __buildSourcePrefix(isFragment:Bool):String
+	{
+		var extensions = "";
+		
+		var extList = (isFragment ? __glFragmentExtensions : __glVertexExtensions);
+		if (extList != null)
+		{
+			for (ext in extList)
+			{
+				extensions += "#extension " + ext.name + " : " + ext.behavior + "\n";
+			}
+		}
+		
+		var versionLine = "";
+		if (__glVersion != null && __glVersion != "")
+		{
+			// User explicitly set a version
+			versionLine = '#version $__glVersion\n';
+		}
+		else if (__context != null && __context.gl != null)
+		{
+			// Detect from context
+			#if (js && html5)
+			// WebGL 1.0 uses GLSL ES 1.00, WebGL 2.0 uses GLSL ES 3.00
+			var isWebGL2 = __context.__context.type == WEBGL2;
+			versionLine = isWebGL2 ? "#version 300 es\n" : ""; // 100 is default for WebGL 1.0
+			#elseif lime_opengles
+			// OpenGL ES version is usually like "OpenGL ES 2.0" or "OpenGL ES 3.0"
+			var versionStr = __context.__context.version;
+			var isGLES3 = versionStr != null && versionStr.indexOf("3.") == 0;
+			versionLine = isGLES3 ? "#version 300 es\n" : "#version 100\n";
+			#else
+			var versionStr = __context.__context.version;
+			var glslVersion = __getGLSLVersionFromGLVersion(versionStr);
+			versionLine = glslVersion != null ? '#version $glslVersion\n' : "#version 120\n";
+			#end
+		}
+		else
+		{
+			// Fallback to safe defaults
+			#if (js && html5)
+			versionLine = ""; // WebGL 1.0 default
+			#elseif lime_opengles
+			versionLine = "#version 100\n";
+			#else
+			versionLine = "#version 120\n";
+			#end
+		}
+		
+		var complexBlendsSupported = false;
+		#if (lime || openfl)
+		if (__context != null && OpenGLRenderer.__complexBlendsSupported != null)
+		{
+			complexBlendsSupported = OpenGLRenderer.__complexBlendsSupported && isFragment;
+			
+			// Additional checks based on context type and version
+			if (complexBlendsSupported)
+			{
+				#if lime
+				var versionStr = __context.__context.version;
+				
+				if (__context.__context.type == OPENGL)
+				{
+					var major = __parseGLVersionMajor(versionStr);
+					var minor = __parseGLVersionMinor(versionStr);
+					
+					var versionOK = (major > 4) || (major == 4) || (major == 3 && minor >= 2);
+					var hasExtension = __context.gl.getExtension("GL_KHR_blend_equation_advanced") != null;
+					complexBlendsSupported = versionOK || hasExtension;
+				}
+				else if (__context.__context.type == OPENGLES)
+				{
+					// For OpenGL ES, need version >= 3.2
+					var major = __parseGLVersionMajor(versionStr);
+					var minor = __parseGLVersionMinor(versionStr);
+					var versionOK = (major > 3) || (major == 3 && minor >= 2);
+					var hasExtension = __context.gl.getExtension("GL_KHR_blend_equation_advanced") != null;
+					complexBlendsSupported = versionOK && hasExtension;
+				}
+				#end
+			}
+		}
+		#end
+		
+		if (complexBlendsSupported)
+		{
+			extensions += "#extension GL_KHR_blend_equation_advanced : enable\n";
+			
+			#if lime
+			if (__context != null && __context.__context.type == OPENGL)
+			{
+				extensions += "#extension GL_ARB_sample_shading : enable\n";
+			}
+			#end
+		}
+		
+		var precisionPart = "";
+		if (versionLine.indexOf("es") > -1 || versionLine == "" || versionLine == "#version 100\n")
+		{
+			precisionPart = (precisionHint == FULL ? "#ifdef GL_FRAGMENT_PRECISION_HIGH\n"
+						+ "precision highp float;\n"
+						+ "#else\n"
+						+ "precision mediump float;\n"
+						+ "#endif" : "precision lowp float;");
+		}
+		
+		var prefix = versionLine
+			+ extensions
+			+ (precisionPart != "" ? "#ifdef GL_ES\n" + precisionPart + "\n#endif\n" : "");
+		
+		if (complexBlendsSupported)
+		{
+			prefix += "#ifdef GL_KHR_blend_equation_advanced\nlayout (blend_support_all_equations) out;\n#endif\n";
+		}
+		
+		return prefix;
+	}
+
+	/**
+	 * Parse major version from OpenGL version string
+	 */
+	@:noCompletion private function __parseGLVersionMajor(versionStr:String):Int
+	{
+		if (versionStr == null || versionStr == "") return 0;
+		
+		var dotIndex = versionStr.indexOf(".");
+		if (dotIndex > 0)
+		{
+			var majorStr = versionStr.substr(0, dotIndex);
+			return Std.parseInt(majorStr);
+		}
+		return 0;
+	}
+
+	/**
+	 * Parse minor version from OpenGL version string
+	 */
+	@:noCompletion private function __parseGLVersionMinor(versionStr:String):Int
+	{
+		if (versionStr == null || versionStr == "") return 0;
+		
+		var firstDot = versionStr.indexOf(".");
+		if (firstDot > 0)
+		{
+			var afterFirstDot = versionStr.substr(firstDot + 1);
+			var secondDot = afterFirstDot.indexOf(".");
+			if (secondDot > 0)
+			{
+				var minorStr = afterFirstDot.substr(0, secondDot);
+				return Std.parseInt(minorStr);
+			}
+		}
+		return 0;
+	}
+
+	/**
+	 * Convert OpenGL version to GLSL version
+	 */
+	@:noCompletion private function __getGLSLVersionFromGLVersion(versionStr:String):String
+	{
+		if (versionStr == null || versionStr == "") return null;
+		
+		var major = __parseGLVersionMajor(versionStr);
+		var minor = __parseGLVersionMinor(versionStr);
+		
+		if (major >= 3)
+		{
+			if (major == 3)
+			{
+				if (minor >= 3) return "330";
+				if (minor >= 2) return "150";
+				if (minor >= 0) return "130";
+			}
+			else if (major >= 4)
+			{
+				return "330";
+			}
+		}
+		
+		if (major == 2)
+		{
+			if (minor >= 1) return "120";
+			return "110";
+		}
+		
+		return "120";
+	}
+
 	@:noCompletion private function __initGL():Void
 	{
 		if (__glSourceDirty || __paramBool == null)
@@ -568,26 +793,11 @@ class Shader
 				return;
 			}
 
-			var prefix:String = "";
-			#if (js && html5)
-			prefix = (precisionHint == FULL ? "precision mediump float;\n" : "precision lowp float;\n");
-			#elseif lime_opengles
-			prefix = "#version 300 es\n";
-			prefix += (precisionHint == FULL ? "precision mediump float;\n" : "precision lowp float;\n");
-			prefix += "out vec4 output_FragColor;\n";
-			#else
-			prefix = "#version 330\n";
-			prefix += "#ifdef GL_ES\n"
-				+ (precisionHint == FULL ? "#ifdef GL_FRAGMENT_PRECISION_HIGH\n"
-					+ "precision highp float;\n"
-					+ "#else\n"
-					+ "precision mediump float;\n"
-					+ "#endif\n" : "precision lowp float;\n")
-				+ "#endif\n\n";
-			#end
+			var vertexPrefix = __buildSourcePrefix(false);
+			var fragmentPrefix = __buildSourcePrefix(true);
 
-			var vertex = prefix + glVertexSource;
-			var fragment = prefix + glFragmentSource;
+			var vertex = vertexPrefix + glVertexSource;
+			var fragment = fragmentPrefix + glFragmentSource;
 
 			#if lime_opengles
 			vertex = vertex.replace("attribute", "in")
@@ -687,6 +897,10 @@ class Shader
 		if (storageType == "uniform")
 		{
 			regex = ~/uniform ([A-Za-z0-9]+) ([A-Za-z0-9_]+)/;
+		}
+		else if (storageType == "in")
+		{
+			regex = ~/in ([A-Za-z0-9]+) ([A-Za-z0-9_]+)/;
 		}
 		else
 		{
@@ -1067,6 +1281,48 @@ class Shader
 		}
 
 		return __glVertexSource = value;
+	}
+
+	@:noCompletion private function get_glVersion():String
+	{
+		return __glVersion;
+	}
+
+	@:noCompletion private function set_glVersion(value:String):String
+	{
+		if (value != __glVersion)
+		{
+			__glSourceDirty = true;
+		}
+		return __glVersion = value;
+	}
+
+	@:noCompletion private function get_glVertexExtensions():Array<{name:String, behavior:String}>
+	{
+		return __glVertexExtensions;
+	}
+
+	@:noCompletion private function set_glVertexExtensions(value:Array<{name:String, behavior:String}>):Array<{name:String, behavior:String}>
+	{
+		if (value != __glVertexExtensions)
+		{
+			__glSourceDirty = true;
+		}
+		return __glVertexExtensions = value;
+	}
+
+	@:noCompletion private function get_glFragmentExtensions():Array<{name:String, behavior:String}>
+	{
+		return __glFragmentExtensions;
+	}
+
+	@:noCompletion private function set_glFragmentExtensions(value:Array<{name:String, behavior:String}>):Array<{name:String, behavior:String}>
+	{
+		if (value != __glFragmentExtensions)
+		{
+			__glSourceDirty = true;
+		}
+		return __glFragmentExtensions = value;
 	}
 }
 #else

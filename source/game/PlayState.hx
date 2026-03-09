@@ -543,6 +543,7 @@ class PlayState extends MusicBeatState
 		switch (curStage)
 		{
 			case 'stage': new game.stages.StageWeek1(); //Week 1
+			#if INCLUDE_BASE_GAME
 			case 'spooky': new game.stages.Spooky(); //Week 2
 			case 'philly': new game.stages.Philly(); //Week 3
 			case 'limo': new game.stages.Limo(); //Week 4
@@ -551,6 +552,7 @@ class PlayState extends MusicBeatState
 			case 'school': new game.stages.School(); //Week 6 - Senpai, Roses
 			case 'schoolEvil': new game.stages.SchoolEvil(); //Week 6 - Thorns
 			case 'tank': new game.stages.Tank(); //Week 7 - Ugh, Guns, Stress
+			#end
 		}
 
 		switch(Paths.formatToSongPath(SONG.song))
