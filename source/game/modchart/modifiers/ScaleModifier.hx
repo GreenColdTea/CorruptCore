@@ -187,7 +187,7 @@ class ScaleModifier extends NoteModifier {
         }
     }
 
-    override function updateHoldCover(beat:Float, cover:NoteHoldCover, pos:Vector3, player:Int) {
+    /*override function updateHoldCover(beat:Float, cover:NoteHoldCover, pos:Vector3, player:Int) {
         if (cover.curNote != null) {
             var baseScale = FlxPoint.weak(cover.defScale.x, cover.defScale.y);
             var finalScale = getScale(cover, baseScale, cover.curNote.noteData, player);
@@ -196,5 +196,5 @@ class ScaleModifier extends NoteModifier {
             finalScale.putWeak();
             baseScale.putWeak();
         }
-    }
+    }*/
 }

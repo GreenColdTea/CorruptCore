@@ -209,7 +209,7 @@ class Song
 			bpm: 150.0,
 			needsVoices: true,
 			arrowSkin: '',
-			splashSkin: 'BloodSplash',//idk it would crash if i didn't
+			splashSkin: game.objects.NoteSplash.defaultNoteSplash,//idk it would crash if i didn't
 			holdCoverSkin: 'holdCovers',
 			player1: 'bf',
 			player2: 'dad',

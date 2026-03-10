@@ -112,7 +112,7 @@ class PlayState extends MusicBeatState
 	public static final STRUM_X = 42;
 	public static final STRUM_X_MIDDLESCROLL = -278;
 
-	var noteRows:Array<Array<Array<Note>>> = [[],[],[]];
+	private var noteRows:Array<Array<Array<Note>>> = [[],[],[]];
 
 	private var shutdownThread:Bool = false;
 	private var gameFroze:Bool = false;
@@ -136,7 +136,6 @@ class PlayState extends MusicBeatState
 	//event variables
 	private var isCameraOnForcedPos:Bool = false;
 
-	#if (haxe >= "4.0.0")
 	public var boyfriendMap:Map<String, Character> = new Map();
 	public var dadMap:Map<String, Character> = new Map();
 	public var gfMap:Map<String, Character> = new Map();
@@ -144,6 +143,7 @@ class PlayState extends MusicBeatState
 	public var cameraShaders:Map<String, FlxRuntimeShader> = new Map();
 	public var modchartTweens:Map<String, FlxTween> = new Map();
 	public var modchartSprites:Map<String, ModchartSprite> = new Map();
+	public var runtimeShaders:Map<String, Array<String>> = new Map();
 	#if flixel_animate
 	public var modchartAnimateSprites:Map<String, ModchartAnimateSprite> = new Map();
 	#end
@@ -152,23 +152,6 @@ class PlayState extends MusicBeatState
 	public var modchartSounds:Map<String, FlxSound> = new Map();
 	public var modchartTexts:Map<String, ModchartText> = new Map();
 	public var modchartSaves:Map<String, FlxSave> = new Map();
-	#else
-	public var boyfriendMap:Map<String, Character> = new Map<String, Character>();
-	public var dadMap:Map<String, Character> = new Map<String, Character>();
-	public var gfMap:Map<String, Character> = new Map<String, Character>();
-	public var variables:Map<String, Dynamic> = new Map<String, Dynamic>();
-	public var cameraShaders:Map<String, FlxRuntimeShader> = new Map<String, FlxRuntimeShader>();
-	public var modchartTweens:Map<String, FlxTween> = new Map<String, FlxTween>();
-	public var modchartSprites:Map<String, ModchartSprite> = new Map<String, ModchartSprite>();
-	#if flixel_animate
-	public var modchartAnimateSprites:Map<String, ModchartAnimateSprite> = new Map<String, ModchartAnimateSprite>();
-	#end
-	public var modchartBackdrops:Map<String, ModchartBackdrop> = new Map<String, ModchartBackdrop>();
-	public var modchartTimers:Map<String, FlxTimer> = new Map<String, FlxTimer>();
-	public var modchartSounds:Map<String, FlxSound> = new Map<String, FlxSound>();
-	public var modchartTexts:Map<String, ModchartText> = new Map<String, ModchartText>();
-	public var modchartSaves:Map<String, FlxSave> = new Map<String, FlxSave>();
-	#end
 
 	#if MODCHART_ALLOWED
 	public var modManager:ModManager;
@@ -229,6 +212,7 @@ class PlayState extends MusicBeatState
 	public var camZooming:Bool = false;
 	public var camZoomingMult:Float = 1;
 	public var camZoomingDecay:Float = 1;
+
 	private var curSong:String = "";
 
 	public var gfSpeed:Int = 1;
@@ -236,11 +220,12 @@ class PlayState extends MusicBeatState
 	public var displayHealth:Float = 1;
 	public var combo:Int = 0;
 
-	private var healthBarBG:AttachedSprite;
+	public var healthBarBG:AttachedSprite;
 	public var healthBar:FlxBar;
-	var songPercent:Float = 0;
 
-	private var timeBarBG:AttachedSprite;
+	private var songPercent:Float = 0;
+	
+	public var timeBarBG:AttachedSprite;
 	public var timeBar:FlxBar;
 
 	public var ratingsData:Array<Rating> = [];
@@ -250,9 +235,9 @@ class PlayState extends MusicBeatState
 	public var shits:Int = 0;
 
 	private var generatedMusic:Bool = false;
+	private var updateTime:Bool = true;
 	public var endingSong:Bool = false;
 	public var startingSong:Bool = false;
-	private var updateTime:Bool = true;
 	public static var changedDifficulty:Bool = false;
 	public static var chartingMode:Bool = false;
 
@@ -286,9 +271,10 @@ class PlayState extends MusicBeatState
 	public var songScore:Int = 0;
 	public var songHits:Int = 0;
 	public var songMisses:Int = 0;
+
 	public var scoreTxt:FlxText;
-	var timeTxt:FlxText;
-	var scoreTxtTween:FlxTween;
+	public var timeTxt:FlxText;
+	private var scoreTxtTween:FlxTween;
 
 	public static var campaignScore:Int = 0;
 	public static var campaignMisses:Int = 0;
@@ -299,11 +285,13 @@ class PlayState extends MusicBeatState
 
 	// how big to stretch the pixel art assets
 	public static var daPixelZoom:Float = 6;
+
 	private var singAnimations:Array<String> = ['singLEFT', 'singDOWN', 'singUP', 'singRIGHT'];
 
 	public var inCutscene:Bool = false;
 	public var skipCountdown:Bool = false;
-	var songLength:Float = 0;
+
+	private var songLength:Float = 0;
 
 	public var boyfriendCameraOffset:Array<Float> = null;
 	public var opponentCameraOffset:Array<Float> = null;
@@ -321,10 +309,12 @@ class PlayState extends MusicBeatState
 	var boyfriendIdleTime:Float = 0.0;
 	var boyfriendIdled:Bool = false;
 
-	// Lua shit
 	public static var instance:PlayState;
-	public var luaArray:Array<FunkinLua> = [];
+
+	// Lua shit
 	private var luaDebugGroup:FlxTypedGroup<DebugLuaText>;
+	public var luaArray:Array<FunkinLua> = [];
+
 	public var introSoundsSuffix:String = '';
 
 	//Hscript stuff
@@ -347,10 +337,10 @@ class PlayState extends MusicBeatState
 
 	public var songName:String;
 
-	var curStepText:FlxText;
-	var curBeatText:FlxText;
+	private var curStepText:FlxText;
+	private var curBeatText:FlxText;
 
-	var precacheList:Map<String, String> = new Map<String, String>();
+	private var precacheList:Map<String, String> = new Map<String, String>();
 	
 	// stores the last judgement object
 	public static var lastRating:FlxSprite;
@@ -372,6 +362,51 @@ class PlayState extends MusicBeatState
 		isPixelStage = value;
 		instance?.updatePixelStage();
 		return value;
+	}
+
+	function set_songSpeed(value:Float):Float
+	{
+		if(generatedMusic)
+		{
+			var ratio:Float = value / songSpeed; //funny word huh
+			if(ratio != 1)
+			{
+				for (note in notes.members) note.resizeByRatio(ratio);
+				for (note in unspawnNotes) note.resizeByRatio(ratio);
+			}
+		}
+		songSpeed = value;
+		noteKillOffset = Math.max(Conductor.stepCrochet, 350 / songSpeed * playbackRate);
+		return value;
+	}
+
+	function set_playbackRate(value:Float):Float
+	{
+		#if FLX_PITCH
+		if(generatedMusic)
+		{
+			FlxG.sound.list.forEach((sound:FlxSound) -> {
+				if (sound != null && sound != FlxG.sound.music)
+					sound.pitch = value;
+			});
+			FlxG.sound.music.pitch = value;
+
+			var ratio:Float = playbackRate / value; //funny word huh
+			if(ratio != 1)
+			{
+				for (note in notes.members) note.resizeByRatio(ratio);
+				for (note in unspawnNotes) note.resizeByRatio(ratio);
+			}
+		}
+		playbackRate = value;
+		FlxG.animationTimeScale = value;
+		trace('Anim speed: ' + FlxG.animationTimeScale);
+		Conductor.safeZoneOffset = (ClientPrefs.safeFrames / 60) * 1000 * value;
+		setOnScripts('playbackRate', playbackRate);
+		#else
+		playbackRate = 1.0;
+		#end
+		return playbackRate;
 	}
 
 	override public function create()
@@ -991,128 +1026,6 @@ class PlayState extends MusicBeatState
 		}
 		
 		super.create();
-	}
-
-	#if (!flash && sys)
-	public var runtimeShaders:Map<String, Array<String>> = new Map<String, Array<String>>();
-	public function createRuntimeShader(name:String):FlxRuntimeShader
-	{
-		if(!ClientPrefs.shaders) return new FlxRuntimeShader();
-
-		#if (!flash && sys)
-		if(!runtimeShaders.exists(name) && !initLuaShader(name))
-		{
-			FlxG.log.warn('Shader $name is missing!');
-			return new FlxRuntimeShader();
-		}
-
-		var arr:Array<String> = runtimeShaders.get(name);
-		return new FlxRuntimeShader(arr[0], arr[1]);
-		#else
-		FlxG.log.warn("Platform unsupported for Runtime Shaders!");
-		return null;
-		#end
-	}
-
-	public function initLuaShader(name:String, ?glslVersion:Int = 120)
-	{
-		if(!ClientPrefs.shaders) return false;
-
-		if(runtimeShaders.exists(name))
-		{
-			FlxG.log.warn('Shader $name was already initialized!');
-			return true;
-		}
-
-		var foldersToCheck:Array<String> = [Paths.getPreloadPath('shaders/') #if MODS_ALLOWED , Mods.getModPath('shaders/')#end];
-
-		#if MODS_ALLOWED
-		if(Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0)
-			foldersToCheck.insert(0, Mods.getModPath(Mods.currentModDirectory + '/shaders/'));
-
-		for(mod in Mods.getGlobalMods())
-			foldersToCheck.insert(0, Mods.getModPath(mod + '/shaders/'));
-		#end
-		
-		for (folder in foldersToCheck)
-		{
-			#if sys
-			if(FileSystem.exists(folder))
-			{
-				var frag:String = folder + name + '.frag';
-				var vert:String = folder + name + '.vert';
-				var found:Bool = false;
-				if(FileSystem.exists(frag))
-				{
-					frag = File.getContent(frag);
-					found = true;
-				}
-				else frag = null;
-
-				if (FileSystem.exists(vert))
-				{
-					vert = File.getContent(vert);
-					found = true;
-				}
-				else vert = null;
-
-				if(found)
-				{
-					runtimeShaders.set(name, [frag, vert]);
-					//trace('Found shader $name!');
-					return true;
-				}
-			}
-			#end
-		}
-		FlxG.log.warn('Missing shader $name .frag AND .vert files!');
-		return false;
-	}
-	#end
-
-	function set_songSpeed(value:Float):Float
-	{
-		if(generatedMusic)
-		{
-			var ratio:Float = value / songSpeed; //funny word huh
-			if(ratio != 1)
-			{
-				for (note in notes.members) note.resizeByRatio(ratio);
-				for (note in unspawnNotes) note.resizeByRatio(ratio);
-			}
-		}
-		songSpeed = value;
-		noteKillOffset = Math.max(Conductor.stepCrochet, 350 / songSpeed * playbackRate);
-		return value;
-	}
-
-	function set_playbackRate(value:Float):Float
-	{
-		#if FLX_PITCH
-		if(generatedMusic)
-		{
-			FlxG.sound.list.forEach((sound:FlxSound) -> {
-				if (sound != null && sound != FlxG.sound.music)
-					sound.pitch = value;
-			});
-			FlxG.sound.music.pitch = value;
-
-			var ratio:Float = playbackRate / value; //funny word huh
-			if(ratio != 1)
-			{
-				for (note in notes.members) note.resizeByRatio(ratio);
-				for (note in unspawnNotes) note.resizeByRatio(ratio);
-			}
-		}
-		playbackRate = value;
-		FlxG.animationTimeScale = value;
-		trace('Anim speed: ' + FlxG.animationTimeScale);
-		Conductor.safeZoneOffset = (ClientPrefs.safeFrames / 60) * 1000 * value;
-		setOnScripts('playbackRate', playbackRate);
-		#else
-		playbackRate = 1.0;
-		#end
-		return playbackRate;
 	}
 
 	public function addTextToDebug(text:String, color:FlxColor) {

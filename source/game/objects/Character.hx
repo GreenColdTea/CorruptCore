@@ -164,7 +164,7 @@ class Character extends FlxSprite
             noAntialiasing = true;
         }
         
-        if (json.healthbar_colors != null && json.healthbar_colors?.length > 2)
+        if (json.healthbar_colors?.length > 2)
         {
             healthColorArray = json.healthbar_colors;
         }
@@ -172,15 +172,15 @@ class Character extends FlxSprite
         antialiasing = !noAntialiasing && ClientPrefs.globalAntialiasing;
         
         animationsArray = json.animations;
-        if (animationsArray != null && animationsArray.length > 0)
+        if (animationsArray?.length > 0)
         {
             for (anim in animationsArray)
             {
-                var animAnim:String = '' + anim.anim;
-                var animName:String = '' + anim.name;
-                var animFps:Int = anim.fps;
-                var animLoop:Bool = !!anim.loop;
-                var animIndices:Array<Int> = anim.indices;
+                final animAnim:String = '' + anim.anim;
+                final animName:String = '' + anim.name;
+                final animFps:Int = anim.fps;
+                final animLoop:Bool = !!anim.loop;
+                final animIndices:Array<Int> = anim.indices;
                 
                 if (Std.isOfType(animController, SpriteAnimationController))
                 {
@@ -192,19 +192,28 @@ class Character extends FlxSprite
                 #if flixel_animate
                 else if (Std.isOfType(animController, AnimateAnimationController))
                 {
-                    var animateCtrl:AnimateAnimationController = cast animController;
-                    var atlas = animateCtrl.getInternalSprite();
-                    var animateAtlas:FlxAnimate = cast atlas;
-                    
+                    final animateCtrl:AnimateAnimationController = cast animController;
+                    final atlas = animateCtrl.getInternalSprite();
+                    final animateAtlas:FlxAnimate = cast atlas;
+                    final library = animateAtlas.library;
+
                     if (animIndices?.length > 0)
-                        animateAtlas.anim.addBySymbolIndices(animAnim, animName, animIndices, animFps, animLoop);
-                    else if (animateAtlas.library?.getSymbol(animName) != null)
-                        animateAtlas.anim.addBySymbol(animAnim, animName, animFps, animLoop);
+                    {
+                        if (library?.getSymbol(animName) != null)
+                            animateAtlas.anim.addBySymbolIndices(animAnim, animName, animIndices, animFps, animLoop);
+                        else
+                            animateAtlas.anim.addByFrameLabelIndices(animAnim, animName, animIndices, animFps, animLoop);
+                    }
                     else
-                        animateAtlas.anim.addByFrameLabel(animAnim, animName, animFps, animLoop);
+                    {
+                        if (library?.getSymbol(animName) != null)
+                            animateAtlas.anim.addBySymbol(animAnim, animName, animFps, animLoop);
+                        else
+                            animateAtlas.anim.addByFrameLabel(animAnim, animName, animFps, animLoop);
+                    }
                 }
                 #end
-                
+
                 if (anim.offsets?.length > 1)
                     animOffsets.set(anim.anim, [anim.offsets[0], anim.offsets[1]]);
             }
@@ -499,13 +508,9 @@ class Character extends FlxSprite
     
     public function playGhostAnim(GhostIdx:Int = 0, AnimName:String, Force:Bool = false, Reversed:Bool = false, Frame:Int = 0):Void
     {
-        if (GhostIdx < 0 || GhostIdx >= animGhosts.length)
-        {
-            return;
-        }
+        if (GhostIdx < 0 || GhostIdx >= animGhosts.length) return;
         
-        var ghost = animGhosts[GhostIdx];
-        
+        final ghost = animGhosts[GhostIdx];
         ghost.scale.set(scale.x, scale.y);
         ghost.x = x;
         ghost.y = y;
@@ -529,11 +534,11 @@ class Character extends FlxSprite
         #if flixel_animate
         if (Std.isOfType(ghost, FlxAnimate))
         {
-            var animateGhost:FlxAnimate = cast ghost;
+            final animateGhost:FlxAnimate = cast ghost;
             animateGhost.anim.play(AnimName, Force, Reversed, Frame);
             animateGhost.update(0);
             
-            var offset = animOffsets.get(AnimName);
+            final offset = animOffsets.get(AnimName);
             if (offset != null)
             {
                 animateGhost.offset.set(offset[0], offset[1]);
@@ -548,7 +553,7 @@ class Character extends FlxSprite
         {
             ghost.animation.play(AnimName, Force, Reversed, Frame);
             
-            var offset = animOffsets.get(AnimName);
+            final offset = animOffsets.get(AnimName);
             if (offset != null)
             {
                 ghost.offset.set(offset[0], offset[1]);
@@ -731,18 +736,9 @@ class Character extends FlxSprite
     }
     private function set_atlas(value:FlxAnimate):FlxAnimate
     {
-        if (value == null)
-        {
-            animController?.destroy();
-            animController = new SpriteAnimationController(this, animOffsets);
-            return null;
-        }
-        else
-        {
-            animController?.destroy();
-            animController = new AnimateAnimationController(this, value, animOffsets);
-            return value;
-        }
+        animController?.destroy();
+        animController = value == null ? new SpriteAnimationController(this, animOffsets) : new AnimateAnimationController(this, value, animOffsets);
+        return value;
     }
     #end
     

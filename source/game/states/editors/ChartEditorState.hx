@@ -1954,14 +1954,15 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			resetSection(FlxG.keys.pressed.SHIFT);
 		
 		var shiftThing:Int = (FlxG.keys.pressed.SHIFT) ? 4 : 1;
-		if (FlxG.keys.justPressed.D) changeSection(curSec + shiftThing);
-		if (FlxG.keys.justPressed.A)
+		if (FlxG.keys.justPressed.D && !(FlxG.keys.pressed.SHIFT || FlxG.keys.pressed.CONTROL)) 
+			changeSection(curSec + shiftThing);
+		if (FlxG.keys.justPressed.A && !(FlxG.keys.pressed.SHIFT || FlxG.keys.pressed.CONTROL))
 			changeSection((curSec <= 0) ? 0 : curSec - shiftThing);
 		
-		if (FlxG.keys.pressed.W || FlxG.keys.pressed.S)
+		if (FlxG.keys.pressed.W || (FlxG.keys.pressed.S && !FlxG.keys.pressed.CONTROL))
 			handlePlaybackSeeking();
 
-		if(FlxG.keys.justPressed.RIGHT){
+		if(FlxG.keys.justPressed.RIGHT) {
 			curQuant++;
 			if(curQuant > quantizations.length - 1)
 				curQuant = 0;
@@ -1969,7 +1970,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			quantization = quantizations[curQuant];
 		}
 
-		if(FlxG.keys.justPressed.LEFT){
+		if(FlxG.keys.justPressed.LEFT) {
 			curQuant--;
 			if(curQuant < 0)
 				curQuant = quantizations.length-1;
@@ -2012,7 +2013,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			if (FlxG.keys.pressed.SHIFT && FlxG.keys.justPressed.A) selectAllNotesInSection();
 		}
 
-		if (FlxG.keys.justPressed.DELETE && selectedNotes.length > 0)
+		if ((FlxG.keys.justPressed.DELETE || (FlxG.keys.pressed.CONTROL && FlxG.keys.justPressed.D)) && selectedNotes.length > 0)
 		{
 			saveToUndo();
 			
@@ -2033,10 +2034,8 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		selectedNotes.resize(0);
 		
 		curRenderedNotes.forEachAlive((note:MetaNote) -> {
-			if (note.alpha >= 0.5) {
-				selectedNotes.push(note);
-				note.color = FlxColor.BLUE;
-			}
+			selectedNotes.push(note);
+			note.color = FlxColor.BLUE;
 		});
 		
 		updateNoteUI();
@@ -2210,7 +2209,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		var noteUnderMouse:MetaNote = null;
 		
 		curRenderedNotes.forEachAlive(function(note:MetaNote) {
-			if (note == null || !note.visible || note.alpha < 0.5) return;
+			if (note == null || !note.visible) return;
 			
 			if (FlxG.mouse.overlaps(note)) {
 				if (noteUnderMouse == null || note.strumTime < noteUnderMouse.strumTime) {
@@ -4226,7 +4225,7 @@ class ChartingTipsSubstate extends MusicBeatSubstate
 			"CTRL + V - Paste copied notes\n" +
 			"CTRL + Z - Undo\n" +
 			"CTRL + Y - Redo\n" +
-			"DELETE - Delete selected notes\n" +
+			"DELETE/CTRL + D - Delete selected notes\n" +
 			"Z/X - Zoom in/out\n" +
 			"ENTER - Play chart in PlayState\n" +
 			"ESCAPE - Play chart in Editor PlayState\n" +

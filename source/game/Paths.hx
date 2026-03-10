@@ -733,6 +733,20 @@ class Paths
         return hideChars.split(path).join("").toLowerCase();
     }
 
+    public static function getRelativePath(absPath:String):String
+    {
+        #if sys
+        if (absPath == null) return null;
+        var cwd = Sys.getCwd().replace('\\', '/');
+        var normalized = absPath.replace('\\', '/');
+        if (normalized.indexOf(cwd) == 0)
+        {
+            return normalized.substr(cwd.length);
+        }
+        #end
+        return absPath;
+    }
+
     public static function getAbsolutePath(assetPath:String):String {
         #if sys
         var cleanPath = assetPath;
