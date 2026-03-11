@@ -176,6 +176,7 @@ class Project extends HXProject
         if (!isWeb())
             setHaxedef("openfl_dpi_aware");
 
+        setHaxedef("openfl-enable-handle-error");
         setHaxedef("lime_disable_assets_version");
         setHaxedef("message.reporting", "pretty");
         setHaxedef("no-deprecation-warnings");

@@ -61,16 +61,16 @@ class FunkinSoundTray extends FlxSoundTray
         removeChildren();
 
         /**The sound used when increasing the volume.**/
-        volumeUpSound = "assets/sounds/volup";
+        volumeUpSound = "assets/sounds/volup.ogg";
 
         /**The sound used when decreasing the volume.**/
-        volumeDownSound = 'assets/sounds/voldown';
+        volumeDownSound = 'assets/sounds/voldown.ogg';
 
         // Cache sounds if not silent
         if (!silent)
         {
-            FlxG.sound.cache('$volumeUpSound.ogg');
-            FlxG.sound.cache('$volumeDownSound.ogg');
+            FlxG.sound.cache('$volumeUpSound');
+            FlxG.sound.cache('$volumeDownSound');
         }
 
         visible = false;
@@ -344,7 +344,7 @@ class FunkinSoundTray extends FlxSoundTray
         {
             try
             {
-                var sound = FlxAssets.getSoundAddExtension(up ? volumeUpSound : volumeDownSound);
+                var sound = FlxG.assets.getSound(Std.string(up ? volumeUpSound : volumeDownSound), true);
                 if (sound != null)
                     FlxG.sound.play(sound);
             }
