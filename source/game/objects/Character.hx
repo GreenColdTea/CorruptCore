@@ -523,7 +523,6 @@ class Character extends FlxSprite
         ghost.blend = blend;
         ghost.antialiasing = antialiasing;
         ghost.scrollFactor.copyFrom(scrollFactor);
-        ghost.origin.copyFrom(origin);
 
         ghost.color = FlxColor.fromRGB(
 			Std.int((healthColorArray[0]/255) * color.red),
@@ -535,33 +534,26 @@ class Character extends FlxSprite
         if (Std.isOfType(ghost, FlxAnimate))
         {
             final animateGhost:FlxAnimate = cast ghost;
-            animateGhost.anim.play(AnimName, Force, Reversed, Frame);
-            animateGhost.update(0);
             
             final offset = animOffsets.get(AnimName);
             if (offset != null)
-            {
                 animateGhost.offset.set(offset[0], offset[1]);
-            }
             else
-            {
                 animateGhost.offset.set(0, 0);
-            }
+            
+            animateGhost.anim.play(AnimName, Force, Reversed, Frame);
+            animateGhost.update(0);
         }
         else
         #end
         {
-            ghost.animation.play(AnimName, Force, Reversed, Frame);
-            
             final offset = animOffsets.get(AnimName);
             if (offset != null)
-            {
                 ghost.offset.set(offset[0], offset[1]);
-            }
             else
-            {
                 ghost.offset.set(0, 0);
-            }
+
+            ghost.animation.play(AnimName, Force, Reversed, Frame);
         }
         
         if (GhostIdx < ghostTweens.length && ghostTweens[GhostIdx] != null)

@@ -27,9 +27,9 @@ class AnimateAnimationController implements IAnimationController
     
     public function playAnim(AnimName:String, Force:Bool = false, Reversed:Bool = false, Frame:Int = 0):Void
     {
+        applyOffset(AnimName);
         atlas.anim.play(AnimName, Force, Reversed, Frame);
         atlas.update(0);
-        applyOffset(AnimName);
     }
     
     private function applyOffset(animName:String):Void
@@ -120,6 +120,7 @@ class AnimateAnimationController implements IAnimationController
     {
         atlas.x = character.x;
         atlas.y = character.y;
+        atlas.cameras = character.cameras;
         atlas.scale.set(character.scale.x, character.scale.y);
         atlas.angle = character.angle;
         atlas.alpha = character.alpha;
