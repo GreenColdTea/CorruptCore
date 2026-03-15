@@ -353,8 +353,6 @@ class PlayState extends MusicBeatState
 	public var startCallback:Void->Void = null;
 	public var endCallback:Void->Void = null;
 
-	public var playFreakyMenuAfterEnd:Bool = true;
-
 	private static function set_isPixelStage(value:Bool):Bool {
 		if (isPixelStage == value) 
 			return value;
@@ -2996,7 +2994,6 @@ class PlayState extends MusicBeatState
 					canResync = false;
 					cancelMusicFadeTween();
 
-					if (playFreakyMenuAfterEnd) FlxG.sound.playMusic(Paths.music('freakyMenu'));
 					FlxG.switchState(() -> new StoryMenuState());
 
 					// if ()
@@ -3033,7 +3030,6 @@ class PlayState extends MusicBeatState
 				WeekData.loadTheFirstEnabledMod();
 				canResync = false;
 				cancelMusicFadeTween();
-				if (playFreakyMenuAfterEnd) FlxG.sound.playMusic(Paths.music('freakyMenu'));
 				FlxG.switchState(() -> new FreeplayState());
 				changedDifficulty = false;
 			}
