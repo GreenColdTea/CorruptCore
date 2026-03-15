@@ -124,7 +124,6 @@ class Main extends Sprite
 
 		lime.RawKeyboard.init();
 
-		lime.Native.fixScaling();
 		lime.Native.registerAsGame();
 		lime.Native.setConsoleOutputToUTF8();
 

@@ -115,7 +115,9 @@ class FunkinRuleScript {
 
         'StringMap' => haxe.ds.StringMap,
 		'IntMap' => haxe.ds.IntMap,
-		'ObjectMap' => haxe.ds.ObjectMap
+		'ObjectMap' => haxe.ds.ObjectMap,
+
+        'ScriptedClasses' => game.scripting.haxe.ScriptedClasses
     ];
 
     @:unreflective
@@ -282,9 +284,8 @@ class FunkinRuleScript {
         if (parentInstance != null)
             set("parent", parentInstance);
 
-        var isPlayState = FlxG.state is PlayState;
-        if (isPlayState) {
-            set("game", PlayState.instance);
+        if (FlxG.state is PlayState) {
+            set("instance", PlayState.instance);
             
             set("add", function(obj:flixel.FlxBasic) {
                 var position:Int = PlayState.instance.members.indexOf(PlayState.instance.gfGroup);
@@ -323,9 +324,9 @@ class FunkinRuleScript {
             });
             
         } else {
-            var scriptObject = FlxG.state.subState ?? FlxG.state;
-            set("game", scriptObject);
-            
+            final scriptObject = FlxG.state.subState ?? FlxG.state;
+            set("instance", scriptObject);
+
             set("add", scriptObject.add);
             set("insert", scriptObject.insert);
             set("remove", scriptObject.remove);
@@ -335,7 +336,7 @@ class FunkinRuleScript {
                 return value;
             });
             set("getVar", (name:String) -> {
-                var result:Dynamic = rule.variables.get(name);
+                final result:Dynamic = rule.variables.get(name);
                 return result;
             });
             set("removeVar", (name:String) -> {

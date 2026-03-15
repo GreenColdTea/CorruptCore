@@ -97,7 +97,8 @@ class GameOverSubstate extends MusicBeatSubstate
 		PlayState.instance.callOnScripts('onGameOverStart', []);
 
 		if(soundSettings.playLoopMusic) {
-			FlxG.sound.music.load(Paths.music(loopSoundName), true);
+			FlxG.sound.music.load(Paths.music(loopSoundName));
+			FlxG.sound.music.looped = true;
 		}
 
 		super.create();
@@ -116,21 +117,9 @@ class GameOverSubstate extends MusicBeatSubstate
 		}
 
 		if (controls.ACCEPT) {
-			endBullshit();
+			if (PlayState.instance.callOnScripts('onGameOverConfirm', []) != ScriptResult.Function_Stop) endBullshit();
 		} else if (controls.BACK) {
-			if(soundSettings.playLoopMusic) FlxG.sound.music.stop();
-			
-			PlayState.deathCounter = 0;
-			PlayState.seenCutscene = false;
-			PlayState.chartingMode = false;
-
-			WeekData.loadTheFirstEnabledMod();
-			if (PlayState.isStoryMode)
-				FlxG.switchState(() -> new StoryMenuState());
-			else
-				FlxG.switchState(() -> new FreeplayState());
-
-			PlayState.instance.callOnScripts('onGameOverConfirm', [false]);
+			if (PlayState.instance.callOnScripts('onGameOverConfirm', []) != ScriptResult.Function_Stop) exitFromBullshit();
 		} else if (justPlayedLoop) {
 			switch(PlayState.SONG.stage)
 			{
@@ -195,8 +184,26 @@ class GameOverSubstate extends MusicBeatSubstate
 					FlxG.resetState();
 				});
 			});
+
 			PlayState.instance.callOnScripts('onGameOverConfirm', [true]);
 		}
+	}
+
+	function exitFromBullshit():Void
+	{
+		if(soundSettings.playLoopMusic) FlxG.sound.music.stop();
+			
+		PlayState.deathCounter = 0;
+		PlayState.seenCutscene = false;
+		PlayState.chartingMode = false;
+
+		WeekData.loadTheFirstEnabledMod();
+		if (PlayState.isStoryMode)
+			FlxG.switchState(() -> new StoryMenuState());
+		else
+			FlxG.switchState(() -> new FreeplayState());
+
+		PlayState.instance.callOnScripts('onGameOverConfirm', [false]);
 	}
 
 	override function destroy()

@@ -1541,7 +1541,7 @@ class PlayState extends MusicBeatState
 		callOnScripts('onSkipDialogue', [dialogueCount]);
 	}
 
-	var previousFrameTime:Int = 0;
+	var previousFrameTime:Float = 0;
 	var lastReportedPlayheadPosition:Int = 0;
 	var songTime:Float = 0;
 
