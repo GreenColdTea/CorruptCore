@@ -107,8 +107,6 @@ class AlphaModifier extends NoteModifier {
         return centerY + FADE_DISTANCE_Y * suddenScale + suddenOffset;
     }
 
-    // ==================== VISIBILITY CALCULATIONS ====================
-
     /**
      * Calculates overall visibility based on all alpha effects
      */
@@ -182,8 +180,6 @@ class AlphaModifier extends NoteModifier {
         var alpha = MathUtil.scale(visibility, 0.5, 0, 1, 0);
         return MathUtil.clamp(alpha, 0, 1);
     }
-
-    // ==================== NOTE VISIBILITY UPDATES ====================
 
     override function updateNote(beat:Float, note:Note, pos:Vector3, player:Int) {
         var actualPlayer = note.mustPress ? 0 : 1;

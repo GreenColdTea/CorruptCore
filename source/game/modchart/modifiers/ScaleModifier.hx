@@ -78,7 +78,7 @@ class ScaleModifier extends NoteModifier {
      * @param sprite The game object (note or receptor) being scaled
      * @param baseScale The original scale of the object
      * @param noteData Note direction/column (0-3)
-     * @param player Player index (0 = BF, 1 = Dad, -1 = Both)
+     * @param player Player index (0 = Player, 1 = Opponent, -1 = Both)
      * @return Modified scale point with all effects applied
      */
     private function getScale(sprite:FlxSprite, baseScale:FlxPoint, noteData:Int, player:Int):FlxPoint {

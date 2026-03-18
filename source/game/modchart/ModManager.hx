@@ -15,11 +15,13 @@ import game.objects.*;
 /**
  * Handles chart modifiers on gameplay elements
  * Combines concepts from Schmovin', Andromeda, and custom modifier systems
+ * 
+ * @author NebulaTheZorua
+ * @modified by JustX
  */
 class ModManager {
     private var state:PlayState;
     
-    // Modifier storage
     public var notemodRegister:Map<String, Modifier> = [];
     public var miscmodRegister:Map<String, Modifier> = [];
     public var register:Map<String, Modifier> = [];

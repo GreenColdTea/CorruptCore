@@ -56,6 +56,10 @@ class Main extends Sprite
 	// You can pretty much ignore everything from here on - your code should go in your game.states.
 	public static function main():Void
 	{
+		#if CRASH_HANDLER
+	    CrashHandler.init();
+	    #end
+		
 		Lib.current.addChild(new Main());
 
 		MemoryUtil.enableGC();
@@ -64,10 +68,6 @@ class Main extends Sprite
 	public function new()
 	{
 		super();
-
-		#if CRASH_HANDLER
-	    CrashHandler.init();
-	    #end
 
 		#if MODS_ALLOWED
         Application.current.onExit.add((_) -> Mods.clearTempFiles());

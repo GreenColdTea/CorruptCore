@@ -43,7 +43,7 @@ class TornadoModifier extends NoteModifier {
      * @param beat Current beat with decimal precision
      * @param pos Current position vector to modify
      * @param data Note direction/column (0-3)
-     * @param player Player index (0 = BF, 1 = Dad)
+     * @param player Player index (0 = Player, 1 = Opponent)
      * @param obj The game object (note or receptor)
      * @return Modified position vector with tornado effect applied
      */

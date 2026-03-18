@@ -49,7 +49,7 @@ class ConfusionModifier extends NoteModifier {
      * @param beat Current beat with decimal precision
      * @param note The note to update
      * @param pos Current position vector
-     * @param player Player index (0 = BF, 1 = Dad, -1 = Both)
+     * @param player Player index (0 = Player, 1 = Opponent, -1 = Both)
      */
     override function updateNote(beat:Float, note:Note, pos:Vector3, player:Int) {
         if (!note.isSustainNote) {
@@ -81,7 +81,7 @@ class ConfusionModifier extends NoteModifier {
      * @param beat Current beat with decimal precision
      * @param receptor The strum note receptor to update
      * @param pos Current position vector
-     * @param player Player index (0 = BF, 1 = Dad, -1 = Both)
+     * @param player Player index (0 = Player, 1 = Opponent, -1 = Both)
      */
     override function updateReceptor(beat:Float, receptor:StrumNote, pos:Vector3, player:Int) {
         var totalAngle = calculateReceptorAngle(receptor, player);

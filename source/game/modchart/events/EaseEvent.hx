@@ -21,7 +21,7 @@ class EaseEvent extends ModEvent {
      * @param modName Name of the modifier to animate
      * @param target Target value to ease towards
      * @param easeFunc Easing function to use for the transition
-     * @param player Player index (0 = BF, 1 = Dad, -1 = Both)
+     * @param player Player index (0 = Player, 1 = Opponent, -1 = Both)
      * @param modMgr Reference to the modifier manager
      * @param startVal Optional starting value (uses current value if null)
      */

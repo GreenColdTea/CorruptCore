@@ -17,12 +17,12 @@ enum ModifierType {
  * Execution order constants for modifier prioritization
  */
 enum abstract ModifierOrder(Int) to Int {
-    var FIRST = -1000;        // Highest priority - executes first
-    var PRE_REVERSE = -3;     // Before reverse operations
-    var REVERSE = -2;         // Reverse operations
-    var POST_REVERSE = -1;    // After reverse operations
-    var DEFAULT = 0;          // Standard execution order
-    var LAST = 1000;          // Lowest priority - executes last
+    var FIRST = -1000; // Highest priority - executes first
+    var PRE_REVERSE = -3; // Before reverse operations
+    var REVERSE = -2; // Reverse operations
+    var POST_REVERSE = -1; // After reverse operations
+    var DEFAULT = 0; // Standard execution order
+    var LAST = 1000; // Lowest priority - executes last
 }
 
 /**
@@ -30,11 +30,11 @@ enum abstract ModifierOrder(Int) to Int {
  * Handles visual transformations and effects on notes and receptors
  */
 class Modifier {
-    public var modMgr:ModManager;              // Reference to the modifier manager
+    public var modMgr:ModManager; // Reference to the modifier manager
     public var percents:Array<Float> = [0, 0]; // Modifier intensity per player [player1, player2]
     public var submods:Map<String, Modifier> = []; // Child modifiers
-    public var parent:Modifier;                // Parent modifier for submodifiers
-    public var active:Bool = false;            // Performance optimization flag
+    public var parent:Modifier; // Parent modifier for submodifiers
+    public var active:Bool = false; // Performance optimization flag
 
     public function new(modMgr:ModManager, ?parent:Modifier) {
         this.modMgr = modMgr;
@@ -201,11 +201,9 @@ class Modifier {
      * @param beat Current beat with decimal precision
      * @param receptor The strum note receptor to update
      * @param pos Current position vector
-     * @param player Player index (0 = BF, 1 = Dad, -1 = Both)
+     * @param player Player index (0 = Player, 1 = Opponent, -1 = Both)
      */
-    public function updateReceptor(beat:Float, receptor:StrumNote, pos:Vector3, player:Int) {
-        // Base implementation - override in subclasses
-    }
+    public function updateReceptor(beat:Float, receptor:StrumNote, pos:Vector3, player:Int) {}
 
     /**
      * Updates note visual properties
@@ -214,11 +212,9 @@ class Modifier {
      * @param beat Current beat with decimal precision
      * @param note The note to update
      * @param pos Current position vector
-     * @param player Player index (0 = BF, 1 = Dad, -1 = Both)
+     * @param player Player index (0 = Player, 1 = Opponent, -1 = Both)
      */
-    public function updateNote(beat:Float, note:Note, pos:Vector3, player:Int) {
-        // Base implementation - override in subclasses
-    }
+    public function updateNote(beat:Float, note:Note, pos:Vector3, player:Int) {}
 
     public function updateSplash(beat:Float, splash:game.objects.NoteSplash, pos:Vector3, player:Int) {}
 
@@ -234,7 +230,7 @@ class Modifier {
      * @param beat Current beat with decimal precision
      * @param pos Current position vector
      * @param data Column/direction/note data
-     * @param player Player index (0 = BF, 1 = Dad, -1 = Both)
+     * @param player Player index (0 = Player, 1 = Opponent, -1 = Both)
      * @param obj The game object (note or receptor)
      * @return Modified position vector
      */
@@ -248,10 +244,8 @@ class Modifier {
         player:Int, 
         obj:FlxSprite
     ):Vector3 {
-        return pos; // Base implementation returns original position
+        return pos; // Base implementation returns og position
     }
 
-    public function update(elapsed:Float) {
-        // Base implementation - override in subclasses
-    }
+    public function update(elapsed:Float) {}
 }
