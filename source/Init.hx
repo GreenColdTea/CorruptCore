@@ -81,6 +81,10 @@ class Init extends FlxState
 		FlxG.mouse.visible = false;
 		#end
 
+		#if DISCORD_ALLOWED
+		api.Discord.DiscordClient.prepare();
+		#end
+
 		#if (FEATURE_DEBUG_TRACY && !macro)
 		openfl.Lib.current.stage.addEventListener(openfl.events.Event.EXIT_FRAME, (e:openfl.events.Event) ->
 			cpp.vm.tracy.TracyProfiler.frameMark());
