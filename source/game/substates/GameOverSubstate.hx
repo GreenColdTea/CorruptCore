@@ -76,9 +76,8 @@ class GameOverSubstate extends MusicBeatSubstate
 		boyfriend.skipDance = true;
 		add(boyfriend);
 
-		if(soundSettings.playDeathSound) {
+		if(soundSettings.playDeathSound && deathSoundName != null)
 			FlxG.sound.play(Paths.sound(deathSoundName));
-		}
 		
 		Conductor.changeBPM(100);
 		
@@ -96,7 +95,7 @@ class GameOverSubstate extends MusicBeatSubstate
 		PlayState.instance.setOnScripts('inGameOver', true);
 		PlayState.instance.callOnScripts('onGameOverStart', []);
 
-		if(soundSettings.playLoopMusic) {
+		if(soundSettings.playLoopMusic && loopSoundName != null) {
 			FlxG.sound.music.load(Paths.music(loopSoundName));
 			FlxG.sound.music.looped = true;
 		}
@@ -128,7 +127,7 @@ class GameOverSubstate extends MusicBeatSubstate
 					
 					var exclude:Array<Int> = [];
 					FlxG.sound.play(Paths.sound('jeffGameover/jeffGameover-' + FlxG.random.int(1, 25, exclude)), 1, false, null, true, function() {
-						if(!isEnding && soundSettings.playLoopMusic)
+						if(!isEnding && soundSettings.playLoopMusic && loopSoundName != null)
 							FlxG.sound.music.fadeIn(0.2, 1, 4);
 					});
 
@@ -156,7 +155,7 @@ class GameOverSubstate extends MusicBeatSubstate
 
 	function coolStartDeath(?volume:Float = 1):Void
 	{
-		if(soundSettings.playLoopMusic) {
+		if(soundSettings.playLoopMusic && loopSoundName != null) {
 			FlxG.sound.music.play(true);
 			FlxG.sound.music.volume = volume * soundSettings.volume;
 		}
@@ -174,8 +173,8 @@ class GameOverSubstate extends MusicBeatSubstate
 			else if(boyfriend.hasAnimation('deathLoop'))
 				boyfriend.playAnim('deathLoop', true);
 			
-			if(soundSettings.playLoopMusic) FlxG.sound.music.stop();
-			if(soundSettings.playEndSound) FlxG.sound.play(Paths.music(endSoundName));
+			if(soundSettings.playLoopMusic && loopSoundName != null) FlxG.sound.music.stop();
+			if(soundSettings.playEndSound && endSoundName != null) FlxG.sound.play(Paths.music(endSoundName));
 			
 			new FlxTimer().start(0.7, function(tmr:FlxTimer)
 			{
@@ -191,7 +190,7 @@ class GameOverSubstate extends MusicBeatSubstate
 
 	function exitFromBullshit():Void
 	{
-		if(soundSettings.playLoopMusic) FlxG.sound.music.stop();
+		if(soundSettings.playLoopMusic && loopSoundName != null) FlxG.sound.music.stop();
 			
 		PlayState.deathCounter = 0;
 		PlayState.seenCutscene = false;

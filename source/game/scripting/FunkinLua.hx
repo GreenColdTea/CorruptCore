@@ -821,7 +821,7 @@ class FunkinLua {
 
             if (blah == null) {
                 #if LUA_ALLOWED
-                #if LUA_ALLOWED if (getBool('luaDebugPropertyTraces')) #end trace('WARNING: Property not found: "${shit[0]}" (object: $instanceInfo, full path: $variable)');
+                if (getBool('luaDebugPropertyTraces')) trace('WARNING: Property not found: "${shit[0]}" (object: $instanceInfo, full path: $variable)');
                 #end
                 return false;
             }
@@ -842,7 +842,7 @@ class FunkinLua {
                         } catch (e:Dynamic) {
                             var blahInfo:String = getObjectInfo(blah);
                             #if LUA_ALLOWED
-                            #if LUA_ALLOWED if (getBool('luaDebugPropertyTraces')) #end trace('ERROR: Failed to set property "$variable" on object: $blahInfo - ${e.message}');
+                            if (getBool('luaDebugPropertyTraces')) trace('ERROR: Failed to set property "$variable" on object: $blahInfo - ${e.message}');
                             #end
                             return false;
                         }
@@ -857,14 +857,14 @@ class FunkinLua {
                         } catch (e:Dynamic) {
                             var blahInfo:String = getObjectInfo(blah);
                             #if LUA_ALLOWED
-                            #if LUA_ALLOWED if (getBool('luaDebugPropertyTraces')) #end trace('ERROR: Failed to access index "$key" on object: $blahInfo while setting "$variable" - ${e.message}');
+                            if (getBool('luaDebugPropertyTraces')) trace('ERROR: Failed to access index "$key" on object: $blahInfo while setting "$variable" - ${e.message}');
                             #end
                             return false;
                         }
                     } else {
                         var blahInfo:String = getObjectInfo(blah);
                         #if LUA_ALLOWED
-                        #if LUA_ALLOWED if (getBool('luaDebugPropertyTraces')) #end trace('WARNING: Cannot access index on non-container: ${shit.slice(0, i).join('[')} (object: $blahInfo, type: ${Type.getClassName(Type.getClass(blah))})');
+                        if (getBool('luaDebugPropertyTraces')) trace('WARNING: Cannot access index on non-container: ${shit.slice(0, i).join('[')} (object: $blahInfo, type: ${Type.getClassName(Type.getClass(blah))})');
                         #end
                         return false;
                     }

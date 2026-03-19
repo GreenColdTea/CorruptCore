@@ -175,6 +175,8 @@ class TitleState extends MusicBeatState
 		Conductor.changeBPM(titleJSON.bpm);
 		persistentUpdate = true;
 
+		swagShader = new ColorSwap();
+
 		var bg:FlxSprite = new FlxSprite();
 		if (titleJSON.backgroundSprite != null && titleJSON.backgroundSprite.length > 0 && titleJSON.backgroundSprite != "none")
 			bg.loadGraphic(Paths.image(titleJSON.backgroundSprite));
@@ -184,18 +186,19 @@ class TitleState extends MusicBeatState
 
 		logoBl = new FlxSprite(titleJSON.titlex, titleJSON.titley);
 		logoBl.frames = Paths.getSparrowAtlas('logoBumpin');
-		logoBl.antialiasing = ClientPrefs.globalAntialiasing;
 		logoBl.animation.addByPrefix('bump', 'logo bumpin', 24, false);
+		logoBl.antialiasing = ClientPrefs.globalAntialiasing;
+		logoBl.shader = swagShader.shader;
 		logoBl.updateHitbox();
 		add(logoBl);
 
-		swagShader = new ColorSwap();
-
 		gfDance = new FlxSprite(titleJSON.gfx, titleJSON.gfy);
 		gfDance.antialiasing = ClientPrefs.globalAntialiasing;
-		add(gfDance);
+		gfDance.frames = Paths.getSparrowAtlas('gfDanceTitle');
+		gfDance.animation.addByIndices('danceLeft', 'gfDance', [30, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], "", 24, false);
+		gfDance.animation.addByIndices('danceRight', 'gfDance', [15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29], "", 24, false);
 		gfDance.shader = swagShader.shader;
-		logoBl.shader = swagShader.shader;
+		add(gfDance);
 
 		titleText = new FlxSprite(titleJSON.startx, titleJSON.starty);
 		#if MODS_ALLOWED
@@ -531,11 +534,6 @@ class TitleState extends MusicBeatState
 				remove(credGroup);
 				remove(ngSpr);
 				FlxG.camera.flash(FlxColor.WHITE, 3);
-				sound?.onComplete = () -> {
-					FlxG.sound.playMusic(Paths.music('freakyMenu'), 0);
-					FlxG.sound.music.fadeIn(4, 0, 0.7);
-					transitioning = false;
-				};
 
 				playJingle = false;
 			}
