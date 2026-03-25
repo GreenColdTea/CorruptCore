@@ -149,7 +149,7 @@ class LoadingState extends MusicBeatState
         add(percentText);
 
         @:privateAccess
-        startTimer = new FlxTimer().start(CustomFadeTransition.lastDuration, (_) -> {
+        startTimer = new FlxTimer().start(MIN_TIME, (_) -> {
             loadingStarted = true;
             startLoading();
         });

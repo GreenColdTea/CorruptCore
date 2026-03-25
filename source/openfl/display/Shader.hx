@@ -603,7 +603,7 @@ class Shader
 			// Detect from context
 			#if (js && html5)
 			// WebGL 1.0 uses GLSL ES 1.00, WebGL 2.0 uses GLSL ES 3.00
-			var isWebGL2 = __context.__context.type == WEBGL2;
+			var isWebGL2 = __context.__context.type == WEBGL && __context.__context.version?.indexOf("2") == 0;
 			versionLine = isWebGL2 ? "#version 300 es\n" : ""; // 100 is default for WebGL 1.0
 			#elseif lime_opengles
 			// OpenGL ES version is usually like "OpenGL ES 2.0" or "OpenGL ES 3.0"
@@ -793,20 +793,32 @@ class Shader
 				return;
 			}
 
+			var vertexSource = glVertexSource;
+			var fragmentSource = glFragmentSource;
+
 			var vertexPrefix = __buildSourcePrefix(false);
 			var fragmentPrefix = __buildSourcePrefix(true);
 
-			var vertex = vertexPrefix + glVertexSource;
-			var fragment = fragmentPrefix + glFragmentSource;
+			var usesGLSL300 = vertexPrefix.indexOf("#version 300 es") != -1
+				|| fragmentPrefix.indexOf("#version 300 es") != -1;
 
-			#if lime_opengles
-			vertex = vertex.replace("attribute", "in")
-				.replace("varying", "out");
-			
-			fragment = fragment.replace("varying", "in")
-				.replace("texture2D", "texture")
-				.replace("gl_FragColor", "output_FragColor");
-			#end
+			if (usesGLSL300)
+			{
+				vertexSource = vertexSource.replace("attribute", "in")
+					.replace("varying", "out");
+
+				fragmentSource = fragmentSource.replace("varying", "in")
+					.replace("texture2D", "texture");
+
+				if (fragmentSource.indexOf("gl_FragColor") != -1)
+				{
+					fragmentSource = "out vec4 output_FragColor;\n" + fragmentSource;
+					fragmentSource = fragmentSource.replace("gl_FragColor", "output_FragColor");
+				}
+			}
+
+			var vertex = vertexPrefix + vertexSource;
+			var fragment = fragmentPrefix + fragmentSource;
 
 			var id = vertex + fragment;
 

@@ -136,6 +136,11 @@ class Main extends Sprite
 		@:privateAccess
         push._customSoundTray = FunkinSoundTray;
 
+		FlxG.fixedTimestep = false;
+		FlxG.cameras.useBufferLocking = true;
+	    FlxG.game.focusLostFramerate = #if mobile 30 #else 60 #end;
+        FlxG.keys.preventDefaultKeys = [TAB];
+
 		addChild(push);
 
 		/*#if desktop

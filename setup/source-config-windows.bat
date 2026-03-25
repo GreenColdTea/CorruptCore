@@ -22,7 +22,7 @@ haxelib git away3d https://github.com/openfl/away3d.git
 haxelib git nape-haxe4 https://github.com/HaxeFlixel/nape-haxe4.git
 haxelib git hxcpp https://github.com/GreenColdTea/hxcpp.git
 haxelib git hxopus https://github.com/FNF-CC-ENGINE/hxopus.git
-haxelib git hxvlc https://github.com/MAJigsaw77/hxvlc.git 0a0015ae3a82bc89e4ba97e8cbe4f9088253f90e --quiet --skip-dependencies
+haxelib git hxvlc https://github.com/MAJigsaw77/hxvlc.git --quiet --skip-dependencies
 haxelib git flxgif https://github.com/FNF-CC-ENGINE/flxgif.git
 haxelib git flxsoundfilters https://github.com/TheZoroForce240/FlxSoundFilters.git
 haxelib git rulescript https://github.com/FNF-CC-ENGINE/RuleScript.git dev --skip-dependencies

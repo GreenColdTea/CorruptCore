@@ -684,7 +684,9 @@ class FunkinLua {
         });
 
         LuaUtils.addFunction(lua, "import", function(className:String, ?packagePath:String = ""):Void {
+            #if HSCRIPT_ALLOWED
             importClass(className, packagePath);
+            #end
         });
 
         LuaUtils.addFunction(lua, "getParent", function():Dynamic {

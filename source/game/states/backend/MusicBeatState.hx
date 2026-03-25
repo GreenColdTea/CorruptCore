@@ -1,477 +1,376 @@
 package game.states.backend;
 
-import game.backend.FunkinCamera;
-import game.backend.Conductor.BPMChangeEvent;
-import game.scripting.FunkinLua;
-
 import flixel.FlxG;
-import flixel.math.FlxRect;
-import flixel.util.FlxTimer;
+import flixel.FlxBasic;
+import flixel.FlxCamera;
+import flixel.FlxState;
+import flixel.FlxSprite;
+import flixel.FlxSubState;
 import flixel.addons.transition.FlxTransitionableState;
+import flixel.addons.transition.TransitionData;
+import flixel.addons.transition.Transition;
+import flixel.math.FlxRect;
 import flixel.tweens.FlxEase;
 import flixel.tweens.FlxTween;
-import flixel.FlxSprite;
 import flixel.util.FlxColor;
 import flixel.util.FlxGradient;
-import flixel.FlxState;
-import flixel.FlxSubState;
-import flixel.FlxCamera;
-import flixel.FlxBasic;
-#if sys
-import sys.FileSystem;
-#end
-#if SCRIPTABLE_STATES
-import game.scripting.FunkinHScript;
-import game.scripting.FunkinRuleScript;
-import game.scripting.HScriptGlobal;
-#end
+import flixel.util.FlxTimer;
 
 import openfl.utils.Assets as OpenFlAssets;
 import openfl.utils.AssetType;
 
-class MusicBeatState extends FlxState
+import game.backend.Conductor.BPMChangeEvent;
+import game.backend.FunkinCamera;
+
+#if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
+import game.scripting.FunkinHScript;
+import game.scripting.FunkinRuleScript;
+import game.scripting.HScriptGlobal;
+import game.scripting.haxe.ScriptableHelper;
+#end
+
+class MusicBeatState extends FlxTransitionableState #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES) implements game.backend.interfaces.IScriptable #end
 {
-	#if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
-	public var menuScriptArray:Array<FunkinRuleScript> = [];
-	private var excludeStates:Array<Dynamic>;
-	#end
+    #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
+    public var scriptHelper(default, null):ScriptableHelper;
+    #end
 
-	private var curSection:Int = 0;
-	private var stepsToDo:Int = 0;
+    private var curSection:Int = 0;
+    private var stepsToDo:Int = 0;
 
-	private var curStep:Int = 0;
-	private var curBeat:Int = 0;
+    private var curStep:Int = 0;
+    private var curBeat:Int = 0;
 
-	private var curDecStep:Float = 0;
-	private var curDecBeat:Float = 0;
-	private var controls(get, never):Controls;
+    private var curDecStep:Float = 0;
+    private var curDecBeat:Float = 0;
+    private var controls(get, never):Controls;
 
-	inline function get_controls():Controls
-		return PlayerSettings.player1.controls;
+    inline function get_controls():Controls
+        return PlayerSettings.player1.controls;
 
-	var _FunkinCameraInitialized:Bool = false;
+    var _FunkinCameraInitialized:Bool = false;
 
-	public static var timePassedOnState:Float = 0;
+    public static var timePassedOnState:Float = 0;
 
-	private var menuScriptPath:String;
+    private var excludeStates:Array<Class<MusicBeatState>> = [];
 
-	/**
-	 * Function, that returns is this state softcoded or not
-	 * Kinda like in NVE but with Global Scripts
-	 */
-	public function isSoftcodedState():Bool
-	{
-		#if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES && GLOBAL_SCRIPTS)
-		if (HScriptGlobal.globalScriptActive && HScriptGlobal.globalScript != null)
-		{
-			var result = HScriptGlobal.callGlobalScript("isStateSoftcoded", [Type.getClassName(Type.getClass(this))]);
-			if (result != null && Std.isOfType(result, Bool))
-				return result;
-		}
-		#end
-		
-		return false;
-	}
+    private static function initExcludeStates():Array<Class<MusicBeatState>> {
+        return [
+            game.PlayState, 
+            game.scripting.HScriptState, 
+            MusicBeatState,
+            game.states.editors.CharacterEditorState,
+            game.states.editors.ChartEditorState,
+            game.states.editors.DialogueCharacterEditorState,
+            game.states.editors.DialogueEditorState,
+            game.states.editors.EditorPlayState,
+            game.states.editors.MasterEditorMenu,
+            game.states.editors.MenuCharacterEditorState,
+            game.states.editors.WeekEditorState,
+        ];
+    }
 
-	// (WStaticInitOrder) Warning : maybe loop in static generation of MusicBeatState
-	private static function initExcludeStates():Array<Dynamic> {
-		return [
-			game.PlayState, 
-			game.scripting.HScriptState, 
-			MusicBeatState,
-			game.states.editors.CharacterEditorState,
-			game.states.editors.ChartEditorState,
-			game.states.editors.DialogueCharacterEditorState,
-			game.states.editors.DialogueEditorState,
-			game.states.editors.EditorPlayState,
-			game.states.editors.MasterEditorMenu,
-			game.states.editors.MenuCharacterEditorState,
-			game.states.editors.WeekEditorState,
-		];
-	}
+    public function isSoftcodedState():Bool
+    {
+        #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES && GLOBAL_SCRIPTS)
+        if (HScriptGlobal.globalScriptActive && HScriptGlobal.globalScript != null)
+        {
+            var result = HScriptGlobal.callGlobalScript("isStateSoftcoded", [Type.getClassName(Type.getClass(this))]);
+            if (result != null && Std.isOfType(result, Bool))
+                return result;
+        }
+        #end
+        return false;
+    }
 
-	public function new() {
-		super();
-		#if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
-		excludeStates = initExcludeStates();
-		#end
-	}
+    public function new() {
+        super();
 
-	override function create() {
-		if(!_FunkinCameraInitialized) initFunkinCamera();
+        #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
+        excludeStates = initExcludeStates();
+        #end
+    }
 
-		var colorBlindType = ClientPrefs.colorBlindMode;
-		var intensity = ClientPrefs.colorBlindIntensity;
-		var index = ['None', 'Deutranopia', 'Protanopia', 'Tritanopia', 'Protanomaly', 'Deuteranomaly', 'Tritanomaly', 'Rod monochromacy', 'Cone monochromacy'].indexOf(colorBlindType);
-		if (index <= -1) index = -1;
-		Main.updateColorblindFilter(index - 1, intensity);
+    override function create() {
+        if(!_FunkinCameraInitialized) initFunkinCamera();
 
-		if(!FlxTransitionableState.skipNextTransOut) {
-			openSubState(new CustomFadeTransition(0.6, true));
-		}
-		FlxTransitionableState.skipNextTransOut = false;
-		timePassedOnState = 0;
+        var colorBlindType = ClientPrefs.colorBlindMode;
+        var intensity = ClientPrefs.colorBlindIntensity;
+        var index = ['None', 'Deutranopia', 'Protanopia', 'Tritanopia', 'Protanomaly', 'Deuteranomaly', 'Tritanomaly', 'Rod monochromacy', 'Cone monochromacy'].indexOf(colorBlindType);
+        if (index <= -1) index = -1;
+        Main.updateColorblindFilter(index - 1, intensity);
 
-		#if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
-		if (!excludeStates.contains(Type.getClass(this)))
-		{
-			final statePath = Type.getClassName(Type.getClass(this)).split(".");
-			final stateString = statePath[statePath.length - 1];
+        timePassedOnState = 0;
 
-			var scriptFiles:Array<String> = [];
-			var folders:Array<String> = Paths.getStateScripts(stateString);
-			var processedFiles:Map<String, Bool> = new Map();
-			
-			for (path in folders)
-			{
-				var isDirectory = false;
-				var isFile = false;
-				
-				#if sys
-				if (FileSystem.exists(path))
-				{
-					if (FileSystem.isDirectory(path))
-					{
-						isDirectory = true;
-						for (file in FileSystem.readDirectory(path))
-						{
-							if (file.endsWith('.hx'))
-							{
-								var fullPath = haxe.io.Path.join([path, file]);
-								if (!processedFiles.exists(fullPath))
-								{
-									scriptFiles.push(fullPath);
-									processedFiles.set(fullPath, true);
-								}
-							}
-						}
-					}
-					else if (path.endsWith('.hx'))
-					{
-						isFile = true;
-						if (!processedFiles.exists(path))
-						{
-							scriptFiles.push(path);
-							processedFiles.set(path, true);
-						}
-					}
-				}
-				#end
+        #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
+        if (!excludeStates.contains(Type.getClass(this)))
+        {
+            final statePath = Type.getClassName(Type.getClass(this)).split(".");
+            final stateString = statePath[statePath.length - 1];
+            final scriptPaths = ScriptableHelper.collectScriptPaths(stateString, Paths.getStateScripts);
 
-				if (!isDirectory && !isFile)
-				{
-					if (OpenFlAssets.exists(path))
-					{
-						if (path.endsWith('.hx'))
-						{
-							if (!processedFiles.exists(path))
-							{
-								scriptFiles.push(path);
-								processedFiles.set(path, true);
-							}
-						}
-						else
-						{
-							var prefix = path.endsWith('/') ? path : path + '/';
-							for (file in OpenFlAssets.list(TEXT))
-							{
-								if (file.startsWith(prefix) && file.endsWith('.hx') && !processedFiles.exists(file))
-								{
-									scriptFiles.push(file);
-									processedFiles.set(file, true);
-								}
-							}
-						}
-					}
-				}
-			}
+            if (scriptPaths.length > 0)
+                scriptHelper = new ScriptableHelper(this, scriptPaths);
+        }
+        #end
 
-			for (path in scriptFiles)
-			{
-				menuScriptArray.push(new FunkinHScript(path, this));
-				if (path.contains('${Mods.MODS_FOLDER}/'))
-					trace('Loaded mod state script: $path');
-				else
-					trace('Loaded base game state script: $path');
-			}
-		}
-		#end
+        #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
+        scriptHelper?.quickCallMenuScript("onCreate", []);
+        #end
 
-		super.create();
+        super.create();
 
-		quickSetOnMenuScripts('this', this);
+        #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
+        if (scriptHelper != null) {
+            scriptHelper.quickSetOnMenuScripts('this', this);
+            scriptHelper.quickCallMenuScript("onCreatePost", []);
+        }
+        #end
+    }
 
-		quickCallMenuScript("onCreatePost", []);
-	}
+    public function initFunkinCamera():FunkinCamera
+    {
+        final camera = new FunkinCamera();
+        FlxG.cameras.reset(camera);
+        FlxG.cameras.setDefaultDrawTarget(camera, true);
+        _FunkinCameraInitialized = true;
+        return camera;
+    }
 
-	public function initFunkinCamera():FunkinCamera
-	{
-		var camera = new FunkinCamera();
-		FlxG.cameras.reset(camera);
-		FlxG.cameras.setDefaultDrawTarget(camera, true);
-		_FunkinCameraInitialized = true;
-		//trace('initialized psych camera ' + Sys.cpuTime());
-		/*if (Main.colorblindMode != -1) {
-			Main.applyColorblindFilterToCamera(camera, Main.colorblindMode, Main.colorblindIntensity);
-		}*/
+    override function update(elapsed:Float)
+    {
+        #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
+        scriptHelper?.quickCallMenuScript("onUpdate", [elapsed]);
+        #end
 
-		return camera;
-	}
+        final oldStep:Int = curStep;
+        timePassedOnState += elapsed;
 
-	override function update(elapsed:Float)
-	{
-		quickCallMenuScript("onUpdate", [elapsed]);
+        updateCurStep();
+        updateBeat();
 
-		var oldStep:Int = curStep;
-		timePassedOnState += elapsed;
+        if (oldStep != curStep)
+        {
+            if(curStep > 0)
+                stepHit();
 
-		updateCurStep();
-		updateBeat();
+            if(PlayState.SONG != null)
+            {
+                if (oldStep < curStep)
+                    updateSection();
+                else
+                    rollbackSection();
+            }
+        }
 
-		if (oldStep != curStep)
-		{
-			if(curStep > 0)
-				stepHit();
+        if(FlxG.save.data != null) FlxG.save.data.fullscreen = FlxG.fullscreen;
 
-			if(PlayState.SONG != null)
-			{
-				if (oldStep < curStep)
-					updateSection();
-				else
-					rollbackSection();
-			}
-		}
+        FlxG.watch.addQuick("decStepShit", curDecStep);
+        FlxG.watch.addQuick("decBeatShit", curDecBeat);
 
-		if(FlxG.save.data != null) FlxG.save.data.fullscreen = FlxG.fullscreen;
+        #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
+        if (scriptHelper != null) {
+            scriptHelper.quickSetOnMenuScripts('curBpm', Conductor.bpm);
+            scriptHelper.quickSetOnMenuScripts('crochet', Conductor.crochet);
+            scriptHelper.quickSetOnMenuScripts('stepCrochet', Conductor.stepCrochet);
+            scriptHelper.quickSetOnMenuScripts('curStep', curStep);
+            scriptHelper.quickSetOnMenuScripts('curBeat', curBeat);
+            scriptHelper.quickSetOnMenuScripts('curDecStep', curDecStep);
+            scriptHelper.quickSetOnMenuScripts('curDecBeat', curDecBeat);
+        }
+        #end
 
-		quickSetOnMenuScripts('curBpm', Conductor.bpm);
-		quickSetOnMenuScripts('crochet', Conductor.crochet);
-		quickSetOnMenuScripts('stepCrochet', Conductor.stepCrochet);
+        stagesFunc((stage:BaseStage) -> stage.update(elapsed));
 
-		quickSetOnMenuScripts('curStep', curStep);
-		quickSetOnMenuScripts('curBeat', curBeat);
+        super.update(elapsed);
 
-		quickSetOnMenuScripts('curDecStep', curDecStep);
-		quickSetOnMenuScripts('curDecBeat', curDecBeat);
+        #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
+        scriptHelper?.quickCallMenuScript("onUpdatePost", [elapsed]);
+        #end
+    }
 
-		stagesFunc((stage:BaseStage) -> stage.update(elapsed));
+    private function updateSection():Void
+    {
+        if(stepsToDo < 1) stepsToDo = Math.round(getBeatsOnSection() * 4);
+        while(curStep >= stepsToDo)
+        {
+            curSection++;
+            var beats:Float = getBeatsOnSection();
+            stepsToDo += Math.round(beats * 4);
+            sectionHit();
+        }
+    }
 
-		super.update(elapsed);
+    private function rollbackSection():Void
+    {
+        if(curStep < 0) return;
 
-		quickCallMenuScript("onUpdatePost", [elapsed]);
-	}
+        final lastSection:Int = curSection;
+        curSection = 0;
+        stepsToDo = 0;
+        for (i in 0...PlayState.SONG.notes.length)
+        {
+            if (PlayState.SONG.notes[i] != null)
+            {
+                stepsToDo += Math.round(getBeatsOnSection() * 4);
+                if(stepsToDo > curStep) break;
+                
+                curSection++;
+            }
+        }
 
-	private function updateSection():Void
-	{
-		if(stepsToDo < 1) stepsToDo = Math.round(getBeatsOnSection() * 4);
-		while(curStep >= stepsToDo)
-		{
-			curSection++;
-			var beats:Float = getBeatsOnSection();
-			stepsToDo += Math.round(beats * 4);
-			sectionHit();
-		}
-	}
+        if(curSection > lastSection) sectionHit();
+    }
 
-	private function rollbackSection():Void
-	{
-		if(curStep < 0) return;
+    private function updateBeat():Void
+    {
+        curBeat = Math.floor(curStep / 4);
+        curDecBeat = curDecStep / 4;
+    }
 
-		var lastSection:Int = curSection;
-		curSection = 0;
-		stepsToDo = 0;
-		for (i in 0...PlayState.SONG.notes.length)
-		{
-			if (PlayState.SONG.notes[i] != null)
-			{
-				stepsToDo += Math.round(getBeatsOnSection() * 4);
-				if(stepsToDo > curStep) break;
-				
-				curSection++;
-			}
-		}
+    private function updateCurStep():Void
+    {
+        final lastChange = Conductor.getBPMFromSeconds(Conductor.songPosition);
 
-		if(curSection > lastSection) sectionHit();
-	}
+        final stepCrochet:Float = (lastChange.stepCrochet != null && lastChange.stepCrochet > 0) ? lastChange.stepCrochet : Conductor.stepCrochet;
+        final shit = ((Conductor.songPosition - ClientPrefs.noteOffset) - lastChange.songTime) / stepCrochet;
+        curDecStep = lastChange.stepTime + shit;
+        curStep = lastChange.stepTime + Math.floor(shit);
+    }
 
-	private function updateBeat():Void
-	{
-		curBeat = Math.floor(curStep / 4);
-		curDecBeat = curDecStep / 4;
-	}
+    public static function getState():MusicBeatState {
+        return cast (FlxG.state, MusicBeatState);
+    }
 
-	private function updateCurStep():Void
-	{
-		var lastChange = Conductor.getBPMFromSeconds(Conductor.songPosition);
+    public var stages:Array<BaseStage> = [];
+    public function stepHit():Void
+    {
+        stagesFunc(function(stage:BaseStage) {
+            stage.curStep = curStep;
+            stage.curDecStep = curDecStep;
+            stage.stepHit();
+        });
 
-		var shit = ((Conductor.songPosition - ClientPrefs.noteOffset) - lastChange.songTime) / lastChange.stepCrochet;
-		curDecStep = lastChange.stepTime + shit;
-		curStep = lastChange.stepTime + Math.floor(shit);
-	}
+        if (curStep % 4 == 0) beatHit();
 
-	override public function startOutro(onOutroComplete:()->Void)
-	{
-		function transitionAction()
-		{
-			onOutroComplete();
-			FlxTransitionableState.skipNextTransIn = false;
-		}
+        #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
+        scriptHelper?.quickCallMenuScript("onStepHit", []);
+        #end
+    }
 
-		if (FlxTransitionableState.skipNextTransIn)
-		{
-			transitionAction();
-		}
-		else
-		{
-			openSubState(new CustomFadeTransition(0.6, false));
-			CustomFadeTransition.finishCallback = transitionAction;
-			return;
-		}
+    public function beatHit():Void
+    {
+        stagesFunc(function(stage:BaseStage) {
+            stage.curBeat = curBeat;
+            stage.curDecBeat = curDecBeat;
+            stage.beatHit();
+        });
 
-		FlxTransitionableState.skipNextTransIn = false;
-		super.startOutro(onOutroComplete);
-	}
+        #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
+        scriptHelper?.quickCallMenuScript("onBeatHit", []);
+        #end
+    }
 
-	public static function getState():MusicBeatState {
-		return cast (FlxG.state, MusicBeatState);
-	}
+    public function sectionHit():Void
+    {
+        stagesFunc(function(stage:BaseStage) {
+            stage.curSection = curSection;
+            stage.sectionHit();
+        });
 
-	public var stages:Array<BaseStage> = [];
-	public function stepHit():Void
-	{
-		stagesFunc(function(stage:BaseStage) {
-			stage.curStep = curStep;
-			stage.curDecStep = curDecStep;
-			stage.stepHit();
-		});
+        #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
+        scriptHelper?.quickCallMenuScript("onSectionHit", []);
+        #end
+    }
 
-		if (curStep % 4 == 0) beatHit();
+    function stagesFunc(func:BaseStage->Void)
+    {
+        for (stage in stages)
+            if(stage != null && stage.exists && stage.active)
+                func(stage);
+    }
 
-		quickCallMenuScript("onStepHit", []);
-	}
+    function getBeatsOnSection()
+    {
+        var val:Null<Float> = 4;
+        if(PlayState.SONG?.notes[curSection] != null) val = PlayState.SONG.notes[curSection].sectionBeats;
+        return val ?? 4;
+    }
 
-	public function beatHit():Void
-	{
-		stagesFunc(function(stage:BaseStage) {
-			stage.curBeat = curBeat;
-			stage.curDecBeat = curDecBeat;
-			stage.beatHit();
-		});
-		//trace('Beat: ' + curBeat);
+    override public function openSubState(subState:FlxSubState) 
+    {
+        #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
+        if(scriptHelper == null || scriptHelper.quickCallMenuScript("onOpenSubState", [subState]) != ScriptResult.Function_Stop)
+        #end
+            super.openSubState(subState);
+    }
 
-		quickCallMenuScript("onBeatHit", []);
-	}
+    override public function closeSubState()
+    {
+        #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
+        if(scriptHelper == null || scriptHelper.quickCallMenuScript("onCloseSubState", []) != ScriptResult.Function_Stop)
+        #end
+            super.closeSubState();
+    }
+    
+    override public function onResize(w:Int, h:Int) {
+        super.onResize(w, h);
+        #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
+        scriptHelper?.quickCallMenuScript("onResize", [w, h]);
+        #end
+    }
+    
+    override public function draw() 
+    {
+        #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
+        if(scriptHelper == null || scriptHelper.quickCallMenuScript("onDraw", []) != ScriptResult.Function_Stop)
+        #end
+            super.draw();
+        #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
+        scriptHelper?.quickCallMenuScript("onDrawPost", []);
+        #end
+    }
+    
+    override public function onFocus() {
+        super.onFocus();
+        #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
+        scriptHelper?.quickCallMenuScript("onFocus", []);
+        #end
+    }
 
-	public function sectionHit():Void
-	{
-		//trace('Section: ' + curSection + ', Beat: ' + curBeat + ', Step: ' + curStep);
-		stagesFunc(function(stage:BaseStage) {
-			stage.curSection = curSection;
-			stage.sectionHit();
-		});
+    override public function onFocusLost() {
+        super.onFocusLost();
+        #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
+        scriptHelper?.quickCallMenuScript("onFocusLost", []);
+        #end
+    }
+    
+    override function destroy() {
+        #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
+        scriptHelper?.destroy();
+        #end
+        super.destroy();
+    }
 
-		quickCallMenuScript("onSectionHit", []);
-	}
+    public function quickCallMenuScript(func:String, ?args:Dynamic):Dynamic {
+        #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
+        return scriptHelper?.quickCallMenuScript(func, args) ?? ScriptResult.Function_Continue;
+        #else
+        return ScriptResult.Function_Continue;
+        #end
+    }
 
-	function stagesFunc(func:BaseStage->Void)
-	{
-		for (stage in stages)
-			if(stage != null && stage.exists && stage.active)
-				func(stage);
-	}
+    public function quickSetOnMenuScripts(variable:String, arg:Dynamic):Void {
+        #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
+        scriptHelper?.quickSetOnMenuScripts(variable, arg);
+        #end
+    }
 
-	function getBeatsOnSection()
-	{
-		var val:Null<Float> = 4;
-		if(PlayState.SONG != null && PlayState.SONG.notes[curSection] != null) val = PlayState.SONG.notes[curSection].sectionBeats;
-		return val == null ? 4 : val;
-	}
-
-	override public function openSubState(subState:FlxSubState) 
-	{
-		if(quickCallMenuScript("onOpenSubState", [subState]) != ScriptResult.Function_Stop) super.openSubState(subState);
-	}
-
-	override public function closeSubState()
-	{
-		if(quickCallMenuScript("onCloseSubState", []) != ScriptResult.Function_Stop) super.closeSubState();
-	}
-	
-	override public function onResize(w:Int, h:Int) {
-		super.onResize(w, h);
-		quickCallMenuScript("onResize", [w, h]);
-	}
-	
-	override public function draw() 
-	{
-		if(quickCallMenuScript("onDraw", []) != ScriptResult.Function_Stop) super.draw();
-		quickCallMenuScript("onDrawPost", []);
-	}
-	
-	override public function onFocus() {
-		super.onFocus();
-		quickCallMenuScript("onFocus", []);
-	}
-
-	override public function onFocusLost() {
-		super.onFocusLost();
-		quickCallMenuScript("onFocusLost", []);
-	}
-	
-	override function destroy() {
-		#if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
-		for (sc in menuScriptArray) {
-			sc.call("onDestroy", []);
-			sc.stop();
-		}
-		menuScriptArray = [];
-		#end
-		
-		super.destroy();
-	}
-
-	public function quickSetOnMenuScripts(variable:String, arg:Dynamic)
-	{
-		#if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
-		for (script in menuScriptArray)
-		{
-			script.set(variable, arg);
-		}
-		#end
-	}
-
-	public function quickCallMenuScript(func:String, ?args:Dynamic):Dynamic
-	{
-		var returnThing:Dynamic = ScriptResult.Function_Continue;
-		#if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
-		for (script in menuScriptArray)
-		{
-			var scriptThing = script.call(func, args);
-			if (scriptThing == null) continue;
-			if (scriptThing == ScriptResult.Function_Stop) returnThing = scriptThing;
-		}
-		#end
-		return returnThing;
-	}
-
-	public function callOnMenuScript(event:String, args:Array<Dynamic>, ignoreStops = true, exclusions:Array<String> = null, excludeValues:Array<Dynamic> = null):Dynamic {
-		var returnVal = ScriptResult.Function_Continue;
-		#if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
-		exclusions ??= [];
-		excludeValues ??= [];
-
-		for (sc in menuScriptArray) {
-			if(exclusions.contains(sc.scriptName))
-				continue;
-
-			var myValue = sc.call(event, args);
-			if(myValue == ScriptResult.Function_Stop_Lua && !ignoreStops)
-				break;
-			
-			if(myValue != ScriptResult.Function_Continue)
-				returnVal = myValue;
-		}
-		#end
-		return returnVal;
-	}
+    public function callOnMenuScript(event:String, args:Array<Dynamic>, ignoreStops:Bool = true, exclusions:Array<String> = null, excludeValues:Array<Dynamic> = null):Dynamic {
+        #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
+        return scriptHelper?.callOnMenuScript(event, args, ignoreStops, exclusions, excludeValues) ?? ScriptResult.Function_Continue;
+        #else
+        return ScriptResult.Function_Continue;
+        #end
+    }
 }

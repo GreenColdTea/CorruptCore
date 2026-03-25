@@ -73,6 +73,7 @@ void markAsGame(HWND hwnd) {
 #end
 class Native
 {
+	#if (cpp && windows)
 	@:functionCode('
 		getHandle();
 		if (curHandle != (HWND)0) {
@@ -80,6 +81,9 @@ class Native
 		}
 	')
 	public static function registerAsGame():Void {}
+	#else
+	public static function registerAsGame():Void {}
+	#end
 
 	public static function setConsoleOutputToUTF8():Void
 	{

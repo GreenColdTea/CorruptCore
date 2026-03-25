@@ -457,12 +457,7 @@ class LuaSprites
 
 	#if flixel_animate
 	static function loadTimelineFromJson(path:String):Timeline {
-		#if MODS_ALLOWED
 		var rawJson:String = Paths.getTextFromFile(path);
-		#else
-		var rawJson:String = Assets.getText(Paths.json(path));
-		#end
-
 		if(rawJson != null && rawJson.length > 0) {
 			try {
 				var json:TimelineJson = haxe.Json.parse(rawJson);

@@ -11,7 +11,6 @@ import game.stages.*;
 
 import game.objects.Alphabet;
 import game.objects.AttachedSprite;
-import game.objects.CustomFadeTransition;
 import game.objects.BGSprite;
 
 import game.scripting.ScriptResult;

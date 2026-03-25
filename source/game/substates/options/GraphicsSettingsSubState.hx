@@ -34,10 +34,8 @@ using StringTools;
 
 class GraphicsSettingsSubState extends BaseOptionsMenu
 {
-	#if !html5
 	private var framerateOption:Option;
 	private var unlimitedFPSOption:Option;
-	#end
 
 	public function new()
 	{
@@ -88,12 +86,9 @@ class GraphicsSettingsSubState extends BaseOptionsMenu
 
 			FlxG.save.flush();
 			
-			#if !html5
 			updateFramerateVisibility();
-			#end
 		}
 
-		#if !html5
 		var option:Option = new Option('Unlimited FPS',
 			'If checked, removes FPS cap for maximum performance.\nMay cause high CPU/GPU usage.',
 			'unlimitedFPS',
@@ -115,13 +110,10 @@ class GraphicsSettingsSubState extends BaseOptionsMenu
 		option.maxValue = 360;
 		option.displayFormat = '%v FPS';
 		option.onChange = onChangeFramerate;
-		#end
 
 		super();
 		
-		#if !html5
 		updateFramerateVisibility();
-		#end
 	}
 
 	function onChangeLowQuality()
@@ -130,7 +122,6 @@ class GraphicsSettingsSubState extends BaseOptionsMenu
         onChangeAntiAliasing();
     }
 
-	#if !html5
 	private function updateFramerateVisibility():Void
 	{
 		var shouldHide:Bool = ClientPrefs.vsync || ClientPrefs.unlimitedFPS;
@@ -158,7 +149,6 @@ class GraphicsSettingsSubState extends BaseOptionsMenu
 		updateFramerateVisibility();
 		ClientPrefs.saveSettings();
 	}
-	#end
 
 	//stupid hl fix
 	function onChangeAntiAliasing()

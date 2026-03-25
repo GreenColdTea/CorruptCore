@@ -213,17 +213,9 @@ class Project extends HXProject
                 setHaxedef("HXCPP_GC_SUMMARY");
                 setHaxedef("HXCPP_GC_DEBUG_LEVEL", "2");
                 setHaxedef("HXCPP_DEBUGGER");
-            }
-        }
+                setHaxedef("HXCPP_PROFILER");
 
-        if (VIDEOS_ALLOWED.isEnabled(this))
-        {
-            setHaxedef("HXVLC_NO_SHARE_DIRECTORY");
-            setHaxedef("HXVLC_OPENAL");
-            
-            if (isWindows() && isArm64())
-            {
-                setHaxedef("HXVLC_EXPERIMENTAL_WINDOWSARM");
+                if (VIDEOS_ALLOWED.isEnabled(this)) setHaxedef("HXVLC_LOGGING");
             }
         }
 

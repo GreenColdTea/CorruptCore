@@ -187,7 +187,9 @@ class EditorLua {
 			poop?.updateHitbox();
 		});
 
+		#if DISCORD_ALLOWED
 		api.Discord.DiscordClient.addLuaCallbacks(lua);
+		#end
 
 		call('onCreate', []);
 		#end
