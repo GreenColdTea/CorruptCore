@@ -104,7 +104,7 @@ class FunkinRuleScript {
         #if SCRIPTABLE_STATES
         "TitleState" => game.states.TitleState,
         "MainMenuState" => game.states.MainMenuState,
-        "OptionsMenu" => game.states.options.OptionsState,
+        "OptionsState" => game.states.options.OptionsState,
         "CreditsState" => game.states.CreditsState,
         "StoryMenuState" => game.states.StoryMenuState,
         "FreeplayState" => game.states.FreeplayState,
