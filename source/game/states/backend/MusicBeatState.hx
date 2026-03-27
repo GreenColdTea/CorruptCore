@@ -94,11 +94,8 @@ class MusicBeatState extends FlxTransitionableState #if (HSCRIPT_ALLOWED && SCRI
     override function create() {
         if(!_FunkinCameraInitialized) initFunkinCamera();
 
-        var colorBlindType = ClientPrefs.colorBlindMode;
-        var intensity = ClientPrefs.colorBlindIntensity;
-        var index = ['None', 'Deutranopia', 'Protanopia', 'Tritanopia', 'Protanomaly', 'Deuteranomaly', 'Tritanomaly', 'Rod monochromacy', 'Cone monochromacy'].indexOf(colorBlindType);
-        if (index <= -1) index = -1;
-        Main.updateColorblindFilter(index - 1, intensity);
+        var index = ['Deutranopia', 'Protanopia', 'Tritanopia', 'Protanomaly', 'Deuteranomaly', 'Tritanomaly', 'Rod monochromacy', 'Cone monochromacy'].indexOf(ClientPrefs.colorBlindMode);
+		Main.updateColorblindFilter(index, ClientPrefs.colorBlindIntensity);
 
         timePassedOnState = 0;
 
@@ -112,10 +109,6 @@ class MusicBeatState extends FlxTransitionableState #if (HSCRIPT_ALLOWED && SCRI
             if (scriptPaths.length > 0)
                 scriptHelper = new ScriptableHelper(this, scriptPaths);
         }
-        #end
-
-        #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
-        scriptHelper?.quickCallMenuScript("onCreate", []);
         #end
 
         super.create();

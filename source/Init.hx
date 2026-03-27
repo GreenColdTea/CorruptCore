@@ -58,8 +58,6 @@ class Init extends FlxState
 		Lib.current.stage.align = "tl";
 		Lib.current.stage.scaleMode = StageScaleMode.NO_SCALE;
 
-		if(fpsVar != null) fpsVar.visible = ClientPrefs.showFPS;
-
 		onGameResizedHandler = (w:Int, h:Int) -> {
             if (fpsVar != null)
                 fpsVar.positionFPS(10, 3, Math.min(w / FlxG.width, h / FlxG.height));
@@ -79,7 +77,6 @@ class Init extends FlxState
 
         #if html5
 		FlxG.autoPause = false;
-		FlxG.mouse.visible = false;
 		#end
 
 		#if DISCORD_ALLOWED
@@ -97,10 +94,6 @@ class Init extends FlxState
 		    pluginsLessGo();
 		    pluginsInitialized = true;
 		}
-
-		#if VIDEOS_ALLOWED
-		hxvlc.util.Handle.init();
-		#end
 
 		#if GLOBAL_SCRIPTS
 		if(!game.scripting.HScriptGlobal.globalScriptActive) game.scripting.HScriptGlobal.addGlobalScript();
