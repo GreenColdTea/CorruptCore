@@ -1,5 +1,9 @@
 package game.backend.system;
 
+#if DISCORD_ALLOWED
+import api.Discord.DiscordClient;
+#end
+
 #if sys
 import sys.FileSystem;
 import sys.io.File;
@@ -10,15 +14,12 @@ import haxe.zip.Reader;
 import haxe.zip.Entry;
 import haxe.Json;
 
-import game.Paths;
-
 class Mods
 {
     public static final MODS_FOLDER = "contents";
     public static var debugMode:Bool = #if DEBUG_MODS true #else false #end;
     
     public static var ignoreModFolders:Array<String> = [
-        'characters',
         'custom_events',
         'custom_notetypes',
         'data',
@@ -32,8 +33,7 @@ class Mods
         'source',
         'shaders',
         'stages',
-        'videos',
-        'weeks',
+        'videos'
     ];
 
     public static var currentModDirectory:String = '';
@@ -41,6 +41,8 @@ class Mods
     
     public static var zipModsCache:Map<String, Map<String, Bytes>> = new Map();
     public static var tempExtractedFolders:Array<String> = [];
+
+    public static var activeModsMetadata:Array<ModMetadata> = [];
 
     inline public static function getModPath(key:String = ''):String
     {
@@ -68,7 +70,7 @@ class Mods
 
     public static function modExists(mod:String):Bool {
         #if MODS_ALLOWED
-        var modPath = getModPath(mod);
+        final modPath = getModPath(mod);
         return FileSystem.exists(modPath) || FileSystem.exists('$modPath.zip');
         #else
         return false;
@@ -78,7 +80,7 @@ class Mods
     public static function isZipMod(mod:String):Bool
     {
         #if MODS_ALLOWED
-        var modPath = getModPath(mod);
+        final modPath = getModPath(mod);
         return FileSystem.exists('$modPath.zip');
         #else
         return false;
@@ -90,13 +92,13 @@ class Mods
         #if MODS_ALLOWED
         path = normalizePath(path);
         
-        if (currentModDirectory != null && currentModDirectory.length > 0) {
-            var content = getFileFromMod(currentModDirectory, path);
+        if (currentModDirectory?.length > 0) {
+            final content = getFileFromMod(currentModDirectory, path);
             if (content != null) return content;
         }
 
         for (mod in getGlobalMods()) {
-            var content = getFileFromMod(mod, path);
+            final content = getFileFromMod(mod, path);
             if (content != null) return content;
         }
         #end
@@ -110,11 +112,10 @@ class Mods
         path = normalizePath(path);
         var modPath = getModPath(mod);
         
-        if (isZipMod(mod)) {
+        if (isZipMod(mod))
             return getFileFromZipMod(mod, path);
-        }
         
-        var filePath = normalizePath('$modPath/$path');
+        final filePath = normalizePath('$modPath/$path');
         if (FileSystem.exists(filePath) && !FileSystem.isDirectory(filePath)) {
             return File.getBytes(filePath);
         }
@@ -129,11 +130,9 @@ class Mods
         path = normalizePath(path);
         var zipPath = '${getModPath(mod)}.zip';
         
-        if (!zipModsCache.exists(mod)) {
-            if (!loadZipMod(mod)) {
+        if (!zipModsCache.exists(mod))
+            if (!loadZipMod(mod))
                 return null;
-            }
-        }
         
         var modCache = zipModsCache.get(mod);
         if (modCache == null) return null;
@@ -211,52 +210,6 @@ class Mods
             path.replace(' ', '_'),
             path.replace('_', ' ')
         ];
-        
-        /*if (path.startsWith("songs/")) {
-            var songPath = path.substring(6);
-            variants.push('$mod/songs/$songPath');
-            variants.push('songs/$mod/$songPath');
-            variants.push(songPath);
-            variants.push('data/$songPath');
-            variants.push('$mod/data/$songPath');
-        }
-        
-        if (path.startsWith("data/")) {
-            var dataPath = path.substring(5);
-            variants.push('$mod/data/$dataPath');
-            variants.push('data/$mod/$dataPath');
-            variants.push(dataPath);
-            
-            if (dataPath.endsWith('.json')) {
-                variants.push('songs/${dataPath.replace(".json", "")}/$dataPath');
-                variants.push('$mod/songs/${dataPath.replace(".json", "")}/$dataPath');
-            }
-        }
-        
-        if (path.startsWith("images/")) {
-            var imagePath = path.substring(7);
-            variants.push('$mod/images/$imagePath');
-            variants.push('images/$mod/$imagePath');
-            variants.push(imagePath);
-        }
-        
-        if (path.startsWith("music/")) {
-            var musicPath = path.substring(6);
-            variants.push('$mod/music/$musicPath');
-            variants.push('music/$mod/$musicPath');
-            variants.push('sounds/$musicPath');
-            variants.push('$mod/sounds/$musicPath');
-            variants.push(musicPath);
-        }
-        
-        if (path.startsWith("sounds/")) {
-            var soundPath = path.substring(7);
-            variants.push('$mod/sounds/$soundPath');
-            variants.push('sounds/$mod/$soundPath');
-            variants.push('music/$soundPath');
-            variants.push('$mod/music/$soundPath');
-            variants.push(soundPath);
-        }*/
         
         var uniqueVariants = new Map<String, Bool>();
         var result = [];
@@ -642,6 +595,7 @@ class Mods
                 }
             }
         }
+        refreshActiveModsMetadata();
         return globalMods;
         #else
         return [];
@@ -672,6 +626,41 @@ class Mods
         #end
     }
 
+    public static function refreshActiveModsMetadata()
+    {
+        activeModsMetadata = [];
+        for (modName in globalMods) {
+            if (modExists(modName)) {
+                activeModsMetadata.push(new ModMetadata(modName));
+            }
+        }
+        updateDiscordClientID();
+    }
+
+    public static function getEffectiveDiscordClientID():Null<String>
+    {
+        for (mod in activeModsMetadata)
+            if (mod.discordClientID?.length > 0)
+                return mod.discordClientID;
+
+        return null;
+    }
+
+    public static function updateDiscordClientID()
+    {
+        #if DISCORD_ALLOWED
+        final newId = getEffectiveDiscordClientID();
+
+        @:privateAccess 
+        {
+            if (newId != null && newId != DiscordClient.clientID)
+                DiscordClient.clientID = newId;
+            else if (newId == null && DiscordClient.clientID != DiscordClient._defaultID)
+                DiscordClient.clientID = DiscordClient._defaultID;
+        }
+        #end
+    }
+
     public static function debugZipMod(mod:String):Void {
         #if MODS_ALLOWED
         if (!isZipMod(mod)) {
@@ -679,11 +668,10 @@ class Mods
             return;
         }
         
-        if (!zipModsCache.exists(mod)) {
+        if (!zipModsCache.exists(mod))
             loadZipMod(mod);
-        }
         
-        var modCache = zipModsCache.get(mod);
+        final modCache = zipModsCache.get(mod);
         if (modCache == null) {
             trace('Failed to load ZIP mod: $mod');
             return;
@@ -691,12 +679,11 @@ class Mods
         
         trace('=== DEBUG ZIP MOD: $mod ===');
         
-        var allKeys = [for (key in modCache.keys()) key];
-        var totalFileCount = allKeys.length;
+        final allKeys = [for (key in modCache.keys()) key];
+        final totalFileCount = allKeys.length;
         
-        for (key in allKeys) {
+        for (key in allKeys)
             trace('  $key (${modCache.get(key).length} bytes)');
-        }
         
         trace('Total files: $totalFileCount');
         trace('=== END DEBUG ===');
@@ -710,11 +697,10 @@ class Mods
             return;
         }
         
-        if (!zipModsCache.exists(mod)) {
+        if (!zipModsCache.exists(mod))
             loadZipMod(mod);
-        }
         
-        var modCache = zipModsCache.get(mod);
+        final modCache = zipModsCache.get(mod);
         if (modCache == null) {
             trace('Failed to load ZIP mod: $mod');
             return;
@@ -737,24 +723,24 @@ class Mods
             
             for (i in 0...parts.length) {
                 var folderPath = parts.slice(0, i + 1).join('/');
-                if (!folders.exists(folderPath)) {
+                if (!folders.exists(folderPath))
                     folders.set(folderPath, 0);
-                }
+
                 folders.set(folderPath, folders.get(folderPath) + 1);
             }
         }
         
         trace('File types:');
-        for (ext in fileTypes.keys()) {
+        for (ext in fileTypes.keys())
             trace('  .$ext: ${fileTypes.get(ext)} files');
-        }
         
         trace('Folder structure:');
-        var folderList = [for (f in folders.keys()) f];
+
+        final folderList = [for (f in folders.keys()) f];
         folderList.sort(function(a, b) return a.length - b.length);
-        for (folder in folderList) {
+
+        for (folder in folderList)
             trace('  $folder/ (${folders.get(folder)} files)');
-        }
         
         var hasModFolder = false;
         for (key in allKeys) {
@@ -780,20 +766,26 @@ class ModMetadata
     public var alphabet:Alphabet;
     public var icon:AttachedSprite;
 
+    public var discordClientID:Null<String>;
+    public var version:Null<String>;
+    public var dependencies:Null<Array<String>>;
+    public var conflicts:Null<Array<String>>;
+    public var gameVersion:Null<String>;
+
     #if MODS_ALLOWED
     public function new(folder:String)
     {
         this.folder = folder;
         this.name = folder;
         this.description = "No description provided.";
-        this.color = ModsMenuState.defaultColor;
+        this.color = 0xFF665AFF;
         this.restart = false;
 
-        var jsonBytes:Bytes = Mods.getFileFromMod(folder, 'pack.json');
-        if(jsonBytes != null) {
+        final jsonBytes:Bytes = Mods.getFileFromMod(folder, 'pack.json');
+        if (jsonBytes != null) {
             try {
-                var rawJson:String = jsonBytes.toString();
-                if(rawJson != null && rawJson.length > 0) {
+                final rawJson:String = jsonBytes.toString();
+                if (rawJson?.length > 0) {
                     var stuff:Dynamic = Json.parse(rawJson);
                     
                     var colors:Array<Int> = Reflect.getProperty(stuff, "color");
@@ -801,30 +793,19 @@ class ModMetadata
                     var name:String = Reflect.getProperty(stuff, "name");
                     var restart:Bool = Reflect.getProperty(stuff, "restart");
 
-                    if(name != null && name.length > 0)
-                    {
-                        this.name = name;
-                    }
-                    if(description != null && description.length > 0)
-                    {
-                        this.description = description;
-                    }
-                    if(name == 'Name')
-                    {
-                        this.name = folder;
-                    }
-                    if(description == 'Description')
-                    {
-                        this.description = "No description provided.";
-                    }
-                    if(colors != null && colors.length > 2)
-                    {
-                        this.color = FlxColor.fromRGB(colors[0], colors[1], colors[2]);
-                    }
-
+                    if (name?.length > 0) this.name = name;
+                    if (description?.length > 0) this.description = description;
+                    if (colors?.length > 2) this.color = FlxColor.fromRGB(colors[0], colors[1], colors[2]);
+                    
                     this.restart = restart;
+
+                    discordClientID = Reflect.getProperty(stuff, "discordClientID");
+                    version = Reflect.getProperty(stuff, "version");
+                    dependencies = Reflect.getProperty(stuff, "dependencies");
+                    conflicts = Reflect.getProperty(stuff, "conflicts");
+                    gameVersion = Reflect.getProperty(stuff, "gameVersion");
                 }
-            } catch(e:Dynamic) {
+            } catch (e:Dynamic) {
                 trace('Error parsing pack.json for mod $folder: $e');
             }
         }

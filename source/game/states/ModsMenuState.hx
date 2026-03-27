@@ -44,8 +44,8 @@ using StringTools;
 #if MODS_ALLOWED
 class ModsMenuState extends MusicBeatState
 {
-	static var changedAThing = false;
-	static var curSelected:Int = 0;
+    static var changedAThing = false;
+    static var curSelected:Int = 0;
 
     var mods:Array<ModMetadata> = [];
     var bg:FlxSprite;
@@ -157,13 +157,12 @@ class ModsMenuState extends MusicBeatState
 
         buttonToggle = new FlxButton(startX, 0, "ON", function()
         {
-            if(mods[curSelected].restart)
-            {
-                needaReset = true;
-            }
+            if(mods[curSelected].restart) needaReset = true;
             modsList[curSelected][1] = !modsList[curSelected][1];
             updateButtonToggle();
             FlxG.sound.play(Paths.sound('scrollMenu'), 0.6);
+            saveTxt();
+            updateDiscordClientID();
         });
         buttonToggle.setGraphicSize(50, 50);
         buttonToggle.updateHitbox();
@@ -222,19 +221,11 @@ class ModsMenuState extends MusicBeatState
 
         startX -= 190;
         buttonDisableAll = new FlxButton(startX, 0, "DISABLE ALL", function() {
-            for (i in modsList)
-            {
-                i[1] = false;
-            }
-            for (mod in mods)
-            {
-                if (mod.restart)
-                {
-                    needaReset = true;
-                    break;
-                }
-            }
+            for (i in modsList) i[1] = false;
+            for (mod in mods) if (mod.restart) { needaReset = true; break; }
             updateButtonToggle();
+            saveTxt();
+            updateDiscordClientID();
             FlxG.sound.play(Paths.sound('scrollMenu'), 0.6);
         });
         buttonDisableAll.setGraphicSize(170, 50);
@@ -248,19 +239,11 @@ class ModsMenuState extends MusicBeatState
 
         startX -= 190;
         buttonEnableAll = new FlxButton(startX, 0, "ENABLE ALL", function() {
-            for (i in modsList)
-            {
-                i[1] = true;
-            }
-            for (mod in mods)
-            {
-                if (mod.restart)
-                {
-                    needaReset = true;
-                    break;
-                }
-            }
+            for (i in modsList) i[1] = true;
+            for (mod in mods) if (mod.restart) { needaReset = true; break; }
             updateButtonToggle();
+            saveTxt();
+            updateDiscordClientID();
             FlxG.sound.play(Paths.sound('scrollMenu'), 0.6);
         });
         buttonEnableAll.setGraphicSize(170, 50);
@@ -382,6 +365,8 @@ class ModsMenuState extends MusicBeatState
 
         FlxG.mouse.visible = true;
 
+        updateDiscordClientID();
+
         super.create();
     }
 
@@ -460,6 +445,8 @@ class ModsMenuState extends MusicBeatState
                 mods[newPos] = lastMod;
             }
             changeSelection(change);
+            saveTxt();
+            updateDiscordClientID();
 
             if(!doRestart) doRestart = mods[curSelected].restart;
             if(!skipResetCheck && doRestart) needaReset = true;
@@ -742,6 +729,13 @@ class ModsMenuState extends MusicBeatState
         selector.pixels.fillRect(new Rectangle((flipX ? antiX : 5), Std.int(Math.abs(antiY - 3)),  6, 1), FlxColor.BLACK);
         selector.pixels.fillRect(new Rectangle((flipX ? antiX : 6), Std.int(Math.abs(antiY - 2)),  5, 1), FlxColor.BLACK);
         selector.pixels.fillRect(new Rectangle((flipX ? antiX : 8), Std.int(Math.abs(antiY - 1)),  3, 1), FlxColor.BLACK);
+    }
+
+    function updateDiscordClientID() {
+        Mods.refreshActiveModsMetadata();
+        #if DISCORD_ALLOWED
+        DiscordClient.setClientIDFromMods();
+        #end
     }
 }
 

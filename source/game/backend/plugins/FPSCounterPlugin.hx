@@ -18,8 +18,6 @@ import openfl.text.TextFieldAutoSize;
 import openfl.text.TextFormat;
 import openfl.ui.Keyboard;
 
-import flixel.FlxG;
-
 import game.backend.utils.MemoryUtil;
 
 #if sys
@@ -39,7 +37,6 @@ class FPSCounterPlugin extends Sprite
 	public var fontSize:Int = 11;
 	public var fontCustom:String = "_sans";
 
-	// Warning system
 	public var performanceWarnings(default, null):Array<String> = [];
 	public var warningLevel(default, null):Int = 0; // 0 = normal, 1 = warning, 2 = dangerous, 3 = critical
 
@@ -163,7 +160,7 @@ class FPSCounterPlugin extends Sprite
 		if (logEnabled)
 			initLogFile();
 
-		Lib.current.stage.addEventListener(KeyboardEvent.KEY_DOWN, onKeyPress);
+		FlxG.stage.addEventListener(KeyboardEvent.KEY_DOWN, onKeyPress);
 		addEventListener(Event.ENTER_FRAME, onEnterFrame);
 	}
 
@@ -193,7 +190,7 @@ class FPSCounterPlugin extends Sprite
 		switch (event.keyCode)
 		{
 			case Keyboard.F2:
-				resetStats();
+				resetDebugInfo();
 				keyCooldown = keyCooldownTime;
 			case Keyboard.F3:
 				toggleDebugInfo();
@@ -237,7 +234,7 @@ class FPSCounterPlugin extends Sprite
 
 		if (now - lastUpdateTime >= updateInterval)
 		{
-			updateStatistics();
+			updateStats();
 
 			if (counterVisible)
 			{
@@ -395,7 +392,7 @@ class FPSCounterPlugin extends Sprite
 			peakMemory = currentMem;
 	}
 
-	private function updateStatistics():Void
+	private function updateStats():Void
 	{
 		if (currentFPS < minFPS && currentFPS > 0) minFPS = currentFPS;
 		if (currentFPS > maxFPS) maxFPS = currentFPS;
@@ -425,8 +422,9 @@ class FPSCounterPlugin extends Sprite
 			fpsScore = Math.min(fpsScore, 60);
 		}
 
-		var memoryRatio = Math.min(smoothMemory / 2e9, 1.0);
-		var memoryScore = 40 * (1 - memoryRatio);
+		final memoryRatio = Math.min(smoothMemory / 2e9, 1.0);
+		final memoryScore = 40 * (1 - memoryRatio);
+
 		var stabilityFactor = 0;
 
 		if (!ClientPrefs.unlimitedFPS && stabilityIssues > 10)
@@ -439,12 +437,12 @@ class FPSCounterPlugin extends Sprite
 		performanceScore = fpsScore + memoryScore + stabilityFactor;
 		performanceScore = Math.max(0, Math.min(100, performanceScore));
 
-		var now = Timer.stamp();
+		final now = Timer.stamp();
 		if (now - lastStatReset > 30)
-			resetStatistics();
+			resetStats();
 	}
 
-	private function resetStatistics():Void
+	private function resetStats():Void
 	{
 		minFPS = 9999;
 		maxFPS = 0;
@@ -594,7 +592,7 @@ class FPSCounterPlugin extends Sprite
 
 	private static function getDisplayRefreshRate():Int
 	{
-		var window = Lib.application.window;
+		final window = Lib.application.window;
 		if (window?.display?.currentMode != null)
 			return window.display.currentMode.refreshRate;
 		return 60;
@@ -807,9 +805,9 @@ class FPSCounterPlugin extends Sprite
 		#if sys
 		try
 		{
-			var timestamp = Date.now().toString();
-			var warnings = performanceWarnings.join("; ");
-			var logLine = timestamp + "," + currentFPS + "," + smoothMemory + "," + peakMemory + "," +
+			final timestamp = Date.now().toString();
+			final warnings = performanceWarnings.join("; ");
+			final logLine = timestamp + "," + currentFPS + "," + smoothMemory + "," + peakMemory + "," +
 				availableSystemMemory + "," + (ClientPrefs.vsync ? "ON" : "OFF") + "," +
 				(ClientPrefs.vsync ? getDisplayRefreshRate() : ClientPrefs.framerate) + "," +
 				performanceScore + "," + warnings + "\n";
@@ -837,9 +835,9 @@ class FPSCounterPlugin extends Sprite
 		lastOutput = "";
 	}
 
-	public function resetStats():Void
+	public function resetDebugInfo():Void
 	{
-		resetStatistics();
+		resetStats();
 		graphHistory = [];
 		frameTimes = [];
 		memoryReadings = [];
