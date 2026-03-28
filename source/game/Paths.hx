@@ -44,6 +44,7 @@ class Paths
     public static final SOUND_EXTS:Array<String> = [#if !flash "ogg", "wav", #if (hxflac || web) "flac", #end #if hxopus "opus", #end #end "mp3"];
     public static final VIDEO_EXTS:Array<String> = ["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm"];
     public static final IMAGE_EXTS:Array<String> = ["png", "jpg", "jpeg"];
+    public static final HSCRIPT_EXTS:Array<String> = ["hx", "hscript", "hsc", "hxs"];
 
     //for backward compatibility
     public static final SOUND_EXT = SOUND_EXTS[0];
@@ -224,7 +225,7 @@ class Paths
         foldersToCheck.push(Paths.getPreloadPath('scripts/states/$statePath/'));
         #if MODS_ALLOWED
         foldersToCheck.push(Mods.getModPath('scripts/states/$statePath/'));
-        if (Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0) {
+        if (Mods.currentModDirectory?.length > 0) {
             foldersToCheck.insert(0, Mods.getModPath('${Mods.currentModDirectory}/scripts/states/$statePath/'));
         }
         for (mod in Mods.getGlobalMods()) {
@@ -232,16 +233,18 @@ class Paths
         }
         #end
         
-        scriptPaths.push(Paths.getPreloadPath('scripts/states/$statePath.hx'));
-        #if MODS_ALLOWED
-        scriptPaths.push(Mods.getModPath('scripts/states/$statePath.hx'));
-        if (Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0) {
-            scriptPaths.push(Mods.getModPath('${Mods.currentModDirectory}/scripts/states/$statePath.hx'));
+        for (exts in HSCRIPT_EXTS)
+        {
+            scriptPaths.push(Paths.getPreloadPath('scripts/states/$statePath.$exts'));
+            #if MODS_ALLOWED
+            scriptPaths.push(Mods.getModPath('scripts/states/$statePath.$exts'));
+            if (Mods.currentModDirectory?.length > 0)
+                scriptPaths.push(Mods.getModPath('${Mods.currentModDirectory}/scripts/states/$statePath.$exts'));
+
+            for (mod in Mods.getGlobalMods())
+                scriptPaths.push(Mods.getModPath('$mod/scripts/states/$statePath.$exts'));
+            #end
         }
-        for (mod in Mods.getGlobalMods()) {
-            scriptPaths.push(Mods.getModPath('$mod/scripts/states/$statePath.hx'));
-        }
-        #end
         
         return foldersToCheck.concat(scriptPaths);
     }
@@ -253,7 +256,7 @@ class Paths
         foldersToCheck.push(Paths.getPreloadPath('scripts/substates/$statePath/'));
         #if MODS_ALLOWED
         foldersToCheck.push(Mods.getModPath('scripts/substates/$statePath/'));
-        if (Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0) {
+        if (Mods.currentModDirectory?.length > 0) {
             foldersToCheck.insert(0, Mods.getModPath('${Mods.currentModDirectory}/scripts/substates/$statePath/'));
         }
         for (mod in Mods.getGlobalMods()) {
@@ -261,16 +264,18 @@ class Paths
         }
         #end
         
-        scriptPaths.push(Paths.getPreloadPath('scripts/substates/$statePath.hx'));
-        #if MODS_ALLOWED
-        scriptPaths.push(Mods.getModPath('scripts/substates/$statePath.hx'));
-        if (Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0) {
-            scriptPaths.push(Mods.getModPath('${Mods.currentModDirectory}/scripts/substates/$statePath.hx'));
+        for (exts in HSCRIPT_EXTS)
+        {
+            scriptPaths.push(Paths.getPreloadPath('scripts/substates/$statePath.$exts'));
+            #if MODS_ALLOWED
+            scriptPaths.push(Mods.getModPath('scripts/substates/$statePath.$exts'));
+            if (Mods.currentModDirectory?.length > 0)
+                scriptPaths.push(Mods.getModPath('${Mods.currentModDirectory}/scripts/substates/$statePath.$exts'));
+
+            for (mod in Mods.getGlobalMods())
+                scriptPaths.push(Mods.getModPath('$mod/scripts/substates/$statePath.$exts'));
+            #end
         }
-        for (mod in Mods.getGlobalMods()) {
-            scriptPaths.push(Mods.getModPath('$mod/scripts/substates/$statePath.hx'));
-        }
-        #end
         
         return foldersToCheck.concat(scriptPaths);
     }

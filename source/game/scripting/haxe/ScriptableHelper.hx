@@ -72,46 +72,46 @@ class ScriptableHelper {
         var processedFiles:Map<String, Bool> = new Map();
 
         for (path in folders) {
-            var isDirectory:Bool = false;
-            var isFile:Bool = false;
-
             #if sys
             if (FileSystem.exists(path)) {
                 if (FileSystem.isDirectory(path)) {
-                    isDirectory = true;
-                    for (file in FileSystem.readDirectory(path)) {
-                        if (file.endsWith('.hx')) {
-                            var fullPath = haxe.io.Path.join([path, file]);
-                            if (!processedFiles.exists(fullPath)) {
-                                scriptFiles.push(fullPath);
-                                processedFiles.set(fullPath, true);
-                            }
+                    final files = FileSystem.readDirectory(path)
+                        .map(file -> haxe.io.Path.join([path, file]))
+                        .filter(fullPath -> !FileSystem.isDirectory(fullPath) && 
+                                            Lambda.exists(Paths.HSCRIPT_EXTS, ext -> fullPath.endsWith('.$ext')));
+
+                    for (file in files) {
+                        if (!processedFiles.exists(file)) {
+                            scriptFiles.push(file);
+                            processedFiles.set(file, true);
                         }
                     }
-                } else if (path.endsWith('.hx')) {
-                    isFile = true;
-                    if (!processedFiles.exists(path)) {
+                    continue;
+                } else {
+                    if (Lambda.exists(Paths.HSCRIPT_EXTS, ext -> path.endsWith('.$ext')) && !processedFiles.exists(path)) {
                         scriptFiles.push(path);
                         processedFiles.set(path, true);
                     }
+                    continue;
                 }
             }
             #end
 
-            if (!isDirectory && !isFile) {
-                if (OpenFlAssets.exists(path)) {
-                    if (path.endsWith('.hx')) {
-                        if (!processedFiles.exists(path)) {
-                            scriptFiles.push(path);
-                            processedFiles.set(path, true);
-                        }
-                    } else {
-                        var prefix = path.endsWith('/') ? path : path + '/';
-                        for (file in OpenFlAssets.list(TEXT)) {
-                            if (file.startsWith(prefix) && file.endsWith('.hx') && !processedFiles.exists(file)) {
-                                scriptFiles.push(file);
-                                processedFiles.set(file, true);
-                            }
+            if (OpenFlAssets.exists(path)) {
+                if (Lambda.exists(Paths.HSCRIPT_EXTS, ext -> path.endsWith('.$ext'))) {
+                    if (!processedFiles.exists(path)) {
+                        scriptFiles.push(path);
+                        processedFiles.set(path, true);
+                    }
+                } else {
+                    final prefix = path.endsWith('/') ? path : path + '/';
+                    final assetFiles = OpenFlAssets.list(TEXT).filter(file -> file.startsWith(prefix) && 
+                                        Lambda.exists(Paths.HSCRIPT_EXTS, ext -> file.endsWith('.$ext')));
+
+                    for (file in assetFiles) {
+                        if (!processedFiles.exists(file)) {
+                            scriptFiles.push(file);
+                            processedFiles.set(file, true);
                         }
                     }
                 }

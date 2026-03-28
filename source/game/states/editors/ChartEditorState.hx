@@ -1230,18 +1230,26 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		#end
 
 		#if sys
-		for (i in 0...directories.length) {
-			var directory:String =  directories[i];
-			if(FileSystem.exists(directory)) {
-				for (file in FileSystem.readDirectory(directory)) {
-					var fileName:String = file.toLowerCase().trim();
-					var wordLen:Int = 4;
-					if (#if LUA_ALLOWED fileName.endsWith('.lua') || #end #if HSCRIPT_ALLOWED (fileName.endsWith('.hx') && (wordLen = 3) == 3) #else true #end) {
-						var fileToCheck:String = file.substr(0, file.length - wordLen);
-						if(!curNoteTypes.contains(fileToCheck)) {
-							curNoteTypes.push(fileToCheck);
-							key++;
-						}
+		var allowedExtensions:Array<String> = [];
+		#if LUA_ALLOWED allowedExtensions.push('lua'); #end
+		#if HSCRIPT_ALLOWED allowedExtensions = allowedExtensions.concat(Paths.HSCRIPT_EXTS); #end
+
+		for (directory in directories) {
+			if (FileSystem.exists(directory)) {
+				final files = FileSystem.readDirectory(directory);
+				final scriptFiles = files.filter(file -> {
+					final lastDot = file.lastIndexOf('.');
+					if (lastDot == -1) return false;
+
+					final ext = file.substr(lastDot + 1).toLowerCase();
+					return allowedExtensions.contains(ext);
+				});
+				
+				for (file in scriptFiles) {
+					final nameWithoutExt = file.substr(0, file.lastIndexOf('.'));
+					if (!curNoteTypes.contains(nameWithoutExt)) {
+						curNoteTypes.push(nameWithoutExt);
+						key++;
 					}
 				}
 			}

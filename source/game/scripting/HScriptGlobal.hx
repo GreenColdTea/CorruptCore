@@ -19,44 +19,39 @@ class HScriptGlobal {
         
         #if MODS_ALLOWED
         foldersToCheck.insert(0, Mods.getModPath('data/'));
-        if(Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0) 
+        if(Mods.currentModDirectory?.length > 0) 
             foldersToCheck.insert(0, Mods.getModPath('${Mods.currentModDirectory}/data/'));
         for(mod in Mods.getGlobalMods()) 
             foldersToCheck.insert(0, Mods.getModPath('$mod/data/'));
         #end
         
+        var scriptPath:String = null;
         for (folder in foldersToCheck) {
             #if sys
             if (FileSystem.exists(folder) && FileSystem.isDirectory(folder)) {
-                for (file in FileSystem.readDirectory(folder)) {
-                    var fullPath = haxe.io.Path.join([folder, file]);
-                    if (!FileSystem.isDirectory(fullPath)) {
-                        #if HSCRIPT_ALLOWED
-                        if (file.toLowerCase() == 'global.hx') {
-                            scriptPath = fullPath;
-                            break;
-                        }
-                        #end
-                    }
-                }
+                var files = FileSystem.readDirectory(folder)
+                    .map(file -> haxe.io.Path.join([folder, file]))
+                    .filter(fullPath -> !FileSystem.isDirectory(fullPath));
+
+                scriptPath = files.find(fullPath -> {
+                    final fileName = fullPath.substring(fullPath.lastIndexOf("/") + 1).toLowerCase();
+                    return Lambda.exists(Paths.HSCRIPT_EXTS, ext -> fileName == 'global.$ext');
+                });
+                
                 if (scriptPath != null) break;
             }
             #end
 
-            var possiblePaths:Array<String> = [
-                folder + "Global.hx",
-                folder + "global.hx"
-            ];
-            
-            for (path in possiblePaths) {
-                if (OpenFlAssets.exists(path)) {
-                    scriptPath = path;
-                    break;
-                }
+            var possiblePaths:Array<String> = [];
+            for (ext in Paths.HSCRIPT_EXTS) {
+                possiblePaths.push(folder + "Global." + ext);
+                possiblePaths.push(folder + "global." + ext);
             }
+            
+            scriptPath = possiblePaths.find(path -> OpenFlAssets.exists(path));
             if (scriptPath != null) break;
         }
-        
+
         if (scriptPath != null) {
             globalScript = new FunkinHScript(scriptPath);
             globalScriptActive = true;            
@@ -90,8 +85,7 @@ class HScriptGlobal {
     }
     
     public static function callGlobalScript(callback:String, args:Array<Dynamic>):Dynamic {
-        if(globalScriptActive) return globalScript?.call(callback, args);
-        return null;
+        return globalScriptActive ? globalScript?.call(callback, args) : null;
     }
     
     public static function destroyModScript() {

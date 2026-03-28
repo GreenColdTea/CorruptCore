@@ -613,59 +613,73 @@ class PlayState extends MusicBeatState
 
 		#if MODS_ALLOWED
 		foldersToCheck.insert(0, Mods.getModPath('scripts/'));
-		if(Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0)
+		if(Mods.currentModDirectory?.length > 0)
 			foldersToCheck.insert(0, Mods.getModPath(Mods.currentModDirectory + '/scripts/'));
 
 		for(mod in Mods.getGlobalMods())
 			foldersToCheck.insert(0, Mods.getModPath(mod + '/scripts/'));
 		#end
 
-		for (folder in foldersToCheck)
-		{
+		for (folder in foldersToCheck) {
 			#if sys
 			if (FileSystem.exists(folder)) {
-				for (file in sys.FileSystem.readDirectory(folder)) {
-					#if LUA_ALLOWED
-					if (!filesPushed.contains(file) && file.endsWith(".lua") && !file.contains("/states/") && !file.contains("/substates/")) {
+				final allFiles = FileSystem.readDirectory(folder);
+
+				#if LUA_ALLOWED
+				final luaFiles = allFiles.filter(file -> file.endsWith(".lua") && !file.contains("/states/") && !file.contains("/substates/"));
+				for (file in luaFiles) {
+					if (!filesPushed.contains(file)) {
 						luaArray.push(new FunkinLua(folder + file));
 						filesPushed.push(file);
 					}
-					#end
-					#if HSCRIPT_ALLOWED
-					if (!filesPushed.contains(file) && file.endsWith(".hx") && !file.contains("/states/") && !file.contains("/substates/")) {
+				}
+				#end
+
+				#if HSCRIPT_ALLOWED
+				final hscriptFiles = allFiles.filter(file -> 
+					Lambda.exists(Paths.HSCRIPT_EXTS, ext -> file.endsWith('.$ext')) && !file.contains("/states/") && !file.contains("/substates/")
+				);
+				for (file in hscriptFiles) {
+					if (!filesPushed.contains(file)) {
 						hscriptArray.push(new FunkinHScript(folder + file));
 						filesPushed.push(file);
 					}
-					#end
+				}
+				#end
+			}
+			#end
+
+			final assetFiles = OpenFlAssets.list().filter(f -> f.startsWith(folder));
+
+			#if LUA_ALLOWED
+			final luaAssets = assetFiles.filter(file -> file.endsWith(".lua"));
+			for (file in luaAssets) {
+				final fileName = file.substring(file.lastIndexOf("/") + 1);
+				if (!filesPushed.contains(fileName) && !file.contains("/states/") &&
+					!file.contains("/substates/")) {
+					luaArray.push(new FunkinLua(file));
+					filesPushed.push(fileName);
 				}
 			}
 			#end
 
-			for (file in OpenFlAssets.list().filter(f -> f.startsWith(folder))) {
-				#if LUA_ALLOWED
-				if (file.endsWith(".lua")) {
-					var fileName:String = file.substring(file.lastIndexOf("/") + 1);
-					if (!filesPushed.contains(fileName) && !file.contains("/states/") && !file.contains("/substates/")) {
-						luaArray.push(new FunkinLua(file));
-						filesPushed.push(fileName);
-					}
+			#if HSCRIPT_ALLOWED
+			final hscriptAssets = assetFiles.filter(file -> Lambda.exists(Paths.HSCRIPT_EXTS, ext -> file.endsWith('.$ext')));
+			for (file in hscriptAssets) {
+				final fileName = file.substring(file.lastIndexOf("/") + 1);
+				if (!filesPushed.contains(fileName) && !file.contains("/states/") &&
+					!file.contains("/substates/")) {
+					hscriptArray.push(new FunkinHScript(file));
+					filesPushed.push(fileName);
 				}
-				#end
-				#if HSCRIPT_ALLOWED
-				if (file.endsWith(".hx")) {
-					var fileName:String = file.substring(file.lastIndexOf("/") + 1);
-					if (!filesPushed.contains(fileName) && !file.contains("/states/") && !file.contains("/substates/")) {
-						hscriptArray.push(new FunkinHScript(file));
-						filesPushed.push(fileName);
-					}
-				}
-				#end
 			}
+			#end
 		}
 
 		// STAGE SCRIPTS
 		startLuasOnFolder('stages/' + curStage + '.lua');
-		startHScriptOnFolder('stages/' + curStage + '.hx');
+		for (ext in Paths.HSCRIPT_EXTS)
+			startHScriptOnFolder('stages/' + curStage + '.$ext');
 
 		if (!stageData.hide_girlfriend)
 		{
@@ -876,15 +890,17 @@ class PlayState extends MusicBeatState
 		// cameras = [FlxG.cameras.list[1]];
 		startingSong = true;
 		
-		for (notetype in noteTypeMap.keys())
-		{
-			startLuasOnFolder('custom_notetypes/' + notetype + '.lua');
-			startHScriptOnFolder('custom_notetypes/' + notetype + '.hx');
-		}
-		for (event in eventPushedMap.keys())
-		{
-			startLuasOnFolder('custom_events/' + event + '.lua');
-			startHScriptOnFolder('custom_events/' + event + '.hx');
+		for (ext in Paths.HSCRIPT_EXTS) {
+			for (notetype in noteTypeMap.keys())
+			{
+				startLuasOnFolder('custom_notetypes/' + notetype + '.lua');
+				startHScriptOnFolder('custom_notetypes/' + notetype + '.$ext');
+			}
+			for (event in eventPushedMap.keys())
+			{
+				startLuasOnFolder('custom_events/' + event + '.lua');
+				startHScriptOnFolder('custom_events/' + event + '.$ext');
+			}
 		}
 
 		noteTypeMap.clear();
@@ -898,54 +914,63 @@ class PlayState extends MusicBeatState
 
 		#if MODS_ALLOWED
 		foldersToCheck.insert(0, Mods.getModPath('data/songs/' + Paths.formatToSongPath(SONG.song) + '/'));
-		if(Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0)
+		if(Mods.currentModDirectory?.length > 0)
 			foldersToCheck.insert(0, Mods.getModPath(Mods.currentModDirectory + '/data/songs/' + Paths.formatToSongPath(SONG.song) + '/'));
 
 		for(mod in Mods.getGlobalMods())
-			foldersToCheck.insert(0, Mods.getModPath(mod + '/data/songs/' + Paths.formatToSongPath(SONG.song) + '/' ));// using push instead of insert because these should run after everything else
+			foldersToCheck.insert(0, Mods.getModPath(mod + '/data/songs/' + Paths.formatToSongPath(SONG.song) + '/' ));
 		#end
 
-		for (folder in foldersToCheck)
-		{
+		for (folder in foldersToCheck) {
 			#if sys
 			if (FileSystem.exists(folder)) {
-				for (file in sys.FileSystem.readDirectory(folder)) {
-					#if LUA_ALLOWED
-					if (file.endsWith(".lua") && !filesPushed.contains(file)) {
+				final allFiles = FileSystem.readDirectory(folder);
+				
+				#if LUA_ALLOWED
+				final luaFiles = allFiles.filter(file -> file.endsWith(".lua"));
+				for (file in luaFiles) {
+					if (!filesPushed.contains(file)) {
 						luaArray.push(new FunkinLua(folder + file));
 						filesPushed.push(file);
 					}
-					#end
-					#if HSCRIPT_ALLOWED
-					if (file.endsWith(".hx") && !filesPushed.contains(file)) {
+				}
+				#end
+				
+				#if HSCRIPT_ALLOWED
+				final hscriptFiles = allFiles.filter(file -> Lambda.exists(Paths.HSCRIPT_EXTS, ext -> file.endsWith("." + ext)));
+				for (file in hscriptFiles) {
+					if (!filesPushed.contains(file)) {
 						hscriptArray.push(new FunkinHScript(folder + file));
 						filesPushed.push(file);
 					}
-					#end
+				}
+				#end
+			}
+			#end
+			
+			final assetFiles = OpenFlAssets.list().filter(f -> f.startsWith(folder));
+			
+			#if LUA_ALLOWED
+			final luaAssets = assetFiles.filter(file -> file.endsWith(".lua"));
+			for (file in luaAssets) {
+				final fileName = file.substring(file.lastIndexOf("/") + 1);
+				if (!filesPushed.contains(fileName)) {
+					luaArray.push(new FunkinLua(file));
+					filesPushed.push(fileName);
 				}
 			}
 			#end
-
-			for (file in OpenFlAssets.list().filter(f -> f.startsWith(folder))) {
-				#if LUA_ALLOWED
-				if (file.endsWith(".lua")) {
-					var fileName:String = file.substring(file.lastIndexOf("/") + 1);
-					if (!filesPushed.contains(fileName)) {
-						luaArray.push(new FunkinLua(file));
-						filesPushed.push(fileName);
-					}
+			
+			#if HSCRIPT_ALLOWED
+			final hscriptAssets = assetFiles.filter(file -> Lambda.exists(Paths.HSCRIPT_EXTS, ext -> file.endsWith("." + ext)));
+			for (file in hscriptAssets) {
+				final fileName = file.substring(file.lastIndexOf("/") + 1);
+				if (!filesPushed.contains(fileName)) {
+					hscriptArray.push(new FunkinHScript(file));
+					filesPushed.push(fileName);
 				}
-				#end
-				#if HSCRIPT_ALLOWED
-				if (file.endsWith(".hx")) {
-					var fileName:String = file.substring(file.lastIndexOf("/") + 1);
-					if (!filesPushed.contains(fileName)) {
-						hscriptArray.push(new FunkinHScript(file));
-						filesPushed.push(fileName);
-					}
-				}
-				#end
 			}
+			#end
 		}
 
 		startCallback();
@@ -1078,67 +1103,34 @@ class PlayState extends MusicBeatState
 
 	function startCharacterScripts(name:String)
 	{
-		#if LUA_ALLOWED
-		var doPush:Bool = false;
-		var luaFile:String = 'data/characters/' + name + '.lua';
-		#if MODS_ALLOWED
-		if(FileSystem.exists(Mods.modFolders(luaFile))) {
-			luaFile = Mods.modFolders(luaFile);
-			doPush = true;
-		} else {
-			luaFile = Paths.getPreloadPath(luaFile);
-			if(FileSystem.exists(luaFile)) {
-				doPush = true;
-			}
-		}
-		#else
-		luaFile = Paths.getPreloadPath(luaFile);
-		if(Assets.exists(luaFile)) {
-			doPush = true;
-		}
-		#end
-
-		if(doPush)
-		{
-			for (script in luaArray)
-			{
-				if(script.scriptName == luaFile) return;
-			}
-			luaArray.push(new FunkinLua(luaFile));
-		}
-		#end
-
-		#if HSCRIPT_ALLOWED
-		var doPush:Bool = false;
-		var hxFile:String = 'data/characters/' + name + '.hx';
-		#if MODS_ALLOWED
-		var replacePath:String = Mods.modFolders(hxFile);
-		if(FileSystem.exists(replacePath))
-		{
-			hxFile = replacePath;
-			doPush = true;
-		}
-		else
-		#end
-		{
-			hxFile = Paths.getPreloadPath(hxFile);
-			#if sys
-			if(FileSystem.exists(hxFile))
-				doPush = true;
+		function addScript(scriptPath:String, scriptArray:Array<Dynamic>, createScript:String->Dynamic):Void {
+			var finalPath:String = null;
+			#if MODS_ALLOWED
+			var modPath = Mods.modFolders(scriptPath);
+			if (FileSystem.exists(modPath)) {
+				finalPath = modPath;
+			} 
+			else 
 			#end
-
-			if(OpenFlAssets.exists(hxFile))
-				doPush = true;
-		}
-
-		if(doPush)
-		{
-			for (script in hscriptArray)
 			{
-				if(script.scriptName == hxFile) return;
+				finalPath = Paths.getPreloadPath(scriptPath);
+				if (#if sys !FileSystem.exists(finalPath) || #end !OpenFlAssets.exists(finalPath)) finalPath = null;
 			}
-			hscriptArray.push(new FunkinHScript(hxFile));
+
+			if (finalPath == null) return;
+
+			for (script in scriptArray)
+				if (script.scriptName == finalPath) return;
+
+			scriptArray.push(createScript(finalPath));
 		}
+
+		#if LUA_ALLOWED
+		addScript('data/characters/$name.lua', luaArray, (path) -> new FunkinLua(path));
+		#end
+		#if HSCRIPT_ALLOWED
+		for (ext in Paths.HSCRIPT_EXTS)
+			addScript('data/characters/$name.$ext', hscriptArray, (path) -> new FunkinHScript(path));
 		#end
 	}
 
@@ -4070,93 +4062,75 @@ class PlayState extends MusicBeatState
 			boyfriend?.dance();
 	}
 
-	public function startLuasOnFolder(luaFile:String)
+	public function startLuasOnFolder(luaFile:String):Bool
 	{
 		#if LUA_ALLOWED
-		var fileName:String = luaFile.substring(luaFile.lastIndexOf("/") + 1);
+		var fileName = luaFile.substring(luaFile.lastIndexOf("/") + 1);
 		
-		for (script in luaArray)
-		{
-			var scriptName:String = script.scriptName;
-			var scriptFileName:String = scriptName.substring(scriptName.lastIndexOf("/") + 1);
-			
-			if(scriptFileName == fileName)
-				return false;
-		}
-
-		var doPush:Bool = false;
+		final alreadyLoaded = Lambda.exists(luaArray, script -> {
+			final scriptFileName = script.scriptName.substring(script.scriptName.lastIndexOf("/") + 1);
+			return scriptFileName == fileName;
+		});
+		
+		if (alreadyLoaded) return false;
+		
+		var actualPath:String = null;
 		#if MODS_ALLOWED
-		var replacePath:String = Mods.modFolders(luaFile);
-		if(FileSystem.exists(replacePath))
-		{
-			luaFile = replacePath;
-			doPush = true;
-		}
-		else
+		var modPath = Mods.modFolders(luaFile);
+		if (FileSystem.exists(modPath)) {
+			actualPath = modPath;
+		} else
 		#end
 		{
-			luaFile = Paths.getPreloadPath(luaFile);
+			final basePath = Paths.getPreloadPath(luaFile);
 			#if sys
-			if(FileSystem.exists(luaFile))
-				doPush = true;
+			if (FileSystem.exists(basePath)) actualPath = basePath;
 			#end
-
-			if(OpenFlAssets.exists(luaFile))
-				doPush = true;
+			if (actualPath == null && OpenFlAssets.exists(luaFile)) actualPath = luaFile;
 		}
-
-		if(doPush)
-		{
-			luaArray.push(new FunkinLua(luaFile));
+		
+		if (actualPath != null) {
+			luaArray.push(new FunkinLua(actualPath));
 			return true;
 		}
 		#end
-
+		
 		return false;
 	}
 
-	public function startHScriptOnFolder(hscriptFile:String)
+	public function startHScriptOnFolder(hscriptFile:String):Bool
 	{
 		#if HSCRIPT_ALLOWED
-		var fileName:String = hscriptFile.substring(hscriptFile.lastIndexOf("/") + 1);
+		var fileName = hscriptFile.substring(hscriptFile.lastIndexOf("/") + 1);
+
+		final alreadyLoaded = Lambda.exists(hscriptArray, script -> {
+			final scriptFileName = script.scriptName.substring(script.scriptName.lastIndexOf("/") + 1);
+			return scriptFileName == fileName;
+		});
 		
-		for (script in hscriptArray)
-		{
-			var scriptName:String = script.scriptName;
-			var scriptFileName:String = scriptName.substring(scriptName.lastIndexOf("/") + 1);
-
-			if(scriptFileName == fileName)
-				return false;
-		}
-
-		var doPush:Bool = false;
+		if (alreadyLoaded) return false;
+		
+		var actualPath:String = null;
 		#if MODS_ALLOWED
-		var replacePath:String = Mods.modFolders(hscriptFile);
-		if(FileSystem.exists(replacePath))
-		{
-			hscriptFile = replacePath;
-			doPush = true;
-		}
-		else
+		var modPath = Mods.modFolders(hscriptFile);
+		if (FileSystem.exists(modPath)) {
+			actualPath = modPath;
+		} else
 		#end
 		{
-			hscriptFile = Paths.getPreloadPath(hscriptFile);
+			final basePath = Paths.getPreloadPath(hscriptFile);
 			#if sys
-			if(FileSystem.exists(hscriptFile))
-				doPush = true;
+			if (FileSystem.exists(basePath)) actualPath = basePath;
 			#end
-
-			if(OpenFlAssets.exists(hscriptFile))
-				doPush = true;
+			if (actualPath == null && OpenFlAssets.exists(hscriptFile)) actualPath = hscriptFile;
 		}
-
-		if(doPush)
-		{
-			hscriptArray.push(new FunkinHScript(hscriptFile));
+		
+		if (actualPath != null) {
+			hscriptArray.push(new FunkinHScript(actualPath));
 			return true;
 		}
 		#end
-
+		
 		return false;
 	}
 	public function setOnHScript(variable:String, arg:Dynamic) {

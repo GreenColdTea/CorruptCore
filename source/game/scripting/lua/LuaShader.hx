@@ -282,7 +282,7 @@ class LuaShader
 		var foldersToCheck:Array<String> = [Paths.getPreloadPath('shaders/') #if MODS_ALLOWED , Mods.getModPath('shaders/') #end];
 
 		#if MODS_ALLOWED
-		if(Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0)
+		if(Mods.currentModDirectory?.length > 0)
 			foldersToCheck.insert(0, Mods.getModPath(Mods.currentModDirectory + '/shaders/'));
 
 		for(mod in Mods.getGlobalMods())
