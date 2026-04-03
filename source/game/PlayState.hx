@@ -4100,8 +4100,8 @@ class PlayState extends MusicBeatState
 	public function playerDance():Void
 	{
 		var anim:String = boyfriend?.getAnimationName();
-		if(boyfriend.holdTimer > Conductor.stepCrochet * (0.0011 #if FLX_PITCH / FlxG.sound.music.pitch #end) * boyfriend.singDuration && anim.startsWith('sing') && !anim.endsWith('miss'))
-			boyfriend?.dance();
+		if(boyfriend != null && boyfriend.holdTimer > Conductor.stepCrochet * (0.0011 #if FLX_PITCH / FlxG.sound.music.pitch #end) * boyfriend.singDuration && anim.startsWith('sing') && !anim.endsWith('miss'))
+			boyfriend.dance();
 	}
 
 	public function startLuasOnFolder(luaFile:String):Bool
