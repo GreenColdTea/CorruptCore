@@ -153,6 +153,8 @@ class PlayState extends MusicBeatState
 	public var modchartTexts:Map<String, ModchartText> = new Map();
 	public var modchartSaves:Map<String, FlxSave> = new Map();
 
+	private var characterScripts:Map<String, Array<Dynamic>> = new Map();
+
 	#if MODCHART_ALLOWED
 	public var modManager:ModManager;
 	#end
@@ -1122,7 +1124,16 @@ class PlayState extends MusicBeatState
 			for (script in scriptArray)
 				if (script.scriptName == finalPath) return;
 
-			scriptArray.push(createScript(finalPath));
+			var newScript = createScript(finalPath);
+			scriptArray.push(newScript);
+
+			var scripts = characterScripts.get(name);
+			if (scripts == null) {
+				scripts = [];
+				characterScripts.set(name, scripts);
+			}
+			
+			scripts.push(newScript);
 		}
 
 		#if LUA_ALLOWED
@@ -1132,6 +1143,22 @@ class PlayState extends MusicBeatState
 		for (ext in Paths.HSCRIPT_EXTS)
 			addScript('data/characters/$name.$ext', hscriptArray, (path) -> new FunkinHScript(path));
 		#end
+	}
+
+	function removeCharacterScripts(characterName:String):Void 
+	{
+		final scripts = characterScripts.get(characterName);
+		if (scripts == null) return;
+
+		for (script in scripts) {
+			if (Std.isOfType(script, FunkinLua)) {
+				luaArray.remove(cast script);
+			} else if (Std.isOfType(script, FunkinHScript)) {
+				hscriptArray.remove(cast script);
+			}
+			script.stop();
+		}
+		characterScripts.remove(characterName);
 	}
 
 	public function getLuaObject(tag:String, text:Bool = true):FlxSprite {
@@ -2677,14 +2704,19 @@ class PlayState extends MusicBeatState
 						if(Math.isNaN(charType)) charType = 0;
 				}
 
+				var oldCharName:String = null;
+    			var newCharName:String = value2;
+
 				switch(charType) {
 					case 0:
-						if(boyfriend.curCharacter != value2) {
-							if(!boyfriendMap.exists(value2)) {
-								addCharacterToList(value2, charType);
-							}
+						if (boyfriend.curCharacter != newCharName) 
+						{
+							oldCharName = boyfriend.curCharacter;
 
-							var lastAlpha:Float = boyfriend.alpha;
+							if(!boyfriendMap.exists(value2))
+								addCharacterToList(value2, charType);
+
+							final lastAlpha:Float = boyfriend.alpha;
 							boyfriend.alpha = 0.00001;
 							boyfriend = boyfriendMap.get(value2);
 							boyfriend.alpha = lastAlpha;
@@ -2693,13 +2725,15 @@ class PlayState extends MusicBeatState
 						setOnScripts('boyfriendName', boyfriend.curCharacter);
 
 					case 1:
-						if(dad.curCharacter != value2) {
-							if(!dadMap.exists(value2)) {
+						if (dad.curCharacter != newCharName) 
+						{
+							oldCharName = dad.curCharacter;
+							
+							if(!dadMap.exists(value2))
 								addCharacterToList(value2, charType);
-							}
 
-							var wasGf:Bool = dad.curCharacter.startsWith('gf');
-							var lastAlpha:Float = dad.alpha;
+							final wasGf:Bool = dad.curCharacter.startsWith('gf');
+							final lastAlpha:Float = dad.alpha;
 							dad.alpha = 0.00001;
 							dad = dadMap.get(value2);
 							if(!dad.curCharacter.startsWith('gf')) {
@@ -2715,16 +2749,16 @@ class PlayState extends MusicBeatState
 						setOnScripts('dadName', dad.curCharacter);
 
 					case 2:
-						if(gf != null)
+						if (gf != null)
 						{
-							if(gf.curCharacter != value2)
+							if(gf.curCharacter != newCharName)
 							{
-								if(!gfMap.exists(value2))
-								{
-									addCharacterToList(value2, charType);
-								}
+								oldCharName = gf.curCharacter;
 
-								var lastAlpha:Float = gf.alpha;
+								if(!gfMap.exists(value2))
+									addCharacterToList(value2, charType);
+
+								final lastAlpha:Float = gf.alpha;
 								gf.alpha = 0.00001;
 								gf = gfMap.get(value2);
 								gf.alpha = lastAlpha;
@@ -2733,6 +2767,9 @@ class PlayState extends MusicBeatState
 						}
 				}
 				reloadHealthBarColors();
+
+				if (oldCharName != null)
+					removeCharacterScripts(oldCharName);
 
 			case 'Change Scroll Speed':
 				if (songSpeedType == "constant")
@@ -3924,8 +3961,14 @@ class PlayState extends MusicBeatState
 		}
 		hscriptArray = [];
 
-		if(FunkinLua.hscript != null) FunkinLua.hscript = null;
+		FunkinLua.hscript = null;
 		#end
+
+		for (name in characterScripts.keys())
+			removeCharacterScripts(name);
+
+		characterScripts.clear();
+		characterScripts = null;
 
 		isPixelStage = false;
 
@@ -3978,7 +4021,6 @@ class PlayState extends MusicBeatState
 	var lightningOffset:Int = 8;
 
 	var lastBeatHit:Int = -1;
-
 	override function beatHit()
 	{
 		super.beatHit();
