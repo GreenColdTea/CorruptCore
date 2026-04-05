@@ -2136,6 +2136,7 @@ class PlayState extends MusicBeatState
 
 		//for health bar smoothing
 		displayHealth = FlxMath.lerp(displayHealth, health, 0.1 * playbackRate);
+		if (health >= 2) displayHealth = 2;
 
 		iconP1.updateIconScale(elapsed);
 		iconP2.updateIconScale(elapsed);
@@ -2144,9 +2145,6 @@ class PlayState extends MusicBeatState
 
 		iconP1.x = healthBar.x + (healthBar.width * (FlxMath.remapToRange(displayHealth, 0, 2, 100, 0) * 0.01)) + (150 * iconP1.scale.x - 150) / 2 - iconOffset;
 		iconP2.x = healthBar.x + (healthBar.width * (FlxMath.remapToRange(displayHealth, 0, 2, 100, 0) * 0.01)) - (150 * iconP2.scale.x) / 2 - iconOffset * 2;
-
-		if (health >= 2)
-			health = 2;
 
 		iconP1.animation.curAnim.curFrame = healthBar.percent < 20 ? 1 : 0;
 		iconP2.animation.curAnim.curFrame = healthBar.percent > 80 ? 1 : 0;
