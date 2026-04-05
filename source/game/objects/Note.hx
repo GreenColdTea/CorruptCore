@@ -27,8 +27,8 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 	public static final SUSTAIN_SIZE:Int = 44;
 	public static final defaultNoteSkin:String = 'NOTE_assets';
 
-	public var vec3Cache:Vector3 = new Vector3(1, 1, 0); // for vector3 operations in modchart code
-	public var defScale:FlxPoint = FlxPoint.get(1, 1); // for modcharts to keep the scaling
+	public var vec3Cache:Vector3 = new Vector3(1, 1, 0);
+	public var defScale:FlxPoint = FlxPoint.get(1, 1);
 
 	public var extraData:Map<String,Dynamic> = [];
 
@@ -39,8 +39,10 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 	public var strumTime:Float = 0;
 	public var mustPress:Bool = false;
 	public var noteData:Int = 0;
-	public var canBeHit:Bool = false;
-	public var tooLate:Bool = false;
+
+	public var canBeHit(get, never):Bool;
+	public var tooLate(get, never):Bool;
+
 	public var wasGoodHit:Bool = false;
 	public var ignoreNote:Bool = false;
 	public var hitByOpponent:Bool = false;
@@ -50,9 +52,9 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 
 	public var spawned:Bool = false;
 
-	public var tail:Array<Note> = []; // for sustains
+	public var tail:Array<Note> = [];
 	public var parent:Note;
-	public var blockHit:Bool = false; // only works for player
+	public var blockHit:Bool = false;
 
 	public var sustainLength:Float = 0;
 	public var isSustainNote:Bool = false;
@@ -60,7 +62,7 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 
 	public var mAngle:Float = 0;
 	public var bAngle:Float = 0;
-	public var typeOffsetX:Float = 0; // used to offset notes, mainly for note types. use in place of offset.x and offset.y when offsetting notetypes
+	public var typeOffsetX:Float = 0;
 	public var typeOffsetY:Float = 0;
 
 	public var eventName:String = '';
@@ -82,7 +84,6 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 	public static var colArray:Array<String> = ['purple', 'blue', 'green', 'red'];
 	private var pixelInt:Array<Int> = [0, 1, 2, 3];
 
-	// Lua shit
 	public var noteSplashDisabled:Bool = false;
 	public var noteSplashTexture:String = null;
 	public var noteSplashHue:Float = 0;
@@ -103,7 +104,7 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 	public var hitHealth:Float = 0.023;
 	public var missHealth:Float = 0.0475;
 	public var rating:String = 'unknown';
-	public var ratingMod:Float = 0; //9 = unknown, 0.25 = shit, 0.5 = bad, 0.75 = good, 1 = sick
+	public var ratingMod:Float = 0;
 	public var ratingDisabled:Bool = false;
 
 	public var texture(default, set):String = null;
@@ -111,21 +112,28 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 	public var noAnimation:Bool = false;
 	public var noMissAnimation:Bool = false;
 	public var hitCausesMiss:Bool = false;
-	public var distance:Float = 2000; //plan on doing scroll directions soon -bb
+	public var distance:Float = 2000;
 
 	public var hitsoundDisabled:Bool = false;
+
+	private function get_canBeHit():Bool {
+		if (!mustPress) return false;
+		return strumTime > Conductor.songPosition - (Conductor.safeZoneOffset * lateHitMult)
+			&& strumTime < Conductor.songPosition + (Conductor.safeZoneOffset * earlyHitMult);
+	}
+
+	private function get_tooLate():Bool {
+		return mustPress && !wasGoodHit && strumTime < Conductor.songPosition - Conductor.safeZoneOffset;
+	}
 
 	private function set_multSpeed(value:Float):Float {
 		resizeByRatio(value / multSpeed);
 		multSpeed = value;
-		//trace('fuck cock');
 		return value;
 	}
 
-	public function resizeByRatio(ratio:Float) //haha funny twitter shit
-	{
-		if(isSustainNote && !animation?.curAnim?.name?.endsWith('end'))
-		{
+	public function resizeByRatio(ratio:Float) {
+		if(isSustainNote && !animation?.curAnim?.name?.endsWith('end')) {
 			if(scale != null && defScale != null) {
 				scale.y *= ratio;
 				defScale.y = scale.y;
@@ -161,9 +169,7 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 					colorSwap.saturation = 0;
 					colorSwap.brightness = 0;
 					lowPriority = true;
-
 					missHealth = isSustainNote ? 0.1 : 0.3;
-					
 					hitCausesMiss = true;
 				case 'Alt Animation':
 					animSuffix = '-alt';
@@ -195,7 +201,6 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 		this.rawData = null;
 
 		x += (ClientPrefs.middleScroll ? PlayState.STRUM_X_MIDDLESCROLL : PlayState.STRUM_X) + 50;
-		// MAKE SURE ITS DEFINITELY OFF SCREEN?
 		y -= 2000;
 		this.strumTime = strumTime;
 		if(!inEditor) this.strumTime += ClientPrefs.noteOffset;
@@ -208,22 +213,18 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 			shader = colorSwap.shader;
 
 			x += swagWidth * (noteData);
-			if(!isSustainNote && noteData > -1 && noteData < 4) { //Doing this 'if' check to fix the warnings on Senpai songs
+			if(!isSustainNote && noteData > -1 && noteData < 4) {
 				var animToPlay:String = '';
 				animToPlay = colArray[noteData % 4];
 				animation.play(animToPlay + 'Scroll');
 			}
 		}
 
-		// trace(prevNote);
-
 		if(prevNote != null)
 			prevNote.nextNote = this;
 
 		if (isSustainNote && prevNote != null)
 		{
-			/*alpha = 0.6;
-			multAlpha = 0.6;*/
 			hitsoundDisabled = true;
 
 			#if MODCHART_ALLOWED
@@ -257,7 +258,7 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 
 				if(PlayState.isPixelStage) {
 					prevNote.scale.y *= 1.22;
-					prevNote.scale.y *= (6 / height); //Auto adjust note size
+					prevNote.scale.y *= (6 / height);
 				}
 
 				prevNote.defScale?.copyFrom(prevNote.scale);
@@ -279,7 +280,8 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 	var _lastNoteOffX:Float = 0;
 	var lastNoteOffsetXForPixelAutoAdjusting:Float = 0;
 	public var originalHeightForCalcs:Float = 6;
-	public var correctionOffset:Float = 0; //dont mess with this
+	public var correctionOffset:Float = 0;
+
 	public function reloadNote(?prefix:String, ?texture:String, ?postfix:String) {
 		prefix ??= '';
 		texture ??= '';
@@ -347,7 +349,7 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 
 		if (isSustainNote)
 		{
-			animation.addByPrefix('purpleholdend', 'pruple end hold'); // ?????
+			animation.addByPrefix('purpleholdend', 'pruple end hold');
 			animation.addByPrefix(colArray[noteData] + 'holdend', colArray[noteData] + ' hold end');
 			animation.addByPrefix(colArray[noteData] + 'hold', colArray[noteData] + ' hold piece');
 		}
@@ -369,33 +371,23 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 	{
 		super.update(elapsed);
 
-		if (mustPress)
+		if (!inEditor)
 		{
-			// ok river
-			if (strumTime > Conductor.songPosition - (Conductor.safeZoneOffset * lateHitMult)
-				&& strumTime < Conductor.songPosition + (Conductor.safeZoneOffset * earlyHitMult))
-				canBeHit = true;
-			else
-				canBeHit = false;
-
-			if (strumTime < Conductor.songPosition - Conductor.safeZoneOffset && !wasGoodHit)
-				tooLate = true;
-		}
-		else
-		{
-			canBeHit = false;
-
-			if (strumTime < Conductor.songPosition + (Conductor.safeZoneOffset * earlyHitMult))
+			if (!mustPress)
 			{
-				if((isSustainNote && prevNote.wasGoodHit) || strumTime <= Conductor.songPosition)
-					wasGoodHit = true;
+				if (strumTime < Conductor.songPosition + (Conductor.safeZoneOffset * earlyHitMult))
+				{
+					if ((isSustainNote && prevNote.wasGoodHit) || strumTime <= Conductor.songPosition)
+					{
+						wasGoodHit = true;
+					}
+				}
 			}
-		}
-
-		if (tooLate && !inEditor)
-		{
-			if (alpha > 0.3)
+			
+			if (tooLate && alpha > 0.3)
+			{
 				alpha = 0.3;
+			}
 		}
 	}
 
@@ -403,10 +395,8 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 	override function set_clipRect(rect:FlxRect):FlxRect
 	{
 		clipRect = rect;
-
 		if (frames != null)
 			frame = frames.frames[animation.frameIndex];
-
 		return rect;
 	}
 
@@ -416,7 +406,6 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 		vec3Cache = null;
 		defScale?.put();
 		clipRect = flixel.util.FlxDestroyUtil.put(clipRect);
-
 		super.destroy();
 	}
 }

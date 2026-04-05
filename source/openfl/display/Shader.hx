@@ -409,9 +409,8 @@ class Shader
 				}
 
 				#if !macro
-				FlxG.sound?.music?.stop();
 				FlxG.sound?.list?.forEach((sound:FlxSound) -> {
-					if (sound != null && sound != FlxG.sound.music && sound.playing)
+					if (sound != null && sound.playing)
 						sound.stop();
 				});
 				

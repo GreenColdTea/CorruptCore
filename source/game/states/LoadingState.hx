@@ -60,6 +60,8 @@ class LoadingState extends MusicBeatState
     var callbacks:MultiCallback;
     var targetShit:Float = 0;
 
+    var readyToSwitch = false;
+
     static var imageProcessingPool:ThreadPool;
     static var audioProcessingPool:ThreadPool;
     static var jsonProcessingPool:ThreadPool;
@@ -70,9 +72,9 @@ class LoadingState extends MusicBeatState
     var loadingStarted:Bool = false;
     var startTimer:FlxTimer;
 
-    public final maxImageThreads:Int = 2;
-    public final maxAudioThreads:Int = 1;
-    public final maxJSONThreads:Int = 2;
+    public final maxImageThreads:Int = lime.Native.getCPUThreadsCount() - 1; // leave one thread free for the main thread to do work, otherwise it can cause stuttering
+    public final maxAudioThreads:Int = Std.int(Math.max(1, lime.Native.getCPUThreadsCount() - 2)); // audio loading can be a bit more intensive, so leave 2 threads free for the main thread and image processing
+    public final maxJSONThreads:Int = Std.int(Math.max(1, lime.Native.getCPUThreadsCount() - 2)); // JSON loading can also be intensive, especially for character files, so leave 2 threads free as well
 
     public function new(target:NextState, stopMusic:Bool, directory:String)
     {
@@ -119,7 +121,6 @@ class LoadingState extends MusicBeatState
         Paths.clearUnusedMemory(false);
 
         FlxTransitionableState.skipNextTransIn = true;
-        FlxTransitionableState.skipNextTransOut = true;
 
         var bg:FlxSprite = new FlxSprite(0, 0).makeGraphic(FlxG.width, FlxG.height, 0xffcaff4d);
         add(bg);
@@ -148,7 +149,6 @@ class LoadingState extends MusicBeatState
         percentText.borderSize = 2;
         add(percentText);
 
-        @:privateAccess
         startTimer = new FlxTimer().start(MIN_TIME, (_) -> {
             loadingStarted = true;
             startLoading();
@@ -158,11 +158,11 @@ class LoadingState extends MusicBeatState
     function startLoading()
     {
         callbacks = new MultiCallback(onLoad);
-        var introComplete = callbacks.add("introComplete");
+
+        final dummyCallback = callbacks.add("dummyDelay");
+        new FlxTimer().start(0.1, (_) -> dummyCallback());
 
         buildLoadQueue();
-
-        new FlxTimer().start(MIN_TIME, (_) -> introComplete());
     }
 
     function buildLoadQueue()
@@ -248,7 +248,10 @@ class LoadingState extends MusicBeatState
 
         if(callbacks != null) {
             var progress:Float = 1 - (callbacks.numRemaining / callbacks.length);
-            targetShit = progress * Std.int(loadBarBg.width - 10);
+            if (callbacks.length == 0) progress = 1;
+            
+            targetShit = progress * (loadBarBg.width - 10);
+            if (Math.isNaN(targetShit)) targetShit = 0;
             loadBar.scale.x = targetShit;
 
             var percent:Int = Math.round(progress * 100);
@@ -304,7 +307,6 @@ class LoadingState extends MusicBeatState
     function loadCharacterImage(image:String, onComplete:Void->Void)
     {
         var callback = callbacks.add("characterImage:" + image);
-
         var formats = checkImageFormats(image);
 
         if (formats.animate)
@@ -315,8 +317,17 @@ class LoadingState extends MusicBeatState
             Paths.getAsepriteAtlas(image, null, true);
         else if (formats.txt)
             Paths.getPackerAtlas(image, null, true);
-        else if (formats.png)
-            Paths.image(image, null, true);
+        else if (formats.png) {
+            var loaded = false;
+            for (ext in Paths.IMAGE_EXTS) {
+                if (Paths.fileExists('images/$image.$ext', IMAGE)) {
+                    Paths.image(image, null, true);
+                    loaded = true;
+                    break;
+                }
+            }
+            if (!loaded) trace('WARNING: Character image not found: $image');
+        }
         else
             trace('WARNING: Character image not found: $image');
 
@@ -326,19 +337,26 @@ class LoadingState extends MusicBeatState
 
     function checkImageFormats(image:String):Dynamic
     {
+        var hasImage = false;
+        for (ext in Paths.IMAGE_EXTS) {
+            if (Paths.fileExists('images/$image.$ext', IMAGE)) {
+                hasImage = true;
+                break;
+            }
+        }
+
         return {
             animate: #if flixel_animate Paths.fileExists('images/$image/Animation.json', TEXT) #else false #end,
             xml: Paths.fileExists('images/$image.xml', TEXT),
             json: Paths.fileExists('images/$image.json', TEXT),
             txt: Paths.fileExists('images/$image.txt', TEXT),
-            png: Paths.fileExists('images/$image.png', IMAGE)
+            png: hasImage
         };
     }
 
     function loadStageImage(image:String, onComplete:Void->Void)
     {
         var callback = callbacks.add("stageImage:" + image);
-
         var formats = checkImageFormats(image);
 
         if (formats.animate)
@@ -349,8 +367,17 @@ class LoadingState extends MusicBeatState
             Paths.getAsepriteAtlas(image, null, true);
         else if (formats.txt)
             Paths.getPackerAtlas(image, null, true);
-        else if (formats.png)
-            Paths.image(image, null, true);
+        else if (formats.png) {
+            var loaded = false;
+            for (ext in Paths.IMAGE_EXTS) {
+                if (Paths.fileExists('images/$image.$ext', IMAGE)) {
+                    Paths.image(image, null, true);
+                    loaded = true;
+                    break;
+                }
+            }
+            if (!loaded) trace('WARNING: Stage image not found: $image');
+        }
         else
             trace('WARNING: Stage image not found: $image');
 
@@ -610,18 +637,17 @@ class LoadingState extends MusicBeatState
 
     static function isCharacterLoaded(character:String):Bool
     {
-        var pathsToCheck = [
-            'data/characters/$character.json',
-            'images/characters/$character.png',
-            'images/characters/$character.xml',
-            'images/characters/$character.json',
-            'images/characters/$character.txt'
-        ];
+        if (Paths.fileExists('data/characters/$character.json', TEXT))
+            return true;
 
-        for (path in pathsToCheck)
-        {
-            var assetType:AssetType = path.endsWith('.png') ? IMAGE : TEXT;
-            if (Paths.fileExists(path, assetType, true))
+        for (ext in Paths.IMAGE_EXTS) {
+            if (Paths.fileExists('images/characters/$character.$ext', IMAGE))
+                return true;
+        }
+
+        var atlasPaths = ['images/characters/$character.xml', 'images/characters/$character.json', 'images/characters/$character.txt'];
+        for (path in atlasPaths) {
+            if (Paths.fileExists(path, TEXT))
                 return true;
         }
 
@@ -630,17 +656,14 @@ class LoadingState extends MusicBeatState
 
     static function isStageImageLoaded(image:String):Bool
     {
-        var pathsToCheck = [
-            'images/$image.png',
-            'images/$image.xml',
-            'images/$image.json',
-            'images/$image.txt'
-        ];
+        for (ext in Paths.IMAGE_EXTS) {
+            if (Paths.fileExists('images/$image.$ext', IMAGE))
+                return true;
+        }
 
-        for (path in pathsToCheck)
-        {
-            var assetType:AssetType = path.endsWith('.png') ? IMAGE : TEXT;
-            if (Paths.fileExists(path, assetType, true))
+        var atlasPaths = ['images/$image.xml', 'images/$image.json', 'images/$image.txt'];
+        for (path in atlasPaths) {
+            if (Paths.fileExists(path, TEXT))
                 return true;
         }
 

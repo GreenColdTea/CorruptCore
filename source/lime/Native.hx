@@ -71,6 +71,12 @@ void markAsGame(HWND hwnd) {
 }
 ')
 #end
+#if cpp
+@:headerCode('
+	#include <iostream>
+	#include <thread>
+')
+#end
 class Native
 {
 	#if (cpp && windows)
@@ -80,10 +86,8 @@ class Native
 			markAsGame(curHandle);
 		}
 	')
-	public static function registerAsGame():Void {}
-	#else
-	public static function registerAsGame():Void {}
 	#end
+	public static function registerAsGame():Void {}
 
 	public static function setConsoleOutputToUTF8():Void
 	{
@@ -91,4 +95,11 @@ class Native
 		untyped __cpp__('SetConsoleOutputCP(CP_UTF8);');
 		#end
 	}
+
+	#if cpp
+	@:functionCode('
+		return std::thread::hardware_concurrency();
+    ')
+	#end
+    public static function getCPUThreadsCount():Int return 1;
 }

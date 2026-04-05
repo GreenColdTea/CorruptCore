@@ -12,36 +12,30 @@ import hxluajit.Types;
 import hxluajit.wrapper.LuaUtils;
 #end
 
+#if MODS_ALLOWED
 import game.backend.system.Mods;
+#end
 
 class DiscordClient
 {
-    public static var isInitialized:Bool = false;
+    private static final _defaultID:String = "1412032196260401303";
+    
     public static var clientID(default, set):String = _defaultID;
-
-	private static final _defaultID:String = "1412032196260401303";
     private static var presence:DiscordRichPresence = new DiscordRichPresence();
-
-    public static function check()
-	{
-		/*if(ClientPrefs.discordRPC)*/ initialize();
-		/*else*/ if(isInitialized) shutdown();
-	}
     
     public static function prepare()
     {
-        if (!isInitialized) 
-            initialize();
-
-        Application.current.window.onClose.add(() -> if(isInitialized) shutdown());
+        initialize();
+        Application.current.onExit.add((_) -> shutdown());
     }
 
-    public dynamic static function shutdown() {
+    public static function shutdown() 
+    {
         Discord.Shutdown();
-        isInitialized = false;
     }
     
-    private static function onReady(request:cpp.RawConstPointer<DiscordUser>):Void {
+    private static function onReady(request:cpp.RawConstPointer<DiscordUser>):Void 
+    {
         var requestPtr:cpp.Star<DiscordUser> = cpp.ConstPointer.fromRaw(request).ptr;
 
         if (Std.parseInt(cast(requestPtr.discriminator, String)) != 0)
@@ -52,23 +46,26 @@ class DiscordClient
         changePresence();
     }
 
-    private static function onError(errorCode:Int, message:cpp.ConstCharStar):Void {
+    private static function onError(errorCode:Int, message:cpp.ConstCharStar):Void 
+    {
         trace('Discord: Error ($errorCode: ${cast(message, String)})');
     }
 
-    private static function onDisconnected(errorCode:Int, message:cpp.ConstCharStar):Void {
+    private static function onDisconnected(errorCode:Int, message:cpp.ConstCharStar):Void 
+    {
         trace('Discord: Disconnected ($errorCode: ${cast(message, String)})');
     }
 
     public static function initialize()
     {
-        var discordHandlers:DiscordEventHandlers = new DiscordEventHandlers();
+        final discordHandlers:DiscordEventHandlers = new DiscordEventHandlers();
         discordHandlers.ready = cpp.Function.fromStaticFunction(onReady);
         discordHandlers.disconnected = cpp.Function.fromStaticFunction(onDisconnected);
         discordHandlers.errored = cpp.Function.fromStaticFunction(onError);
+
         Discord.Initialize(clientID, cpp.RawPointer.addressOf(discordHandlers), false, null);
 
-        if(!isInitialized) trace("Discord Client initialized");
+        trace("Discord Client initialized");
 
         sys.thread.Thread.create(() ->
         {
@@ -79,10 +76,9 @@ class DiscordClient
                 Discord.UpdateConnection();
                 #end
                 Discord.RunCallbacks();
-                Sys.sleep(0.5);
+                Sys.sleep(2);
             }
         });
-        isInitialized = true;
     }
 
     public static function changePresence(?details:String = 'In the Menus', ?state:Null<String>, ?smallImageKey:String, ?largeImageKey:String = 'logo', ?hasStartTimestamp:Bool, ?endTimestamp:Float)
@@ -98,6 +94,7 @@ class DiscordClient
         presence.smallImageKey = smallImageKey;
         presence.startTimestamp = Std.int(startTimestamp / 1000);
         presence.endTimestamp = Std.int(endTimestamp / 1000);
+        
         updatePresence();
 
         #if GLOBAL_SCRIPTS game.scripting.HScriptGlobal.callGlobalScript("onChangePresence", [presence]); #end
@@ -123,10 +120,10 @@ class DiscordClient
 
     private static function set_clientID(newID:String)
     {
-        var change:Bool = (clientID != newID);
+        final change:Bool = (clientID != newID);
         clientID = newID;
 
-        if(change && isInitialized)
+        if(change)
         {
             shutdown();
             initialize();

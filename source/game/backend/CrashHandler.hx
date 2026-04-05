@@ -144,30 +144,24 @@ class CrashHandler
         switch(status)
         {
             case PAUSE:
-                FlxG.sound?.music?.pause();
-                if (FlxG.sound != null && FlxG.sound.list != null) {
+                if (FlxG.sound?.list != null) {
                     for (sound in FlxG.sound.list) {
-                        if (sound != null && sound.playing) {
+                        if (sound != null && sound.playing)
                             sound.pause();
-                        }
                     }
                 }
             case RESUME:
-                FlxG.sound?.music?.resume();
-                if (FlxG.sound != null && FlxG.sound.list != null) {
+                if (FlxG.sound?.list != null) {
                     for (sound in FlxG.sound.list) {
-                        if (sound != null && sound.playing) {
+                        if (sound != null && sound.playing)
                             sound.resume();
-                        }
                     }
                 }
             case STOP:
-                FlxG.sound?.music?.stop();
-                if (FlxG.sound != null && FlxG.sound.list != null) {
+                if (FlxG.sound?.list != null) {
                     for (sound in FlxG.sound.list) {
-                        if (sound != null && sound.playing) {
+                        if (sound != null && sound.playing)
                             sound.stop();
-                        }
                     }
                 }
         }
