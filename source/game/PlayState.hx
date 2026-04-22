@@ -2021,7 +2021,7 @@ class PlayState extends MusicBeatState
 		runSongSyncThread();
 
 		#if DISCORD_ALLOWED
-		if (health > 0 && !paused)
+		if (health > 0 && !paused && FlxG.autoPause)
 		{
 			if (Conductor.songPosition > 0.0)
 			{
@@ -2042,7 +2042,7 @@ class PlayState extends MusicBeatState
 		shutdownThread = true;
 
 		#if DISCORD_ALLOWED
-		if (health > 0 && !paused && iconP2 != null)
+		if (health > 0 && !paused && iconP2 != null && FlxG.autoPause)
 		{
 			final songName:String = SONG.song != null ? SONG.song.replace("-", " ") : "";
 			DiscordClient.changePresence(detailsPausedText, songName, iconP2.getCharacter());

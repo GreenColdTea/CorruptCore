@@ -409,8 +409,9 @@ class Shader
 				}
 
 				#if !macro
+				FlxG.sound?.music?.stop();
 				FlxG.sound?.list?.forEach((sound:FlxSound) -> {
-					if (sound != null && sound.playing)
+					if (sound != null && sound != FlxG.sound.music && sound.playing)
 						sound.stop();
 				});
 				
@@ -628,10 +629,12 @@ class Shader
 		}
 		
 		var complexBlendsSupported = false;
+		var standardDerivativesSupported = false;
 		#if (lime || openfl)
 		if (__context != null && OpenGLRenderer.__complexBlendsSupported != null)
 		{
 			complexBlendsSupported = OpenGLRenderer.__complexBlendsSupported && isFragment;
+			standardDerivativesSupported = OpenGLRenderer.__standardDerivativesSupported && isFragment;
 			
 			// Additional checks based on context type and version
 			if (complexBlendsSupported)
@@ -672,6 +675,11 @@ class Shader
 				extensions += "#extension GL_ARB_sample_shading : enable\n";
 			}
 			#end
+		}
+
+		if (standardDerivativesSupported)
+		{
+			extensions += "#extension GL_OES_standard_derivatives : enable\n";
 		}
 		
 		var precisionPart = "";
@@ -792,32 +800,29 @@ class Shader
 				return;
 			}
 
-			var vertexSource = glVertexSource;
-			var fragmentSource = glFragmentSource;
-
 			var vertexPrefix = __buildSourcePrefix(false);
 			var fragmentPrefix = __buildSourcePrefix(true);
+
+			var vertex = vertexPrefix + glVertexSource;
+			var fragment = fragmentPrefix + glFragmentSource;
 
 			var usesGLSL300 = vertexPrefix.indexOf("#version 300 es") != -1
 				|| fragmentPrefix.indexOf("#version 300 es") != -1;
 
 			if (usesGLSL300)
 			{
-				vertexSource = vertexSource.replace("attribute", "in")
+				vertex = vertex.replace("attribute", "in")
 					.replace("varying", "out");
 
-				fragmentSource = fragmentSource.replace("varying", "in")
+				fragment = fragment.replace("varying", "in")
 					.replace("texture2D", "texture");
 
-				if (fragmentSource.indexOf("gl_FragColor") != -1)
+				if (fragment.indexOf("gl_FragColor") != -1)
 				{
-					fragmentSource = "out vec4 output_FragColor;\n" + fragmentSource;
-					fragmentSource = fragmentSource.replace("gl_FragColor", "output_FragColor");
+					fragment = "out vec4 output_FragColor;\n" + fragment;
+					fragment = fragment.replace("gl_FragColor", "output_FragColor");
 				}
 			}
-
-			var vertex = vertexPrefix + vertexSource;
-			var fragment = fragmentPrefix + fragmentSource;
 
 			var id = vertex + fragment;
 

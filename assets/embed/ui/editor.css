@@ -1,0 +1,182 @@
+window {
+    background-color: #2f3238;
+    border: 1px solid #4e5464;
+    border-radius: 6px;
+    color: #e7ecf7;
+}
+
+window .title {
+    background-color: #3b455f;
+    color: #dce7ff;
+    font-weight: bold;
+    border-bottom: 1px solid #56617d;
+}
+
+window .content {
+    background-color: #35383d;
+}
+
+menubar {
+    background-color: #3b3d41;
+    border-bottom: 1px solid #555b68;
+}
+
+menu {
+    background-color: #3b3d41;
+    color: #f1f4fb;
+    border-radius: 4px;
+    border: 1px solid #58617a;
+    padding: 2px 10px;
+}
+
+menu:hover {
+    background-color: #46506a;
+}
+
+menu:down {
+    background-color: #2f384d;
+}
+
+.button {
+    background-color: #3c4457;
+    color: #f3f6ff;
+    border: 1px solid #5c6785;
+    border-radius: 4px;
+}
+
+.button:hover {
+    background-color: #49536c;
+}
+
+.button:down {
+    background-color: #2f3748;
+}
+
+.danger-button {
+    background-color: #7e3232;
+    color: #ffffff;
+    border: 1px solid #b85a5a;
+}
+
+.danger-button:hover {
+    background-color: #964040;
+}
+
+textfield {
+    background-color: #161922;
+    color: #f4f7ff;
+    border: 1px solid #54607c;
+    border-radius: 4px;
+}
+
+textfield:focus {
+    border: 1px solid #86a8ff;
+    background-color: #1a1f2b;
+}
+
+dropdown {
+    background-color: #1b1f2a;
+    color: #f4f7ff;
+    border: 1px solid #58627d;
+    border-radius: 4px;
+}
+
+dropdown:hover {
+    background-color: #232837;
+}
+
+checkbox {
+    color: #e4e8f2;
+}
+
+.editor-tabs .tabbar {
+    height: 36px;
+    background-color: #23262f;
+    padding: 0px;
+}
+
+.editor-tabs .tabbar-button {
+    min-width: 95px;
+    height: 30px;
+    background-color: #343947;
+    color: #d8deec;
+    border: 1px solid #56607b;
+    border-radius: 4px 4px 0px 0px;
+}
+
+.editor-tabs .tabbar-button:hover {
+    background-color: #41485b;
+}
+
+.editor-tabs .tabbar-button:selected {
+    background-color: #3f4e72;
+    color: #ffffff;
+    border: 1px solid #7d96d8;
+}
+
+.anim-btn-selected {
+    background-color: #4a4f67;
+    border: 2px solid #cc33ff;
+    border-radius: 4px;
+}
+
+.number-stepper {
+    background-color: #1a1d26;
+    border: 1px solid #58627c;
+    border-radius: 4px;
+    color: #ffffff;
+}
+
+.number-stepper .button {
+    background-color: #34405b;
+    border: 1px solid #5c6f99;
+}
+
+.number-stepper .button:hover {
+    background-color: #425172;
+}
+
+.horizontal-slider .value {
+    background-color: #4f77d1;
+}
+
+.horizontal-slider .thumb {
+    background-color: #3b4a68;
+    border: 1px solid #8ba6e8;
+}
+
+.menuitem-checkbox {
+    background-color: transparent;
+    border: none;
+    padding: 0px;
+    color: #e6ebf5;
+}
+
+.menuitem-checkbox .checkbox-value {
+    width: 12px;
+    height: 12px;
+    background-color: #2a2d33;
+    border: 1px solid #66708d;
+    border-radius: 2px;
+    margin-right: 6px;
+}
+
+.menuitem-checkbox:selected .checkbox-value {
+    background-color: #4e79c7;
+    border: 1px solid #9fc0ff;
+}
+
+.menuitem-shortcut-label {
+    color: #d8dfef;
+}
+
+.notification {
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #2b5a3b;
+}
+
+.notification.success {
+    background-color: #155c34;
+    border: 1px solid #2e8b57;
+}

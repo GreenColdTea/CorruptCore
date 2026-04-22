@@ -15,7 +15,7 @@ enum abstract RegistryHive(Int) {
 #include <vector>
 ')
 #end
-class WindowsRegistry {
+final class WindowsRegistry {
 	#if windows
 	@:functionCode('
 		HKEY hKey;

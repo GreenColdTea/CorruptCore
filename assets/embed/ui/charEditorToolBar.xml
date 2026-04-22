@@ -1,0 +1,31 @@
+<menubar id="mainToolbar" width="100%" height="40">
+    <spacer width="10"/>
+
+    <menu text="File">
+        <menu-item id="saveCharBtn" text="Save" shortcutText="Ctrl+S"/>
+        <menu-item id="saveCharAsBtn" text="Save As..."/>
+        <menu-separator />
+        <menu-item id="reloadCharBtn" text="Reload" shortcutText="Ctrl+R"/>
+        <menu-item id="reloadCharImageBtn" text="Reload Image" shortcutText="Ctrl+I+R"/>
+    </menu>
+
+    <menu text="Edit">
+        <menu-item id="undoBtn" text="Undo" shortcutText="Ctrl+Z"/>
+        <menu-item id="redoBtn" text="Redo" shortcutText="Ctrl+Y"/>
+        <menu-separator />
+        <menu-item id="copyOffsetsBtn" text="Copy Offsets" shortcutText="Ctrl+C"/>
+        <menu-item id="pasteOffsetsBtn" text="Paste Offsets" shortcutText="Ctrl+V"/>
+    </menu>
+
+    <menu text="View">
+        <menu-item id="resetZoomBtn" text="Reset Zoom" shortcutText="R"/>
+        <menu-separator />
+        <menu-checkbox id="toggleGridBtn" text="Grid" shortcutText="G"/>
+        <menu-checkbox id="flipXBtn" text="Flip X" />
+        <menu-checkbox id="noAntialiasBtn" text="No Antialiasing"/>
+    </menu>
+
+    <menu text="Help">
+        <menu-item id="helpBtn" text="Open Help" shortcutText="F1"/>
+    </menu>
+</menubar>

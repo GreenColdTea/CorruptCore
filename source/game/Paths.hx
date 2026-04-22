@@ -44,7 +44,7 @@ class Paths
     public static final SOUND_EXTS:Array<String> = [#if !flash "ogg", "wav", #if (hxflac || web) "flac", #end #if hxopus "opus", #end #end "mp3"];
     public static final VIDEO_EXTS:Array<String> = ["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm"];
     public static final IMAGE_EXTS:Array<String> = ["png", "jpg", "jpeg"];
-    public static final HSCRIPT_EXTS:Array<String> = ["hx", "hscript", "hsc", "hxs"];
+    public static final HSCRIPT_EXTS:Array<String> = ["hx", "hscript", "hxs"];
 
     //for backward compatibility
     public static final SOUND_EXT = SOUND_EXTS[0];

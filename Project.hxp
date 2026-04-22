@@ -182,6 +182,9 @@ class Project extends HXProject
         setHaxedef("message.reporting", "pretty");
         setHaxedef("no-deprecation-warnings");
 
+        setHaxedef("haxeui_dont_impose_base_class");
+        setHaxedef("haxeui_focus_out_on_click");
+
         if (defines.exists("FEATURE_DEBUG_TRACY"))
         {
             setHaxedef("HXCPP_TELEMETRY");
@@ -253,6 +256,9 @@ class Project extends HXProject
         haxelibs.push(new Haxelib("away3d"));
         haxelibs.push(new Haxelib("thx.semver"));
 
+        haxelibs.push(new Haxelib("haxeui-core"));
+        haxelibs.push(new Haxelib("haxeui-flixel"));
+
         if (isWeb())
         {
             setHaxedef("webgl");
@@ -308,7 +314,7 @@ class Project extends HXProject
     {
         assets = [];
 
-        if (isWeb() || isFlash())
+        if (isWeb())
         {
             addAssetRecursive("assets/preload", "assets", null, ["*"], ["*.ogg"], false);
         }
@@ -319,7 +325,7 @@ class Project extends HXProject
 
         if (TITLE_SCREEN_EASTER_EGG.isEnabled(this))
         {
-            if (isWeb() || isFlash())
+            if (isWeb())
             {
                 addAssetRecursive("assets/secrets", "assets", null, ["*"], ["*.ogg"], false);
             }
@@ -335,7 +341,7 @@ class Project extends HXProject
             addAssetRecursive("assets/videos", "assets/videos", null, ["*"], [], false);
         }
 
-        if (isWeb() || isFlash())
+        if (isWeb())
         {
             addAssetRecursive("assets/songs", "assets/songs", null, ["*"], ["*.ogg"], false);
         }
@@ -344,7 +350,7 @@ class Project extends HXProject
             addAssetRecursive("assets/songs", "assets/songs", null, ["*"], ["*.mp3"], false);
         }
 
-        if (isWeb() || isFlash())
+        if (isWeb())
         {
             addAssetRecursive("assets/shared", "assets/shared", null, ["*"], ["*.ogg"], false);
         }
@@ -361,7 +367,7 @@ class Project extends HXProject
         // base_game if INCLUDE_BASE_GAME is defined
         if (defines.exists("INCLUDE_BASE_GAME"))
         {
-            if (isWeb() || isFlash())
+            if (isWeb())
             {
                 addAssetRecursive("base_game", "assets", null, ["*"], ["*.ogg"], false);
             }
@@ -472,16 +478,6 @@ class Project extends HXProject
     public function isMac():Bool
     {
         return target == Platform.MAC;
-    }
-
-    public function isAIR():Bool
-    {
-        return target == Platform.AIR;
-    }
-
-    public function isFlash():Bool
-    {
-        return target == Platform.FLASH;
     }
 
     public function isAndroid():Bool

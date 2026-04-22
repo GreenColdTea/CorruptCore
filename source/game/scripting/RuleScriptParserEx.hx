@@ -8,18 +8,19 @@ import rulescript.parsers.HxParser;
 using StringTools;
 using rulescript.Tools;
 
-class HScriptParser extends HxParser
+class RuleScriptParserEx extends HxParser
 {
     private var warnedLines:Map<Int, Array<String>>;
 
     public var strictMode:Bool = true;
     public var reportWarnings:Bool = true;
+
+    public var scriptPath:String = "";
     
     private var errors:Array<String>;
     private var warnings:Array<String>;
     private var currentLine:Int = 1;
     private var currentColumn:Int = 1;
-    public var scriptPath:String = "";
     
     private var preprocStack:Array<{active:Bool, elseFound:Bool}>;
     private var currentActive:Bool = true;

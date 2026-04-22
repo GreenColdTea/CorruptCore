@@ -141,6 +141,8 @@ class Main extends Sprite
 		hxvlc.util.Handle.initAsync();
 		#end
 
+		initHaxeUI();
+
 		var push:FlxGame = new FlxGame(game.width, game.height, game.initialState, #if (flixel < "5.0.0") game.zoom, #end game.framerate, game.framerate, game.skipSplash, game.startFullscreen);
 		@:privateAccess
         push._customSoundTray = FunkinSoundTray;
@@ -278,5 +280,18 @@ class Main extends Sprite
 		};
 		ClientPrefs.colorBlindIntensity = intensity;
 		ClientPrefs.saveSettings();
+	}
+
+	private function initHaxeUI():Void
+	{
+		haxe.ui.Toolkit.init();
+		haxe.ui.Toolkit.theme = 'dark';
+		haxe.ui.Toolkit.autoScale = false;
+		haxe.ui.focus.FocusManager.instance.autoFocus = false;
+		haxe.ui.tooltips.ToolTipManager.defaultDelay = 200;
+
+		final extra = new haxe.ui.styles.StyleSheet();
+		extra.parse(openfl.utils.Assets.getText("assets/ui/editor.css"));
+		haxe.ui.Toolkit.styleSheet.addStyleSheet(extra);
 	}
 }

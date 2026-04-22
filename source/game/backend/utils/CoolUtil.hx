@@ -25,14 +25,14 @@ import openfl.media.Sound;
 
 using StringTools;
 
-class CoolUtil
+final class CoolUtil
 {
-	public static var defaultDifficulties:Array<String> = [
+	public static final defaultDifficulties:Array<String> = [
 		'Easy',
 		'Normal',
 		'Hard'
 	];
-	public static var defaultDifficulty:String = 'Normal'; //The chart that has no suffix and starting difficulty on Freeplay/Story Mode
+	public static final defaultDifficulty:String = 'Normal'; //The chart that has no suffix and starting difficulty on Freeplay/Story Mode
 
 	public static var difficulties:Array<String> = [];
 

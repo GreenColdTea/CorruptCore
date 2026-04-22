@@ -3,28 +3,50 @@ package game.states.editors;
 #if DISCORD_ALLOWED
 import api.Discord.DiscordClient;
 #end
+
 import flixel.FlxG;
-import flixel.FlxObject;
-import flixel.FlxSprite;
-import flixel.FlxState;
 import flixel.FlxCamera;
-import flixel.input.keyboard.FlxKey;
+import flixel.FlxSprite;
 import flixel.addons.display.FlxBackdrop;
 import flixel.addons.display.FlxGridOverlay;
 import flixel.group.FlxGroup.FlxTypedGroup;
 import flixel.graphics.FlxGraphic;
+import flixel.graphics.frames.FlxFrame;
+import flixel.math.FlxMath;
+import flixel.math.FlxPoint;
 import flixel.text.FlxText;
 import flixel.util.FlxColor;
-import flixel.animation.FlxAnimation;
+import flixel.util.FlxDestroyUtil;
+import flixel.util.FlxSave;
 
-import openfl.net.FileReference;
 import openfl.events.Event;
 import openfl.events.IOErrorEvent;
-
-import openfl.utils.Assets as OpenFLAssets;
+import openfl.net.FileReference;
 
 import haxe.Json;
-import lime.system.Clipboard;
+import haxe.ui.containers.Box;
+import haxe.ui.containers.HBox;
+import haxe.ui.containers.Panel;
+import haxe.ui.containers.ScrollView;
+import haxe.ui.containers.TabView;
+import haxe.ui.containers.VBox;
+import haxe.ui.containers.menus.MenuBar;
+import haxe.ui.containers.menus.MenuCheckBox;
+import haxe.ui.containers.menus.MenuItem;
+import haxe.ui.containers.windows.Window;
+import haxe.ui.containers.windows.WindowManager;
+import haxe.ui.core.Component;
+import haxe.ui.components.Button;
+import haxe.ui.components.CheckBox;
+import haxe.ui.components.ColorPicker;
+import haxe.ui.components.DropDown;
+import haxe.ui.components.HorizontalSlider;
+import haxe.ui.components.Label;
+import haxe.ui.components.NumberStepper;
+import haxe.ui.components.TextField;
+import haxe.ui.data.ArrayDataSource;
+import haxe.ui.focus.FocusManager;
+import haxe.ui.layouts.AbsoluteLayout;
 
 import game.objects.Character;
 import game.objects.HealthIcon;
@@ -32,88 +54,434 @@ import game.objects.HealthIcon;
 using StringTools;
 
 typedef HistoryStuff = {
-    var animations:Array<AnimArray>;
-    var position:Array<Float>;
-    var scale:Float;
-    var cameraPosition:Array<Float>;
-    var healthColor:Array<Int>;
-    var curAnim:Int;
+	var animations:Array<AnimArray>;
+	var position:Array<Float>;
+	var scale:Float;
+	var cameraPosition:Array<Float>;
+	var healthColor:Array<Int>;
+	var curAnim:Int;
+	var imageFile:String;
+	var healthIcon:String;
+	var vocalsFile:Null<String>;
+	var noAntialiasing:Bool;
+	var isPlayer:Bool;
+	var originalFlipX:Bool;
 }
 
 @:bitmap("psych-ui/images/cursorCross.png")
 class GraphicCursorCross extends openfl.display.BitmapData {}
 
-class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler.PsychUIEvent
+@:build(haxe.ui.ComponentBuilder.build("assets/embed/ui/charEditorToolBar.xml"))
+class ToolBar extends MenuBar {}
+
+class EditorUI extends Component
 {
+	public var mainToolbar:ToolBar;
+
+	public var propWindow:Window;
+	public var editorWindow:Window;
+	public var animWindow:Window;
+
+	public var mainTabView:TabView;
+	public var rightTabView:TabView;
+
+	public var ghostOpacitySlider:HorizontalSlider;
+	public var highlightGhostCheck:CheckBox;
+	public var makeGhostButton:Button;
+
+	public var charDropDown:DropDown;
+	public var playableCheck:CheckBox;
+	public var templateCharButton:Button;
+
+	public var imageInput:TextField;
+	public var healthIconInput:TextField;
+	public var vocalsInput:TextField;
+	public var singDurationStepper:NumberStepper;
+	public var scaleStepper:NumberStepper;
+	public var posXStepper:NumberStepper;
+	public var posYStepper:NumberStepper;
+	public var camXStepper:NumberStepper;
+	public var camYStepper:NumberStepper;
+	public var healthColorButton:Button;
+
+	public var animDropDown:DropDown;
+	public var animNameInput:TextField;
+	public var animPrefixInput:TextField;
+	public var animIndicesInput:TextField;
+	public var animFramerateStepper:NumberStepper;
+	public var animLoopCheck:CheckBox;
+	public var addUpdateAnimButton:Button;
+	public var removeAnimButton:Button;
+
+	public var animListContainer:VBox;
+	public var animOffsetLabel:Label;
+
+	public function new()
+	{
+		super();
+		percentWidth = 100;
+		percentHeight = 100;
+		layout = new AbsoluteLayout();
+		build();
+	}
+
+	function build()
+	{
+		mainToolbar = new ToolBar();
+		mainToolbar.width = FlxG.width - 20;
+		mainToolbar.height = 40;
+		addComponent(mainToolbar);
+
+		propWindow = new Window();
+		propWindow.title = "Properties";
+		propWindow.width = 250;
+		propWindow.height = 225;
+		propWindow.left = FlxG.width - propWindow.width - 10;
+		propWindow.top = 10;
+		propWindow.draggable = true;
+		propWindow.minimizable = false;
+		propWindow.maximizable = false;
+		propWindow.closable = false;
+
+		mainTabView = new TabView();
+		mainTabView.percentWidth = 100;
+		mainTabView.percentHeight = 100;
+		mainTabView.addClass("editor-tabs");
+		propWindow.addComponent(mainTabView);
+
+		var ghostTab = new VBox();
+		ghostTab.text = "Ghost";
+		ghostTab.percentWidth = 100;
+		ghostTab.percentHeight = 100;
+		ghostTab.styleNames = "padding: 8px;";
+		mainTabView.addComponent(ghostTab);
+
+		makeGhostButton = new Button();
+		makeGhostButton.text = "Make Ghost";
+		makeGhostButton.width = 120;
+		ghostTab.addComponent(makeGhostButton);
+
+		highlightGhostCheck = new CheckBox();
+		highlightGhostCheck.text = "Highlight Ghost";
+		ghostTab.addComponent(highlightGhostCheck);
+
+		var opacityText = new Label();
+		opacityText.text = "Opacity:";
+		ghostTab.addComponent(opacityText);
+
+		ghostOpacitySlider = new HorizontalSlider();
+		ghostOpacitySlider.min = 0;
+		ghostOpacitySlider.max = 1;
+		ghostOpacitySlider.pos = 0.6;
+		ghostTab.addComponent(ghostOpacitySlider);
+
+		var settingsTab = new VBox();
+		settingsTab.text = "Settings";
+		settingsTab.percentWidth = 100;
+		settingsTab.percentHeight = 100;
+		settingsTab.styleNames = "padding: 8px;";
+		mainTabView.addComponent(settingsTab);
+
+		playableCheck = new CheckBox();
+		playableCheck.text = "Playable Character";
+		settingsTab.addComponent(playableCheck);
+
+		var charLabel = new Label();
+		charLabel.text = "Character:";
+		settingsTab.addComponent(charLabel);
+
+		charDropDown = new DropDown();
+		charDropDown.width = 200;
+		settingsTab.addComponent(charDropDown);
+
+		templateCharButton = new Button();
+		templateCharButton.text = "Load Template";
+		templateCharButton.addClass("danger-button");
+		settingsTab.addComponent(templateCharButton);
+
+		editorWindow = new Window();
+		editorWindow.title = "Editor";
+		editorWindow.width = 375;
+		editorWindow.height = 390;
+		editorWindow.left = propWindow.left - 125;
+		editorWindow.top = propWindow.top + propWindow.height - 5;
+		editorWindow.draggable = true;
+		editorWindow.minimizable = false;
+		editorWindow.maximizable = false;
+		editorWindow.closable = false;
+
+		rightTabView = new TabView();
+		rightTabView.percentWidth = 100;
+		rightTabView.percentHeight = 100;
+		rightTabView.addClass("editor-tabs");
+		editorWindow.addComponent(rightTabView);
+
+		var charTab = new VBox();
+		charTab.text = "Character";
+		charTab.percentWidth = 100;
+		charTab.percentHeight = 100;
+		charTab.styleNames = "padding: 8px;";
+		rightTabView.addComponent(charTab);
+
+		var imgLabel = new Label();
+		imgLabel.text = "Image file name:";
+		charTab.addComponent(imgLabel);
+
+		imageInput = new TextField();
+		imageInput.width = 200;
+		charTab.addComponent(imageInput);
+
+		var healthLabel = new Label();
+		healthLabel.text = "Health icon name:";
+		charTab.addComponent(healthLabel);
+
+		healthIconInput = new TextField();
+		healthIconInput.width = 120;
+		charTab.addComponent(healthIconInput);
+
+		var vocalsLabel = new Label();
+		vocalsLabel.text = "Vocals File Postfix:";
+		charTab.addComponent(vocalsLabel);
+
+		vocalsInput = new TextField();
+		vocalsInput.width = 120;
+		charTab.addComponent(vocalsInput);
+
+		var mainRow = new HBox();
+		mainRow.percentWidth = 100;
+		mainRow.styleNames = "spacing: 40px;";
+		charTab.addComponent(mainRow);
+
+		var leftCol = new VBox();
+		leftCol.styleNames = "spacing: 10px;";
+		mainRow.addComponent(leftCol);
+
+		var singLabel = new Label();
+		singLabel.text = "Sing Animation length:";
+		leftCol.addComponent(singLabel);
+
+		singDurationStepper = new NumberStepper();
+		singDurationStepper.min = 0;
+		singDurationStepper.max = 999;
+		singDurationStepper.step = 0.1;
+		singDurationStepper.value = 4;
+		leftCol.addComponent(singDurationStepper);
+
+		var scaleLabel = new Label();
+		scaleLabel.text = "Scale:";
+		leftCol.addComponent(scaleLabel);
+
+		scaleStepper = new NumberStepper();
+		scaleStepper.min = 0.05;
+		scaleStepper.max = 10;
+		scaleStepper.step = 0.1;
+		scaleStepper.value = 1;
+		leftCol.addComponent(scaleStepper);
+
+		var rightCol = new VBox();
+		rightCol.styleNames = "spacing: 14px;";
+		mainRow.addComponent(rightCol);
+
+		var posBox = new VBox();
+		posBox.styleNames = "spacing: 4px;";
+		rightCol.addComponent(posBox);
+
+		var posLabel = new Label();
+		posLabel.text = "Character X/Y:";
+		posBox.addComponent(posLabel);
+
+		var posRow = new HBox();
+		posRow.styleNames = "spacing: 16px;";
+		posBox.addComponent(posRow);
+
+		var posXBox = new VBox();
+		posXBox.styleNames = "spacing: 2px;";
+		posRow.addComponent(posXBox);
+
+		posXStepper = new NumberStepper();
+		posXStepper.step = 10;
+		posXBox.addComponent(posXStepper);
+
+		var posYBox = new VBox();
+		posYBox.styleNames = "spacing: 2px;";
+		posRow.addComponent(posYBox);
+
+		posYStepper = new NumberStepper();
+		posYStepper.step = 10;
+		posYBox.addComponent(posYStepper);
+
+		var camBox = new VBox();
+		camBox.styleNames = "spacing: 4px;";
+		rightCol.addComponent(camBox);
+
+		var camLabel = new Label();
+		camLabel.text = "Camera X/Y:";
+		camBox.addComponent(camLabel);
+
+		var camRow = new HBox();
+		camRow.styleNames = "spacing: 16px;";
+		camBox.addComponent(camRow);
+
+		var camXBox = new VBox();
+		camXBox.styleNames = "spacing: 2px;";
+		camRow.addComponent(camXBox);
+
+		camXStepper = new NumberStepper();
+		camXStepper.step = 10;
+		camXBox.addComponent(camXStepper);
+
+		var camYBox = new VBox();
+		camYBox.styleNames = "spacing: 2px;";
+		camRow.addComponent(camYBox);
+
+		camYStepper = new NumberStepper();
+		camYStepper.step = 10;
+		camYBox.addComponent(camYStepper);
+
+		healthColorButton = new Button();
+		healthColorButton.text = "Health Bar Color";
+		healthColorButton.styleNames = "primary";
+		charTab.addComponent(healthColorButton);
+
+		var animTab = new VBox();
+		animTab.text = "Animations";
+		animTab.percentWidth = 100;
+		animTab.percentHeight = 100;
+		animTab.styleNames = "padding: 8px;";
+		rightTabView.addComponent(animTab);
+
+		var animLabel = new Label();
+		animLabel.text = "Animations:";
+		animTab.addComponent(animLabel);
+
+		animDropDown = new DropDown();
+		animDropDown.width = 200;
+		animTab.addComponent(animDropDown);
+
+		var animNameLabel = new Label();
+		animNameLabel.text = "Animation name:";
+		animTab.addComponent(animNameLabel);
+
+		animNameInput = new TextField();
+		animTab.addComponent(animNameInput);
+
+		var prefixLabel = new Label();
+		prefixLabel.text = "Animation on .XML/.TXT file:";
+		animTab.addComponent(prefixLabel);
+
+		animPrefixInput = new TextField();
+		animTab.addComponent(animPrefixInput);
+
+		var indicesLabel = new Label();
+		indicesLabel.text = "ADVANCED - Animation Indices:";
+		animTab.addComponent(indicesLabel);
+
+		animIndicesInput = new TextField();
+		animTab.addComponent(animIndicesInput);
+
+		var fpsLabel = new Label();
+		fpsLabel.text = "Framerate:";
+		animTab.addComponent(fpsLabel);
+
+		animFramerateStepper = new NumberStepper();
+		animFramerateStepper.min = 0;
+		animFramerateStepper.max = 240;
+		animFramerateStepper.step = 1;
+		animFramerateStepper.value = 24;
+		animTab.addComponent(animFramerateStepper);
+
+		animLoopCheck = new CheckBox();
+		animLoopCheck.text = "Should it Loop?";
+		animTab.addComponent(animLoopCheck);
+
+		var animButtonsRow = new HBox();
+		animTab.addComponent(animButtonsRow);
+
+		addUpdateAnimButton = new Button();
+		addUpdateAnimButton.text = "Add/Update";
+		animButtonsRow.addComponent(addUpdateAnimButton);
+
+		removeAnimButton = new Button();
+		removeAnimButton.text = "Remove";
+		removeAnimButton.addClass("danger-button");
+		animButtonsRow.addComponent(removeAnimButton);
+
+		animWindow = new Window();
+		animWindow.title = "Animations List";
+		animWindow.width = 260;
+		animWindow.height = 300;
+		animWindow.left = 20;
+		animWindow.top = 40;
+		animWindow.draggable = true;
+		animWindow.minimizable = false;
+		animWindow.maximizable = false;
+		animWindow.closable = false;
+
+		var mainContainer = new VBox();
+		mainContainer.percentWidth = 100;
+		mainContainer.percentHeight = 100;
+		mainContainer.styleNames = "padding: 8px;";
+		animWindow.addComponent(mainContainer);
+
+		var scrollView = new ScrollView();
+		scrollView.width = 236;
+		scrollView.height = 220;
+		scrollView.left = 8;
+		mainContainer.addComponent(scrollView);
+
+		animListContainer = new VBox();
+		animListContainer.width = 220;
+		scrollView.addComponent(animListContainer);
+
+		animOffsetLabel = new Label();
+		animOffsetLabel.percentWidth = 100;
+		animOffsetLabel.styleNames = "padding: 4px; background-color: #2a2a2a; border-radius: 4px;";
+		animOffsetLabel.text = "Offsets: X = 0, Y = 0";
+		mainContainer.addComponent(animOffsetLabel);
+	}
+}
+
+class CharacterEditorState extends haxe.ui.backend.flixel.UIState
+{
+	static inline final AUTO_SAVE_INTERVAL:Float = 60;
+
 	var char:Character;
 	var ghostChar:Character;
 	var bgLayer:FlxTypedGroup<FlxSprite>;
 	var charLayer:FlxTypedGroup<Character>;
-	var dumbTexts:FlxTypedGroup<FlxText>;
 	var curAnim:Int = 0;
 	var daAnim:String = 'spooky';
 	var goToPlayState:Bool = true;
-
-	var UI_box:PsychUIBox;
-	var UI_characterbox:PsychUIBox;
 
 	private var camEditor:FlxCamera;
 	private var camUI:FlxCamera;
 
 	var errorAnimText:FlxText;
-
 	var grid:FlxBackdrop;
 	var gridVisible:Bool = false;
-
 	var copiedOffsets:Array<Int> = [0, 0];
-
 	var undos:Array<Dynamic> = [];
 	var redos:Array<Dynamic> = [];
 	var maxHistorySteps:Int = 75;
 
-	var changeBGbutton:PsychUIButton;
 	var leHealthIcon:HealthIcon;
 	var characterList:Array<String> = [];
-
 	var cameraFollowPointer:FlxSprite;
 	var healthBarBG:FlxSprite;
-
 	var draggingCamera:Bool = false;
 	var cameraSmoothness:Float = 0.2;
 	var cameraDragSensitivity:Float = 0.5;
-	var cameraScrollTarget:FlxPoint = FlxPoint.get(FlxG.camera.scroll.x, FlxG.camera.scroll.y);
-
+	var cameraScrollTarget:FlxPoint = FlxPoint.get(0, 0);
 	var lastAutoSaveTime:Float = 0;
-
-	static inline final AUTO_SAVE_INTERVAL:Float = 60;
-
 	var ghostAnim:String = '';
 	var ghostAlpha:Float = 0.6;
-	var makeGhostButton:PsychUIButton;
 	var ghostSingleAnimMode:Bool = false;
 
-	var charDropDown:PsychUIDropDownMenu;
+	var currentSavePath:String = null;
 
-	var imageInputText:PsychUIInputText;
-	var healthIconInputText:PsychUIInputText;
-	var vocalsInputText:PsychUIInputText;
+	var ui:EditorUI;
 
-	var singDurationStepper:PsychUINumericStepper;
-	var scaleStepper:PsychUINumericStepper;
-	var positionXStepper:PsychUINumericStepper;
-	var positionYStepper:PsychUINumericStepper;
-	var positionCameraXStepper:PsychUINumericStepper;
-	var positionCameraYStepper:PsychUINumericStepper;
-
-	var flipXCheckBox:PsychUICheckBox;
-	var noAntialiasingCheckBox:PsychUICheckBox;
-
-	var animationDropDown:PsychUIDropDownMenu;
-	var animationInputText:PsychUIInputText;
-	var animationNameInputText:PsychUIInputText;
-	var animationIndicesInputText:PsychUIInputText;
-	var animationNameFramerate:PsychUINumericStepper;
-	var animationLoopCheckBox:PsychUICheckBox;
+	var OFFSET_X:Float = 300;
 
 	var holdingArrowsTime:Float = 0;
 	var holdingArrowsElapsed:Float = 0;
@@ -127,12 +495,17 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		this.goToPlayState = goToPlayState;
 	}
 
+	var characterEditorSave:FlxSave;
 	override function create()
 	{
+		super.create();
+
+		characterEditorSave = new FlxSave();
+		characterEditorSave.bind('character_editor_data', CoolUtil.getSavePath());
+
 		camEditor = initFunkinCamera();
 		camUI = new FlxCamera();
 		camUI.bgColor.alpha = 0;
-
 		FlxG.cameras.add(camUI, false);
 
 		bgLayer = new FlxTypedGroup<FlxSprite>();
@@ -146,337 +519,230 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		charLayer = new FlxTypedGroup<Character>();
 		add(charLayer);
 
-		changeBGbutton = new PsychUIButton(FlxG.width - 360, 25, "", function()
-		{
-			onPixelBG = !onPixelBG;
-			reloadBGs();
-		});
-		changeBGbutton.cameras = [camUI];
-
 		var pointer:FlxGraphic = FlxGraphic.fromClass(GraphicCursorCross);
 		cameraFollowPointer = new FlxSprite().loadGraphic(pointer);
 		cameraFollowPointer.setGraphicSize(40, 40);
 		cameraFollowPointer.updateHitbox();
 		add(cameraFollowPointer);
 
-		loadChar(!daAnim.startsWith('bf'), false);
+		root.layout = new AbsoluteLayout();
+		root.width = FlxG.width;
+		root.height = FlxG.height;
+		root.cameras = [camUI];
 
-		healthBarBG = new FlxSprite(30, FlxG.height - 75).loadGraphic(Paths.image('healthBar'));
-		healthBarBG.scrollFactor.set();
-		add(healthBarBG);
-		healthBarBG.cameras = [camUI];
+		ui = new EditorUI();
+		root.addComponent(ui);
 
-		leHealthIcon = new HealthIcon(char.healthIcon, false);
-		leHealthIcon.y = FlxG.height - 150;
-		add(leHealthIcon);
-		leHealthIcon.cameras = [camUI];
+		WindowManager.instance.container = root;
 
-		dumbTexts = new FlxTypedGroup<FlxText>();
-		add(dumbTexts);
-		dumbTexts.cameras = [camUI];
+		WindowManager.instance.addWindow(ui.propWindow);
+		WindowManager.instance.addWindow(ui.editorWindow);
+		WindowManager.instance.addWindow(ui.animWindow);
+
+		loadWindowPositions();
+
+		bindUI();
 
 		errorAnimText = new FlxText(300, 16, "ERROR ON LOADING ANIMATION");
-		errorAnimText.setFormat(Paths.font("vcr.ttf"), 32, FlxColor.WHITE, RIGHT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+		errorAnimText.setFormat(Paths.font("vcr.ttf"), 32, FlxColor.WHITE, RIGHT, OUTLINE, FlxColor.BLACK);
 		errorAnimText.scrollFactor.set();
 		errorAnimText.borderSize = 1;
 		errorAnimText.cameras = [camUI];
 		errorAnimText.visible = false;
 		add(errorAnimText);
 
-		genBoyOffsets();
+		healthBarBG = new FlxSprite(30, FlxG.height - 75).loadGraphic(Paths.image('healthBar'));
+		healthBarBG.scrollFactor.set();
+		healthBarBG.cameras = [camUI];
+		add(healthBarBG);
+
+		leHealthIcon = new HealthIcon("face", false);
+		leHealthIcon.y = FlxG.height - 150;
+		leHealthIcon.cameras = [camUI];
+		add(leHealthIcon);
+
+		loadChar(!daAnim.startsWith('bf'), false);
 
 		FlxG.camera.zoom = 1;
 		FlxG.mouse.visible = true;
+		cameraScrollTarget.set(FlxG.camera.scroll.x, FlxG.camera.scroll.y);
 
-		createUIMenu();
-
-		add(changeBGbutton);
-
-		addGhostUI();
-		addSettingsUI();
-		addCharacterUI();
-		addAnimationsUI();
-
-		UI_box.selectedName = 'Settings';
-		UI_characterbox.selectedName = 'Character';
-
-		var pressF1Text:FlxText = new FlxText(0, FlxG.height - 20, 0, "Press F1 to open tips", 8);
-		pressF1Text.setFormat(Paths.font("pixel-latin.ttf"), 8, FlxColor.WHITE, RIGHT, FlxTextBorderStyle.OUTLINE_FAST, FlxColor.BLACK);
-		pressF1Text.scrollFactor.set();
-		pressF1Text.cameras = [camUI];
-		pressF1Text.borderSize = 1;
-		add(pressF1Text);
-
+		reloadCharacterDropDown();
 		reloadCharacterOptions();
-
-		super.create();
+		refreshAnimListPanel();
 	}
 
-	function createUIMenu()
+	function loadWindowPositions()
 	{
-		UI_box = new PsychUIBox(FlxG.width - 275, 25, 250, 120, ['Ghost', 'Settings']);
-		UI_box.cameras = [camUI];
+		if (ui == null) return;
 
-		UI_characterbox = new PsychUIBox(UI_box.x - 100, UI_box.y + UI_box.height + 10, 350, 280, ['Animations', 'Character']);
-		UI_characterbox.cameras = [camUI];
+		if (characterEditorSave.data.charEditorPropWindowX != null) ui.propWindow.left = characterEditorSave.data.charEditorPropWindowX;
+		if (characterEditorSave.data.charEditorPropWindowY != null) ui.propWindow.top = characterEditorSave.data.charEditorPropWindowY;
 
-		UI_characterbox.resize(350, 280);
-		UI_characterbox.x = UI_box.x - 100;
-		UI_characterbox.y = UI_box.y + UI_box.height;
+		if (characterEditorSave.data.charEditorEditorWindowX != null) ui.editorWindow.left = characterEditorSave.data.charEditorEditorWindowX;
+		if (characterEditorSave.data.charEditorEditorWindowY != null) ui.editorWindow.top = characterEditorSave.data.charEditorEditorWindowY;
 
-		add(UI_characterbox);
-		add(UI_box);
+		if (characterEditorSave.data.charEditorAnimWindowX != null) ui.animWindow.left = characterEditorSave.data.charEditorAnimWindowX;
+		if (characterEditorSave.data.charEditorAnimWindowY != null) ui.animWindow.top = characterEditorSave.data.charEditorAnimWindowY;
 	}
 
-	var onPixelBG:Bool = false;
-	var OFFSET_X:Float = 300;
-	function reloadBGs() {
-		var i:Int = bgLayer.members.length-1;
-		while(i >= 0) {
-			var memb:FlxSprite = bgLayer.members[i];
-			if(memb != null) {
-				memb.kill();
-				bgLayer.remove(memb);
-				memb.destroy();
-			}
-			--i;
-		}
-		bgLayer.clear();
-		var playerXDifference = 0;
-		if(char.isPlayer) playerXDifference = 670;
-
-		if(onPixelBG) {
-			var playerYDifference:Float = 0;
-			if(char.isPlayer) {
-				playerXDifference += 200;
-				playerYDifference = 220;
-			}
-
-			var bgSky:BGSprite = new BGSprite('bgs/weeb/weebSky', OFFSET_X - (playerXDifference / 2) - 300, 0 - playerYDifference, 0.1, 0.1);
-			bgLayer.add(bgSky);
-			bgSky.antialiasing = false;
-
-			var repositionShit = -200 + OFFSET_X - playerXDifference;
-
-			var bgSchool:BGSprite = new BGSprite('bgs/weeb/weebSchool', repositionShit, -playerYDifference + 6, 0.6, 0.90);
-			bgLayer.add(bgSchool);
-			bgSchool.antialiasing = false;
-
-			var bgStreet:BGSprite = new BGSprite('bgs/weeb/weebStreet', repositionShit, -playerYDifference, 0.95, 0.95);
-			bgLayer.add(bgStreet);
-			bgStreet.antialiasing = false;
-
-			var widShit = Std.int(bgSky.width * 6);
-			var bgTrees:FlxSprite = new FlxSprite(repositionShit - 380, -800 - playerYDifference);
-			bgTrees.frames = Paths.getPackerAtlas('bgs/weeb/weebTrees');
-			bgTrees.animation.add('treeLoop', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18], 12);
-			bgTrees.animation.play('treeLoop');
-			bgTrees.scrollFactor.set(0.85, 0.85);
-			bgLayer.add(bgTrees);
-			bgTrees.antialiasing = false;
-
-			bgSky.setGraphicSize(widShit);
-			bgSchool.setGraphicSize(widShit);
-			bgStreet.setGraphicSize(widShit);
-			bgTrees.setGraphicSize(Std.int(widShit * 1.4));
-
-			bgSky.updateHitbox();
-			bgSchool.updateHitbox();
-			bgStreet.updateHitbox();
-			bgTrees.updateHitbox();
-			changeBGbutton.label = "Regular BG";
-		} else {
-			var bg:BGSprite = new BGSprite('stageback', -600 + OFFSET_X - playerXDifference, -300, 0.9, 0.9);
-			bgLayer.add(bg);
-
-			var stageFront:BGSprite = new BGSprite('stagefront', -650 + OFFSET_X - playerXDifference, 500, 0.9, 0.9);
-			stageFront.setGraphicSize(Std.int(stageFront.width * 1.1));
-			stageFront.updateHitbox();
-			bgLayer.add(stageFront);
-			changeBGbutton.label = "Pixel BG";
-		}
-	}
-
-	var TemplateCharacter:String = '{
-		"animations": [
-			{
-				"loop": false,
-				"offsets": [
-					0,
-					0
-				],
-				"fps": 24,
-				"anim": "idle",
-				"indices": [],
-				"name": "Dad idle dance"
-			},
-			{
-				"offsets": [
-					0,
-					0
-				],
-				"indices": [],
-				"fps": 24,
-				"anim": "singLEFT",
-				"loop": false,
-				"name": "Dad Sing Note LEFT"
-			},
-			{
-				"offsets": [
-					0,
-					0
-				],
-				"indices": [],
-				"fps": 24,
-				"anim": "singDOWN",
-				"loop": false,
-				"name": "Dad Sing Note DOWN"
-			},
-			{
-				"offsets": [
-					0,
-					0
-				],
-				"indices": [],
-				"fps": 24,
-				"anim": "singUP",
-				"loop": false,
-				"name": "Dad Sing Note UP"
-			},
-			{
-				"offsets": [
-					0,
-					0
-				],
-				"indices": [],
-				"fps": 24,
-				"anim": "singRIGHT",
-				"loop": false,
-				"name": "Dad Sing Note RIGHT"
-			}
-		],
-		"no_antialiasing": false,
-		"image": "characters/daddy/DADDY_DEAREST",
-		"position": [
-			0,
-			0
-		],
-		"healthicon": "face",
-		"flip_x": false,
-		"healthbar_colors": [
-			161,
-			161,
-			161
-		],
-		"camera_position": [
-			0,
-			0
-		],
-		"sing_duration": 6.1,
-		"vocals_file": null,
-		"scale": 1
-	}';
-
-	function addGhostUI()
+	function saveWindowPositions()
 	{
-		var tab_group = UI_box.getTab('Ghost').menu;
+		if (ui == null) return;
 
-		makeGhostButton = new PsychUIButton(25, 15, "Make Ghost", () -> {
+		characterEditorSave.data.charEditorPropWindowX = ui.propWindow.left;
+		characterEditorSave.data.charEditorPropWindowY = ui.propWindow.top;
+
+		characterEditorSave.data.charEditorEditorWindowX = ui.editorWindow.left;
+		characterEditorSave.data.charEditorEditorWindowY = ui.editorWindow.top;
+
+		characterEditorSave.data.charEditorAnimWindowX = ui.animWindow.left;
+		characterEditorSave.data.charEditorAnimWindowY = ui.animWindow.top;
+	}
+
+	var syncingFlipXMenu:Bool = false;
+	var syncingNoAA:Bool = false;
+	var syncingGridMenu:Bool = false;
+	function bindUI()
+	{
+		final undoBtn:MenuItem = ui.mainToolbar.findComponent("undoBtn", MenuItem, true);
+		if (undoBtn != null) undoBtn.onClick = (_) -> undo();
+
+		final redoBtn:MenuItem = ui.mainToolbar.findComponent("redoBtn", MenuItem, true);
+		if (redoBtn != null) redoBtn.onClick = (_) -> redo();
+
+		final copyBtn:MenuItem = ui.mainToolbar.findComponent("copyOffsetsBtn", MenuItem, true);
+		if (copyBtn != null) copyBtn.onClick = (_) -> copyOffsets();
+
+		final pasteBtn:MenuItem = ui.mainToolbar.findComponent("pasteOffsetsBtn", MenuItem, true);
+		if (pasteBtn != null) pasteBtn.onClick = (_) -> pasteOffsets();
+
+		final gridBtn:MenuCheckBox = ui.mainToolbar.findComponent("toggleGridBtn", MenuCheckBox, true);
+		if (gridBtn != null) {
+			gridBtn.onChange = (_) -> {
+				if (syncingGridMenu) return;
+				gridVisible = gridBtn.selected;
+				grid.visible = gridVisible;
+			};
+		}
+
+		final resetZoomBtn:MenuItem = ui.mainToolbar.findComponent("resetZoomBtn", MenuItem, true);
+		if (resetZoomBtn != null) resetZoomBtn.onClick = (_) -> FlxG.camera.zoom = 1;
+
+		final flipXBtn:MenuCheckBox = ui.mainToolbar.findComponent("flipXBtn", MenuCheckBox, true);
+		if (flipXBtn != null) {
+			flipXBtn.onChange = (_) -> {
+				if (syncingFlipXMenu || char == null) return;
+
+				char.originalFlipX = flipXBtn.selected;
+				char.flipX = char.originalFlipX;
+				if (char.isPlayer) char.flipX = !char.flipX;
+
+				ghostChar.flipX = char.flipX;
+				updatePointerPos(false);
+				saveHistoryStuff();
+			};
+		}
+
+		final noAntialiasBtn:MenuCheckBox = ui.mainToolbar.findComponent("noAntialiasBtn", MenuCheckBox, true);
+		if (noAntialiasBtn != null) {
+			noAntialiasBtn.onChange = (_) -> {
+				if (syncingNoAA || char == null) return;
+
+				char.noAntialiasing = noAntialiasBtn.selected;
+				char.antialiasing = !char.noAntialiasing && ClientPrefs.globalAntialiasing;
+
+				ghostChar.antialiasing = char.antialiasing;
+				saveHistoryStuff();
+			};
+		}
+
+		final saveBtn:MenuItem = ui.mainToolbar.findComponent("saveCharBtn", MenuItem, true);
+		if (saveBtn != null) saveBtn.onClick = (_) -> quickSaveCharacter();
+
+		final saveAsBtn:MenuItem = ui.mainToolbar.findComponent("saveCharAsBtn", MenuItem, true);
+		if (saveAsBtn != null) saveAsBtn.onClick = (_) -> saveCharacter();
+
+		final reloadBtn:MenuItem = ui.mainToolbar.findComponent("reloadCharBtn", MenuItem, true);
+		if (reloadBtn != null) reloadBtn.onClick = (_) -> {
+			loadChar(!ui.playableCheck.selected);
+			reloadCharacterDropDown();
+		};
+
+		final reloadImgBtn:MenuItem = ui.mainToolbar.findComponent("reloadCharImageBtn", MenuItem, true);
+		if (reloadImgBtn != null) reloadImgBtn.onClick = (_) -> reloadCharacterImage();
+
+		final helpBtn:MenuItem = ui.mainToolbar.findComponent("helpBtn", MenuItem, true);
+		if (helpBtn != null) helpBtn.onClick = (_) -> openSubState(new CharacterEditorTipsSubstate());
+
+		ui.makeGhostButton.onClick = (_) -> {
 			ghostChar.visible = !ghostChar.visible;
-			makeGhostButton.label = ghostChar.visible ? "Hide Ghost" : "Make Ghost";
-			
+			ui.makeGhostButton.text = ghostChar.visible ? "Hide Ghost" : "Make Ghost";
 			if (ghostChar.visible) {
 				ghostAnim = (!char.isAnimateAtlas) ? char.animation.curAnim.name : char.atlas.anim.curAnim.name;
 				ghostSingleAnimMode = true;
 			}
 			reloadGhost();
-		});
+		};
 
-		var highlightGhost:PsychUICheckBox = new PsychUICheckBox(20 + makeGhostButton.x + makeGhostButton.width, makeGhostButton.y, "Highlight Ghost", 100);
-		highlightGhost.onClick = function()
-		{
-			var value = highlightGhost.checked ? 125 : 0;
+		ui.highlightGhostCheck.onChange = (_) -> {
+			final value = ui.highlightGhostCheck.selected ? 125 : 0;
 			ghostChar.colorTransform.redOffset = value;
 			ghostChar.colorTransform.greenOffset = value;
 			ghostChar.colorTransform.blueOffset = value;
 		};
 
-		var ghostAlphaSlider:PsychUISlider = new PsychUISlider(15, makeGhostButton.y + 25, function(v:Float)
-		{
-			ghostAlpha = v;
+		ui.ghostOpacitySlider.onChange = (_) -> {
+			ghostAlpha = ui.ghostOpacitySlider.pos;
 			ghostChar.alpha = ghostAlpha;
+		};
 
-		}, ghostAlpha, 0, 1);
-		ghostAlphaSlider.label = 'Opacity:';
+		ui.playableCheck.onChange = (_) -> {
+			char.isPlayer = ui.playableCheck.selected;
+			char.flipX = char.originalFlipX;
 
-		tab_group.add(makeGhostButton);
-		tab_group.add(highlightGhost);
-		tab_group.add(ghostAlphaSlider);
-	}
+			if (char.isPlayer)
+				char.flipX = !char.flipX;
 
-	function addSettingsUI() {
-		var tab_group = UI_box.getTab('Settings').menu;
-
-		var check_player = new PsychUICheckBox(10, 60, "Playable Character", 100);
-		check_player.checked = daAnim.startsWith('bf');
-		check_player.onClick = function()
-		{
-			char.isPlayer = !char.isPlayer;
-			char.flipX = !char.flipX;
 			updatePointerPos(false);
-			reloadBGs();
+			loadBG();
 			ghostChar.flipX = char.flipX;
 		};
 
-		charDropDown = new PsychUIDropDownMenu(10, 30, [''], function(index:Int, intended:String)
-		{
-			if(intended == null || intended.length < 1) return;
+		ui.charDropDown.onChange = (_) -> {
+			var intended = ui.charDropDown.text;
+			if (intended == null || intended.length < 1) return;
 
 			var characterPath:String = 'data/characters/$intended.json';
-			if (Paths.fileExists(characterPath, TEXT))
-			{
+			if (Paths.fileExists(characterPath, TEXT)) {
 				daAnim = intended;
-				check_player.checked = daAnim.startsWith('bf');
-				loadChar(!check_player.checked);
+				ui.playableCheck.selected = daAnim.startsWith('bf');
+				loadChar(!ui.playableCheck.selected);
 				reloadCharacterOptions();
 				reloadCharacterDropDown();
 				updatePointerPos();
-			}
-			else
-			{
+			} else {
 				reloadCharacterDropDown();
 				FlxG.sound.play(Paths.sound('cancelMenu'));
 			}
-		});
-		reloadCharacterDropDown();
-		charDropDown.selectedLabel = daAnim;
+		};
 
-		var reloadCharacter:PsychUIButton = new PsychUIButton(140, 20, "Reload Char", function()
-		{
-			loadChar(!check_player.checked);
-			reloadCharacterDropDown();
-		});
-
-		var templateCharacter:PsychUIButton = new PsychUIButton(140, 50, "Load Template", function()
-		{
+		ui.templateCharButton.onClick = (_) -> {
 			var parsedJson:CharacterFile = cast Json.parse(TemplateCharacter);
 			var characters:Array<Character> = [char, ghostChar];
-			for (character in characters)
-			{
+
+			for (character in characters) {
 				character.animOffsets.clear();
 				character.animationsArray = parsedJson.animations;
-				for (anim in character.animationsArray)
-				{
+				for (anim in character.animationsArray) {
 					character.addOffset(anim.anim, anim.offsets[0], anim.offsets[1]);
 				}
-				if(character.animationsArray[0] != null) {
+				if (character.animationsArray[0] != null) {
 					character.playAnim(character.animationsArray[0].anim, true);
 				}
-
 				character.singDuration = parsedJson.sing_duration;
 				character.positionArray = parsedJson.position;
 				character.cameraPosition = parsedJson.camera_position;
-
 				character.imageFile = parsedJson.image;
 				character.jsonScale = parsedJson.scale;
 				character.noAntialiasing = parsedJson.no_antialiasing;
@@ -489,134 +755,77 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			reloadCharacterImage();
 			reloadCharacterDropDown();
 			reloadCharacterOptions();
+			updateAnimListOffsetDisplay();
 			updatePointerPos();
-			genBoyOffsets();
-			saveHistoryStuff();
-		});
-		templateCharacter.normalStyle.bgColor = FlxColor.RED;
-		templateCharacter.normalStyle.textColor = FlxColor.WHITE;
-
-		tab_group.add(new FlxText(charDropDown.x, charDropDown.y - 18, 0, 'Character:'));
-		tab_group.add(check_player);
-		tab_group.add(reloadCharacter);
-		tab_group.add(templateCharacter);
-		tab_group.add(charDropDown);
-	}
-
-	function addCharacterUI() {
-		var tab_group = UI_characterbox.getTab('Character').menu;
-
-		imageInputText = new PsychUIInputText(15, 30, 200, 'characters/BOYFRIEND', 8);
-		imageInputText.onChange = (_, _) -> {
-			char.imageFile = imageInputText.text;
 			saveHistoryStuff();
 		};
 
-		var reloadImage:PsychUIButton = new PsychUIButton(imageInputText.x + 210, imageInputText.y - 3, "Reload Image", function()
-		{
-			char.imageFile = imageInputText.text;
-			reloadCharacterImage();
-			if(!char.isAnimationNull()) {
-				char.playAnim(char.getAnimationName(), true);
-			}
-		});
+		ui.imageInput.onChange = (_) -> {
+			char.imageFile = ui.imageInput.text;
+			saveHistoryStuff();
+		};
 
-		healthIconInputText = new PsychUIInputText(15, imageInputText.y + 35, 75, leHealthIcon.getCharacter(), 8);
-		healthIconInputText.onChange = (_, _) -> {
-			leHealthIcon.changeIcon(healthIconInputText.text, false);
-			char.healthIcon = healthIconInputText.text;
+		ui.healthIconInput.onChange = (_) -> {
+			leHealthIcon.changeIcon(ui.healthIconInput.text, false);
+			char.healthIcon = ui.healthIconInput.text;
 			updatePresence();
 			saveHistoryStuff();
 		};
 
-		vocalsInputText = new PsychUIInputText(15, healthIconInputText.y + 35, 75, char.vocalsFile ?? '', 8);
-		vocalsInputText.onChange = (_, _) -> {
-			char.vocalsFile = vocalsInputText.text;
+		ui.vocalsInput.onChange = (_) -> {
+			char.vocalsFile = ui.vocalsInput.text;
 			saveHistoryStuff();
 		};
 
-		singDurationStepper = new PsychUINumericStepper(15, healthIconInputText.y + 75, 0.1, 4, 0, 999, 1);
-		singDurationStepper.onValueChange = () -> {
-			char.singDuration = singDurationStepper.value;
+		ui.singDurationStepper.onChange = (_) -> {
+			char.singDuration = ui.singDurationStepper.value;
 			saveHistoryStuff();
 		};
 
-		scaleStepper = new PsychUINumericStepper(15, singDurationStepper.y + 40, 0.1, 1, 0.05, 10, 1);
-		scaleStepper.onValueChange = () -> {
+		ui.scaleStepper.onChange = (_) -> {
 			reloadCharacterImage();
-
-			char.jsonScale = scaleStepper.value;
+			char.jsonScale = ui.scaleStepper.value;
 			char.scale.set(char.jsonScale, char.jsonScale);
 			char.updateHitbox();
-
 			ghostChar.scale.set(char.jsonScale, char.jsonScale);
 			ghostChar.updateHitbox();
 			reloadGhost();
-
 			updatePointerPos(false);
 
-			if(!char.isAnimationNull()) {
+			if (!char.isAnimationNull()) {
 				char.playAnim(char.getAnimationName(), true);
 			}
 			saveHistoryStuff();
 		};
 
-		flipXCheckBox = new PsychUICheckBox(singDurationStepper.x + 80, singDurationStepper.y, "Flip X", 50);
-		flipXCheckBox.checked = char.flipX;
-		if(char.isPlayer) flipXCheckBox.checked = !flipXCheckBox.checked;
-		flipXCheckBox.onClick = function() {
-			char.originalFlipX = !char.originalFlipX;
-			char.flipX = char.originalFlipX;
-			if(char.isPlayer) char.flipX = !char.flipX;
-
-			ghostChar.flipX = char.flipX;
-		};
-
-		noAntialiasingCheckBox = new PsychUICheckBox(flipXCheckBox.x, flipXCheckBox.y + 40, "No Antialiasing", 80);
-		noAntialiasingCheckBox.checked = char.noAntialiasing;
-		noAntialiasingCheckBox.onClick = function() {
-			char.antialiasing = false;
-			if(!noAntialiasingCheckBox.checked && ClientPrefs.globalAntialiasing) {
-				char.antialiasing = true;
-			}
-			char.noAntialiasing = noAntialiasingCheckBox.checked;
-			ghostChar.antialiasing = char.antialiasing;
-		};
-
-		positionXStepper = new PsychUINumericStepper(flipXCheckBox.x + 110, flipXCheckBox.y, 10, char.positionArray[0]);
-		positionXStepper.onValueChange = () -> {
-			char.positionArray[0] = positionXStepper.value;
+		ui.posXStepper.onChange = (_) -> {
+			char.positionArray[0] = ui.posXStepper.value;
 			char.x = char.positionArray[0] + OFFSET_X + 100;
 			updatePointerPos();
 			saveHistoryStuff();
-		}
+		};
 
-		positionYStepper = new PsychUINumericStepper(positionXStepper.x + 70, positionXStepper.y, 10, char.positionArray[1]);
-		positionYStepper.onValueChange = () -> {
-			char.positionArray[1] = positionYStepper.value;
+		ui.posYStepper.onChange = (_) -> {
+			char.positionArray[1] = ui.posYStepper.value;
 			char.y = char.positionArray[1];
 			updatePointerPos();
 			saveHistoryStuff();
-		}
+		};
 
-		positionCameraXStepper = new PsychUINumericStepper(positionXStepper.x, positionXStepper.y + 40, 10, char.cameraPosition[0]);
-		positionCameraXStepper.onValueChange = () -> {
-			char.cameraPosition[0] = positionCameraXStepper.value;
+		ui.camXStepper.onChange = (_) -> {
+			char.cameraPosition[0] = ui.camXStepper.value;
 			updatePointerPos();
 			saveHistoryStuff();
 		};
 
-		positionCameraYStepper = new PsychUINumericStepper(positionYStepper.x, positionYStepper.y + 40, 10, char.cameraPosition[1]);
-		positionCameraYStepper.onValueChange = () -> {
-			char.cameraPosition[1] = positionCameraYStepper.value;
+		ui.camYStepper.onChange = (_) -> {
+			char.cameraPosition[1] = ui.camYStepper.value;
 			updatePointerPos();
 			saveHistoryStuff();
 		};
 
-		var saveCharacterButton:PsychUIButton = new PsychUIButton(reloadImage.x, noAntialiasingCheckBox.y + 40, "Save Character", () -> saveCharacter());
-
-		var healthColorButton:PsychUIButton = new PsychUIButton(singDurationStepper.x, saveCharacterButton.y, "Health Bar Color", function() {
-			openSubState(new ColorPickerSubstate(
+		ui.healthColorButton.onClick = (_) -> {
+			openSubState(new ColorPickerSubstateHaxeUI(
 				FlxColor.fromRGB(char.healthColorArray[0], char.healthColorArray[1], char.healthColorArray[2]),
 				function(newColor:FlxColor) {
 					char.healthColorArray[0] = newColor.red;
@@ -627,265 +836,204 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 				},
 				function():FlxColor {
 					return FlxColor.fromInt(CoolUtil.dominantColor(leHealthIcon));
-				},
-				false,
-				"Health Bar Color"
+				}
 			));
-		}, 140);
-		healthColorButton.normalStyle.bgColor = FlxColor.fromRGB(0, 120, 180);
-		healthColorButton.normalStyle.textColor = FlxColor.WHITE;
+		};
 
-		tab_group.add(new FlxText(15, imageInputText.y - 18, 0, 'Image file name:'));
-		tab_group.add(new FlxText(15, healthIconInputText.y - 18, 0, 'Health icon name:'));
-		tab_group.add(new FlxText(15, vocalsInputText.y - 18, 0, 'Vocals File Postfix:'));
-		tab_group.add(new FlxText(15, singDurationStepper.y - 18, 0, 'Sing Animation length:'));
-		tab_group.add(new FlxText(15, scaleStepper.y - 18, 0, 'Scale:'));
-		tab_group.add(new FlxText(positionXStepper.x, positionXStepper.y - 18, 0, 'Character X/Y:'));
-		tab_group.add(new FlxText(positionCameraXStepper.x, positionCameraXStepper.y - 18, 0, 'Camera X/Y:'));
-		tab_group.add(imageInputText);
-		tab_group.add(reloadImage);
-		tab_group.add(healthIconInputText);
-		tab_group.add(vocalsInputText);
-		tab_group.add(singDurationStepper);
-		tab_group.add(scaleStepper);
-		tab_group.add(flipXCheckBox);
-		tab_group.add(noAntialiasingCheckBox);
-		tab_group.add(positionXStepper);
-		tab_group.add(positionYStepper);
-		tab_group.add(positionCameraXStepper);
-		tab_group.add(positionCameraYStepper);
-		tab_group.add(healthColorButton);
-		tab_group.add(saveCharacterButton);
-	}
-
-	function addAnimationsUI() {
-		var tab_group = UI_characterbox.getTab('Animations').menu;
-
-		animationInputText = new PsychUIInputText(15, 85, 80, '', 8);
-		animationNameInputText = new PsychUIInputText(animationInputText.x, animationInputText.y + 35, 150, '', 8);
-		animationIndicesInputText = new PsychUIInputText(animationNameInputText.x, animationNameInputText.y + 40, 250, '', 8);
-		animationNameFramerate = new PsychUINumericStepper(animationInputText.x + 170, animationInputText.y, 1, 24, 0, 240, 0);
-		animationLoopCheckBox = new PsychUICheckBox(animationNameInputText.x + 170, animationNameInputText.y - 1, "Should it Loop?", 100);
-
-		animationDropDown = new PsychUIDropDownMenu(15, animationInputText.y - 55, null, (selectedAnimation:Int, pressed:String) -> {
-			var anim:AnimArray = char.animationsArray[selectedAnimation];
-			animationInputText.text = anim.anim;
-			animationNameInputText.text = anim.name;
-			animationLoopCheckBox.checked = anim.loop;
-			animationNameFramerate.value = anim.fps;
-				
-			if (anim.indices != null && anim.indices.length > 0) 
-				animationIndicesInputText.text = anim.indices.join(",");
-			else animationIndicesInputText.text = '';
-
-			curAnim = selectedAnimation;
-			char.playAnim(anim.anim, true);
-				
-			if (ghostChar.visible) ghostChar.playAnim(anim.anim, true);
-				
-			genBoyOffsets();
-		});
-
-		var addUpdateButton:PsychUIButton = new PsychUIButton(70, animationIndicesInputText.y + 30, "Add/Update", () -> {
-			var indices:Array<Int> = [];
-			var indicesStr:Array<String> = animationIndicesInputText.text.trim().split(',');
-			if(indicesStr.length > 1) {
-				for (i in 0...indicesStr.length) {
-					var index:Int = Std.parseInt(indicesStr[i]);
-					if(indicesStr[i] != null && indicesStr[i] != '' && !Math.isNaN(index) && index > -1) {
-						indices.push(index);
-					}
+		ui.animDropDown.onChange = (_) -> {
+			var selectedAnim = ui.animDropDown.text;
+			for (i in 0...char.animationsArray.length) {
+				if (char.animationsArray[i].anim == selectedAnim) {
+					curAnim = i;
+					break;
 				}
 			}
 
-			var lastAnim:String = '';
-			if(char.animationsArray[curAnim] != null) {
-				lastAnim = char.animationsArray[curAnim].anim;
+			var anim:AnimArray = char.animationsArray[curAnim];
+			ui.animNameInput.text = anim.anim ?? "";
+			ui.animPrefixInput.text = anim.name ?? "";
+			ui.animLoopCheck.selected = anim.loop;
+			ui.animFramerateStepper.value = anim.fps;
+			ui.animIndicesInput.text = anim.indices?.length > 0 ? anim.indices.join(",") : '';
+
+			char.playAnim(anim.anim, true);
+			if (ghostChar.visible) ghostChar.playAnim(anim.anim, true);
+
+			syncCurrentAnimUI();
+		};
+
+		ui.addUpdateAnimButton.onClick = (_) -> {
+			var indices:Array<Int> = [];
+			var indicesStr:Array<String> = ui.animIndicesInput.text.trim().split(',');
+
+			if (indicesStr.length > 1) {
+				for (s in indicesStr) {
+					var idx = Std.parseInt(s);
+					if (s != null && s != '' && !Math.isNaN(idx) && idx > -1) indices.push(idx);
+				}
 			}
 
+			var lastAnim:String = (char.animationsArray[curAnim] != null) ? char.animationsArray[curAnim].anim : "";
 			var lastOffsets:Array<Int> = [0, 0];
+
 			for (anim in char.animationsArray) {
-				if(animationInputText.text == anim.anim) {
+				if (ui.animNameInput.text == anim.anim) {
 					lastOffsets = anim.offsets;
-					if(char.hasAnimation(animationInputText.text))
-					{
-						if(!char.isAnimateAtlas) char.animation.remove(animationInputText.text);
-						else char.atlas.anim.remove(animationInputText.text);
+					if (char.hasAnimation(ui.animNameInput.text)) {
+						if (!char.isAnimateAtlas) char.animation.remove(ui.animNameInput.text);
+						else char.atlas.anim.remove(ui.animNameInput.text);
 					}
 					char.animationsArray.remove(anim);
+					break;
 				}
 			}
 
 			var newAnim:AnimArray = {
-				anim: animationInputText.text,
-				name: animationNameInputText.text,
-				fps: Math.round(animationNameFramerate.value),
-				loop: animationLoopCheckBox.checked,
+				anim: ui.animNameInput.text,
+				name: ui.animPrefixInput.text,
+				fps: Math.round(ui.animFramerateStepper.value),
+				loop: ui.animLoopCheck.selected,
 				indices: indices,
 				offsets: lastOffsets
 			};
-			if(char.isAnimateAtlas) {
-				if(indices != null && indices.length > 0) {
+
+			if (char.isAnimateAtlas) {
+				#if flixel_animate
+				if (indices.length > 0)
 					char.atlas.anim.addBySymbolIndices(newAnim.anim, newAnim.name, newAnim.indices, newAnim.fps, newAnim.loop);
-				} else {
+				else
 					char.atlas.anim.addBySymbol(newAnim.anim, newAnim.name, newAnim.fps, newAnim.loop);
-				}
+				#end
 			} else {
-				if(indices != null && indices.length > 0) {
+				if (indices.length > 0)
 					char.animation.addByIndices(newAnim.anim, newAnim.name, newAnim.indices, "", newAnim.fps, newAnim.loop);
-				} else {
+				else
 					char.animation.addByPrefix(newAnim.anim, newAnim.name, newAnim.fps, newAnim.loop);
-				}
 			}
 
-			if(!char.hasAnimation(newAnim.anim)) char.addOffset(newAnim.anim, 0, 0);
+			if (!char.hasAnimation(newAnim.anim)) char.addOffset(newAnim.anim, 0, 0);
 			char.animationsArray.push(newAnim);
 
-			if(lastAnim == animationInputText.text) {
-				var leAnim = !char.isAnimateAtlas ? char.animation.getByName(lastAnim) : char.atlas.anim.getByName(lastAnim);
-				if(leAnim != null && leAnim.frames.length > 0) {
-					char.playAnim(lastAnim, true);
-				} else {
-					for(i in 0...char.animationsArray.length) {
-						if(char.animationsArray[i] != null) {
-							leAnim = !char.isAnimateAtlas ? char.animation.getByName(char.animationsArray[i].anim) : char.atlas.anim.getByName(char.animationsArray[i].anim);
-							if(leAnim != null && leAnim.frames.length > 0) {
-								char.playAnim(char.animationsArray[i].anim, true);
-								curAnim = i;
-								break;
-							}
-						}
+			if (lastAnim == newAnim.anim) {
+				char.playAnim(lastAnim, true);
+			} else {
+				for (i in 0...char.animationsArray.length) {
+					if (char.animationsArray[i] != null) {
+						char.playAnim(char.animationsArray[i].anim, true);
+						curAnim = i;
+						break;
 					}
 				}
 			}
 
 			curAnim = char.animationsArray.length - 1;
 			reloadAnimationDropDown();
-			char.playAnim(animationInputText.text, true);
-			if (ghostChar.visible) ghostChar.playAnim(animationInputText.text, true);
-
-			genBoyOffsets();
+			char.playAnim(ui.animNameInput.text, true);
+			if (ghostChar.visible) ghostChar.playAnim(ui.animNameInput.text, true);
 			saveHistoryStuff();
-		});
+		};
 
-		var removeButton:PsychUIButton = new PsychUIButton(180, animationIndicesInputText.y + 30, "Remove", function() {
+		ui.removeAnimButton.onClick = (_) -> {
 			for (anim in char.animationsArray) {
-				if(animationInputText.text == anim.anim) {
-					var resetAnim:Bool = false;
-					if(anim.anim == char.getAnimationName()) resetAnim = true;
-
-					if(char.hasAnimation(anim.anim))
-					{
-						if(!char.isAnimateAtlas) char.animation.remove(anim.anim);
+				if (ui.animNameInput.text == anim.anim) {
+					var resetAnim = (anim.anim == char.getAnimationName());
+					if (char.hasAnimation(anim.anim)) {
+						if (!char.isAnimateAtlas) char.animation.remove(anim.anim);
 						else char.atlas.anim.remove(anim.anim);
 						char.animOffsets.remove(anim.anim);
 						char.animationsArray.remove(anim);
 					}
 
-					if(resetAnim && char.animationsArray.length > 0) {
-                		char.playAnim(char.animationsArray[0].anim, true);
-                		curAnim = 0;
-						if (ghostChar.visible) {
-							ghostChar.playAnim(char.animationsArray[0].anim, true);
-						}
-            		}
-
-					if(resetAnim && char.animationsArray.length > 0) {
+					if (resetAnim && char.animationsArray.length > 0) {
 						char.playAnim(char.animationsArray[0].anim, true);
+						curAnim = 0;
+						if (ghostChar.visible) ghostChar.playAnim(char.animationsArray[0].anim, true);
 					}
+
 					reloadAnimationDropDown();
-					genBoyOffsets();
+					updateAnimListOffsetDisplay();
 					saveHistoryStuff();
 					break;
 				}
 			}
-			saveHistoryStuff();
-		});
-		removeButton.normalStyle.bgColor = FlxColor.RED;
-		removeButton.normalStyle.textColor = FlxColor.WHITE;
-
-		tab_group.add(new FlxText(animationDropDown.x, animationDropDown.y - 18, 0, 'Animations:'));
-		tab_group.add(new FlxText(animationInputText.x, animationInputText.y - 18, 0, 'Animation name:'));
-		tab_group.add(new FlxText(animationNameFramerate.x, animationNameFramerate.y - 18, 0, 'Framerate:'));
-		tab_group.add(new FlxText(animationNameInputText.x, animationNameInputText.y - 18, 0, 'Animation on .XML/.TXT file:'));
-		tab_group.add(new FlxText(animationIndicesInputText.x, animationIndicesInputText.y - 18, 0, 'ADVANCED - Animation Indices:'));
-
-		tab_group.add(animationInputText);
-		tab_group.add(animationNameInputText);
-		tab_group.add(animationIndicesInputText);
-		tab_group.add(animationNameFramerate);
-		tab_group.add(animationLoopCheckBox);
-		tab_group.add(addUpdateButton);
-		tab_group.add(removeButton);
-		tab_group.add(animationDropDown);
+		};
 	}
 
-	public function UIEvent(id:String, sender:Dynamic) {
-		if (id == PsychUINumericStepper.CHANGE_EVENT) {
-        	saveHistoryStuff();
-    	}
+	function loadBG()
+	{
+		var i:Int = bgLayer.members.length - 1;
+		while (i >= 0) {
+			var memb:FlxSprite = bgLayer.members[i];
+			if (memb != null) {
+				memb.kill();
+				bgLayer.remove(memb);
+				memb.destroy();
+			}
+			--i;
+		}
+		bgLayer.clear();
+
+		var playerXDifference = !char.isPlayer ? 0 : 670;
+		var bg:BGSprite = new BGSprite('stageback', -600 + OFFSET_X - playerXDifference, -300, 0.9, 0.9);
+		bgLayer.add(bg);
+
+		var stageFront:BGSprite = new BGSprite('stagefront', -650 + OFFSET_X - playerXDifference, 500, 0.9, 0.9);
+		stageFront.setGraphicSize(Std.int(stageFront.width * 1.1));
+		stageFront.updateHitbox();
+		bgLayer.add(stageFront);
 	}
 
-	function reloadCharacterImage() 
+	function reloadCharacterImage()
 	{
 		var lastAnim:String = char.getAnimationName() ?? '';
-		
+
 		char.atlas = FlxDestroyUtil.destroy(char.atlas);
 		char.isAnimateAtlas = false;
-
 		ghostChar.atlas = FlxDestroyUtil.destroy(ghostChar.atlas);
 		ghostChar.isAnimateAtlas = false;
 
-		if(Paths.fileExists('images/' + char.imageFile + '/Animation.json', TEXT)) {
+		if (Paths.fileExists('images/' + char.imageFile + '/Animation.json', TEXT)) {
 			#if flixel_animate
 			char.isAnimateAtlas = true;
 			ghostChar.isAnimateAtlas = true;
-
 			char.atlas = new FlxAnimate();
 			char.atlas.frames = Paths.getAnimateAtlas(char.imageFile);
-			
 			ghostChar.atlas = new FlxAnimate();
 			ghostChar.atlas.frames = Paths.getAnimateAtlas(char.imageFile);
 			#end
 		} else {
-			if(Paths.fileExists('images/' + char.imageFile + '.txt', TEXT)) {
+			if (Paths.fileExists('images/' + char.imageFile + '.txt', TEXT)) {
 				char.frames = Paths.getPackerAtlas(char.imageFile);
 				ghostChar.frames = Paths.getPackerAtlas(char.imageFile);
-			}
-			else if(Paths.fileExists('images/' + char.imageFile + '.json', TEXT)) {
+			} else if (Paths.fileExists('images/' + char.imageFile + '.json', TEXT)) {
 				char.frames = Paths.getAsepriteAtlas(char.imageFile);
 				ghostChar.frames = Paths.getAsepriteAtlas(char.imageFile);
-			}
-			else {
+			} else {
 				char.frames = Paths.getSparrowAtlas(char.imageFile);
 				ghostChar.frames = Paths.getSparrowAtlas(char.imageFile);
 			}
 		}
 
-		if(char.animationsArray != null && char.animationsArray.length > 0) {
+		if (char.animationsArray != null && char.animationsArray.length > 0) {
 			for (anim in char.animationsArray) {
-				var animAnim:String = '' + anim.anim;
-				var animName:String = '' + anim.name;
-				var animFps:Int = anim.fps;
+				var animAnim = anim.anim;
+				var animName = anim.name;
+				var animFps = anim.fps;
 				var animLoop = anim.loop;
 				var animIndices = anim.indices;
-				
-				if(char.isAnimateAtlas) {
+
+				if (char.isAnimateAtlas) {
 					#if flixel_animate
-					if(animIndices != null && animIndices.length > 0) {
+					if (animIndices?.length > 0) {
 						char.atlas.anim.addBySymbolIndices(animAnim, animName, animIndices, animFps, animLoop);
-					} else {
-						char.atlas.anim.addBySymbol(animAnim, animName, animFps, animLoop);
-					}
-					
-					if(animIndices != null && animIndices.length > 0) {
 						ghostChar.atlas.anim.addBySymbolIndices(animAnim, animName, animIndices, animFps, animLoop);
 					} else {
+						char.atlas.anim.addBySymbol(animAnim, animName, animFps, animLoop);
 						ghostChar.atlas.anim.addBySymbol(animAnim, animName, animFps, animLoop);
 					}
 					#end
 				} else {
-					if(animIndices != null && animIndices.length > 0) {
+					if (animIndices?.length > 0) {
 						char.animation.addByIndices(animAnim, animName, animIndices, "", animFps, animLoop);
 						ghostChar.animation.addByIndices(animAnim, animName, animIndices, "", animFps, animLoop);
 					} else {
@@ -894,92 +1042,41 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 					}
 				}
 
-				if(!char.hasAnimation(animAnim))
-					char.addOffset(animAnim, 0, 0);
-				if(!ghostChar.hasAnimation(animAnim))
-					ghostChar.addOffset(animAnim, 0, 0);
+				if (!char.hasAnimation(animAnim)) char.addOffset(animAnim, 0, 0);
+				if (!ghostChar.hasAnimation(animAnim)) ghostChar.addOffset(animAnim, 0, 0);
 			}
 		}
 
 		char.setPosition(char.positionArray[0] + OFFSET_X + 100, char.positionArray[1]);
 		ghostChar.setPosition(char.x, char.y);
-		
-		if(char.animationsArray.length > 1) {
-			if(lastAnim != '' && char.hasAnimation(lastAnim)) {
+
+		if (char.animationsArray.length > 1) {
+			if (lastAnim != '' && char.hasAnimation(lastAnim)) {
 				char.playAnim(lastAnim, true);
-				if(ghostChar.visible) ghostChar.playAnim(lastAnim, true);
-			} else if(char.animationsArray.length > 0) {
+				if (ghostChar.visible) ghostChar.playAnim(lastAnim, true);
+			} else if (char.animationsArray.length > 0) {
 				char.playAnim(char.animationsArray[0].anim, true);
-				if(ghostChar.visible) ghostChar.playAnim(char.animationsArray[0].anim, true);
+				if (ghostChar.visible) ghostChar.playAnim(char.animationsArray[0].anim, true);
 			}
 		}
-		
+
 		ghostChar.isAnimateAtlas = char.isAnimateAtlas;
 		reloadGhost();
-		
 		updatePointerPos(false);
-		
-		if(!char.isAnimationNull()) {
+
+		if (!char.isAnimationNull()) {
 			char.playAnim(char.getAnimationName(), true);
 		}
-		saveHistoryStuff();
+
+		refreshAnimListPanel();
 	}
 
-	function genBoyOffsets():Void
+	function loadChar(isDad:Bool, blahBlahBlah:Bool = true)
 	{
-		var daLoop:Int = 0;
-
-		var i:Int = dumbTexts.members.length-1;
-		while(i >= 0) {
-			var memb:FlxText = dumbTexts.members[i];
-			if(memb != null) {
-				memb.kill();
-				dumbTexts.remove(memb);
-				memb.destroy();
-			}
-			--i;
-		}
-		dumbTexts.clear();
-
-		for (anim in char.animationsArray)
-		{
-			var offsets = char.animOffsets.get(anim.anim);
-			var text:FlxText = new FlxText(10, 20 + (18 * daLoop), 0, anim.anim + ": " + offsets, 15);
-			text.setFormat(null, 16, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
-			text.scrollFactor.set();
-			text.borderSize = 1;
-			dumbTexts.add(text);
-			text.cameras = [camUI];
-
-			daLoop++;
-		}
-
-		if(dumbTexts.length < 1) {
-			var text:FlxText = new FlxText(10, 38, 0, "ERROR! No animations found.", 15);
-			text.scrollFactor.set();
-			text.borderSize = 1;
-			dumbTexts.add(text);
-			errorAnimText.visible = false;
-		}
-
-		 for (i in 0...dumbTexts.length) {
-			var text = dumbTexts.members[i];
-			if (i == curAnim) {
-				text.color = FlxColor.BLUE;
-				text.borderColor = FlxColor.BLACK;
-				text.size = 18;
-			} else {
-				text.color = FlxColor.WHITE;
-				text.size = 16;
-			}
-		}
-	}
-
-	function loadChar(isDad:Bool, blahBlahBlah:Bool = true) {
-		var i:Int = charLayer.members.length-1;
-		while(i >= 0) {
+		var i:Int = charLayer.members.length - 1;
+		while (i >= 0) {
 			var memb:Character = charLayer.members[i];
-			if(memb != null) {
+			if (memb != null) {
 				memb.kill();
 				charLayer.remove(memb);
 				memb.destroy();
@@ -994,11 +1091,10 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		ghostChar.visible = false;
 
 		char = new Character(0, 0, daAnim, !isDad);
-		if(char.animationsArray[0] != null) {
+		if (char.animationsArray[0] != null) {
 			char.playAnim(char.animationsArray[0].anim, true);
 		}
 		char.debugMode = true;
-
 		ghostChar.isAnimateAtlas = char.isAnimateAtlas;
 
 		charLayer.add(ghostChar);
@@ -1007,176 +1103,260 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		char.setPosition(char.positionArray[0] + OFFSET_X + 100, char.positionArray[1]);
 
 		undos = [];
-    	redos = [];
-    	curAnim = 0;
+		redos = [];
+		curAnim = 0;
 
-		if(blahBlahBlah) {
-			genBoyOffsets();
+		if (blahBlahBlah) {
 			saveHistoryStuff();
+			updateAnimListOffsetDisplay();
+			refreshAnimListPanel();
 		}
+
+		loadBG();
 		reloadCharacterOptions();
-		reloadBGs();
 		updatePointerPos();
 	}
 
 	function updatePointerPos(?snap:Bool = true)
 	{
-		if(char == null || cameraFollowPointer == null) return;
+		if (char == null || cameraFollowPointer == null) return;
 
 		var offX:Float = 0;
 		var offY:Float = 0;
-		
-		if(!char.isPlayer)
-		{
+
+		if (!char.isPlayer) {
 			offX = char.getMidpoint().x + 100 + char.cameraPosition[0];
 			offY = char.getMidpoint().y - 100 + char.cameraPosition[1];
-		}
-		else
-		{
+		} else {
 			offX = char.getMidpoint().x - 150 - char.cameraPosition[0];
 			offY = char.getMidpoint().y - 100 + char.cameraPosition[1];
 		}
+
 		cameraFollowPointer.setPosition(offX, offY);
 
-		if(snap)
-		{
-			FlxG.camera.scroll.x = cameraFollowPointer.getMidpoint().x - FlxG.width/2;
-			FlxG.camera.scroll.y = cameraFollowPointer.getMidpoint().y - FlxG.height/2;
+		if (snap) {
+			FlxG.camera.scroll.x = cameraFollowPointer.getMidpoint().x - FlxG.width / 2;
+			FlxG.camera.scroll.y = cameraFollowPointer.getMidpoint().y - FlxG.height / 2;
+			cameraScrollTarget.set(FlxG.camera.scroll.x, FlxG.camera.scroll.y);
 		}
 	}
 
-	function findAnimationByName(name:String):AnimArray {
-		for (anim in char.animationsArray) {
-			if(anim.anim == name) {
-				return anim;
-			}
+	function reloadCharacterOptions()
+	{
+		if (ui == null || ui.imageInput == null || char == null) return;
+
+		ui.imageInput.text = char.imageFile;
+		ui.healthIconInput.text = char.healthIcon;
+		ui.vocalsInput.text = char.vocalsFile ?? '';
+		ui.singDurationStepper.value = char.singDuration;
+		ui.posXStepper.value = char.positionArray[0];
+		ui.posYStepper.value = char.positionArray[1];
+		ui.camXStepper.value = char.cameraPosition[0];
+		ui.camYStepper.value = char.cameraPosition[1];
+		ui.scaleStepper.value = char.jsonScale;
+		ui.playableCheck.selected = char.isPlayer;
+		leHealthIcon?.changeIcon(ui.healthIconInput.text, false);
+
+		final flipXBtn:MenuCheckBox = ui.mainToolbar.findComponent("flipXBtn", MenuCheckBox, true);
+		if (flipXBtn != null) {
+			syncingFlipXMenu = true;
+			flipXBtn.selected = char.originalFlipX;
+			syncingFlipXMenu = false;
 		}
 
-		return char.animationsArray[0];
-	}
-
-	inline function reloadCharacterOptions() {
-		if(UI_characterbox != null) {
-			imageInputText.text = char.imageFile;
-			healthIconInputText.text = char.healthIcon;
-			vocalsInputText.text = char.vocalsFile ?? '';
-			singDurationStepper.value = char.singDuration;
-			positionXStepper.value = char.positionArray[0];
-			positionYStepper.value = char.positionArray[1];
-			positionCameraXStepper.value = char.cameraPosition[0];
-			positionCameraYStepper.value = char.cameraPosition[1];
-			scaleStepper.value = char.jsonScale;
-			flipXCheckBox.checked = char.originalFlipX;
-			noAntialiasingCheckBox.checked = char.noAntialiasing;
-			leHealthIcon.changeIcon(healthIconInputText.text, false);
-
-			healthBarBG.color = FlxColor.fromRGB(
-				char.healthColorArray[0],
-				char.healthColorArray[1],
-				char.healthColorArray[2]
-			);
-
-			reloadAnimationDropDown();
-			updatePresence();
+		final noAntialiasBtn:MenuCheckBox = ui.mainToolbar.findComponent("noAntialiasBtn", MenuCheckBox, true);
+		if (noAntialiasBtn != null) {
+			syncingNoAA = true;
+			noAntialiasBtn.selected = char.noAntialiasing;
+			syncingNoAA = false;
 		}
+
+		final gridBtn:MenuCheckBox = ui.mainToolbar.findComponent("toggleGridBtn", MenuCheckBox, true);
+		if (gridBtn != null) {
+			syncingGridMenu = true;
+			gridBtn.selected = gridVisible;
+			syncingGridMenu = false;
+		}
+
+		if (healthBarBG != null)
+			healthBarBG.color = FlxColor.fromRGB(char.healthColorArray[0], char.healthColorArray[1], char.healthColorArray[2]);
+
+		reloadAnimationDropDown();
+		updatePresence();
 	}
 
-	inline function reloadAnimationDropDown() {
+	function reloadAnimationDropDown()
+	{
 		var animList:Array<String> = [];
-		for (i in 0...char.animationsArray.length) {
-			animList.push(char.animationsArray[i].anim);
-		}
-		if(animList.length < 1) animList.push('NO ANIMATIONS');
+		for (i in 0...char.animationsArray.length) animList.push(char.animationsArray[i].anim);
+		if (animList.length < 1) animList.push('NO ANIMATIONS');
 
-		animationDropDown.list = animList;
-		genBoyOffsets();
+		ui.animDropDown.dataSource = ArrayDataSource.fromArray(animList);
+
+		if (animList.length > 0 && curAnim >= 0 && curAnim < animList.length) {
+			ui.animDropDown.text = animList[curAnim];
+		}
+
+		syncCurrentAnimUI();
 	}
 
-	function reloadGhost() 
+	function refreshAnimListPanel()
+	{
+		if (ui == null || ui.animListContainer == null || char == null) return;
+
+		while (ui.animListContainer.numComponents > 0) {
+			var child = ui.animListContainer.getComponentAt(0);
+			ui.animListContainer.removeComponent(child);
+			child.destroy();
+		}
+
+		for (i in 0...char.animationsArray.length)
+		{
+			var anim = char.animationsArray[i];
+			var index = i;
+			var animName = (anim != null && anim.anim != null) ? anim.anim : "<null>";
+
+			var btn = new Button();
+			btn.text = animName;
+			btn.percentWidth = 100;
+			btn.height = 32;
+
+			if (index == curAnim) {
+				btn.addClass("anim-btn-selected");
+			}
+
+			btn.onClick = (_) -> {
+				curAnim = index;
+
+				if (char.animationsArray[curAnim] != null) {
+					char.playAnim(char.animationsArray[curAnim].anim, true);
+
+					if (ghostChar.visible)
+						ghostChar.playAnim(char.animationsArray[curAnim].anim, true);
+				}
+
+				syncCurrentAnimUI();
+				updatePointerPos();
+			};
+
+			ui.animListContainer.addComponent(btn);
+		}
+
+		updateAnimListSelection();
+		updateAnimListOffsetDisplay();
+	}
+
+	function updateAnimListOffsetDisplay()
+	{
+		if (ui == null || ui.animOffsetLabel == null || char == null) return;
+
+		if (char.animationsArray[curAnim] != null) {
+			var off = char.animationsArray[curAnim].offsets;
+			ui.animOffsetLabel.text = 'Offsets: X = ${off[0]}, Y = ${off[1]}';
+		} else {
+			ui.animOffsetLabel.text = "Offsets: X = 0, Y = 0";
+		}
+	}
+
+	function updateAnimListSelection()
+	{
+		if (ui == null || ui.animListContainer == null) return;
+
+		for (i in 0...ui.animListContainer.numComponents) {
+			var btn:Button = cast ui.animListContainer.getComponentAt(i);
+
+			btn.removeClass("anim-btn-selected");
+			btn.removeClass("primary");
+
+			if (i == curAnim)
+				btn.addClass("anim-btn-selected");
+		}
+	}
+
+	function reloadGhost()
 	{
 		var wasVisible = ghostChar.visible;
 		var alpha = ghostChar.alpha;
-		
+
 		ghostChar.animOffsets.clear();
 
-		if(ghostChar.isAnimateAtlas) {
+		if (ghostChar.isAnimateAtlas) {
 			#if flixel_animate
-			if(ghostChar.atlas != null) {
-				ghostChar.atlas.anim.destroyAnimations();
-			}
+			if (ghostChar.atlas != null) ghostChar.atlas.anim.destroyAnimations();
 			#end
 		} else {
 			ghostChar.animation.destroyAnimations();
 		}
-		
+
 		for (anim in char.animationsArray) {
-			var animAnim:String = anim.anim;
-			var animName:String = anim.name;
-			var animFps:Int = anim.fps;
-			var animLoop:Bool = anim.loop;
-			var animIndices:Array<Int> = anim.indices;
-			
-			if(ghostChar.isAnimateAtlas) {
+			var animAnim = anim.anim;
+			var animName = anim.name;
+			var animFps = anim.fps;
+			var animLoop = anim.loop;
+			var animIndices = anim.indices;
+
+			if (ghostChar.isAnimateAtlas) {
 				#if flixel_animate
-				if(animIndices != null && animIndices.length > 0) {
+				if (animIndices?.length > 0)
 					ghostChar.atlas.anim.addBySymbolIndices(animAnim, animName, animIndices, animFps, animLoop);
-				} else {
+				else
 					ghostChar.atlas.anim.addBySymbol(animAnim, animName, animFps, animLoop);
-				}
 				#end
 			} else {
-				if(animIndices != null && animIndices.length > 0) {
+				if (animIndices?.length > 0)
 					ghostChar.animation.addByIndices(animAnim, animName, animIndices, "", animFps, animLoop);
-				} else {
+				else
 					ghostChar.animation.addByPrefix(animAnim, animName, animFps, animLoop);
-				}
 			}
-			
+
 			ghostChar.addOffset(animAnim, anim.offsets[0], anim.offsets[1]);
 		}
-		
+
 		ghostChar.alpha = alpha;
 		ghostChar.visible = wasVisible;
 		ghostChar.antialiasing = char.antialiasing;
 		ghostChar.flipX = char.flipX;
-		
-		if(ghostChar.visible && !char.isAnimationNull()) {
+
+		if (ghostChar.visible && !char.isAnimationNull()) {
 			var currentAnim = char.getAnimationName();
-			if(ghostChar.hasAnimation(currentAnim)) {
-				ghostChar.playAnim(currentAnim, true);
-			}
+			if (ghostChar.hasAnimation(currentAnim)) ghostChar.playAnim(currentAnim, true);
 		}
 	}
 
-	function reloadCharacterDropDown() {
+	function reloadCharacterDropDown()
+	{
 		var charsLoaded:Map<String, Bool> = new Map();
 
 		#if sys
 		characterList = [];
-		var directories:Array<String> = [#if MODS_ALLOWED Mods.getModPath('data/characters/'), Mods.getModPath(Mods.currentModDirectory + '/data/characters/'), #end Paths.getPreloadPath('data/characters/')];
+		var directories:Array<String> = [
+			#if MODS_ALLOWED
+			Mods.getModPath('data/characters/'),
+			Mods.getModPath(Mods.currentModDirectory + '/data/characters/'),
+			#end
+			Paths.getPreloadPath('data/characters/')
+		];
+
 		#if MODS_ALLOWED
-		for(mod in Mods.getGlobalMods())
-			directories.push(Mods.getModPath(mod + '/data/characters/'));
+		for (mod in Mods.getGlobalMods()) directories.push(Mods.getModPath(mod + '/data/characters/'));
 		#end
-		for (i in 0...directories.length) {
-			var directory:String = directories[i];
-			if(FileSystem.exists(directory)) {
-				for (file in FileSystem.readDirectory(directory)) {
-					var path = haxe.io.Path.join([directory, file]);
+
+		for (dir in directories) {
+			if (FileSystem.exists(dir)) {
+				for (file in FileSystem.readDirectory(dir)) {
+					var path = haxe.io.Path.join([dir, file]);
 					if (!sys.FileSystem.isDirectory(path) && file.endsWith('.json')) {
 						try {
-							var charToCheck:String = file.substr(0, file.length - 5);
-							var rawJson:String = sys.io.File.getContent(path);
-							if(rawJson != null && rawJson.length > 0 && !charsLoaded.exists(charToCheck)) {
+							var charToCheck = file.substr(0, file.length - 5);
+							var rawJson = sys.io.File.getContent(path);
+							if (rawJson != null && rawJson.length > 0 && !charsLoaded.exists(charToCheck)) {
 								var json = haxe.Json.parse(rawJson);
-								if(json != null && Reflect.hasField(json, "animations") && Reflect.hasField(json, "image")) {
+								if (json != null && Reflect.hasField(json, "animations") && Reflect.hasField(json, "image")) {
 									characterList.push(charToCheck);
 									charsLoaded.set(charToCheck, true);
 								}
 							}
-						} catch(e) {
-							trace('Error parsing character file: $path');
-						}
+						} catch (e) {}
 					}
 				}
 			}
@@ -1185,29 +1365,16 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		characterList = CoolUtil.coolTextFile(Paths.txt('characterList'));
 		#end
 
-		if(characterList.length < 1) characterList.push('');
-		charDropDown.list = characterList;
-		charDropDown.selectedLabel = daAnim;
+		if (characterList.length < 1) characterList.push('');
+		ui.charDropDown.dataSource = ArrayDataSource.fromArray(characterList);
+		ui.charDropDown.text = daAnim;
 	}
 
-	function updatePresence() {
+	function updatePresence()
+	{
 		#if DISCORD_ALLOWED
 		DiscordClient.changePresence("Character Editor", "Character: " + daAnim, leHealthIcon.getCharacter());
 		#end
-	}
-
-	override function openSubState(SubState:flixel.FlxSubState) {
-		super.openSubState(SubState);
-		
-		UI_box.active = false;
-		UI_characterbox.active = false;
-		changeBGbutton.active = false;
-		
-		SubState.closeCallback = () -> {
-			UI_box.active = true;
-			UI_characterbox.active = true;
-			changeBGbutton.active = true;
-		};
 	}
 
 	override function update(elapsed:Float)
@@ -1216,13 +1383,12 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 
 		if (FlxG.state.subState != null) return;
 
-		final blockInput = PsychUIInputText.focusOn != null;
+		var blockInput = (FocusManager.instance.focus != null && Std.isOfType(FocusManager.instance.focus, TextField));
 
 		handleAutoSave(elapsed);
 		handleAnimationValidityCheck();
 
-		if(!blockInput)
-		{
+		if (!blockInput) {
 			ClientPrefs.toggleVolumeKeys();
 			handleHotkeys();
 			handleGridToggle();
@@ -1240,270 +1406,309 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		updateVisuals();
 	}
 
-	function handleAutoSave(elapsed:Float):Void
+	function handleAutoSave(elapsed:Float)
 	{
 		lastAutoSaveTime += elapsed;
-		if(lastAutoSaveTime >= AUTO_SAVE_INTERVAL) {
+		if (lastAutoSaveTime >= AUTO_SAVE_INTERVAL) {
 			lastAutoSaveTime = 0;
 			saveBackup();
 		}
 	}
 
-	function handleAnimationValidityCheck():Void
+	function handleAnimationValidityCheck()
 	{
-		if(char.animationsArray[curAnim] != null) {
+		if (char.animationsArray[curAnim] != null) {
 			var animName = char.animationsArray[curAnim].anim;
 			var validAnim = false;
-			
-			if(char.isAnimateAtlas) {
+
+			if (char.isAnimateAtlas) {
 				validAnim = char.atlas.anim.getByName(animName) != null;
 			} else {
 				var anim = char.animation.getByName(animName);
-				validAnim = anim?.frames?.length > 0;
+				validAnim = (anim != null && anim.frames.length > 0);
 			}
-			
+
 			errorAnimText.visible = !validAnim;
 		} else {
 			errorAnimText.visible = false;
 		}
 	}
 
-	function handleHotkeys():Void
+	function handleHotkeys()
 	{
-		if (FlxG.keys.justPressed.F1) {
-			openSubState(new CharacterEditorTipsSubstate());
-		}
+		if (FlxG.keys.justPressed.F1) openSubState(new CharacterEditorTipsSubstate());
 	}
 
-	function handleGridToggle():Void
+	function handleGridToggle()
 	{
-		if (FlxG.keys.justPressed.G) {
-    		gridVisible = !gridVisible;
-    		grid.visible = gridVisible;
-		}
+		if (FlxG.keys.justPressed.G) toggleGrid();
 	}
 
-	function handleCopyPasteUndoRedo():Void
+	function handleCopyPasteUndoRedo()
 	{
 		var changedOffset = false;
-		
-		if (FlxG.keys.pressed.CONTROL)
-		{
+
+		if (FlxG.keys.pressed.CONTROL) {
 			if (FlxG.keys.justPressed.C) {
 				copiedOffsets = char.animationsArray[curAnim].offsets.copy();
 				changedOffset = true;
 			}
-
 			if (FlxG.keys.justPressed.V) {
 				char.animationsArray[curAnim].offsets = copiedOffsets.copy();
 				char.addOffset(char.animationsArray[curAnim].anim, copiedOffsets[0], copiedOffsets[1]);
 				ghostChar.addOffset(char.animationsArray[curAnim].anim, copiedOffsets[0], copiedOffsets[1]);
 				char.playAnim(char.animationsArray[curAnim].anim, false);
-				genBoyOffsets();
 				saveHistoryStuff();
 				changedOffset = true;
 			}
+			if (FlxG.keys.justPressed.Z) undo();
+			if (FlxG.keys.justPressed.Y) redo();
 
-			if (FlxG.keys.justPressed.Z) {
-				undo();
+			if (FlxG.keys.justPressed.S) {
+				quickSaveCharacter();
+				return;
 			}
 
-			if (FlxG.keys.justPressed.Y) {
-				redo();
+			if (FlxG.keys.justPressed.R && !FlxG.keys.pressed.I) {
+				loadChar(!ui.playableCheck.selected);
+				reloadCharacterDropDown();
+				return;
+			}
+
+			if (FlxG.keys.pressed.I && FlxG.keys.justPressed.R) {
+				reloadCharacterImage();
+				return;
 			}
 		}
-		
-		if (changedOffset) {
-			saveOffsetChanges();
-		}
+
+		if (changedOffset) saveOffsetChanges();
 	}
 
-	function handleExit():Void
+	function handleExit()
 	{
 		if (FlxG.keys.justPressed.ESCAPE) {
-			if(goToPlayState) {
-				FlxG.switchState(() -> new PlayState());
-			} else {
+			if (goToPlayState) FlxG.switchState(() -> new PlayState());
+			else {
 				FlxG.switchState(() -> new game.states.editors.MasterEditorMenu());
 				FlxG.sound.playMusic(Paths.music('freakyMenu'));
 			}
 			FlxG.mouse.visible = false;
-			return;
 		}
 	}
 
-	function handleCameraZoom(elapsed:Float):Void
+	function handleCameraZoom(elapsed:Float)
 	{
-		var shiftMult:Float = 1;
-		var ctrlMult:Float = 1;
-		if(FlxG.keys.pressed.SHIFT) shiftMult = 4;
-		if(FlxG.keys.pressed.CONTROL) ctrlMult = 0.25;
+		var shiftMult = 1.0;
+		var ctrlMult = 1.0;
 
-		if(FlxG.keys.justPressed.R && !FlxG.keys.pressed.CONTROL) FlxG.camera.zoom = 1;
-		else if (FlxG.keys.pressed.E && FlxG.camera.zoom < 3) {
+		if (FlxG.keys.pressed.SHIFT) shiftMult = 4;
+		if (FlxG.keys.pressed.CONTROL) ctrlMult = 0.25;
+
+		if (FlxG.keys.justPressed.R && !FlxG.keys.pressed.CONTROL) {
+			FlxG.camera.zoom = 1;
+		} else if (FlxG.keys.pressed.E && FlxG.camera.zoom < 3) {
 			FlxG.camera.zoom += elapsed * FlxG.camera.zoom * shiftMult * ctrlMult;
-			if(FlxG.camera.zoom >= 3) FlxG.camera.zoom = 3;
-		}
-		else if (FlxG.keys.pressed.Q && FlxG.camera.zoom > 0.1) {
+			if (FlxG.camera.zoom >= 3) FlxG.camera.zoom = 3;
+		} else if (FlxG.keys.pressed.Q && FlxG.camera.zoom > 0.1) {
 			FlxG.camera.zoom -= elapsed * FlxG.camera.zoom * shiftMult * ctrlMult;
-			if(FlxG.camera.zoom <= 0.1) FlxG.camera.zoom = 0.1;
+			if (FlxG.camera.zoom <= 0.1) FlxG.camera.zoom = 0.1;
 		}
 	}
 
-	function handleCameraDrag():Void
+	function isMouseOverComponent(c:Component):Bool
 	{
-		if (!(FlxG.mouse.overlaps(UI_box.bg) || FlxG.mouse.overlaps(UI_characterbox.bg) || FlxG.mouse.overlaps(UI_box) || FlxG.mouse.overlaps(UI_characterbox)))
-		{
-			if (FlxG.mouse.pressed && FlxG.mouse.justPressed && PsychUIInputText.focusOn == null)
-			{
-				draggingCamera = true;
-				cameraScrollTarget.set(FlxG.camera.scroll.x, FlxG.camera.scroll.y);
-			}
-			
-			if (FlxG.mouse.justReleased)
-			{
+		if (c == null || c.hidden) return false;
+
+		var mx = FlxG.mouse.screenX;
+		var my = FlxG.mouse.screenY;
+
+		var left = c.screenLeft;
+		var top = c.screenTop;
+		var width = c.width;
+		var height = c.height;
+
+		return mx >= left && mx <= left + width
+			&& my >= top && my <= top + height;
+	}
+
+	var draggingUI:Bool = false;
+	function handleCameraDrag()
+	{
+		var mouseOverUI = false;
+
+		if (ui != null) {
+			mouseOverUI = isMouseOverComponent(ui.propWindow)
+				|| isMouseOverComponent(ui.editorWindow)
+				|| isMouseOverComponent(ui.animWindow)
+				|| isMouseOverComponent(ui.mainToolbar);
+		}
+
+		if (FlxG.mouse.justPressed) {
+			draggingUI = mouseOverUI;
+			if (draggingUI)
 				draggingCamera = false;
-			}
-			
-			if (draggingCamera && FlxG.mouse.pressed)
-			{
-				var deltaX = FlxG.mouse.deltaViewX * cameraDragSensitivity;
-				var deltaY = FlxG.mouse.deltaViewY * cameraDragSensitivity;
-				
-				cameraScrollTarget.x -= deltaX;
-				cameraScrollTarget.y -= deltaY;
+		}
 
-				FlxG.camera.scroll.x += (cameraScrollTarget.x - FlxG.camera.scroll.x) * cameraSmoothness;
-				FlxG.camera.scroll.y += (cameraScrollTarget.y - FlxG.camera.scroll.y) * cameraSmoothness;
-			}
+		if (FlxG.mouse.justReleased) {
+			draggingUI = false;
+			draggingCamera = false;
+		}
+
+		if (draggingUI || mouseOverUI || FocusManager.instance.focus != null)
+			return;
+
+		if (FlxG.mouse.justPressed) {
+			draggingCamera = true;
+			cameraScrollTarget.set(FlxG.camera.scroll.x, FlxG.camera.scroll.y);
+		}
+
+		if (draggingCamera && FlxG.mouse.pressed) {
+			var deltaX = FlxG.mouse.deltaViewX * cameraDragSensitivity;
+			var deltaY = FlxG.mouse.deltaViewY * cameraDragSensitivity;
+
+			cameraScrollTarget.x -= deltaX;
+			cameraScrollTarget.y -= deltaY;
+
+			FlxG.camera.scroll.x += (cameraScrollTarget.x - FlxG.camera.scroll.x) * cameraSmoothness;
+			FlxG.camera.scroll.y += (cameraScrollTarget.y - FlxG.camera.scroll.y) * cameraSmoothness;
 		}
 	}
 
-	function handleAnimationNavigation():Void
+	function handleAnimationNavigation()
 	{
-		if(char.animationsArray.length > 0) {
-			if (FlxG.keys.justPressed.W)
-			{
-				curAnim -= 1;
+		if (char.animationsArray.length > 0) {
+			var changed = false;
+
+			if (FlxG.keys.justPressed.W) {
+				curAnim--;
+				changed = true;
+			}
+			if (FlxG.keys.justPressed.S && !FlxG.keys.pressed.CONTROL) {
+				curAnim++;
+				changed = true;
 			}
 
-			if (FlxG.keys.justPressed.S)
-			{
-				curAnim += 1;
-			}
+			if (curAnim < 0) curAnim = char.animationsArray.length - 1;
+			if (curAnim >= char.animationsArray.length) curAnim = 0;
 
-			if (curAnim < 0)
-				curAnim = char.animationsArray.length - 1;
-
-			if (curAnim >= char.animationsArray.length)
-				curAnim = 0;
-
-			if (FlxG.keys.justPressed.S || FlxG.keys.justPressed.W || FlxG.keys.justPressed.SPACE)
-			{
+			if (changed || FlxG.keys.justPressed.SPACE) {
 				char.playAnim(char.animationsArray[curAnim].anim, true);
-				if (!ghostSingleAnimMode && ghostChar.visible)
+
+				if (!ghostSingleAnimMode && ghostChar.visible) {
 					ghostChar.playAnim(char.animationsArray[curAnim].anim, true);
-				genBoyOffsets();
+				}
+
+				syncCurrentAnimUI();
 			}
 		}
 	}
 
-	function handleOffsetReset():Void
+	function handleOffsetReset()
 	{
 		if (FlxG.keys.justPressed.T && char.animationsArray.length > 0) {
-			var originalOffsets = char.animationsArray[curAnim].offsets.copy();
-				
 			char.animationsArray[curAnim].offsets = [0, 0];
 			char.addOffset(char.animationsArray[curAnim].anim, 0, 0);
 			ghostChar.addOffset(char.animationsArray[curAnim].anim, 0, 0);
-				
 			char.playAnim(char.animationsArray[curAnim].anim, false);
 			ghostChar.playAnim(char.animationsArray[curAnim].anim, false);
-				
-			genBoyOffsets();
+			updateAnimListOffsetDisplay();
 			saveHistoryStuff();
-				
-			char.animationsArray[curAnim].offsets = originalOffsets;
 		}
 	}
 
-	function handleArrowKeyMovement(elapsed:Float):Void
+	function handleArrowKeyMovement(elapsed:Float)
 	{
-		if(char.animationsArray.length == 0) return;
-		
+		if (char.animationsArray.length == 0) return;
+
 		updateArrowKeyStates();
-		
-		var shiftMultBig:Float = FlxG.keys.pressed.SHIFT ? 10 : 1;
+
+		var shiftMultBig = FlxG.keys.pressed.SHIFT ? 10 : 1;
 		var offsetChanged = false;
-		
-		if(arrowKeysJustPressed.contains(true))
-		{
+
+		if (arrowKeysJustPressed.contains(true)) {
 			char.offset.x += ((arrowKeysJustPressed[0] ? 1 : 0) - (arrowKeysJustPressed[1] ? 1 : 0)) * shiftMultBig;
 			char.offset.y += ((arrowKeysJustPressed[2] ? 1 : 0) - (arrowKeysJustPressed[3] ? 1 : 0)) * shiftMultBig;
 			offsetChanged = true;
 		}
 
-		if(arrowKeysPressed.contains(true))
-		{
+		if (arrowKeysPressed.contains(true)) {
 			holdingArrowsTime += elapsed;
-			if(holdingArrowsTime > 0.6)
-			{
+			if (holdingArrowsTime > 0.6) {
 				holdingArrowsElapsed += elapsed;
-				while(holdingArrowsElapsed > (1/60))
-				{
+				while (holdingArrowsElapsed > (1 / 60)) {
 					char.offset.x += ((arrowKeysPressed[0] ? 1 : 0) - (arrowKeysPressed[1] ? 1 : 0)) * shiftMultBig;
 					char.offset.y += ((arrowKeysPressed[2] ? 1 : 0) - (arrowKeysPressed[3] ? 1 : 0)) * shiftMultBig;
-					holdingArrowsElapsed -= (1/60);
+					holdingArrowsElapsed -= (1 / 60);
 					offsetChanged = true;
 				}
 			}
+		} else {
+			holdingArrowsTime = 0;
 		}
-		else holdingArrowsTime = 0;
 
-		if (offsetChanged) {
-			saveOffsetChanges();
-		}
+		if (offsetChanged) saveOffsetChanges();
 	}
 
-	function updateArrowKeyStates():Void
+	function updateArrowKeyStates()
 	{
 		arrowKeysPressed[0] = FlxG.keys.pressed.LEFT;
 		arrowKeysPressed[1] = FlxG.keys.pressed.RIGHT;
 		arrowKeysPressed[2] = FlxG.keys.pressed.UP;
 		arrowKeysPressed[3] = FlxG.keys.pressed.DOWN;
-		
+
 		arrowKeysJustPressed[0] = FlxG.keys.justPressed.LEFT;
 		arrowKeysJustPressed[1] = FlxG.keys.justPressed.RIGHT;
 		arrowKeysJustPressed[2] = FlxG.keys.justPressed.UP;
 		arrowKeysJustPressed[3] = FlxG.keys.justPressed.DOWN;
 	}
 
-	function saveOffsetChanges():Void
+	function syncCurrentAnimUI()
+	{
+		if (char == null || char.animationsArray == null || char.animationsArray.length == 0) return;
+		if (curAnim < 0 || curAnim >= char.animationsArray.length) return;
+
+		final anim:AnimArray = char.animationsArray[curAnim];
+		if (anim == null) return;
+
+		ui.animDropDown.text = anim.anim ?? "";
+		ui.animNameInput.text = anim.anim ?? "";
+		ui.animPrefixInput.text = anim.name ?? "";
+		ui.animLoopCheck.selected = anim.loop;
+		ui.animFramerateStepper.value = anim.fps;
+
+		if (anim.indices?.length > 0)
+			ui.animIndicesInput.text = anim.indices.join(",");
+		else
+			ui.animIndicesInput.text = "";
+
+		updateAnimListSelection();
+		updateAnimListOffsetDisplay();
+	}
+
+	function saveOffsetChanges()
 	{
 		if (char.animationsArray[curAnim] != null) {
-			var animName = char.animationsArray[curAnim].anim;
+			final animName = char.animationsArray[curAnim].anim;
 			char.animOffsets.set(animName, [char.offset.x, char.offset.y]);
-			
+
 			for (anim in char.animationsArray) {
 				if (anim.anim == animName) {
 					anim.offsets = [Std.int(char.offset.x), Std.int(char.offset.y)];
 					break;
 				}
 			}
-			
-			if (ghostChar.visible && !ghostChar.isAnimationNull() && 
-				ghostChar.getAnimationName() == animName) 
-			{
+
+			if (ghostChar.visible && !ghostChar.isAnimationNull() && ghostChar.getAnimationName() == animName) {
 				ghostChar.animOffsets.set(animName, [char.offset.x, char.offset.y]);
 				ghostChar.offset.set(char.offset.x, char.offset.y);
 			}
-			
-			genBoyOffsets();
+
 			saveHistoryStuff();
+			updateAnimListOffsetDisplay();
 		}
 	}
 
-	function updateVisuals():Void
+	function updateVisuals()
 	{
 		ghostChar.setPosition(char.x, char.y);
 	}
@@ -1511,93 +1716,111 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 	var _file:FileReference;
 	function onSaveComplete(_):Void
 	{
-		_file.removeEventListener(Event.COMPLETE, onSaveComplete);
-		_file.removeEventListener(Event.CANCEL, onSaveCancel);
-		_file.removeEventListener(IOErrorEvent.IO_ERROR, onSaveError);
 		_file = null;
+		HaxeUIUtil.showNotification("Character Editor", "File saved successfully", Success);
 	}
-
 	function onSaveCancel(_):Void
 	{
-		_file.removeEventListener(Event.COMPLETE, onSaveComplete);
-		_file.removeEventListener(Event.CANCEL, onSaveCancel);
-		_file.removeEventListener(IOErrorEvent.IO_ERROR, onSaveError);
 		_file = null;
+		HaxeUIUtil.showNotification("Character Editor", "Save cancelled");
 	}
 
 	function onSaveError(_):Void
 	{
-		_file.removeEventListener(Event.COMPLETE, onSaveComplete);
-		_file.removeEventListener(Event.CANCEL, onSaveCancel);
-		_file.removeEventListener(IOErrorEvent.IO_ERROR, onSaveError);
 		_file = null;
+		HaxeUIUtil.showNotification("Character Editor", "Save failed", Error);
 	}
 
-	function saveBackup() {
+	function saveBackup()
+	{
 		try {
 			#if sys
-			var backupDir = 'backups/characters/';
-			if (!sys.FileSystem.exists(backupDir))
-				sys.FileSystem.createDirectory(backupDir);
-			#end
+			final backupDir = 'backups/characters/';
+			if (!sys.FileSystem.exists(backupDir)) sys.FileSystem.createDirectory(backupDir);
 
-			var json:CharacterFile = {
-				"animations": char.animationsArray,
-				"image": char.imageFile,
-				"scale": char.jsonScale,
-				"sing_duration": char.singDuration,
-				"healthicon": char.healthIcon,
-				"position": char.positionArray,
-				"camera_position": char.cameraPosition,
-				"flip_x": char.originalFlipX,
-				"no_antialiasing": char.noAntialiasing,
-				"vocals_file": char.vocalsFile,
-				"healthbar_colors": char.healthColorArray
-			};
+			final path = backupDir + daAnim + '_backup.json';
+			final data = Json.stringify(buildCharacterJson(), "\t");
+			sys.io.File.saveContent(path, data);
 
-			var data:String = Json.stringify(json, "\t");
-			#if sys
-			sys.io.File.saveContent(backupDir + daAnim + '_backup.json', data);
+			HaxeUIUtil.showNotification("Character Editor", 'Backup saved:\n${Paths.getRelativePath(path)}', Success);
 			#end
-		} catch(e) {
-			trace('Failed to create backup: ' + e.message);
+		} catch (e) {
+			HaxeUIUtil.showNotification("Character Editor", 'Backup save failed!\nError: $e', Error);
 		}
 	}
 
-	function saveCharacter() {
-		if(_file != null) return;
+	function buildCharacterJson():CharacterFile
+	{
+		return {
+			"animations": char.animationsArray,
+			"image": char.imageFile,
+			"scale": char.jsonScale,
+			"sing_duration": char.singDuration,
+			"healthicon": char.healthIcon,
+			"position": char.positionArray,
+			"camera_position": char.cameraPosition,
+			"flip_x": char.originalFlipX,
+			"no_antialiasing": char.noAntialiasing,
+			"vocals_file": char.vocalsFile,
+			"healthbar_colors": char.healthColorArray
+		};
+	}
+
+	function saveCharacter()
+	{
+		if (_file != null) return;
 
 		try {
-			var json:CharacterFile = {
-				"animations": char.animationsArray,
-				"image": char.imageFile,
-				"scale": char.jsonScale,
-				"sing_duration": char.singDuration,
-				"healthicon": char.healthIcon,
-				"position": char.positionArray,
-				"camera_position": char.cameraPosition,
-				"flip_x": char.originalFlipX,
-				"no_antialiasing": char.noAntialiasing,
-				"vocals_file": char.vocalsFile,
-				"healthbar_colors": char.healthColorArray
-			};
-
-			var data:String = Json.stringify(json, "\t");
-
-			if (data.length > 0)
-			{
+			var data = Json.stringify(buildCharacterJson(), "\t");
+			if (data.length > 0) {
 				_file = new FileReference();
 				_file.addEventListener(#if desktop Event.SELECT #else Event.COMPLETE #end, onSaveComplete);
 				_file.addEventListener(Event.CANCEL, onSaveCancel);
 				_file.addEventListener(IOErrorEvent.IO_ERROR, onSaveError);
 				_file.save(data, daAnim + ".json");
 			}
-		} catch(e) {
-			trace('Failed to save character: ' + e.message);
+		} catch (e) {}
+	}
+
+	function quickSaveCharacter()
+	{
+		try {
+			#if sys
+			var path:String = currentSavePath;
+
+			if (path == null || path.length == 0)
+			{
+				final resolved:String = Paths.json(daAnim);
+
+				if (sys.FileSystem.exists(resolved))
+					path = resolved;
+				else
+				{
+					if (Mods.currentModDirectory?.length > 0)
+						path = Mods.getModPath(Mods.currentModDirectory + '/data/characters/' + daAnim + '.json');
+					else
+						path = Paths.getPreloadPath('data/characters/' + daAnim + '.json');
+				}
+
+				currentSavePath = path;
+			}
+
+			final dir = haxe.io.Path.directory(path);
+			if (!sys.FileSystem.exists(dir))
+				sys.FileSystem.createDirectory(dir);
+
+			final data = Json.stringify(buildCharacterJson(), "\t");
+			sys.io.File.saveContent(path, data);
+
+			HaxeUIUtil.showNotification("Character Editor", 'Saved successfully:\n${Paths.getRelativePath(path)}', Success);
+			#end
+		} catch (e) {
+			HaxeUIUtil.showNotification("Character Editor", 'Quick save failed!\nError: $e', Error);
 		}
 	}
 
-	function saveHistoryStuff() {
+	function saveHistoryStuff()
+	{
 		var state:HistoryStuff = {
 			animations: [for (anim in char.animationsArray) {
 				anim: anim.anim,
@@ -1611,36 +1834,39 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			scale: char.jsonScale,
 			cameraPosition: char.cameraPosition.copy(),
 			healthColor: char.healthColorArray.copy(),
-			curAnim: curAnim
+			curAnim: curAnim,
+			imageFile: char.imageFile,
+			healthIcon: char.healthIcon,
+			vocalsFile: char.vocalsFile,
+			noAntialiasing: char.noAntialiasing,
+			isPlayer: char.isPlayer,
+			originalFlipX: char.originalFlipX
 		};
-		
+
 		undos.push(state);
 		if (undos.length > maxHistorySteps) undos.shift();
-		
 		redos = [];
 	}
 
-	function undo() {
-		if (undos.length == 0) return;
-		
-		redos.push(getCurrentState());
-		restoreState(undos.pop());
-		
-		reloadCharacterOptions();
-		genBoyOffsets();
+	function undo()
+	{
+		if (undos.length <= 1) return;
+
+		redos.push(undos.pop());
+		restoreState(undos[undos.length - 1]);
 	}
 
-	function redo() {
+	function redo()
+	{
 		if (redos.length == 0) return;
-		
-		undos.push(getCurrentState());
-		restoreState(redos.pop());
-		
-		reloadCharacterOptions();
-		genBoyOffsets();
+
+		var state = redos.pop();
+		undos.push(state);
+		restoreState(state);
 	}
 
-	function getCurrentState():HistoryStuff {
+	function getCurrentState():HistoryStuff
+	{
 		return {
 			animations: [for (anim in char.animationsArray) {
 				anim: anim.anim,
@@ -1654,223 +1880,286 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			scale: char.jsonScale,
 			cameraPosition: char.cameraPosition.copy(),
 			healthColor: char.healthColorArray.copy(),
-			curAnim: curAnim
+			curAnim: curAnim,
+			imageFile: char.imageFile,
+			healthIcon: char.healthIcon,
+			vocalsFile: char.vocalsFile,
+			noAntialiasing: char.noAntialiasing,
+			isPlayer: char.isPlayer,
+			originalFlipX: char.originalFlipX
 		};
 	}
 
-	function restoreState(state:HistoryStuff) {
-		char.animationsArray = [for (anim in state.animations) anim];
-		ghostChar.animationsArray = [for (anim in state.animations) anim];
+	function restoreState(state:HistoryStuff)
+	{
+		char.imageFile = state.imageFile;
+		char.healthIcon = state.healthIcon;
+		char.vocalsFile = state.vocalsFile;
+		char.noAntialiasing = state.noAntialiasing;
+		char.isPlayer = state.isPlayer;
+		char.originalFlipX = state.originalFlipX;
+
+		char.animationsArray = [for (anim in state.animations) {
+			anim: anim.anim,
+			name: anim.name,
+			fps: anim.fps,
+			loop: anim.loop,
+			indices: anim.indices.copy(),
+			offsets: anim.offsets.copy()
+		}];
+
+		ghostChar.animationsArray = [for (anim in state.animations) {
+			anim: anim.anim,
+			name: anim.name,
+			fps: anim.fps,
+			loop: anim.loop,
+			indices: anim.indices.copy(),
+			offsets: anim.offsets.copy()
+		}];
+
+		char.animOffsets.clear();
+		ghostChar.animOffsets.clear();
 
 		for (anim in char.animationsArray) {
 			char.addOffset(anim.anim, anim.offsets[0], anim.offsets[1]);
 			ghostChar.addOffset(anim.anim, anim.offsets[0], anim.offsets[1]);
 		}
-		
+
 		char.positionArray = state.position.copy();
 		char.cameraPosition = state.cameraPosition.copy();
 		char.jsonScale = state.scale;
 		char.healthColorArray = state.healthColor.copy();
+		curAnim = state.curAnim;
+
+		if (curAnim < 0) curAnim = 0;
+		if (curAnim >= char.animationsArray.length) curAnim = char.animationsArray.length - 1;
+
+		reloadCharacterImage();
+
+		char.antialiasing = !char.noAntialiasing && ClientPrefs.globalAntialiasing;
+		ghostChar.antialiasing = char.antialiasing;
+
+		char.flipX = char.originalFlipX;
+		if (char.isPlayer) char.flipX = !char.flipX;
+		ghostChar.flipX = char.flipX;
+
+		reloadAnimationDropDown();
+		refreshAnimListPanel();
+		reloadCharacterOptions();
+		reloadGhost();
+		loadBG();
+
+		char.setPosition(char.positionArray[0] + OFFSET_X + 100, char.positionArray[1]);
+		ghostChar.setPosition(char.x, char.y);
+		updatePointerPos();
+		updateAnimListOffsetDisplay();
 
 		if (char.animationsArray.length > 0) {
 			char.playAnim(char.animationsArray[curAnim].anim, true);
 			if (ghostChar.visible) ghostChar.playAnim(char.animationsArray[curAnim].anim, true);
 		}
-
-		curAnim = state.curAnim;
-		if (curAnim <= 0) curAnim = 0;
-		if (curAnim >= char.animationsArray.length) curAnim = char.animationsArray.length - 1;
-		
-		reloadAnimationDropDown();
-		reloadGhost();
-		reloadCharacterOptions();
-		reloadCharacterImage();
-		updatePointerPos();
-		genBoyOffsets();
-
-		char.setPosition(char.positionArray[0] + OFFSET_X + 100, char.positionArray[1]);
-    	ghostChar.setPosition(char.x, char.y);
 	}
 
-	override function destroy() {
-		cameraScrollTarget.put();
+	public function copyOffsets()
+	{
+		if (char.animationsArray.length > 0) {
+			copiedOffsets = char.animationsArray[curAnim].offsets.copy();
+		}
+	}
+
+	public function pasteOffsets()
+	{
+		if (char.animationsArray.length > 0) {
+			char.animationsArray[curAnim].offsets = copiedOffsets.copy();
+			char.addOffset(char.animationsArray[curAnim].anim, copiedOffsets[0], copiedOffsets[1]);
+			ghostChar.addOffset(char.animationsArray[curAnim].anim, copiedOffsets[0], copiedOffsets[1]);
+			char.playAnim(char.animationsArray[curAnim].anim, false);
+			saveHistoryStuff();
+		}
+	}
+
+	public function toggleGrid()
+	{
+		gridVisible = !gridVisible;
+		grid.visible = gridVisible;
+
+		final gridBtn:MenuCheckBox = ui.mainToolbar.findComponent("toggleGridBtn", MenuCheckBox, true);
+		if (gridBtn != null) {
+			syncingGridMenu = true;
+			gridBtn.selected = gridVisible;
+			syncingGridMenu = false;
+		}
+	}
+
+	public function toggleFlipX()
+	{
+		char.originalFlipX = !char.originalFlipX;
+		char.flipX = char.originalFlipX;
+		if (char.isPlayer) char.flipX = !char.flipX;
+		ghostChar.flipX = char.flipX;
+		saveHistoryStuff();
+	}
+
+	override function destroy()
+	{
+		if (cameraScrollTarget != null) {
+			cameraScrollTarget.put();
+			cameraScrollTarget = null;
+		}
+
+		saveWindowPositions();
+
 		super.destroy();
 	}
+
+	static inline var TemplateCharacter:String = '{
+		"animations": [
+			{"loop": false,"offsets": [0,0],"fps": 24,"anim": "idle","indices": [],"name": "Dad idle dance"},
+			{"offsets": [0,0],"indices": [],"fps": 24,"anim": "singLEFT","loop": false,"name": "Dad Sing Note LEFT"},
+			{"offsets": [0,0],"indices": [],"fps": 24,"anim": "singDOWN","loop": false,"name": "Dad Sing Note DOWN"},
+			{"offsets": [0,0],"indices": [],"fps": 24,"anim": "singUP","loop": false,"name": "Dad Sing Note UP"},
+			{"offsets": [0,0],"indices": [],"fps": 24,"anim": "singRIGHT","loop": false,"name": "Dad Sing Note RIGHT"}
+		],
+		"no_antialiasing": false,"image": "characters/daddy/DADDY_DEAREST","position": [0,0],"healthicon": "face","flip_x": false,
+		"healthbar_colors": [161,161,161],"camera_position": [0,0],"sing_duration": 6.1,"vocals_file": null,"scale": 1
+	}';
 }
 
-class ColorPickerSubstate extends MusicBeatSubstate
+class ColorPickerSubstateHaxeUI extends haxe.ui.backend.flixel.UISubState
 {
-	var colorPicker:PsychUIColorPicker;
+	var colorPicker:ColorPicker;
 	var onColorSelected:FlxColor->Void;
 	var getIconColorCallback:Void->FlxColor;
-	
+
 	var bg:FlxSprite;
-	var panel:FlxSprite;
-	var okButton:PsychUIButton;
-	var cancelButton:PsychUIButton;
-	var getIconColorButton:PsychUIButton;
-	
-	public function new(defaultColor:FlxColor, onColorSelected:FlxColor->Void, ?getIconColorCallback:Void->FlxColor, showAlpha:Bool = false, title:String = "Select Color")
+	var panel:Panel;
+	var okButton:Button;
+	var cancelButton:Button;
+	var getIconColorButton:Button;
+
+	public function new(defaultColor:FlxColor, onColorSelected:FlxColor->Void, ?getIconColorCallback:Void->FlxColor)
 	{
 		super();
-		
 		this.onColorSelected = onColorSelected;
 		this.getIconColorCallback = getIconColorCallback;
-		
+
 		bg = new FlxSprite().makeGraphic(FlxG.width, FlxG.height, FlxColor.BLACK);
 		bg.alpha = 0.6;
 		add(bg);
-		
-		var panelWidth = 400;
-		var panelHeight = showAlpha ? 380 : 350;
-		panel = new FlxSprite();
-		panel.makeGraphic(panelWidth, panelHeight, FlxColor.BLACK);
-		panel.scrollFactor.set();
-		panel.screenCenter();
-		panel.alpha = 0.85;
-		add(panel);
-		
-		var titleText = new FlxText(panel.x, panel.y + 10, panelWidth, title, 16);
-		titleText.setFormat(Paths.font("vcr.ttf"), 16, FlxColor.WHITE, CENTER);
-		titleText.setBorderStyle(OUTLINE, FlxColor.BLACK, 2);
-		titleText.scrollFactor.set();
-		add(titleText);
-		
-		colorPicker = new PsychUIColorPicker(
-			panel.x + (panelWidth - 250) / 2,
-			panel.y + 40,
-			defaultColor,
-			null,
-			showAlpha,
-			""
-		);
-		colorPicker.broadcastPickerEvent = false;
-		colorPicker.scrollFactor.set();
-		add(colorPicker);
-		
-		var buttonY = panel.y + panelHeight - 40;
-		var buttonSpacing = 10;
-		
-		okButton = new PsychUIButton(0, buttonY, "OK", () -> {
+
+		root.percentWidth = 100;
+		root.percentHeight = 100;
+		root.layout = new AbsoluteLayout();
+
+		panel = new Panel();
+		panel.width = 400;
+		panel.height = 360;
+		panel.left = Std.int((FlxG.width - panel.width) / 2);
+		panel.top = Std.int((FlxG.height - panel.height) / 2);
+		panel.text = "Select Color";
+		root.addComponent(panel);
+
+		var content = new VBox();
+		content.percentWidth = 100;
+		content.percentHeight = 100;
+		content.styleNames = "padding: 12px; spacing: 8px;";
+		panel.addComponent(content);
+
+		colorPicker = new ColorPicker();
+		colorPicker.width = 250;
+		colorPicker.height = 250;
+		colorPicker.value = Std.int(defaultColor);
+		content.addComponent(colorPicker);
+
+		var buttonsRow = new HBox();
+		buttonsRow.percentWidth = 100;
+		buttonsRow.styleNames = "horizontal-align: center; spacing: 10px;";
+		content.addComponent(buttonsRow);
+
+		okButton = new Button();
+		okButton.text = "OK";
+		okButton.width = 80;
+		okButton.onClick = (_) -> {
 			if (onColorSelected != null) {
-				onColorSelected(colorPicker.selectedColor);
+				var col = FlxColor.fromRGB(
+					(colorPicker.value >> 16) & 0xFF,
+					(colorPicker.value >> 8) & 0xFF,
+					colorPicker.value & 0xFF
+				);
+				onColorSelected(col);
 			}
 			close();
-		}, 80);
-		okButton.scrollFactor.set();
-		okButton.normalStyle.bgColor = FlxColor.fromRGB(0, 180, 0);
-		okButton.normalStyle.textColor = FlxColor.WHITE;
-		
-		cancelButton = new PsychUIButton(0, buttonY, "Cancel", () -> close(), 80);
-		cancelButton.scrollFactor.set();
-		cancelButton.normalStyle.bgColor = FlxColor.fromRGB(180, 0, 0);
-		cancelButton.normalStyle.textColor = FlxColor.WHITE;
-		
+		};
+		buttonsRow.addComponent(okButton);
+
 		if (getIconColorCallback != null) {
-			getIconColorButton = new PsychUIButton(0, buttonY, "Get Icon Color", () -> {
+			getIconColorButton = new Button();
+			getIconColorButton.text = "Get Icon Color";
+			getIconColorButton.width = 120;
+			getIconColorButton.onClick = (_) -> {
 				var iconColor = getIconColorCallback();
-				colorPicker.setColor(iconColor);
-			}, 120);
-			getIconColorButton.scrollFactor.set();
-			getIconColorButton.normalStyle.bgColor = FlxColor.fromRGB(0, 120, 180);
-			getIconColorButton.normalStyle.textColor = FlxColor.WHITE;
-			
-			var totalWidth = okButton.width + cancelButton.width + getIconColorButton.width + buttonSpacing * 2;
-			var startX = panel.x + (panelWidth - totalWidth) / 2;
-			
-			okButton.x = startX;
-			getIconColorButton.x = okButton.x + okButton.width + buttonSpacing;
-			cancelButton.x = getIconColorButton.x + getIconColorButton.width + buttonSpacing;
-			
-			add(getIconColorButton);
-		} else {
-			var totalWidth = okButton.width + cancelButton.width + buttonSpacing;
-			var startX = panel.x + (panelWidth - totalWidth) / 2;
-			
-			okButton.x = startX;
-			cancelButton.x = okButton.x + okButton.width + buttonSpacing;
+				colorPicker.value = Std.int(iconColor);
+			};
+			buttonsRow.addComponent(getIconColorButton);
 		}
-		
-		add(okButton);
-		add(cancelButton);
-		
-		camera = FlxG.cameras.list[FlxG.cameras.list.length - 1];
+
+		cancelButton = new Button();
+		cancelButton.text = "Cancel";
+		cancelButton.width = 80;
+		cancelButton.onClick = (_) -> {
+			close();
+		};
+		buttonsRow.addComponent(cancelButton);
 	}
-	
+
 	override function update(elapsed:Float)
 	{
 		super.update(elapsed);
-
-		if(PsychUIInputText.focusOn != null)
-		{
-			ClientPrefs.toggleVolumeKeys(false);
-			return;
-		}
-		ClientPrefs.toggleVolumeKeys(true);
-		
-		if (FlxG.keys.justPressed.ESCAPE || controls.BACK)
+		if (FlxG.keys.justPressed.ESCAPE || controls.BACK) {
 			close();
+		}
+	}
+
+	override function destroy()
+	{
+		panel = null;
+		colorPicker = null;
+		okButton = null;
+		cancelButton = null;
+		getIconColorButton = null;
+
+		super.destroy();
 	}
 }
 
 class CharacterEditorTipsSubstate extends MusicBeatSubstate
 {
-	public function new()
-    {
-        super();
-
-		var bg:FlxSprite = new FlxSprite().makeGraphic(FlxG.width, FlxG.height, FlxColor.BLACK);
+	public function new() {
+		super();
+		var bg = new FlxSprite().makeGraphic(FlxG.width, FlxG.height, FlxColor.BLACK);
 		bg.alpha = 0.8;
-		bg.screenCenter();
-		bg.scrollFactor.set();
 		add(bg);
-
-		var text:String = 
-			"E/Q - Zoom In/Out\n" +
-			"R - Reset Zoom\n" +
-			"Drag Mouse - Move Camera\n" +
-			"W/S - Previous/Next Animation\n" +
-			"Space - Play Animation\n" +
-			"Arrow Keys - Move Offset\n" +
-			"T - Reset Current Offset\n" +
-			"Shift + Arrows - Move 10x Faster\n" +
-			"G - Toggle Grid\n" +
-			"CTRL + C - Copy Offsets\n" +
-			"CTRL + V - Paste Offsets\n" +
-			"CTRL + Z - Undo\n" +
-			"CTRL + Y - Redo";
-
-		var tipTextArray:Array<String> = text.split('\n');
-		var grpTexts:FlxTypedGroup<FlxText> = new FlxTypedGroup<FlxText>();
+		var text = "E/Q - Zoom In/Out\nR - Reset Zoom\nDrag Mouse - Move Camera\nW/S - Previous/Next Animation\nSpace - Play Animation\nArrow Keys - Move Offset\nT - Reset Current Offset\nShift + Arrows - Move 10x Faster\nG - Toggle Grid\nCTRL + C - Copy Offsets\nCTRL + V - Paste Offsets\nCTRL + Z - Undo\nCTRL + Y - Redo";
+		var tipTextArray = text.split('\n');
+		var grpTexts = new FlxTypedGroup<FlxText>();
 		add(grpTexts);
-
-		final lineHeight:Int = 25;
-		final totalHeight:Int = tipTextArray.length * lineHeight;
-		final startY:Float = (FlxG.height - totalHeight) / 2;
-
+		var lineHeight = 25;
+		var totalHeight = tipTextArray.length * lineHeight;
+		var startY = (FlxG.height - totalHeight) / 2;
 		for (i in 0...tipTextArray.length) {
-			var text:FlxText = new FlxText(0, startY + (i * lineHeight), FlxG.width, tipTextArray[i], 18);
-			text.setFormat(null, 18, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
-			text.screenCenter(X);
-			text.scrollFactor.set();
-			grpTexts.add(text);
+			var t = new FlxText(0, startY + (i * lineHeight), FlxG.width, tipTextArray[i], 18);
+			t.setFormat(null, 18, FlxColor.WHITE, CENTER, OUTLINE, FlxColor.BLACK);
+			t.screenCenter(X);
+			grpTexts.add(t);
 		}
-		
-		var closeText:FlxText = new FlxText(0, FlxG.height - (lineHeight - 5), FlxG.width, "Press ESC to close tips", 16);
-		closeText.setFormat(null, 16, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+		var closeText = new FlxText(0, FlxG.height - (lineHeight - 5), FlxG.width, "Press ESC to close tips", 16);
+		closeText.setFormat(null, 16, FlxColor.WHITE, CENTER, OUTLINE, FlxColor.BLACK);
 		closeText.screenCenter(X);
-		closeText.scrollFactor.set();
 		add(closeText);
-
 		camera = FlxG.cameras.list[FlxG.cameras.list.length - 1];
 	}
-
-	override function update(elapsed:Float)
-	{
+	override function update(elapsed:Float) {
 		super.update(elapsed);
-		
-		if (FlxG.keys.justPressed.ESCAPE) {
-            close();
-        }
+		if (FlxG.keys.justPressed.ESCAPE) close();
 	}
 }

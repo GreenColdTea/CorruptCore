@@ -10,7 +10,7 @@ import haxe.io.Path;
 
 using StringTools;
 
-class MacroUtil {
+final class MacroUtil {
     public static var defines(get, null):Map<String, Dynamic>;
 	private static inline function get_defines() return __getDefines();
 	private static macro function __getDefines() {

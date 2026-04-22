@@ -1,6 +1,6 @@
 package game.backend.utils;
 
-class MemoryUtil {
+final class MemoryUtil {
     public static function enableGC(enable:Bool = true):Void {
         #if cpp
         cpp.NativeGc.enable(enable);
@@ -125,7 +125,7 @@ class MemoryUtil {
 #include <windows.h>
 #include <psapi.h>
 ')
-class WindowsMemoryAPI {
+final class WindowsMemoryAPI {
     public static function getProcessMemoryUsage(moreAccurate:Bool = true):Float {
         #if cpp
         var result:Float = -1.0;

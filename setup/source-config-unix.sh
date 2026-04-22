@@ -13,6 +13,8 @@ haxelib git lime https://github.com/GreenColdTea/lime-fc.git
 haxelib git openfl https://github.com/GreenColdTea/openfl.git
 haxelib install format --quiet
 haxelib install hxp --quiet
+haxelib install svg
+haxelib install haxeui-flixel
 haxelib install flixel-waveform --quiet --skip-dependencies
 haxelib run lime setup flixel
 haxelib set flixel-tools 1.5.1
@@ -21,6 +23,7 @@ haxelib set hxdiscord_rpc 1.3.0
 haxelib install hxflac
 haxelib git away3d https://github.com/openfl/away3d.git
 haxelib git nape-haxe4 https://github.com/HaxeFlixel/nape-haxe4.git
+haxelib git haxeui-core https://github.com/FunkinCrew/haxeui-core.git
 haxelib git hxcpp https://github.com/GreenColdTea/hxcpp.git
 haxelib git hxopus https://github.com/FNF-CC-ENGINE/hxopus.git
 haxelib git hxvlc https://github.com/MAJigsaw77/hxvlc.git --quiet --skip-dependencies
@@ -34,6 +37,7 @@ haxelib git hxluajit https://github.com/MAJigsaw77/hxluajit.git
 haxelib git hxluajit-wrapper https://github.com/MAJigsaw77/hxluajit-wrapper.git --skip-dependencies
 haxelib git thx.semver https://github.com/fponticelli/thx.semver.git
 haxelib list
+
 echo
 read -n 1 -s -r -p "Done! Press any key to close the app!"
 echo

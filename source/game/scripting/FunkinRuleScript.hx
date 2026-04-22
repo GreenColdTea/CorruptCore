@@ -22,7 +22,7 @@ import rulescript.types.Abstracts;
 
 import hscript.Expr;
 
-import game.scripting.HScriptParser as HxParser;
+import game.scripting.RuleScriptParserEx as HxParser;
 
 import flixel.group.FlxGroup.FlxTypedGroup;
 import flixel.group.FlxGroup;
@@ -171,7 +171,7 @@ class FunkinRuleScript {
                 return null;
             }
 
-            var filePath = 'source/${path.name.replace('.', '/')}.hx';
+            var filePath = 'source/${path.name.replace('.', '/')}.hxc';
 
             if (!Paths.fileExists(filePath, TEXT)) {
                 //trace('Module not found: $filePath');

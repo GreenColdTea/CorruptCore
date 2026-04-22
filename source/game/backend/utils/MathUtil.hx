@@ -1,6 +1,6 @@
 package game.backend.utils;
 
-class MathUtil
+final class MathUtil
 {
     inline public static function quantize(f:Float, snap:Float){
 		// changed so this actually works lol

@@ -52,7 +52,7 @@ import game.objects.Character;
 import game.objects.StrumNote;
 
 #if HSCRIPT_ALLOWED
-import game.scripting.HScriptParser as HxParser;
+import game.scripting.RuleScriptParserEx as HxParser;
 import game.scripting.RuleScriptInterpEx as Interp;
 #end
 
