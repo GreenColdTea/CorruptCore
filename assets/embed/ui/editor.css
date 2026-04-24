@@ -21,14 +21,6 @@ menubar {
     border-bottom: 1px solid #555b68;
 }
 
-menu {
-    background-color: #3b3d41;
-    color: #f1f4fb;
-    border-radius: 4px;
-    border: 1px solid #58617a;
-    padding: 2px 10px;
-}
-
 menu:hover {
     background-color: #46506a;
 }

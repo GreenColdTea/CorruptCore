@@ -30,6 +30,7 @@ import haxe.ui.containers.Panel;
 import haxe.ui.containers.ScrollView;
 import haxe.ui.containers.TabView;
 import haxe.ui.containers.VBox;
+import haxe.ui.containers.dialogs.Dialog.DialogButton;
 import haxe.ui.containers.menus.MenuBar;
 import haxe.ui.containers.menus.MenuCheckBox;
 import haxe.ui.containers.menus.MenuItem;
@@ -473,6 +474,8 @@ class CharacterEditorState extends haxe.ui.backend.flixel.UIState
 	var cameraDragSensitivity:Float = 0.5;
 	var cameraScrollTarget:FlxPoint = FlxPoint.get(0, 0);
 	var lastAutoSaveTime:Float = 0;
+	var hasUnsavedChanges:Bool = false;
+
 	var ghostAnim:String = '';
 	var ghostAlpha:Float = 0.6;
 	var ghostSingleAnimMode:Bool = false;
@@ -569,7 +572,7 @@ class CharacterEditorState extends haxe.ui.backend.flixel.UIState
 
 		reloadCharacterDropDown();
 		reloadCharacterOptions();
-		refreshAnimListPanel();
+		refreshAnimationList();
 	}
 
 	function loadWindowPositions()
@@ -927,7 +930,7 @@ class CharacterEditorState extends haxe.ui.backend.flixel.UIState
 			}
 
 			curAnim = char.animationsArray.length - 1;
-			reloadAnimationDropDown();
+			refreshAnimationList();
 			char.playAnim(ui.animNameInput.text, true);
 			if (ghostChar.visible) ghostChar.playAnim(ui.animNameInput.text, true);
 			saveHistoryStuff();
@@ -950,7 +953,7 @@ class CharacterEditorState extends haxe.ui.backend.flixel.UIState
 						if (ghostChar.visible) ghostChar.playAnim(char.animationsArray[0].anim, true);
 					}
 
-					reloadAnimationDropDown();
+					refreshAnimationList();
 					updateAnimListOffsetDisplay();
 					saveHistoryStuff();
 					break;
@@ -1068,7 +1071,7 @@ class CharacterEditorState extends haxe.ui.backend.flixel.UIState
 			char.playAnim(char.getAnimationName(), true);
 		}
 
-		refreshAnimListPanel();
+		refreshAnimationList();
 	}
 
 	function loadChar(isDad:Bool, blahBlahBlah:Bool = true)
@@ -1107,14 +1110,16 @@ class CharacterEditorState extends haxe.ui.backend.flixel.UIState
 		curAnim = 0;
 
 		if (blahBlahBlah) {
-			saveHistoryStuff();
+			saveHistoryStuff(false);
 			updateAnimListOffsetDisplay();
-			refreshAnimListPanel();
+			refreshAnimationList();
 		}
 
 		loadBG();
 		reloadCharacterOptions();
 		updatePointerPos();
+
+		hasUnsavedChanges = false;
 	}
 
 	function updatePointerPos(?snap:Bool = true)
@@ -1181,60 +1186,51 @@ class CharacterEditorState extends haxe.ui.backend.flixel.UIState
 		if (healthBarBG != null)
 			healthBarBG.color = FlxColor.fromRGB(char.healthColorArray[0], char.healthColorArray[1], char.healthColorArray[2]);
 
-		reloadAnimationDropDown();
+		refreshAnimationList();
 		updatePresence();
 	}
 
-	function reloadAnimationDropDown()
-	{
-		var animList:Array<String> = [];
-		for (i in 0...char.animationsArray.length) animList.push(char.animationsArray[i].anim);
-		if (animList.length < 1) animList.push('NO ANIMATIONS');
-
-		ui.animDropDown.dataSource = ArrayDataSource.fromArray(animList);
-
-		if (animList.length > 0 && curAnim >= 0 && curAnim < animList.length) {
-			ui.animDropDown.text = animList[curAnim];
-		}
-
-		syncCurrentAnimUI();
-	}
-
-	function refreshAnimListPanel()
+	function refreshAnimationList()
 	{
 		if (ui == null || ui.animListContainer == null || char == null) return;
 
+		var animList:Array<String> = [];
+		for (anim in char.animationsArray) animList.push(anim.anim);
+		if (animList.length < 1) animList.push('NO ANIMATIONS');
+
+		ui.animDropDown.dataSource = null;
+		ui.animDropDown.dataSource = ArrayDataSource.fromArray(animList);
+		if (animList.length > 0 && curAnim >= 0 && curAnim < animList.length)
+			ui.animDropDown.text = animList[curAnim];
+		else if (animList.length > 0)
+			ui.animDropDown.text = animList[0];
+
 		while (ui.animListContainer.numComponents > 0) {
-			var child = ui.animListContainer.getComponentAt(0);
+			final child = ui.animListContainer.getComponentAt(0);
 			ui.animListContainer.removeComponent(child);
 			child.destroy();
 		}
 
-		for (i in 0...char.animationsArray.length)
-		{
-			var anim = char.animationsArray[i];
-			var index = i;
-			var animName = (anim != null && anim.anim != null) ? anim.anim : "<null>";
+		for (i in 0...char.animationsArray.length) {
+			final anim = char.animationsArray[i];
+			final animName = anim?.anim ?? "<null>";
 
-			var btn = new Button();
+			final btn = new Button();
+			final ir = btn.findComponent(haxe.ui.core.ItemRenderer);
+			if (ir != null) btn.removeComponent(ir);
+
 			btn.text = animName;
 			btn.percentWidth = 100;
 			btn.height = 32;
 
-			if (index == curAnim) {
-				btn.addClass("anim-btn-selected");
-			}
+			if (i == curAnim) btn.addClass("anim-btn-selected");
 
 			btn.onClick = (_) -> {
-				curAnim = index;
-
+				curAnim = i;
 				if (char.animationsArray[curAnim] != null) {
 					char.playAnim(char.animationsArray[curAnim].anim, true);
-
-					if (ghostChar.visible)
-						ghostChar.playAnim(char.animationsArray[curAnim].anim, true);
+					if (ghostChar.visible) ghostChar.playAnim(char.animationsArray[curAnim].anim, true);
 				}
-
 				syncCurrentAnimUI();
 				updatePointerPos();
 			};
@@ -1487,13 +1483,30 @@ class CharacterEditorState extends haxe.ui.backend.flixel.UIState
 	function handleExit()
 	{
 		if (FlxG.keys.justPressed.ESCAPE) {
-			if (goToPlayState) FlxG.switchState(() -> new PlayState());
-			else {
-				FlxG.switchState(() -> new game.states.editors.MasterEditorMenu());
-				FlxG.sound.playMusic(Paths.music('freakyMenu'));
+			if (hasUnsavedChanges) {
+				HaxeUIUtil.showConfirm(
+					"You have unsaved changes. Are you sure you want to exit?",
+					"Confirmation",
+					(btn:DialogButton) -> {
+						if (btn == DialogButton.YES)
+							doExit();
+					}
+				);
+			} else {
+				doExit();
 			}
-			FlxG.mouse.visible = false;
 		}
+	}
+
+	function doExit()
+	{
+		if (goToPlayState) 
+			FlxG.switchState(() -> new PlayState());
+		else {
+			FlxG.switchState(() -> new game.states.editors.MasterEditorMenu());
+			FlxG.sound.playMusic(Paths.music('freakyMenu'));
+		}
+		FlxG.mouse.visible = false;
 	}
 
 	function handleCameraZoom(elapsed:Float)
@@ -1531,30 +1544,9 @@ class CharacterEditorState extends haxe.ui.backend.flixel.UIState
 			&& my >= top && my <= top + height;
 	}
 
-	var draggingUI:Bool = false;
 	function handleCameraDrag()
 	{
-		var mouseOverUI = false;
-
-		if (ui != null) {
-			mouseOverUI = isMouseOverComponent(ui.propWindow)
-				|| isMouseOverComponent(ui.editorWindow)
-				|| isMouseOverComponent(ui.animWindow)
-				|| isMouseOverComponent(ui.mainToolbar);
-		}
-
-		if (FlxG.mouse.justPressed) {
-			draggingUI = mouseOverUI;
-			if (draggingUI)
-				draggingCamera = false;
-		}
-
-		if (FlxG.mouse.justReleased) {
-			draggingUI = false;
-			draggingCamera = false;
-		}
-
-		if (draggingUI || mouseOverUI || FocusManager.instance.focus != null)
+		if (HaxeUIUtil.isCursorOverUI || FocusManager.instance.focus != null)
 			return;
 
 		if (FlxG.mouse.justPressed) {
@@ -1609,8 +1601,8 @@ class CharacterEditorState extends haxe.ui.backend.flixel.UIState
 			char.animationsArray[curAnim].offsets = [0, 0];
 			char.addOffset(char.animationsArray[curAnim].anim, 0, 0);
 			ghostChar.addOffset(char.animationsArray[curAnim].anim, 0, 0);
-			char.playAnim(char.animationsArray[curAnim].anim, false);
-			ghostChar.playAnim(char.animationsArray[curAnim].anim, false);
+			char.playAnim(char.animationsArray[curAnim].anim, true);
+			ghostChar.playAnim(char.animationsArray[curAnim].anim, true);
 			updateAnimListOffsetDisplay();
 			saveHistoryStuff();
 		}
@@ -1626,8 +1618,16 @@ class CharacterEditorState extends haxe.ui.backend.flixel.UIState
 		var offsetChanged = false;
 
 		if (arrowKeysJustPressed.contains(true)) {
-			char.offset.x += ((arrowKeysJustPressed[0] ? 1 : 0) - (arrowKeysJustPressed[1] ? 1 : 0)) * shiftMultBig;
-			char.offset.y += ((arrowKeysJustPressed[2] ? 1 : 0) - (arrowKeysJustPressed[3] ? 1 : 0)) * shiftMultBig;
+			final dx = ((arrowKeysJustPressed[0] ? 1 : 0) - (arrowKeysJustPressed[1] ? 1 : 0)) * shiftMultBig;
+			final dy = ((arrowKeysJustPressed[2] ? 1 : 0) - (arrowKeysJustPressed[3] ? 1 : 0)) * shiftMultBig;
+
+			if (char.isAnimateAtlas) {
+				char.atlas.offset.x += dx;
+				char.atlas.offset.y += dy;
+			} else {
+				char.offset.x += dx;
+				char.offset.y += dy;
+			}
 			offsetChanged = true;
 		}
 
@@ -1636,8 +1636,17 @@ class CharacterEditorState extends haxe.ui.backend.flixel.UIState
 			if (holdingArrowsTime > 0.6) {
 				holdingArrowsElapsed += elapsed;
 				while (holdingArrowsElapsed > (1 / 60)) {
-					char.offset.x += ((arrowKeysPressed[0] ? 1 : 0) - (arrowKeysPressed[1] ? 1 : 0)) * shiftMultBig;
-					char.offset.y += ((arrowKeysPressed[2] ? 1 : 0) - (arrowKeysPressed[3] ? 1 : 0)) * shiftMultBig;
+					final dx = ((arrowKeysPressed[0] ? 1 : 0) - (arrowKeysPressed[1] ? 1 : 0)) * shiftMultBig;
+					final dy = ((arrowKeysPressed[2] ? 1 : 0) - (arrowKeysPressed[3] ? 1 : 0)) * shiftMultBig;
+
+					if (char.isAnimateAtlas) {
+						char.atlas.offset.x += dx;
+						char.atlas.offset.y += dy;
+					} else {
+						char.offset.x += dx;
+						char.offset.y += dy;
+					}
+
 					holdingArrowsElapsed -= (1 / 60);
 					offsetChanged = true;
 				}
@@ -1688,19 +1697,22 @@ class CharacterEditorState extends haxe.ui.backend.flixel.UIState
 	function saveOffsetChanges()
 	{
 		if (char.animationsArray[curAnim] != null) {
+			final curX = char.isAnimateAtlas ? char.atlas.offset.x : char.offset.x;
+			final curY = char.isAnimateAtlas ? char.atlas.offset.y : char.offset.y;
+
 			final animName = char.animationsArray[curAnim].anim;
-			char.animOffsets.set(animName, [char.offset.x, char.offset.y]);
+			char.animOffsets.set(animName, [curX, curY]);
 
 			for (anim in char.animationsArray) {
 				if (anim.anim == animName) {
-					anim.offsets = [Std.int(char.offset.x), Std.int(char.offset.y)];
+					anim.offsets = [Std.int(curX), Std.int(curY)];
 					break;
 				}
 			}
 
 			if (ghostChar.visible && !ghostChar.isAnimationNull() && ghostChar.getAnimationName() == animName) {
-				ghostChar.animOffsets.set(animName, [char.offset.x, char.offset.y]);
-				ghostChar.offset.set(char.offset.x, char.offset.y);
+				ghostChar.animOffsets.set(animName, [curX, curY]);
+				ghostChar.offset.set(curX, curY);
 			}
 
 			saveHistoryStuff();
@@ -1718,6 +1730,7 @@ class CharacterEditorState extends haxe.ui.backend.flixel.UIState
 	{
 		_file = null;
 		HaxeUIUtil.showNotification("Character Editor", "File saved successfully", Success);
+		hasUnsavedChanges = false;
 	}
 	function onSaveCancel(_):Void
 	{
@@ -1813,13 +1826,14 @@ class CharacterEditorState extends haxe.ui.backend.flixel.UIState
 			sys.io.File.saveContent(path, data);
 
 			HaxeUIUtil.showNotification("Character Editor", 'Saved successfully:\n${Paths.getRelativePath(path)}', Success);
+			hasUnsavedChanges = false;
 			#end
 		} catch (e) {
 			HaxeUIUtil.showNotification("Character Editor", 'Quick save failed!\nError: $e', Error);
 		}
 	}
 
-	function saveHistoryStuff()
+	function saveHistoryStuff(markUnsaved:Bool = true)
 	{
 		var state:HistoryStuff = {
 			animations: [for (anim in char.animationsArray) {
@@ -1846,6 +1860,9 @@ class CharacterEditorState extends haxe.ui.backend.flixel.UIState
 		undos.push(state);
 		if (undos.length > maxHistorySteps) undos.shift();
 		redos = [];
+
+		if (markUnsaved)
+			hasUnsavedChanges = true;
 	}
 
 	function undo()
@@ -1943,8 +1960,8 @@ class CharacterEditorState extends haxe.ui.backend.flixel.UIState
 		if (char.isPlayer) char.flipX = !char.flipX;
 		ghostChar.flipX = char.flipX;
 
-		reloadAnimationDropDown();
-		refreshAnimListPanel();
+		refreshAnimationList();
+		refreshAnimationList();
 		reloadCharacterOptions();
 		reloadGhost();
 		loadBG();

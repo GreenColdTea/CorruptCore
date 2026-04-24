@@ -77,11 +77,12 @@ class Paths
 
     @:access(flixel.system.frontEnds.BitmapFrontEnd._cache)
     public static function clearStoredMemory() {
-        for (key in FlxG.bitmap._cache.keys())
+        // its buggy for haxeui
+        /*for (key in FlxG.bitmap._cache.keys())
         {
             if (!currentTrackedAssets.exists(key))
                 destroyGraphic(FlxG.bitmap.get(key));
-        }
+        }*/
 
         for (key => asset in currentTrackedSounds)
         {
