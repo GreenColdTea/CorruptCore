@@ -359,11 +359,8 @@ class FunkinSoundTray extends FlxSoundTray
         visible = true;
         active = true;
         
-        var globalVolume:Int = Math.round(FlxG.sound.volume * 10);
-        if (FlxG.sound.muted)
-        {
-            globalVolume = 0;
-        }
+        var globalVolume:Int = FlxG.sound.muted ? 0 : Math.round(FlxG.sound.logToLinear(FlxG.sound.volume) * 10);
+        globalVolume = Std.int(Math.max(0, Math.min(10, globalVolume)));
 
         // Draw volume ring with outline
         var volumeAngle:Float = 360 * (globalVolume / 10);
@@ -394,16 +391,62 @@ class FunkinSoundTray extends FlxSoundTray
 
     // Compatibility methods for Flixel 6.0.0+
     #if (flixel > "6.0.0")
-    override function showAnim(volume:Float, ?sound:FlxSoundAsset, duration:Float = 1.0, label:String = "VOLUME") {}
-    
+    override function showAnim(volume:Float, ?sound:FlxSoundAsset, duration:Float = 1.0, label:String = "VOLUME"):Void
+    {
+        if (!silent && sound != null)
+        {
+            try
+            {
+                FlxG.sound.play(sound.resolveSound(true, true));
+            }
+            catch (e:Dynamic)
+            {
+                trace("Sound not found: " + sound);
+            }
+        }
+
+        _timer = duration;
+        y = 0;
+        visible = true;
+        active = true;
+
+        var globalVolume:Int = FlxG.sound.muted ? 0 : Math.round(FlxG.sound.logToLinear(FlxG.sound.volume) * 10);
+        globalVolume = Std.int(Math.max(0, Math.min(10, globalVolume)));
+
+        var volumeAngle:Float = 360 * (globalVolume / 10);
+
+        if (globalVolume > 0)
+        {
+            drawSegmentedRing(
+                _volumeRing,
+                RING_CENTER_X,
+                RING_CENTER_Y,
+                RING_RADIUS,
+                RING_THICKNESS,
+                0,
+                volumeAngle,
+                ringColor,
+                outlineColor,
+                globalVolume,
+                1.0
+            );
+        }
+        else
+        {
+            _volumeRing.graphics.clear();
+        }
+    }
+
     override function showIncrement():Void
     {
-        show(true);
+        final volume = FlxG.sound.muted ? 0 : FlxG.sound.volume;
+        showAnim(volume, silent ? null : volumeUpSound, DISPLAY_TIME, "VOLUME");
     }
-    
+
     override function showDecrement():Void
     {
-        show(false);
+        final volume = FlxG.sound.muted ? 0 : FlxG.sound.volume;
+        showAnim(volume, silent ? null : volumeDownSound, DISPLAY_TIME, "VOLUME");
     }
 
     override function updateSize():Void 

@@ -1,17 +1,25 @@
 package game.objects;
 
 #if VIDEOS_ALLOWED
+import flixel.addons.display.FlxPieDial;
+
 import hxvlc.flixel.FlxVideoSprite;
 import hxvlc.util.Handle;
 
 class FunkinVideoSprite extends FlxVideoSprite
 {
 	public static final ARG_LOOPING:String = ':input-repeat=2147483647';
-	public static final ARG_MUTED:String = ':no-audio';
-	public static final ARG_HW_ACCEL:String = ':avcodec-hw=any';
+    public static final ARG_MUTED:String = ':no-audio';
+    public static final ARG_HW_ACCEL:String = ':avcodec-hw=any';
     
     public var isStateAffected:Bool = true;
     public var autoDestroyOnComplete:Bool = true;
+
+    public var canSkip:Bool = false;
+    
+    public var skipHold:Float = 0;
+    public var skipNeed:Float = 1;
+    public var pie:FlxPieDial;
 
     /**
      * Creates a new video sprite
@@ -26,6 +34,9 @@ class FunkinVideoSprite extends FlxVideoSprite
         
         if (autoDestroy) 
             bitmap.onEndReached.add(onVideoComplete, true, -10);
+
+        pie = new FlxPieDial(0, 0, 40, FlxColor.WHITE);
+        pie.amount = 0;
             
         setupEventListeners();
     }
@@ -254,6 +265,30 @@ class FunkinVideoSprite extends FlxVideoSprite
     private function onFocusLost():Void
     {
         bitmap?.pause();
+    }
+
+    override public function update(elapsed:Float):Void
+    {
+        super.update(elapsed);
+
+        if (canSkip)
+        {
+            if (FlxG.keys.justPressed.ENTER)
+            {
+                skipHold += elapsed;
+                pie.amount = skipHold / skipNeed;
+
+                if (skipHold >= skipNeed) 
+                {
+                    destroy();
+                }
+            }
+            else
+            {
+                skipHold = 0;
+                pie.amount = 0;
+            }
+        }
     }
     
     override public function destroy():Void
