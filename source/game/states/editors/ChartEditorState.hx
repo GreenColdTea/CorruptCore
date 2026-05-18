@@ -1792,10 +1792,10 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	}
 
 	function isMouseOverUI():Bool {
-		return FlxG.mouse.overlaps(mainBox) || 
-			FlxG.mouse.overlaps(infoBox) || 
-			FlxG.mouse.overlaps(positionSlider) ||
-			FlxG.mouse.overlaps(sliderBg);
+		return FlxG.mouse.overlaps(mainBox, camUI) || 
+			FlxG.mouse.overlaps(infoBox, camUI) || 
+			FlxG.mouse.overlaps(positionSlider, camUI) ||
+			FlxG.mouse.overlaps(sliderBg, camUI);
 	}
 
 	var iconJustFlashed:Bool = false;
@@ -4533,6 +4533,8 @@ class ChartSelectorSubstate extends MusicBeatSubstate
 		{
 			final oldSelected = curSelected;
 			final oldScroll = scrollOffset;
+
+			final mousePos = FlxG.mouse.getViewPosition(camera);
 			
 			if (controls.UI_UP_P)
 				changeSelection(-1);
@@ -4553,8 +4555,8 @@ class ChartSelectorSubstate extends MusicBeatSubstate
 				}
 			}
 			
-			if (FlxG.mouse.justPressed && FlxG.mouse.overlaps(scrollBarBg)) {
-				var localY = FlxG.mouse.y - scrollBarBg.y;
+			if (FlxG.mouse.justPressed && FlxG.mouse.overlaps(scrollBarBg, camera)) {
+				var localY = mousePos.y - scrollBarBg.y;
 				var scrollableHeight = scrollBarBg.height - scrollBar.height;
 				var scrollRatio = localY / scrollableHeight;
 				scrollOffset = Math.round(scrollRatio * (charts.length - maxVisibleItems));
@@ -4577,8 +4579,8 @@ class ChartSelectorSubstate extends MusicBeatSubstate
 					if (index >= charts.length) break;
 					
 					var bgY = 90 + i * itemHeight;
-					if (FlxG.mouse.y >= bgY && FlxG.mouse.y < bgY + itemHeight - 4 &&
-						FlxG.mouse.x >= 60 && FlxG.mouse.x < 60 + (FlxG.width - 140)) {
+					if (mousePos.y >= bgY && mousePos.y < bgY + itemHeight - 4 &&
+						mousePos.x >= 60 && mousePos.x < 60 + (FlxG.width - 140)) {
 						
 						curSelected = index;
 						selectCurrent();
@@ -4586,6 +4588,8 @@ class ChartSelectorSubstate extends MusicBeatSubstate
 					}
 				}
 			}
+
+			mousePos.put();
 			
 			if (oldSelected != curSelected || oldScroll != scrollOffset) {
 				if (curSelected < scrollOffset) {

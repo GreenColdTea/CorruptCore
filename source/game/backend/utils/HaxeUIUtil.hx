@@ -13,7 +13,7 @@ final class HaxeUIUtil
     public static var isCursorOverUI(get, never):Bool;
     private static function get_isCursorOverUI():Bool
     {
-        return haxe.ui.core.Screen.instance?.hasSolidComponentUnderPoint(FlxG.mouse.viewX, FlxG.mouse.viewY) ?? false;
+        return haxe.ui.core.Screen.instance?.hasSolidComponentUnderPoint(FlxG.mouse.gameX, FlxG.mouse.gameY) ?? false;
     }
     
     public static function showNotification(title:String, body:String, ?type:NotificationType = Info, ?icon:String = null):Void
