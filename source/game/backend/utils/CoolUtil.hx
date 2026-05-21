@@ -17,7 +17,6 @@ import winapi.WindowsAPI.MessageBoxType;
 
 import lime.media.AudioBuffer;
 import lime.media.AudioSource;
-import lime.media.vorbis.VorbisFile;
 import lime.utils.UInt8Array;
 import lime.utils.Assets;
 

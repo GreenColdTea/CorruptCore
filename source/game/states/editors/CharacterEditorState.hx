@@ -46,6 +46,7 @@ import haxe.ui.components.Label;
 import haxe.ui.components.NumberStepper;
 import haxe.ui.components.TextField;
 import haxe.ui.data.ArrayDataSource;
+import haxe.ui.events.UIEvent;
 import haxe.ui.focus.FocusManager;
 import haxe.ui.layouts.AbsoluteLayout;
 
@@ -828,7 +829,7 @@ class CharacterEditorState extends haxe.ui.backend.flixel.UIState
 		};
 
 		ui.healthColorButton.onClick = (_) -> {
-			openSubState(new ColorPickerSubstateHaxeUI(
+			ColorPickerWindow.showPicker(
 				FlxColor.fromRGB(char.healthColorArray[0], char.healthColorArray[1], char.healthColorArray[2]),
 				function(newColor:FlxColor) {
 					char.healthColorArray[0] = newColor.red;
@@ -840,7 +841,7 @@ class CharacterEditorState extends haxe.ui.backend.flixel.UIState
 				function():FlxColor {
 					return FlxColor.fromInt(CoolUtil.dominantColor(leHealthIcon));
 				}
-			));
+			);
 		};
 
 		ui.animDropDown.onChange = (_) -> {
@@ -2042,17 +2043,11 @@ class CharacterEditorState extends haxe.ui.backend.flixel.UIState
 	}';
 }
 
-class ColorPickerSubstateHaxeUI extends haxe.ui.backend.flixel.UISubState
+class ColorPickerWindow extends Window
 {
 	var colorPicker:ColorPicker;
 	var onColorSelected:FlxColor->Void;
 	var getIconColorCallback:Void->FlxColor;
-
-	var bg:FlxSprite;
-	var panel:Panel;
-	var okButton:Button;
-	var cancelButton:Button;
-	var getIconColorButton:Button;
 
 	public function new(defaultColor:FlxColor, onColorSelected:FlxColor->Void, ?getIconColorCallback:Void->FlxColor)
 	{
@@ -2060,121 +2055,133 @@ class ColorPickerSubstateHaxeUI extends haxe.ui.backend.flixel.UISubState
 		this.onColorSelected = onColorSelected;
 		this.getIconColorCallback = getIconColorCallback;
 
-		bg = new FlxSprite().makeGraphic(FlxG.width, FlxG.height, FlxColor.BLACK);
-		bg.alpha = 0.6;
-		add(bg);
-
-		root.percentWidth = 100;
-		root.percentHeight = 100;
-		root.layout = new AbsoluteLayout();
-
-		panel = new Panel();
-		panel.width = 400;
-		panel.height = 360;
-		panel.left = Std.int((FlxG.width - panel.width) / 2);
-		panel.top = Std.int((FlxG.height - panel.height) / 2);
-		panel.text = "Select Color";
-		root.addComponent(panel);
+		this.title = "Select Color";
+		this.width = 300;
+		this.height = 360;
+		this.percentWidth = 100;
+		this.percentHeight = 100;
+		this.closable = true;
 
 		var content = new VBox();
 		content.percentWidth = 100;
 		content.percentHeight = 100;
 		content.styleNames = "padding: 12px; spacing: 8px;";
-		panel.addComponent(content);
+		this.addComponent(content);
 
 		colorPicker = new ColorPicker();
 		colorPicker.width = 250;
 		colorPicker.height = 250;
-		colorPicker.value = Std.int(defaultColor);
 		content.addComponent(colorPicker);
+
+		colorPicker.registerEvent(UIEvent.READY, (e) -> colorPicker.value = defaultColor.to24Bit());
 
 		var buttonsRow = new HBox();
 		buttonsRow.percentWidth = 100;
 		buttonsRow.styleNames = "horizontal-align: center; spacing: 10px;";
 		content.addComponent(buttonsRow);
 
-		okButton = new Button();
+		var okButton = new Button();
 		okButton.text = "OK";
 		okButton.width = 80;
 		okButton.onClick = (_) -> {
-			if (onColorSelected != null) {
+			if (this.onColorSelected != null) {
 				var col = FlxColor.fromRGB(
 					(colorPicker.value >> 16) & 0xFF,
 					(colorPicker.value >> 8) & 0xFF,
 					colorPicker.value & 0xFF
 				);
-				onColorSelected(col);
+				this.onColorSelected(col);
 			}
-			close();
+			WindowManager.instance.closeWindow(this);
 		};
 		buttonsRow.addComponent(okButton);
 
 		if (getIconColorCallback != null) {
-			getIconColorButton = new Button();
+			var getIconColorButton = new Button();
 			getIconColorButton.text = "Get Icon Color";
 			getIconColorButton.width = 120;
 			getIconColorButton.onClick = (_) -> {
-				var iconColor = getIconColorCallback();
-				colorPicker.value = Std.int(iconColor);
+				var iconColor = this.getIconColorCallback();
+				colorPicker.value = iconColor.to24Bit();
 			};
 			buttonsRow.addComponent(getIconColorButton);
 		}
 
-		cancelButton = new Button();
+		var cancelButton = new Button();
 		cancelButton.text = "Cancel";
 		cancelButton.width = 80;
-		cancelButton.onClick = (_) -> {
-			close();
-		};
+		cancelButton.onClick = (_) -> WindowManager.instance.closeWindow(this);
 		buttonsRow.addComponent(cancelButton);
 	}
 
-	override function update(elapsed:Float)
+	public static function showPicker(defaultColor:FlxColor, onColorSelected:FlxColor->Void, ?getIconColorCallback:Void->FlxColor):ColorPickerWindow
 	{
-		super.update(elapsed);
-		if (FlxG.keys.justPressed.ESCAPE || controls.BACK) {
-			close();
-		}
-	}
-
-	override function destroy()
-	{
-		panel = null;
-		colorPicker = null;
-		okButton = null;
-		cancelButton = null;
-		getIconColorButton = null;
-
-		super.destroy();
+		var picker = new ColorPickerWindow(defaultColor, onColorSelected, getIconColorCallback);
+		
+		WindowManager.instance.addWindow(picker);
+		
+		picker.left = Std.int((FlxG.width - picker.width) / 2);
+		picker.top = Std.int((FlxG.height - picker.height) / 2);
+		
+		return picker;
 	}
 }
 
-class CharacterEditorTipsSubstate extends MusicBeatSubstate
+class CharacterEditorTipsSubstate extends haxe.ui.backend.flixel.UISubState
 {
-	public function new() {
-		super();
+	var tipsWindow:Window;
+
+	override function create() {
+		super.create();
+
+		camera = FlxG.cameras.list[FlxG.cameras.list.length - 1];
+
 		var bg = new FlxSprite().makeGraphic(FlxG.width, FlxG.height, FlxColor.BLACK);
 		bg.alpha = 0.8;
 		add(bg);
-		var text = "E/Q - Zoom In/Out\nR - Reset Zoom\nDrag Mouse - Move Camera\nW/S - Previous/Next Animation\nSpace - Play Animation\nArrow Keys - Move Offset\nT - Reset Current Offset\nShift + Arrows - Move 10x Faster\nG - Toggle Grid\nCTRL + C - Copy Offsets\nCTRL + V - Paste Offsets\nCTRL + Z - Undo\nCTRL + Y - Redo";
-		var tipTextArray = text.split('\n');
-		var grpTexts = new FlxTypedGroup<FlxText>();
-		add(grpTexts);
-		var lineHeight = 25;
-		var totalHeight = tipTextArray.length * lineHeight;
-		var startY = (FlxG.height - totalHeight) / 2;
-		for (i in 0...tipTextArray.length) {
-			var t = new FlxText(0, startY + (i * lineHeight), FlxG.width, tipTextArray[i], 18);
-			t.setFormat(null, 18, FlxColor.WHITE, CENTER, OUTLINE, FlxColor.BLACK);
-			t.screenCenter(X);
-			grpTexts.add(t);
-		}
-		var closeText = new FlxText(0, FlxG.height - (lineHeight - 5), FlxG.width, "Press ESC to close tips", 16);
-		closeText.setFormat(null, 16, FlxColor.WHITE, CENTER, OUTLINE, FlxColor.BLACK);
-		closeText.screenCenter(X);
-		add(closeText);
-		camera = FlxG.cameras.list[FlxG.cameras.list.length - 1];
+
+		root.layout = new AbsoluteLayout();
+		root.width = FlxG.width;
+		root.height = FlxG.height;
+
+		WindowManager.instance.container = root;
+
+		tipsWindow = new Window();
+		tipsWindow.title = "Character Editor Tips";
+		tipsWindow.width = 450;
+		tipsWindow.height = 360;
+		tipsWindow.minimizable = false;
+		tipsWindow.maximizable = false;
+		tipsWindow.closable = true;
+
+		tipsWindow.registerEvent(UIEvent.CLOSE, (e) -> close());
+
+		var textLabel = new Label();
+		textLabel.text = "E/Q - Zoom In/Out\n" +
+						 "R - Reset Zoom\n" +
+						 "Drag Mouse - Move Camera\n" +
+						 "W/S - Previous/Next Animation\n" +
+						 "Space - Play Animation\n" +
+						 "Arrow Keys - Move Offset\n" +
+						 "T - Reset Current Offset\n" +
+						 "Shift + Arrows - Move 10x Faster\n" +
+						 "G - Toggle Grid\n" +
+						 "CTRL + C - Copy Offsets\n" +
+						 "CTRL + V - Paste Offsets\n" +
+						 "CTRL + Z - Undo\n" +
+						 "CTRL + Y - Redo";
+						 
+		textLabel.percentWidth = 100;
+		textLabel.percentHeight = 100;
+		textLabel.styleNames = "padding: 15px; font-size: 16px;";
+		tipsWindow.addComponent(textLabel);
+
+		WindowManager.instance.addWindow(tipsWindow);
+
+		tipsWindow.left = (FlxG.width - tipsWindow.width) / 2;
+		tipsWindow.top = (FlxG.height - tipsWindow.height) / 2;
 	}
+
 	override function update(elapsed:Float) {
 		super.update(elapsed);
 		if (FlxG.keys.justPressed.ESCAPE) close();

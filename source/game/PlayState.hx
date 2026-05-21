@@ -3950,7 +3950,7 @@ class PlayState extends MusicBeatState
 		}
 
 		var holdCover:NoteHoldCover = grpHoldCovers.recycle(NoteHoldCover);
-		holdCover.startCrochet = Conductor.stepCrochet * 1.05  / playbackRate;
+		holdCover.startCrochet = Conductor.stepCrochet / playbackRate;
 		holdCover.frameRate = Math.floor((isPixelStage ? 20 : 24) / 100 * Conductor.bpm);
 
 		holdCover.setupHoldCover(strum, note, hueColor, satColor, brtColor);

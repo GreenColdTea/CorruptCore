@@ -14,9 +14,11 @@ import flixel.addons.transition.FlxTransitionableState;
 import flixel.addons.ui.FlxButtonPlus;
 import flixel.group.FlxGroup.FlxTypedGroup;
 import flixel.math.FlxMath;
+import flixel.math.FlxRect;
 import flixel.text.FlxText;
 import flixel.ui.FlxButton;
 import flixel.util.FlxColor;
+import flixel.util.FlxTimer;
 import flixel.sound.FlxSound;
 import flixel.tweens.FlxTween;
 
@@ -80,8 +82,14 @@ class ModsMenuState extends MusicBeatState
 
     var descriptionBg:FlxSprite;
     var descriptionText:FlxText;
+    
+    var descriptionScrollBg:FlxSprite;
+    var descriptionScrollThumb:FlxSprite;
+    
     var descriptionScroll:Float = 0;
+    var targetDescriptionScroll:Float = 0;
     var descriptionMaxScroll:Float = 0;
+    var isDraggingScroll:Bool = false;
 
     override function create()
     {
@@ -154,7 +162,6 @@ class ModsMenuState extends MusicBeatState
         visibleWhenHasMods.push(selector);
 
         var startX:Int = 1120;
-
         buttonToggle = new FlxButton(startX, 0, "ON", function()
         {
             if(mods[curSelected].restart) needaReset = true;
@@ -284,11 +291,22 @@ class ModsMenuState extends MusicBeatState
         add(descriptionBg);
         visibleWhenHasMods.push(descriptionBg);
 
-        descriptionText = new FlxText(descriptionBg.x + 5, descriptionBg.y + 5, descriptionBg.width, "", 16);
+        descriptionText = new FlxText(descriptionBg.x + 5, descriptionBg.y + 5, descriptionBg.width - 25, "", 16);
         descriptionText.setFormat(Paths.font("vcr.ttf"), 16, FlxColor.WHITE, LEFT);
         descriptionText.scrollFactor.set();
         add(descriptionText);
         visibleWhenHasMods.push(descriptionText);
+
+        descriptionScrollBg = new FlxSprite().makeGraphic(10, 120, FlxColor.BLACK);
+        descriptionScrollBg.alpha = 0.3;
+        descriptionScrollBg.scrollFactor.set();
+        add(descriptionScrollBg);
+        visibleWhenHasMods.push(descriptionScrollBg);
+
+        descriptionScrollThumb = new FlxSprite().makeGraphic(6, 20, FlxColor.WHITE);
+        descriptionScrollThumb.scrollFactor.set();
+        add(descriptionScrollThumb);
+        visibleWhenHasMods.push(descriptionScrollThumb);
 
         remove(descriptionText);
         remove(descriptionBg);
@@ -297,9 +315,11 @@ class ModsMenuState extends MusicBeatState
 
         var i:Int = 0;
         var len:Int = modsList.length;
+
         while (i < modsList.length)
         {
             var values:Array<Dynamic> = modsList[i];
+
             if(!Mods.modExists(values[0]))
             {
                 modsList.remove(modsList[i]);
@@ -319,6 +339,7 @@ class ModsMenuState extends MusicBeatState
             
             var loadedIcon:BitmapData = null;
             var iconBytes = null;
+
             for (ext in Paths.IMAGE_EXTS) {
                 iconBytes = Mods.getFileFromMod(values[0], 'pack.$ext');
                 if (iconBytes != null) break;
@@ -361,10 +382,9 @@ class ModsMenuState extends MusicBeatState
         intendedColor = bg.color;
         changeSelection();
         updatePosition();
+
         FlxG.sound.play(Paths.sound('scrollMenu'));
-
         FlxG.mouse.visible = true;
-
         updateDiscordClientID();
 
         super.create();
@@ -378,16 +398,18 @@ class ModsMenuState extends MusicBeatState
         var description = mod.description;
         if (mod.restart)
             description += " (This Mod will restart the game!)";
-        
+
         descriptionText.text = description;
-        
         descriptionText.autoSize = true;
 
         var textHeight = descriptionText.height;
         descriptionText.autoSize = false;
+
         descriptionMaxScroll = Math.max(0, textHeight - descriptionBg.height + 10);
+        targetDescriptionScroll = 0;
         descriptionScroll = 0;
         descriptionText.y = descriptionBg.y + 5;
+        
         descriptionText.clipRect = null;
     }
 
@@ -422,7 +444,6 @@ class ModsMenuState extends MusicBeatState
         if(mods.length > 1)
         {
             var doRestart:Bool = (mods[0].restart);
-
             var newPos:Int = curSelected + change;
             if(newPos < 0)
             {
@@ -456,6 +477,7 @@ class ModsMenuState extends MusicBeatState
     function saveTxt()
     {
         var fileStr:String = '';
+
         for (values in modsList)
         {
             if(fileStr.length > 0) fileStr += '\n';
@@ -469,7 +491,6 @@ class ModsMenuState extends MusicBeatState
 
     function extractSelectedMod() {
         if (mods.length == 0) return;
-
         var modName = modsList[curSelected][0];
         
         if (!Mods.isZipMod(modName)) {
@@ -483,14 +504,14 @@ class ModsMenuState extends MusicBeatState
         var confirmText = 'Extract "${mods[curSelected].name}"?\n';
         confirmText += 'Files: ${info.fileCount}, Size: ${sizeMB} MB\n';
         confirmText += 'This may take a while for large mods.\n';
-        
+
         var confirmSubState = new ModExtractConfirmSubstate(confirmText, function(confirmed:Bool) {
             if (confirmed) {
                 isExtracting = true;
                 for (button in buttonsArray) {
                     button.visible = false;
                 }
-                
+    
                 openSubState(new ModExtractProgressSubstate(modName, info.fileCount, function(success) {
                     if (success) {
                         FlxG.sound.play(Paths.sound('confirmMenu'));
@@ -521,6 +542,7 @@ class ModsMenuState extends MusicBeatState
 
     var noModsSine:Float = 0;
     var canExit:Bool = true;
+
     override function update(elapsed:Float)
     {
         if(noModsTxt.visible)
@@ -531,33 +553,51 @@ class ModsMenuState extends MusicBeatState
 
         if (!isExtracting)
         {
-            if (mods.length > 0 && descriptionMaxScroll > 0) {
-                var mouseWheel = FlxG.mouse.wheel;
-                if (mouseWheel != 0) {
-                    descriptionScroll -= mouseWheel * 30;
-                    descriptionScroll = FlxMath.bound(descriptionScroll, 0, descriptionMaxScroll);
-                    descriptionText.y = descriptionBg.y + 5 - descriptionScroll;
+            if (mods.length > 0 && descriptionMaxScroll > 0) 
+            {
+                if (FlxG.mouse.justPressed) {
+                    if (FlxG.mouse.overlaps(descriptionScrollThumb) || FlxG.mouse.overlaps(descriptionScrollBg)) {
+                        isDraggingScroll = true;
+                    }
                 }
                 
-                if (controls.UI_UP_P) {
-                    descriptionScroll -= 40;
-                    descriptionScroll = FlxMath.bound(descriptionScroll, 0, descriptionMaxScroll);
-                    descriptionText.y = descriptionBg.y + 5 - descriptionScroll;
-                    FlxG.sound.play(Paths.sound('scrollMenu'), 0.4);
+                if (FlxG.mouse.justReleased) {
+                    isDraggingScroll = false;
                 }
+                
+                if (isDraggingScroll && FlxG.mouse.pressed) {
+                    final localY = FlxG.mouse.y - descriptionScrollBg.y - (descriptionScrollThumb.height / 2);
+                    final scrollableHeight = descriptionScrollBg.height - descriptionScrollThumb.height;
+                    
+                    var scrollRatio = localY / scrollableHeight;
+                    scrollRatio = FlxMath.bound(scrollRatio, 0, 1);
+                    
+                    targetDescriptionScroll = scrollRatio * descriptionMaxScroll;
+                    descriptionScroll = targetDescriptionScroll;
+                } else {
+                    final mouseWheel = FlxG.mouse.deltaWheel.y;
+                    if (mouseWheel != 0) {
+                        targetDescriptionScroll -= mouseWheel * 45;
+                    }
+                    
+                    if (controls.UI_UP_P) {
+                        targetDescriptionScroll -= 50;
+                        FlxG.sound.play(Paths.sound('scrollMenu'), 0.4);
+                    }
 
-                if (controls.UI_DOWN_P) {
-                    descriptionScroll += 40;
-                    descriptionScroll = FlxMath.bound(descriptionScroll, 0, descriptionMaxScroll);
-                    descriptionText.y = descriptionBg.y + 5 - descriptionScroll;
-                    FlxG.sound.play(Paths.sound('scrollMenu'), 0.4);
+                    if (controls.UI_DOWN_P) {
+                        targetDescriptionScroll += 50;
+                        FlxG.sound.play(Paths.sound('scrollMenu'), 0.4);
+                    }
+
+                    targetDescriptionScroll = FlxMath.bound(targetDescriptionScroll, 0, descriptionMaxScroll);
+                    descriptionScroll = FlxMath.lerp(descriptionScroll, targetDescriptionScroll, MathUtil.boundTo(elapsed * 12, 0, 1));
                 }
             }
 
             if(canExit && controls.BACK)
             {
                 colorTween?.cancel();
-
                 FlxG.sound.play(Paths.sound('cancelMenu'));
                 FlxG.mouse.visible = false;
 
@@ -577,16 +617,18 @@ class ModsMenuState extends MusicBeatState
                 }
             }
 
-            if(controls.UI_UP_P)
-            {
-                changeSelection(-1);
-                FlxG.sound.play(Paths.sound('scrollMenu'));
-            }
+            if (!isDraggingScroll) {
+                if(controls.UI_UP_P)
+                {
+                    changeSelection(-1);
+                    FlxG.sound.play(Paths.sound('scrollMenu'));
+                }
 
-            if(controls.UI_DOWN_P)
-            {
-                changeSelection(1);
-                FlxG.sound.play(Paths.sound('scrollMenu'));
+                if(controls.UI_DOWN_P)
+                {
+                    changeSelection(1);
+                    FlxG.sound.play(Paths.sound('scrollMenu'));
+                }
             }
         }
 
@@ -605,6 +647,7 @@ class ModsMenuState extends MusicBeatState
     function changeSelection(change:Int = 0)
     {
         var noMods:Bool = (mods.length < 1);
+
         for (obj in visibleWhenHasMods)
         {
             obj.visible = !noMods;
@@ -616,12 +659,15 @@ class ModsMenuState extends MusicBeatState
         if(noMods) return;
 
         curSelected += change;
+
         if(curSelected < 0)
             curSelected = mods.length - 1;
         else if(curSelected >= mods.length)
             curSelected = 0;
-
+            
+        targetDescriptionScroll = 0;
         descriptionScroll = 0;
+        isDraggingScroll = false;
 
         if (buttonExtract != null) {
             var isZipMod = Mods.isZipMod(modsList[curSelected][0]);
@@ -637,18 +683,22 @@ class ModsMenuState extends MusicBeatState
         }
 
         var newColor:Int = mods[curSelected].color;
+
         if(newColor != intendedColor) {
             colorTween?.cancel();
             intendedColor = newColor;
+
             colorTween = FlxTween.color(bg, 1, bg.color, intendedColor, {
                 onComplete: (_) -> colorTween = null
             });
         }
 
         var i:Int = 0;
+
         for (mod in mods)
         {
             mod.alphabet.alpha = 0.6;
+
             if(i == curSelected)
             {
                 mod.alphabet.alpha = 1;
@@ -656,7 +706,16 @@ class ModsMenuState extends MusicBeatState
                 
                 updateDescriptionText();
                 
-                var stuffArray:Array<FlxSprite> = [descriptionBg, descriptionText, selector, mod.alphabet, mod.icon];
+                var stuffArray:Array<FlxSprite> = [
+                    descriptionBg, 
+                    descriptionText, 
+                    descriptionScrollBg, 
+                    descriptionScrollThumb, 
+                    selector, 
+                    mod.alphabet, 
+                    mod.icon
+                ];
+
                 for (obj in stuffArray)
                 {
                     remove(obj);
@@ -677,9 +736,11 @@ class ModsMenuState extends MusicBeatState
     function updatePosition(elapsed:Float = -1)
     {
         var i:Int = 0;
+
         for (mod in mods)
         {
             var intendedPos:Float = (i - curSelected) * 225 + 200;
+
             if(i > curSelected) intendedPos += 225;
             mod.alphabet.y = (elapsed != -1) ? FlxMath.lerp(mod.alphabet.y, intendedPos, MathUtil.boundTo(elapsed * 12, 0, 1)) : intendedPos;
 
@@ -689,7 +750,36 @@ class ModsMenuState extends MusicBeatState
                 descriptionBg.y = descriptionY;
                 descriptionText.y = descriptionY + 5 - descriptionScroll;
                 
+                descriptionText.clipRect = new FlxRect(0, descriptionScroll, descriptionBg.width, descriptionBg.height - 10);
+                
+                descriptionScrollBg.x = descriptionBg.x + descriptionBg.width - 12;
+                descriptionScrollBg.y = descriptionBg.y;
+                
+                descriptionScrollThumb.x = descriptionScrollBg.x + 2;
+                
+                if (descriptionMaxScroll > 0) {
+                    var textHeight = descriptionText.height;
+                    
+                    var thumbHeight = (descriptionBg.height / textHeight) * descriptionBg.height;
+                    if (thumbHeight < 15) thumbHeight = 15;
+                    if (thumbHeight > descriptionBg.height) thumbHeight = descriptionBg.height;
+                    
+                    var scrollPercent = descriptionScroll / descriptionMaxScroll;
+                    descriptionScrollThumb.y = descriptionBg.y + (scrollPercent * (descriptionBg.height - thumbHeight));
+                    
+                    if (descriptionScrollThumb.height != Std.int(thumbHeight)) {
+                        descriptionScrollThumb.makeGraphic(6, Std.int(thumbHeight), FlxColor.WHITE);
+                    }
+                    
+                    descriptionScrollBg.visible = !isExtracting;
+                    descriptionScrollThumb.visible = !isExtracting;
+                } else {
+                    descriptionScrollBg.visible = false;
+                    descriptionScrollThumb.visible = false;
+                }
+                
                 extractInfoTxt.y = mod.alphabet.y + 290;
+
                 for (button in buttonsArray)
                 {
                     button.y = mod.alphabet.y + 310;
@@ -700,6 +790,7 @@ class ModsMenuState extends MusicBeatState
     }
 
     var cornerSize:Int = 11;
+
     function makeSelectorGraphic()
     {
         selector.makeGraphic(1100, 450, FlxColor.BLACK);
@@ -707,10 +798,12 @@ class ModsMenuState extends MusicBeatState
 
         selector.pixels.fillRect(new Rectangle(0, 0, cornerSize, cornerSize), 0x0);
         drawCircleCornerOnSelector(false, false);
+
         selector.pixels.fillRect(new Rectangle(selector.width - cornerSize, 0, cornerSize, cornerSize), 0x0);
         drawCircleCornerOnSelector(true, false);
         selector.pixels.fillRect(new Rectangle(0, selector.height - cornerSize, cornerSize, cornerSize), 0x0);
         drawCircleCornerOnSelector(false, true);
+
         selector.pixels.fillRect(new Rectangle(selector.width - cornerSize, selector.height - cornerSize, cornerSize, cornerSize), 0x0);
         drawCircleCornerOnSelector(true, true);
     }
@@ -750,7 +843,6 @@ class ModExtractConfirmSubstate extends MusicBeatSubstate
     public function new(message:String, callback:Bool->Void)
     {
         super();
-
         this.callback = callback;
 
         background = new FlxSprite().makeGraphic(FlxG.width, FlxG.height, FlxColor.BLACK);
@@ -784,7 +876,6 @@ class ModExtractConfirmSubstate extends MusicBeatSubstate
     override function update(elapsed:Float)
     {
         super.update(elapsed);
-
         if (FlxG.keys.justPressed.ESCAPE || controls.BACK) {
             close();
             callback(false);
@@ -818,7 +909,6 @@ class ModExtractProgressSubstate extends MusicBeatSubstate
     override function create()
     {
         super.create();
-        
         background = new FlxSprite().makeGraphic(FlxG.width, FlxG.height, FlxColor.BLACK);
         background.alpha = 0.8;
         add(background);
@@ -854,17 +944,16 @@ class ModExtractProgressSubstate extends MusicBeatSubstate
 
     function startExtraction() {
         if (!isExtracting) return;
-        
+
         var frameCallback:openfl.events.Event->Void = null;
         frameCallback = (_) -> {
             FlxG.stage.removeEventListener(openfl.events.Event.ENTER_FRAME, frameCallback);
-            
+
             try {
                 extractionSuccess = extractWithProgress();
-                
+
                 if (extractionSuccess) {
                     Mods.deleteZipMod(mod);
-                    
                     progressText.text = "Extraction complete!";
                     progressBar.makeGraphic(296, 26, FlxColor.GREEN);
                     
@@ -918,7 +1007,6 @@ class ModExtractProgressSubstate extends MusicBeatSubstate
             }
             
             var fileCount = 0;
-            
             for (entry in entries) {
                 var fileName:String = entry.fileName;
                 if (!StringTools.endsWith(fileName, "/")) {
@@ -931,7 +1019,7 @@ class ModExtractProgressSubstate extends MusicBeatSubstate
 
             var hasRootFolder = true;
             var rootFolderName:String = null;
-            
+
             for (entry in entries) {
                 var fileName:String = entry.fileName;
                 var parts = fileName.split('/');
@@ -955,13 +1043,11 @@ class ModExtractProgressSubstate extends MusicBeatSubstate
                 }
                 
                 var fileName:String = entry.fileName;
-                
                 if (StringTools.endsWith(fileName, "/")) {
                     continue;
                 }
 
                 var targetFileName:String = fileName;
-                
                 if (shouldStripRootFolder && StringTools.startsWith(fileName, rootFolderName + '/')) {
                     targetFileName = fileName.substring(rootFolderName.length + 1);
                 }

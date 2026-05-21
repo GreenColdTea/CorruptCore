@@ -2067,7 +2067,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		
 		updateSelectionBox();
 		#if !mobile
-		if (FlxG.mouse.wheel != 0)
+		if (FlxG.mouse.deltaWheel.y != 0)
 			handleMouseWheel();
 		#end
 	}
@@ -2245,7 +2245,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		FlxG.sound.music.pause();
 		if (!mouseQuant)
 		{
-			var newTime = FlxG.sound.music.time - (FlxG.mouse.wheel * Conductor.stepCrochet * 0.8);
+			var newTime = FlxG.sound.music.time - (FlxG.mouse.deltaWheel.y * Conductor.stepCrochet * 0.8);
 			if (newTime <= 0) newTime = 0;
 			if (newTime > FlxG.sound.music.length) newTime = FlxG.sound.music.length;
 
@@ -2256,7 +2256,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			final beat:Float = curDecBeat;
 			final snap:Float = quantization / 4;
 			final increase:Float = 1 / snap;
-			if (FlxG.mouse.wheel > 0)
+			if (FlxG.mouse.deltaWheel.y > 0)
 			{
 				var fuck:Float = MathUtil.quantize(beat, snap) - increase;
 				if (fuck <= 0) fuck = 0;
@@ -4546,8 +4546,8 @@ class ChartSelectorSubstate extends MusicBeatSubstate
 			if (controls.UI_RIGHT_P)
 				changeSelection(maxVisibleItems);
 			
-			if (FlxG.mouse.wheel != 0) {
-				scrollOffset -= Std.int(FlxG.mouse.wheel);
+			if (FlxG.mouse.deltaWheel.y != 0) {
+				scrollOffset -= Std.int(FlxG.mouse.deltaWheel.y);
 				scrollOffset = Std.int(Math.max(0, Math.min(scrollOffset, charts.length - maxVisibleItems)));
 				if (scrollOffset != oldScroll) {
 					updateList();
