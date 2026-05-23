@@ -285,6 +285,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	var camUI:FlxCamera;
 
 	var cachedSectionTimes:Array<Float> = [];
+	var cachedSectionSteps:Array<Float> = [];
 	
 	override function create()
 	{
@@ -349,7 +350,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		add(sectionLinesGroup);
 
 		waveform = new FlxSpriteGroup(gridTiledSprite.x + GRID_SIZE, 0);
-		waveform.scrollFactor.x = 0;
 		waveform.visible = false;
 		add(waveform);
 
@@ -428,7 +428,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		add(strumLineNotes);
 
 		followPoint = new FlxPoint(strumLine.x + CAM_OFFSET, strumLine.y);
-		FlxG.camera.follow(strumLine, LOCKON, 999);
 
 		dummyArrow = new FlxSprite().makeGraphic(GRID_SIZE, GRID_SIZE);
 		dummyArrow.screenCenter(X);
@@ -477,7 +476,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		waveformNeedsUpdate = true;
 
 		FlxG.camera.follow(strumLine, LOCKON, 999);
-		FlxG.camera.followLead.set();
 
 		add(renderedNotes);
 
@@ -931,6 +929,8 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			_song.notes[curSec].sectionBeats = stepperBeats.value;
 			reassignNotesBetweenSections(curSec);
 			reloadGridLayer();
+			updateWaveform();
+			updateGrid();
 		};
 
 		check_changeBPM = new PsychUICheckBox(10, stepperBeats.y + 30, 'Change BPM', 100);
@@ -951,6 +951,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			}
 			
 			reloadGridLayer();
+			updateWaveform();
 			updateGrid();
 			updateNoteUI();
 			FlxG.log.add('changed bpm');
@@ -966,6 +967,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 				metronomeStepper.value = stepperSectionBPM.value;
 			}
 
+			updateWaveform();
 			updateGrid();
 			updateNoteUI();
 		};
@@ -1941,8 +1943,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	function updateStrumLineNotes(elapsed:Float):Void
 	{
 		followPoint.set(strumLine.x + CAM_OFFSET, strumLine.y);
-		FlxG.camera.scroll.x = followPoint.x - FlxG.width / 2;
-		FlxG.camera.scroll.y = followPoint.y - FlxG.height / 2;
 
 		strumLineUpdateY();
 
@@ -2153,7 +2153,23 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			else
 			{
 				final gridMult = (GRID_SIZE * zoomList[curZoom]) / (quantization / 16);
-				dummyArrow.y = Math.floor(FlxG.mouse.y / gridMult) * gridMult;
+				final rawTime = getStrumTime(FlxG.mouse.y, true);
+
+				var secIndex = 0;
+				for (i in 0...cachedSectionTimes.length - 1) {
+					if (rawTime >= cachedSectionTimes[i] && rawTime < cachedSectionTimes[i + 1]) {
+						secIndex = i;
+						break;
+					}
+				}
+				if (rawTime >= cachedSectionTimes[cachedSectionTimes.length - 1]) {
+					secIndex = cachedSectionTimes.length - 2;
+					if (secIndex < 0) secIndex = 0;
+				}
+				
+				final sectionStartY = getYfromStrum(cachedSectionTimes[secIndex]);
+				final localY = FlxG.mouse.y - sectionStartY;
+				dummyArrow.y = sectionStartY + Math.floor(localY / gridMult) * gridMult;
 			}
 		} else {
 			dummyArrow.visible = false;
@@ -2776,7 +2792,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		gridTiledSprite.origin.set(0, 0);
 		gridTiledSprite.x = (FlxG.width - scaledGridWidth) / 2;
 		gridTiledSprite.scale.set(1, 1);
-		gridTiledSprite.scrollFactor.set(0, 1);
 
 		final gridLineLeft = new FlxSprite(gridTiledSprite.x + GRID_SIZE * curZoomMult, gridTiledSprite.y).makeGraphic(2, Std.int(absoluteHeight), 0xFF3C5888);
 		sectionLinesGroup.add(gridLineLeft);
@@ -3500,14 +3515,14 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 	function getStrumTime(yPos:Float, doZoomCalc:Bool = true):Float
 	{
-		var leZoom:Float = doZoomCalc ? zoomList[curZoom] : 1;
-		return ((yPos - gridTiledSprite.y) / (GRID_SIZE * leZoom)) * Conductor.stepCrochet;
+		final leZoom:Float = doZoomCalc ? zoomList[curZoom] : 1;
+		return getTimeFromVisualSteps((yPos - gridTiledSprite.y) / (GRID_SIZE * leZoom));
 	}
 
 	function getYfromStrum(strumTime:Float, doZoomCalc:Bool = true):Float
 	{
-		var leZoom:Float = doZoomCalc ? zoomList[curZoom] : 1;
-		return gridTiledSprite.y + ((strumTime / Conductor.stepCrochet) * GRID_SIZE * leZoom);
+		final leZoom:Float = doZoomCalc ? zoomList[curZoom] : 1;
+		return gridTiledSprite.y + (getVisualSteps(strumTime) * GRID_SIZE * leZoom);
 	}
 
 	function copyNote(note:MetaNote):Void
@@ -3894,29 +3909,90 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	private function _cacheSections()
 	{
 		cachedSectionTimes = [];
+		cachedSectionSteps = [];
 		if (_song == null || _song.notes == null || _song.notes.length == 0) {
 			cachedSectionTimes[0] = 0;
+			cachedSectionSteps[0] = 0;
 			return;
 		}
-		
+
 		var time:Float = 0;
+		var steps:Float = 0;
 		var bpm:Float = _song.bpm;
-		
+
 		for (i in 0..._song.notes.length)
 		{
 			var section = _song.notes[i];
 			if(section == null) {
 				cachedSectionTimes[i] = time;
+				cachedSectionSteps[i] = steps;
 				continue;
 			}
-			
+
 			if(section.changeBPM && section.bpm > 0)
 				bpm = section.bpm;
-				
+
 			cachedSectionTimes[i] = time;
-			time += (getSectionBeats(i) * (1000 * 60 / bpm));
+			cachedSectionSteps[i] = steps;
+
+			var secBeats = getSectionBeats(i);
+			time += (secBeats * (1000 * 60 / bpm));
+			steps += secBeats * 4;
 		}
 		cachedSectionTimes[_song.notes.length] = time;
+		cachedSectionSteps[_song.notes.length] = steps;
+	}
+
+	function getVisualSteps(time:Float):Float {
+		if (cachedSectionTimes.length == 0) _cacheSections();
+		
+		var secIndex = 0;
+		for (i in 0...cachedSectionTimes.length - 1) {
+			if (time >= cachedSectionTimes[i] && time < cachedSectionTimes[i + 1]) {
+				secIndex = i;
+				break;
+			}
+		}
+		if (time >= cachedSectionTimes[cachedSectionTimes.length - 1]) {
+			secIndex = cachedSectionTimes.length - 2;
+			if (secIndex < 0) secIndex = 0;
+		}
+
+		var timeInSec = time - cachedSectionTimes[secIndex];
+		var secBPM = _song.bpm;
+		for (i in 0...secIndex + 1) {
+			if (_song.notes[i] != null && _song.notes[i].changeBPM) secBPM = _song.notes[i].bpm;
+		}
+		if (secBPM <= 0) secBPM = 100;
+		
+		var stepCrochet = (1000 * 60 / secBPM) / 4;
+		return cachedSectionSteps[secIndex] + (timeInSec / stepCrochet);
+	}
+
+	function getTimeFromVisualSteps(steps:Float):Float {
+		if (cachedSectionSteps.length == 0) _cacheSections();
+		
+		var secIndex = 0;
+		for (i in 0...cachedSectionSteps.length - 1) {
+			if (steps >= cachedSectionSteps[i] && steps < cachedSectionSteps[i + 1]) {
+				secIndex = i;
+				break;
+			}
+		}
+		if (steps >= cachedSectionSteps[cachedSectionSteps.length - 1]) {
+			secIndex = cachedSectionSteps.length - 2;
+			if (secIndex < 0) secIndex = 0;
+		}
+
+		var stepsInSec = steps - cachedSectionSteps[secIndex];
+		var secBPM = _song.bpm;
+		for (i in 0...secIndex + 1) {
+			if (_song.notes[i] != null && _song.notes[i].changeBPM) secBPM = _song.notes[i].bpm;
+		}
+		if (secBPM <= 0) secBPM = 100;
+		
+		var stepCrochet = (1000 * 60 / secBPM) / 4;
+		return cachedSectionTimes[secIndex] + (stepsInSec * stepCrochet);
 	}
 
 	var wavData:Array<Array<Array<Float>>> = [[[0], [0]], [[0], [0]]];
@@ -4030,7 +4106,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	{
 		#if (lime_cffi && !macro)
 		if (buffer == null || buffer.data == null) return [[[0], [0]], [[0], [0]]];
-
 		var khz:Float = (buffer.sampleRate / 1000);
 		var channels:Int = buffer.channels;
 		var bits:Int = buffer.bitsPerSample;
@@ -4038,28 +4113,30 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		var startSample:Int = Std.int(time * khz);
 		var endSample:Int = Std.int(endTime * khz);
 		if (endSample <= startSample) return [[[0], [0]], [[0], [0]]];
-
 		var totalSamples:Int = endSample - startSample;
 		if (steps == null || steps <= 0) steps = 1280;
-		var samplesPerRow:Float = totalSamples / steps;
-		if (samplesPerRow < 1) samplesPerRow = 1;
 
 		array ??= [[[0], [0]], [[0], [0]]];
 		array[0][0] = []; array[0][1] = [];
 		array[1][0] = []; array[1][1] = [];
 
-		var row:Int = 0;
-		var nextSample:Float = startSample;
+		var zoomMult:Float = zoomList[curZoom];
 
-		while (row < steps && nextSample < endSample)
+		for (row in 0...Std.int(steps))
 		{
 			var lmin:Float = 0, lmax:Float = 0;
 			var rmin:Float = 0, rmax:Float = 0;
 
-			var samplesInRow:Int = Math.ceil(samplesPerRow);
-			for (i in 0...samplesInRow)
+			var rowTime:Float = getTimeFromVisualSteps(row / (GRID_SIZE * zoomMult));
+			var nextRowTime:Float = getTimeFromVisualSteps((row + 1) / (GRID_SIZE * zoomMult));
+
+			var rowStartSample:Int = Std.int(rowTime * khz);
+			var rowEndSample:Int = Std.int(nextRowTime * khz);
+
+			if (rowEndSample <= rowStartSample) rowEndSample = rowStartSample + 1;
+
+			for (sampleIdx in rowStartSample...rowEndSample)
 			{
-				var sampleIdx:Int = Std.int(nextSample + i);
 				if (sampleIdx >= endSample) break;
 
 				var byteOffset = sampleIdx * channels * (bits >> 3);
@@ -4112,9 +4189,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 				array[1][0].push(Math.abs(lmin) * multiply);
 				array[1][1].push(lmax * multiply);
 			}
-
-			nextSample += samplesPerRow;
-			row++;
 		}
 		return array;
 		#else
