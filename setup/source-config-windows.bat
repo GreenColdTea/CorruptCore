@@ -14,7 +14,6 @@ haxelib install format --quiet
 haxelib install hxp --quiet
 haxelib install svg
 haxelib install flixel-waveform --quiet --skip-dependencies
-haxelib install hxflac
 haxelib run lime setup flixel
 haxelib set flixel-tools 1.5.1
 haxelib set hxdiscord_rpc 1.3.0
@@ -24,7 +23,6 @@ haxelib git nape-haxe4 https://github.com/HaxeFlixel/nape-haxe4.git
 haxelib git haxeui-core https://github.com/FunkinCrew/haxeui-core.git
 haxelib git haxeui-flixel https://github.com/haxeui/haxeui-flixel.git
 haxelib git hxcpp https://github.com/GreenColdTea/hxcpp.git
-haxelib git hxopus https://github.com/FNF-CC-ENGINE/hxopus.git
 haxelib git hxvlc https://github.com/MAJigsaw77/hxvlc.git --quiet --skip-dependencies
 haxelib git flxgif https://github.com/FNF-CC-ENGINE/flxgif.git
 haxelib git flxsoundfilters https://github.com/TheZoroForce240/FlxSoundFilters.git

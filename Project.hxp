@@ -299,8 +299,6 @@ class Project extends HXProject
             {
                 haxelibs.push(new Haxelib("sl-windows-api"));
             }
-            haxelibs.push(new Haxelib("hxflac"));
-            haxelibs.push(new Haxelib("hxopus"));
             haxelibs.push(new Haxelib("flxsoundfilters"));
         }
 

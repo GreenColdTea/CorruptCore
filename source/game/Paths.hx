@@ -41,7 +41,7 @@ using StringTools;
 @:access(openfl.display.BitmapData)
 class Paths
 {
-    public static final SOUND_EXTS:Array<String> = [#if !flash "ogg", "wav", #if (hxflac || web) "flac", #end #if hxopus "opus", #end #end "mp3"];
+    public static final SOUND_EXTS:Array<String> = [#if !flash "ogg", "wav", "flac", "opus", #end "mp3"];
     public static final VIDEO_EXTS:Array<String> = ["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm"];
     public static final IMAGE_EXTS:Array<String> = ["png", "jpg", "jpeg"];
     public static final HSCRIPT_EXTS:Array<String> = ["hx", "hscript", "hxs"];
@@ -781,27 +781,7 @@ class Paths
                 var tempPath = Mods.extractFileFromZipMod(mod, filePath, 'sounds');
                 if(tempPath != null) {
                     if(!currentTrackedSounds.exists(file)) {
-                        #if hxopus
-                        if (ext == "opus") {
-                            var bytes = File.getBytes(tempPath);
-                            currentTrackedSounds.set(file, hxopus.Opus.toOpenFL(bytes));
-                        } else #end if (ext == "wav") {
-                            #if (sys && !web)
-                            if (FileSystem.exists(tempPath))
-                                currentTrackedSounds.set(file, CoolUtil.loadHighBitrateWav(key, tempPath));
-                            else
-                                currentTrackedSounds.set(file, Sound.fromFile(tempPath));
-                            #else
-                            currentTrackedSounds.set(file, Sound.fromFile(tempPath));
-                            #end
-                        #if hxflac
-                        } else if (ext == "flac") {
-                            var bytes = File.getBytes(tempPath);
-                            currentTrackedSounds.set(file, hxflac.FLACHelper.toOpenFL(bytes));
-                        #end
-                        } else {
-                            currentTrackedSounds.set(file, Sound.fromFile(tempPath));
-                        }
+                        currentTrackedSounds.set(file, Sound.fromFile(tempPath));
                     }
                     localTrackedAssets.push(file);
                     return currentTrackedSounds.get(file);
@@ -809,20 +789,7 @@ class Paths
             }
             else if(FileSystem.exists(file)) {
                 if(!currentTrackedSounds.exists(file)) {
-                    #if hxopus
-                    if (ext == "opus") {
-                        var bytes = File.getBytes(file);
-                        currentTrackedSounds.set(file, hxopus.Opus.toOpenFL(bytes));
-                    } else #end if (ext == "wav") {
-                        currentTrackedSounds.set(file, CoolUtil.loadHighBitrateWav(key, file));
-                    #if hxflac
-                    } else if (ext == "flac") {
-                        var bytes = File.getBytes(file);
-                        currentTrackedSounds.set(file, hxflac.FLACHelper.toOpenFL(bytes));
-                    #end
-                    } else {
-                        currentTrackedSounds.set(file, Sound.fromFile(file));
-                    }
+                    currentTrackedSounds.set(file, Sound.fromFile(file));
                 }
                 localTrackedAssets.push(file);
                 return currentTrackedSounds.get(file);
@@ -834,27 +801,7 @@ class Paths
             var soundPath:String = getPath((path != null ? '$path/' : '') + '$key.$ext', SOUND, library);
             if(OpenFlAssets.exists(soundPath)) {
                 if(!currentTrackedSounds.exists(soundPath)) {
-                    #if hxopus
-                    if (ext == "opus") {
-                        var bytes = OpenFlAssets.getBytes(soundPath);
-                        currentTrackedSounds.set(soundPath, hxopus.Opus.toOpenFL(bytes));
-                    } else #end if (ext == "wav") {
-                        #if (sys && !web)
-                        var absolutePath = getAbsolutePath(soundPath);
-                        if (FileSystem.exists(absolutePath))
-                            currentTrackedSounds.set(soundPath, CoolUtil.loadHighBitrateWav(key, absolutePath));
-                        else
-                            currentTrackedSounds.set(soundPath, OpenFlAssets.getSound(soundPath));
-                        #else
-                        currentTrackedSounds.set(soundPath, OpenFlAssets.getSound(soundPath));
-                        #end
-                    #if hxflac
-                    } else if (ext == "flac") {
-                        currentTrackedSounds.set(soundPath, hxflac.FLACHelper.toOpenFLFromFile(soundPath));
-                    #end
-                    } else {
-                        currentTrackedSounds.set(soundPath, OpenFlAssets.getSound(soundPath));
-                    }
+                    currentTrackedSounds.set(soundPath, OpenFlAssets.getSound(soundPath));
                 }
                 localTrackedAssets.push(soundPath);
                 return currentTrackedSounds.get(soundPath);

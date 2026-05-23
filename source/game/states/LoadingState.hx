@@ -26,14 +26,6 @@ import lime.utils.AssetManifest;
 import haxe.Exception;
 import haxe.io.Path;
 
-#if hxopus
-import hxopus.Opus;
-#end
-
-#if hxflac
-import hxflac.FLACHelper;
-#end
-
 import game.backend.StageData.StageFile;
 
 enum LoadTaskType {
@@ -376,20 +368,6 @@ class LoadingState extends MusicBeatState
         var extension = Path.extension(path).toLowerCase();
         try {
             switch(extension) {
-                #if hxopus
-                case "opus":
-                    var bytes = File.getBytes(path);
-                    return Opus.toOpenFL(bytes);
-                #end
-                
-                #if hxflac
-                case "flac":
-                    var bytes = File.getBytes(path);
-                    return FLACHelper.toOpenFL(bytes);
-                #end
-                
-                case "wav":
-                    return CoolUtil.loadHighBitrateWav(path, path);
                 default:
                     return Sound.fromFile(path);
             }
