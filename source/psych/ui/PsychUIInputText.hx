@@ -60,6 +60,8 @@ class PsychUIInputText extends PsychUIGroup
 	private var _capsLockEnabled:Bool = false;
 	private var _numLockEnabled:Bool = true;
 
+	public var scrollX:Float = 0;
+
 	public var name:String;
 	public var bg:FlxSprite;
 	public var behindText:FlxSprite;
@@ -91,7 +93,7 @@ class PsychUIInputText extends PsychUIGroup
 		this.bg = new FlxSprite().makeGraphic(1, 1, FlxColor.BLACK);
 		this.behindText = new FlxSprite(1, 1).makeGraphic(1, 1, FlxColor.WHITE);
 		this.selection = new FlxSprite().makeGraphic(1, 1, FlxColor.WHITE);
-		this.textObj = new FlxText(1, 1, Math.max(1, wid - 2), '', size);
+		this.textObj = new FlxText(1, 1, 0, '', size);
 		this.caret = new FlxSprite().makeGraphic(1, 1, FlxColor.WHITE);
 
 		add(this.bg);
@@ -673,7 +675,7 @@ class PsychUIInputText extends PsychUIGroup
 	function getCaretIndexAtPoint(mouseX:Float):Int
 	{
 		var textObjX:Float = textObj.getScreenPosition(camera).x;
-		var localX:Float = mouseX - textObjX + textObj.textField.scrollH;
+		var localX:Float = mouseX - textObjX + scrollX;
 		
 		var index:Int = textObj.textField.getCharIndexAtPoint(localX, textObj.textField.textHeight / 2);
 		if (index < 0) {
@@ -710,24 +712,45 @@ class PsychUIInputText extends PsychUIGroup
 	function updateCaret()
 	{
 		if(textObj == null || !textObj.exists) return;
-
 		var textField = textObj.textField;
 		_caretTime = 0;
-		
+
+		var caretOffset:Float = 0;
+		if(caretIndex > 0 && _boundaries.length > 0)
+		{
+			var boundaryIndex = Std.int(Math.min(_boundaries.length - 1, caretIndex - 1));
+			caretOffset = _boundaries[boundaryIndex];
+		}
+
+		final visibleWidth = behindText.width - 2;
+
+		if (caretOffset - scrollX < 0)
+		{
+			scrollX = caretOffset;
+		}
+		else if (caretOffset - scrollX > visibleWidth)
+		{
+			scrollX = caretOffset - visibleWidth;
+		}
+
+		if (textObj.width <= visibleWidth) 
+		{
+			scrollX = 0;
+		}
+
+		textObj.offset.x = scrollX;
+		if (textObj.clipRect == null) textObj.clipRect = new flixel.math.FlxRect();
+		textObj.clipRect.set(scrollX, 0, visibleWidth, textObj.height);
+		textObj.clipRect = textObj.clipRect;
+
 		if(caret?.exists)
 		{
 			caret.y = textObj.y + 2;
-			caret.x = textObj.x + 1 - textField.scrollH;
-			
-			if(caretIndex > 0 && _boundaries.length > 0)
-			{
-				var boundaryIndex = Std.int(Math.min(_boundaries.length - 1, caretIndex - 1));
-				caret.x += _boundaries[boundaryIndex];
-			}
-			
+			caret.x = textObj.x + 1 - scrollX + caretOffset;
+
 			var caretVisibleX = Math.max(behindText.x, Math.min(behindText.x + behindText.width - 1, caret.x));
 			caret.x = caretVisibleX;
-			
+
 			caret.visible = (_caretTime < 0.5);
 		}
 		
@@ -738,14 +761,14 @@ class PsychUIInputText extends PsychUIGroup
 				selection.visible = true;
 				selection.y = textObj.y + 2;
 				
-				var startX = textObj.x + 1 - textField.scrollH;
+				var startX = textObj.x + 1 - scrollX;
 				if(selectIndex > 0 && _boundaries.length > 0)
 				{
 					var selectBoundaryIndex = Std.int(Math.min(_boundaries.length - 1, selectIndex - 1));
 					startX += _boundaries[selectBoundaryIndex];
 				}
 				
-				var endX = textObj.x + 1 - textField.scrollH;
+				var endX = textObj.x + 1 - scrollX;
 				if(caretIndex > 0 && _boundaries.length > 0)
 				{
 					var caretBoundaryIndex = Std.int(Math.min(_boundaries.length - 1, caretIndex - 1));
@@ -834,7 +857,7 @@ class PsychUIInputText extends PsychUIGroup
 
 	function set_fieldWidth(v:Int)
 	{
-		textObj.fieldWidth = Math.max(1, v - 2);
+		textObj.fieldWidth = 0;
 		textObj.textField.selectable = false;
 		textObj.textField.wordWrap = false;
 		textObj.textField.multiline = false;
@@ -862,25 +885,39 @@ class PsychUIInputText extends PsychUIGroup
 	var _boundaries:Array<Float> = [];
 	function set_text(v:String)
 	{
-		for (i in 0..._boundaries.length) _boundaries.pop();
+		if (_boundaries.length > 0) _boundaries.splice(0, _boundaries.length);
 		v = filter(v);
 
-		textObj.text = '';
-		if(v != null && v.length > 0)
+		if (v != null && v.length > 0)
 		{
-			if(v.length > 1)
-				for (i in 0...v.length)
-				{
-					var toPrint:String = v.substr(i, 1);
-					if(toPrint == '\n') toPrint = ' ';
-					textObj.textField.appendText(!passwordMask ? toPrint : '*');
-					_boundaries.push(textObj.textField.textWidth);
-				}
+			var display:String;
+			if (passwordMask)
+			{
+				var buf = new StringBuf();
+				for (_ in 0...v.length) buf.add('*');
+				display = buf.toString();
+			}
+			else if (v.indexOf('\n') >= 0)
+			{
+				display = v.split('\n').join(' ');
+			}
 			else
 			{
-				textObj.text = !passwordMask ? v : '*';
-				_boundaries.push(textObj.textField.textWidth);
+				display = v;
 			}
+
+			textObj.text = display;
+			final tf = textObj.textField;
+			final fullWidth = tf.textWidth;
+			for (i in 0...display.length)
+			{
+				final bounds = tf.getCharBoundaries(i);
+				_boundaries.push(bounds != null ? bounds.right : fullWidth);
+			}
+		}
+		else
+		{
+			textObj.text = '';
 		}
 		text = v;
 		updateCaret();

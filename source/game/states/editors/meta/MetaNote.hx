@@ -127,10 +127,10 @@ class MetaNote extends Note
 			if (height < ChartEditorState.GRID_SIZE / 4) 
 				height = ChartEditorState.GRID_SIZE / 4;
 
-			sustainSprite.setGraphicSize(10, Std.int(height));
+			sustainSprite.setGraphicSize(Std.int(10 * zoom), Std.int(height));
 			sustainSprite.updateHitbox();
 
-			sustainEndSprite.setGraphicSize(sustainSprite.width);
+			sustainEndSprite.setGraphicSize(Std.int(10 * zoom), 0);
 			sustainEndSprite.updateHitbox();
 		}
 	}
@@ -192,8 +192,13 @@ class MetaNote extends Note
 
 		if(_noteTypeText != null && _noteTypeText.exists && _noteTypeText.visible)
 		{
-			_noteTypeText.x = this.x + this.width / 2 - _noteTypeText.width / 2;
-			_noteTypeText.y = this.y + this.height / 2 - _noteTypeText.height / 2;
+			final noteScale = this.width / ChartEditorState.GRID_SIZE;
+			
+			_noteTypeText.scale.set(noteScale, noteScale);
+			
+			_noteTypeText.x = this.x + (this.width - _noteTypeText.width) / 2;
+			_noteTypeText.y = this.y + (this.height - _noteTypeText.height) / 2;
+			
 			_noteTypeText.alpha = this.alpha;
 			_noteTypeText.draw();
 		}
@@ -232,7 +237,13 @@ class EventMetaNote extends MetaNote
 	{
 		if(eventText != null && eventText.exists && eventText.visible)
 		{
-			eventText.y = this.y + this.height / 2 - eventText.height / 2;
+			final noteScale = this.width / ChartEditorState.GRID_SIZE;
+			eventText.scale.set(noteScale, noteScale);
+			
+			final padding = 10 * noteScale;
+			eventText.x = this.x - padding - (eventText.width / 2) - (eventText.width / 2) * noteScale;
+			eventText.y = this.y + (this.height - eventText.height) / 2;
+			
 			eventText.alpha = this.alpha;
 			eventText.draw();
 		}
