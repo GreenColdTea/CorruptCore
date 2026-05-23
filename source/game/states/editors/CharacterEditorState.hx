@@ -1281,42 +1281,54 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		}
 	}
 
-	function handleArrowKeyMovement(elapsed:Float):Void
+	function handleArrowKeyMovement(elapsed:Float)
 	{
-		if(char.animationsArray.length == 0) return;
-		
+		if (char.animationsArray.length == 0) return;
+
 		updateArrowKeyStates();
-		
-		var shiftMultBig:Float = FlxG.keys.pressed.SHIFT ? 10 : 1;
+
+		var shiftMultBig = FlxG.keys.pressed.SHIFT ? 10 : 1;
 		var offsetChanged = false;
-		
-		if(arrowKeysJustPressed.contains(true))
-		{
-			char.offset.x += ((arrowKeysJustPressed[0] ? 1 : 0) - (arrowKeysJustPressed[1] ? 1 : 0)) * shiftMultBig;
-			char.offset.y += ((arrowKeysJustPressed[2] ? 1 : 0) - (arrowKeysJustPressed[3] ? 1 : 0)) * shiftMultBig;
+
+		if (arrowKeysJustPressed.contains(true)) {
+			final dx = ((arrowKeysJustPressed[0] ? 1 : 0) - (arrowKeysJustPressed[1] ? 1 : 0)) * shiftMultBig;
+			final dy = ((arrowKeysJustPressed[2] ? 1 : 0) - (arrowKeysJustPressed[3] ? 1 : 0)) * shiftMultBig;
+
+			if (char.isAnimateAtlas) {
+				char.atlas.offset.x += dx;
+				char.atlas.offset.y += dy;
+			} else {
+				char.offset.x += dx;
+				char.offset.y += dy;
+			}
 			offsetChanged = true;
 		}
 
-		if(arrowKeysPressed.contains(true))
-		{
+		if (arrowKeysPressed.contains(true)) {
 			holdingArrowsTime += elapsed;
-			if(holdingArrowsTime > 0.6)
-			{
+			if (holdingArrowsTime > 0.6) {
 				holdingArrowsElapsed += elapsed;
-				while(holdingArrowsElapsed > (1/60))
-				{
-					char.offset.x += ((arrowKeysPressed[0] ? 1 : 0) - (arrowKeysPressed[1] ? 1 : 0)) * shiftMultBig;
-					char.offset.y += ((arrowKeysPressed[2] ? 1 : 0) - (arrowKeysPressed[3] ? 1 : 0)) * shiftMultBig;
-					holdingArrowsElapsed -= (1/60);
+				while (holdingArrowsElapsed > (1 / 60)) {
+					final dx = ((arrowKeysPressed[0] ? 1 : 0) - (arrowKeysPressed[1] ? 1 : 0)) * shiftMultBig;
+					final dy = ((arrowKeysPressed[2] ? 1 : 0) - (arrowKeysPressed[3] ? 1 : 0)) * shiftMultBig;
+
+					if (char.isAnimateAtlas) {
+						char.atlas.offset.x += dx;
+						char.atlas.offset.y += dy;
+					} else {
+						char.offset.x += dx;
+						char.offset.y += dy;
+					}
+
+					holdingArrowsElapsed -= (1 / 60);
 					offsetChanged = true;
 				}
 			}
+		} else {
+			holdingArrowsTime = 0;
 		}
-		else holdingArrowsTime = 0;
 
-		if (offsetChanged) {
-			saveOffsetChanges();
-		}
+		if (offsetChanged) saveOffsetChanges();
 	}
 
 	function updateArrowKeyStates():Void
@@ -1332,26 +1344,27 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		arrowKeysJustPressed[3] = FlxG.keys.justPressed.DOWN;
 	}
 
-	function saveOffsetChanges():Void
+	function saveOffsetChanges()
 	{
 		if (char.animationsArray[curAnim] != null) {
-			var animName = char.animationsArray[curAnim].anim;
-			char.animOffsets.set(animName, [char.offset.x, char.offset.y]);
-			
+			final curX = char.isAnimateAtlas ? char.atlas.offset.x : char.offset.x;
+			final curY = char.isAnimateAtlas ? char.atlas.offset.y : char.offset.y;
+
+			final animName = char.animationsArray[curAnim].anim;
+			char.animOffsets.set(animName, [curX, curY]);
+
 			for (anim in char.animationsArray) {
 				if (anim.anim == animName) {
-					anim.offsets = [Std.int(char.offset.x), Std.int(char.offset.y)];
+					anim.offsets = [Std.int(curX), Std.int(curY)];
 					break;
 				}
 			}
-			
-			if (ghostChar.visible && !ghostChar.isAnimationNull() && 
-				ghostChar.getAnimationName() == animName) 
-			{
-				ghostChar.animOffsets.set(animName, [char.offset.x, char.offset.y]);
-				ghostChar.offset.set(char.offset.x, char.offset.y);
+
+			if (ghostChar.visible && !ghostChar.isAnimationNull() && ghostChar.getAnimationName() == animName) {
+				ghostChar.animOffsets.set(animName, [curX, curY]);
+				ghostChar.offset.set(curX, curY);
 			}
-			
+
 			genBoyOffsets();
 			saveHistoryStuff();
 		}
@@ -1686,7 +1699,7 @@ class CharacterEditorTipsSubstate extends MusicBeatSubstate
 		bg.scrollFactor.set();
 		add(bg);
 
-		var text:String = 
+		final text:String = 
 			"E/Q - Zoom In/Out\n" +
 			"R - Reset Zoom\n" +
 			"Drag Mouse - Move Camera\n" +
