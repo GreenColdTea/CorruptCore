@@ -83,7 +83,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 	var draggingCamera:Bool = false;
 	var cameraSmoothness:Float = 0.2;
 	var cameraDragSensitivity:Float = 0.5;
-	var cameraScrollTarget:FlxPoint = FlxPoint.get(FlxG.camera.scroll.x, FlxG.camera.scroll.y);
+	var cameraScrollTarget:FlxPoint = FlxPoint.get(0, 0);
 
 	var lastAutoSaveTime:Float = 0;
 
@@ -156,23 +156,23 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 
 		healthBarBG = new FlxSprite(30, FlxG.height - 75).loadGraphic(Paths.image('healthBar'));
 		healthBarBG.scrollFactor.set();
-		healthBarBG.camera = camUI;
+		healthBarBG.cameras = [camUI];
 		add(healthBarBG);
 
 		leHealthIcon = new HealthIcon(char.healthIcon, false);
 		leHealthIcon.y = FlxG.height - 150;
-		leHealthIcon.camera = camUI;
+		leHealthIcon.cameras = [camUI];
 		add(leHealthIcon);
 
 		dumbTexts = new FlxTypedGroup<FlxText>();
-		dumbTexts.camera = camUI;
+		dumbTexts.cameras = [camUI];
 		add(dumbTexts);
 
 		errorAnimText = new FlxText(300, 16, "ERROR ON LOADING ANIMATION");
 		errorAnimText.setFormat(Paths.font("vcr.ttf"), 32, FlxColor.WHITE, RIGHT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 		errorAnimText.scrollFactor.set();
 		errorAnimText.borderSize = 1;
-		errorAnimText.camera = camUI;
+		errorAnimText.cameras = [camUI];
 		errorAnimText.visible = false;
 		add(errorAnimText);
 
@@ -194,7 +194,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		var pressF1Text:FlxText = new FlxText(0, FlxG.height - 20, 0, "Press F1 to open tips", 8);
 		pressF1Text.setFormat(Paths.font("pixel-latin.ttf"), 8, FlxColor.WHITE, RIGHT, FlxTextBorderStyle.OUTLINE_FAST, FlxColor.BLACK);
 		pressF1Text.scrollFactor.set();
-		pressF1Text.camera = camUI;
+		pressF1Text.cameras = [camUI];
 		pressF1Text.borderSize = 1;
 		add(pressF1Text);
 
@@ -206,15 +206,14 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 	function createUIMenu()
 	{
 		UI_box = new PsychUIBox(FlxG.width - 275, 25, 250, 120, ['Ghost', 'Settings']);
-		UI_box.camera = camUI;
+		UI_box.cameras = [camUI];
 
 		UI_characterbox = new PsychUIBox(UI_box.x - 100, UI_box.y + UI_box.height + 10, 350, 280, ['Animations', 'Character']);
-		UI_characterbox.resize(350, 280);
-		UI_characterbox.camera = camUI;
+		UI_characterbox.cameras = [camUI];
 
 		UI_animList = new PsychUIBox(10, 25, 280, 450, ['Offsets']);
-		//UI_animList.selectedTab.scrollable = true;
-		UI_animList.camera = camUI;
+		UI_animList.selectedTab.scrollable = true;
+		UI_animList.cameras = [camUI];
 
 		add(UI_characterbox);
 		add(UI_box);
@@ -818,7 +817,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			var text:FlxText = new FlxText(10, 10 + (daLoop * 18), 0, anim.anim + ": " + offsets, 15);
 			text.setFormat(null, 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 			text.borderSize = 1;
-			text.camera = camUI;
+			text.cameras = [camUI];
 			
 			tab_group.add(text);
 			daLoop++;

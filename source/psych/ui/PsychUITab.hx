@@ -178,7 +178,35 @@ class PsychUITab extends FlxSprite
 					final spr:FlxSprite = cast member;
 					spr.visible = spr.y + spr.height >= boxTop && spr.y <= boxBottom;
 					spr.active = spr.visible;
-					
+
+					if (Std.isOfType(spr, FlxText)) {
+						if (spr.visible) {
+							var cY:Float = 0;
+							var cH:Float = spr.frameHeight;
+							
+							if (spr.y < boxTop) {
+								cY = boxTop - spr.y;
+								cH -= cY;
+							}
+							if (spr.y + spr.frameHeight > boxBottom) {
+								cH -= (spr.y + spr.frameHeight) - boxBottom;
+							}
+							
+							if (cH > 0) {
+								if (spr.clipRect == null) spr.clipRect = flixel.math.FlxRect.get();
+								spr.clipRect.set(0, cY, spr.frameWidth, cH);
+								spr.clipRect = spr.clipRect;
+							} else {
+								spr.visible = false;
+							}
+						}
+						
+						if (!spr.visible && spr.clipRect != null) {
+							spr.clipRect.put();
+							spr.clipRect = null;
+						}
+					}
+
 					var relY = (spr.y - menu.y) + spr.height;
 					if (relY > maxContentHeight) maxContentHeight = relY;
 				}
