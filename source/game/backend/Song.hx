@@ -169,17 +169,86 @@ class Song
 		else
 		#end
 			rawJson = Assets.getText(Paths.json('songs/$formattedFolder/$formattedSong')).trim();
-
+		
 		while (!rawJson.endsWith("}"))
-		{
 			rawJson = rawJson.substr(0, rawJson.length - 1);
-			// LOL GOING THROUGH THE BULLSHIT TO CLEAN IDK WHATS STRANGE
-		}
+		
+		var songJson:SwagSong = parseJSONshit(rawJson);
+		songJson = cleanChart(songJson);
 
-		var songJson:Dynamic = parseJSONshit(rawJson);
 		if(jsonInput != 'events') StageData.loadDirectory(songJson);
 		onLoadJson(songJson);
+		
 		return songJson;
+	}
+
+	public static function cleanChart(song:SwagSong):SwagSong
+	{
+		if (song.notes != null) {
+			for (section in song.notes) {
+				if (section?.sectionNotes != null) {
+					var uniqueNotes:Array<Dynamic> = [];
+
+					for (note in section.sectionNotes) {
+						var isDup:Bool = false;
+						for (uNote in uniqueNotes) {
+							if (Math.abs(uNote[0] - note[0]) < 1 && uNote[1] == note[1]) {
+								isDup = true;
+								break;
+							}
+						}
+						if (!isDup) uniqueNotes.push(note);
+					}
+
+					section.sectionNotes = uniqueNotes;
+				}
+			}
+		}
+
+		if (song.events != null) {
+			var timeMap:Map<String, Array<Dynamic>> = new Map();
+			var newEvents:Array<Dynamic> = [];
+			
+			for (eventNode in song.events) {
+				if (eventNode == null || eventNode[1] == null) continue;
+				
+				final timeKey = Std.string(Math.round(eventNode[0])); 
+				
+				if (!timeMap.exists(timeKey))
+					timeMap.set(timeKey, []);
+				
+				final existingSubEvents = timeMap.get(timeKey);
+				for (subEvent in cast(eventNode[1], Array<Dynamic>)) {
+					var isSubDup:Bool = false;
+
+					for (e in existingSubEvents) {
+						if (e[0] == subEvent[0] && e[1] == subEvent[1] && e[2] == subEvent[2]) {
+							isSubDup = true;
+							break;
+						}
+					}
+					
+					if (!isSubDup) existingSubEvents.push(subEvent);
+				}
+			}
+			
+			for (timeKey in timeMap.keys()) {
+				var subEvents = timeMap.get(timeKey);
+				if (subEvents.length > 0) {
+					newEvents.push([Std.parseFloat(timeKey), subEvents]);
+				}
+			}
+			
+			newEvents.sort((a:Dynamic, b:Dynamic) -> {
+				if (a[0] < b[0]) return -1;
+				if (a[0] > b[0]) return 1;
+				return 0;
+			});
+			
+			song.events = newEvents;
+		}
+
+		return song;
 	}
 
 	public static function parseJSONshit(rawJson:String):SwagSong
@@ -209,7 +278,7 @@ class Song
 			bpm: 150.0,
 			needsVoices: true,
 			arrowSkin: '',
-			splashSkin: game.objects.NoteSplash.defaultNoteSplash,//idk it would crash if i didn't
+			splashSkin: game.objects.NoteSplash.defaultNoteSplash, //idk it would crash if i didn't
 			holdCoverSkin: 'holdCovers',
 			player1: 'bf',
 			player2: 'dad',

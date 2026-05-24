@@ -1596,7 +1596,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			mouseQuant = chartEditorSave.data.mouseScrollingQuant;
 		};
 
-		check_vortex = new PsychUICheckBox(10, 160, "Vortex Editor (BETA)", 100);
+		check_vortex = new PsychUICheckBox(10, 160, "Vortex Editor", 100);
 		chartEditorSave.data.chart_vortex ??= false;
 		check_vortex.checked = chartEditorSave.data.chart_vortex;
 
@@ -2363,7 +2363,20 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		final activeNotes = ["player" => false, "opponent" => false];
 		final playedSound = [false, false, false, false, false, false, false, false];
 		
+		final camY = FlxG.camera.scroll.y;
+		final camHeight = FlxG.camera.height;
+		final safeZone = 300; 
+
 		renderedNotes.forEachAlive((note:MetaNote) -> {
+			final noteBottom = note.y + note.height + (note.sustainLength > 0 ? note.sustainSprite?.height ?? 0 : 0);
+			if (noteBottom < camY - safeZone || note.y > camY + camHeight + safeZone) {
+				note.visible = false;
+				note.active = false;
+				return;
+			}
+
+			note.visible = true;
+			note.active = true;
 			note.alpha = 1;
 			
 			if (curSelectedNote != null)
@@ -2375,7 +2388,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			if (note.strumTime <= Conductor.songPosition)
 				handleNotePlayback(note, playedSound);
 		});
-		
+
 		updateCharacterDanceStates(activeNotes);
 	}
 
@@ -2803,15 +2816,18 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			sectionLinesGroup.add(gridLineRight);
 		}
 
+		var dummySecLine = new FlxSprite().makeGraphic(Std.int(scaledGridWidth), 2, FlxColor.RED);
+		var dummyBeatLine = new FlxSprite().makeGraphic(Std.int(scaledGridWidth), 1, gridColors.beatLines);
+
 		for (i in 0..._song.notes.length) {
 			final secY = Math.round(getYfromStrum(cachedSectionTimes[i]));
-			
 			if (secY > maxPixelY + 1) continue; 
 
 			final beats = getSectionBeats(i);
 			final beatHeight = GRID_SIZE * 4 * curZoomMult;
 			
-			final sLine = new FlxSprite(gridTiledSprite.x, secY).makeGraphic(Std.int(scaledGridWidth), 2, FlxColor.RED);
+			final sLine = new FlxSprite(gridTiledSprite.x, secY);
+			sLine.loadGraphic(dummySecLine.graphic); 
 			sectionLinesGroup.add(sLine);
 
 			if (vortex) {
@@ -2819,7 +2835,8 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 					final beatY = Math.round(secY + (b * beatHeight));
 					if (beatY > maxPixelY + 1) continue; 
 
-					final bLine = new FlxSprite(gridTiledSprite.x, beatY).makeGraphic(Std.int(scaledGridWidth), 1, gridColors.beatLines);
+					final bLine = new FlxSprite(gridTiledSprite.x, beatY);
+					bLine.loadGraphic(dummyBeatLine.graphic);
 					bLine.alpha = 0.5;
 					sectionLinesGroup.add(bLine);
 				}

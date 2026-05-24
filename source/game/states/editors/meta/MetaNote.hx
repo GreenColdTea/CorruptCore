@@ -255,12 +255,14 @@ class EventMetaNote extends MetaNote
 	public var events:Array<Array<String>>;
 	public function updateEventText()
 	{
+		if (eventText == null) return;
+		
 		var myTime:Float = Math.floor(this.strumTime);
 		if(events.length == 1)
 		{
 			var event = events[0];
 			var text:String = 'Event: ${event[0]} ($myTime ms)\nValue 1: ${event[1]}\nValue 2: ${event[2]}';
-			if(event[3] != null && event[3].length > 0)
+			if(event[3]?.length > 0)
 				text += '\nValue 3: ${event[3]}';
 			eventText.text = text;
 		}
