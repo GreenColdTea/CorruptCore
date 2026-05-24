@@ -785,15 +785,16 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		player2DropDown.selectedLabel = _song.player2;
 
 		#if MODS_ALLOWED
-		var directories:Array<String> = [Mods.getModPath('stages/'), Mods.getModPath(Mods.currentModDirectory + '/stages/'),  Paths.getPreloadPath('stages/')];
+		var directories:Array<String> = [Mods.getModPath('data/stages/'), Mods.getModPath(Mods.currentModDirectory + '/data/stages/'), 
+			Paths.getPreloadPath('data/stages/')];
 		for(mod in Mods.getGlobalMods())
-			directories.push(Mods.getModPath(mod + '/stages/'));
+			directories.push(Mods.getModPath(mod + '/data/stages/'));
 		#else
-		var directories:Array<String> = [Paths.getPreloadPath('stages/')];
+		var directories:Array<String> = [Paths.getPreloadPath('data/stages/')];
 		#end
 
 		tempMap.clear();
-		var stageFile:Array<String> = CoolUtil.coolTextFile( Paths.txt('stageList'));
+		var stageFile:Array<String> = CoolUtil.coolTextFile(Paths.txt('stageList'));
 		var stages:Array<String> = [];
 		for (i in 0...stageFile.length) {
 			var stageToCheck:String = stageFile[i];

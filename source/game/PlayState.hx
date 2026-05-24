@@ -764,9 +764,9 @@ class PlayState extends MusicBeatState
 		}
 
 		// STAGE SCRIPTS
-		startLuasOnFolder('stages/' + curStage + '.lua');
+		startLuasOnFolder('data/stages/' + curStage + '.lua');
 		for (ext in Paths.HSCRIPT_EXTS)
-			startHScriptOnFolder('stages/' + curStage + '.$ext');
+			startHScriptOnFolder('data/stages/' + curStage + '.$ext');
 
 		if (!stageData.hide_girlfriend)
 		{
