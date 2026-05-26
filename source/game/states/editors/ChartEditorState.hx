@@ -728,7 +728,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		stepperSpeed.value = _song.speed;
 		stepperSpeed.name = 'song_speed';
 		stepperSpeed.onValueChange = () -> _song.speed = stepperSpeed.value;
-		var directories:Array<String> = [#if MODS_ALLOWED Mods.getModPath('data/characters/'), Mods.getModPath(Mods.currentModDirectory + '/data/characters/'), #end  Paths.getPreloadPath('data/characters/')];
+		var directories:Array<String> = [#if MODS_ALLOWED Mods.getModPath('data/characters/'), Mods.getModPath(Mods.currentModDirectory + '/data/characters/'), #end Paths.getPreloadPath('data/characters/')];
 		#if MODS_ALLOWED
 		for(mod in Mods.getGlobalMods())
 			directories.push(Mods.getModPath(mod + '/data/characters/'));
@@ -1224,6 +1224,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 					}
 				});
 			}
+			refreshSelectedNotesVisuals();
 		}
 
 		strumTimeInputText = new PsychUIInputText(10, 65, 180, "0");
@@ -2638,6 +2639,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 					});
 					
 					updateNoteUI();
+					refreshSelectedNotesVisuals();
 				}
 			}
 		}
@@ -2879,6 +2881,36 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		}
 
 		updateNoteUI();
+		refreshSelectedNotesVisuals();
+	}
+
+	function refreshSelectedNotesVisuals()
+	{
+		final oldSelected = selectedNotes.copy();
+		selectedNotes.resize(0);
+		
+		var notesToReplace:Array<MetaNote> = [];
+		renderedNotes.forEachAlive(function(note:MetaNote) {
+			if (oldSelected.contains(note) || (curSelectedNote != null && note.songData == curSelectedNote)) {
+				notesToReplace.push(note);
+			}
+		});
+
+		for (oldNote in notesToReplace) {
+			final newNote = createMetaNote(oldNote.songData, curSec);
+			
+			renderedNotes.remove(oldNote, true);
+			oldNote.destroy();
+			renderedNotes.add(newNote);
+			
+			if (newNote.sustainLength > 0)
+				newNote.setSustainLength(newNote.sustainLength, Conductor.stepCrochet, zoomList[curZoom]);
+			
+			if (oldSelected.contains(oldNote)) {
+				selectedNotes.push(newNote);
+				newNote.color = FlxColor.BLUE;
+			}
+		}
 	}
 
 	function recalculateSteps(add:Float = 0):Int
@@ -4403,8 +4435,8 @@ class ChartSelectorSubstate extends MusicBeatSubstate
 			#if sys
 			if (FileSystem.exists(fullPath) && FileSystem.isDirectory(fullPath)) {
 				for (file in FileSystem.readDirectory(fullPath)) {
-					if (file.endsWith('.json') && file != 'events.json') {
-						var chartName = file.substr(0, file.length - 5);
+					if (file.endsWith('.json') && file.startsWith(currentSong)) {
+						final chartName = file.substr(0, file.length - 5);
 						charts.push(chartName);
 					}
 				}
@@ -4412,15 +4444,14 @@ class ChartSelectorSubstate extends MusicBeatSubstate
 			#end
 			
 			#if MODS_ALLOWED
-			var modDirs = [Mods.currentModDirectory];
-			for (mod in modDirs) {
+			for (mod in [Mods.currentModDirectory]) {
 				if (mod == null || mod.length == 0) continue;
 				
-				var modPath = Mods.getModPath('$mod/data/songs/$currentSong');
+				final modPath = Mods.getModPath('$mod/data/songs/$currentSong');
 				if (FileSystem.exists(modPath) && FileSystem.isDirectory(modPath)) {
 					for (file in FileSystem.readDirectory(modPath)) {
-						if (file.endsWith('.json') && file != 'events.json' && !charts.contains(file.substr(0, file.length - 5))) {
-							var chartName = file.substr(0, file.length - 5);
+						if (file.endsWith('.json') && file.startsWith(currentSong) && !charts.contains(file.substr(0, file.length - 5))) {
+							final chartName = file.substr(0, file.length - 5);
 							charts.push(chartName);
 						}
 					}
@@ -4430,11 +4461,11 @@ class ChartSelectorSubstate extends MusicBeatSubstate
 			
 			for (file in OpenFlAssets.list(TEXT).filter(f -> f.startsWith('$fullPath/$currentSong'))) {
 				if (file.endsWith('.json')) {
-					var parts = file.split('/');
+					final parts = file.split('/');
 					if (parts.length >= 3) {
-						var fileName = parts[parts.length - 1];
+						final fileName = parts[parts.length - 1];
 						if (fileName != 'events.json') {
-							var chartName = fileName.substr(0, fileName.length - 5);
+							final chartName = fileName.substr(0, fileName.length - 5);
 							if (!charts.contains(chartName)) {
 								charts.push(chartName);
 							}

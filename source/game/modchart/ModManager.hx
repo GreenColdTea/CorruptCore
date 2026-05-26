@@ -314,8 +314,8 @@ class ModManager {
     /**
      * Calculates visual position based on song timing
      */
-    inline public function getVisPos(songPos:Float = 0, strumTime:Float = 0, songSpeed:Float = 1):Float {
-        return -(0.45 * (songPos - strumTime) * songSpeed);
+    inline public function getVisPos(songPos:Float = 0, strumTime:Float = 0, songSpeed:Float = 1, multSpeed:Float = 1):Float {
+        return -(0.45 * (songPos - strumTime) * songSpeed * multSpeed);
     }
 
     /**

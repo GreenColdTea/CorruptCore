@@ -39,7 +39,7 @@ class InfinitePathModifier extends PathModifier {
             
             // All note columns share the same path shape
             for (noteData in 0...infinitePath.length) {
-                infinitePath[noteData].push(pathPoint);
+                infinitePath[noteData].push(new Vector3(pathPoint.x, pathPoint.y, pathPoint.z));
             }
             
             currentAngle += angleStep;
@@ -69,5 +69,27 @@ class InfinitePathModifier extends PathModifier {
         var y = screenCenterY + (FlxMath.fastSin(radians) * FlxMath.fastCos(radians)) * scaleFactor;
         
         return new Vector3(x, y, 0);
+    }
+
+    override function getPos(time:Float, visualDiff:Float, timeDiff:Float, beat:Float, pos:Vector3, data:Int, player:Int, obj:FlxSprite):Vector3 {
+        var safeVisualDiff:Float = visualDiff;
+        if (safeVisualDiff < 0)
+            safeVisualDiff = 0;
+        
+        return super.getPos(time, safeVisualDiff, timeDiff, beat, pos, data, player, obj);
+    }
+
+    override private function calculatePathProgress(timeDiff:Float, noteData:Int):Float {
+        var progress = super.calculatePathProgress(timeDiff, noteData);
+        var loopDist = totalDists[noteData];
+        
+        if (loopDist > 0) {
+            progress = progress % loopDist;
+            
+            if (progress < 0)
+                progress += loopDist;
+        }
+        
+        return progress;
     }
 }

@@ -166,7 +166,7 @@ class PathModifier extends NoteModifier {
       var currentPoint = path[pointIndex];
       var nextPoint = path[pointIndex + 1];
       
-      if (progress > currentPoint.start && progress < currentPoint.end) {
+      if (progress >= currentPoint.start && progress <= currentPoint.end) {
         var interpolationAlpha = (currentPoint.start - progress) / currentPoint.dist;
         var pathPosition = currentPoint.position.lerp(nextPoint.position, interpolationAlpha);
         outputPos = originalPos.lerp(pathPosition, getValue(player));

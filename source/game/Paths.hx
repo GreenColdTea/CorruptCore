@@ -466,7 +466,19 @@ class Paths
         {
             for (ext in IMAGE_EXTS)
             {
-                var file:String = getPath('images/$key.$ext', IMAGE, library, true);
+                var file:String = null;
+                #if MODS_ALLOWED
+                if (library != null)
+                {
+                    final modFile = Mods.modFolders('$library/images/$key.$ext');
+                    file = FileSystem.exists(modFile) ? modFile : getPath('images/$key.$ext', IMAGE, library, true);
+                }
+                else
+                #end
+                {
+                    file = getPath('images/$key.$ext', IMAGE, library, true);
+                }
+                
                 #if MODS_ALLOWED
                 if (file.startsWith('zip://'))
                 {
@@ -575,9 +587,6 @@ class Paths
 					return true;
 
 			if (FileSystem.exists(Mods.getModPath(Mods.currentModDirectory + '/' + key)) || FileSystem.exists(Mods.getModPath(key)))
-				return true;
-
-			if (FileSystem.exists(Mods.getModPath('$key')))
 				return true;
 		}
 		#end

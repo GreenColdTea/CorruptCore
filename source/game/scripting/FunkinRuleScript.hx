@@ -1,3 +1,4 @@
+#if HSCRIPT_ALLOWED
 package game.scripting;
 
 #if sys
@@ -162,58 +163,64 @@ class FunkinRuleScript {
     }
 
     private function initScriptedClasses() {
-        ScriptedTypeUtil.resolveModule = function(name:String):Array<ModuleDecl>
-        {
-            var path = Tools.parseTypePath(name);
-            if (path.name == null || path.name.length == 0) {
-                if (shouldTraceErrors())
-                    trace('Invalid module path: $name');
+        ScriptedTypeUtil.resolveModule = function(name:String):Array<ModuleDecl> {
+            final filePath = 'source/${name.replace('.', '/')}.hxc';
+            if (!Paths.fileExists(filePath, TEXT))
                 return null;
-            }
 
-            var filePath = 'source/${path.name.replace('.', '/')}.hxc';
-
-            if (!Paths.fileExists(filePath, TEXT)) {
-                //trace('Module not found: $filePath');
-                return null;
-            }
-
-            var content = Paths.getTextFromFile(filePath);
+            final content = Paths.getTextFromFile(filePath);
             if (content == null) {
-                if (shouldTraceErrors())
-                    trace('Failed to load module content: $filePath');
+                if (shouldTraceErrors()) trace('Failed to load module content: $filePath');
                 return null;
             }
 
             var parser = new HxParser();
             parser.allowAll();
             parser.mode = MODULE;
-
             try {
                 return parser.parseModule(content);
             } catch (e:Dynamic) {
-                if (shouldTraceErrors())
-                    trace('Failed to parse module $filePath: $e');
+                if (shouldTraceErrors()) trace('Failed to parse module $filePath: $e');
                 return null;
             }
-        }
+        };
 
-        RuleScriptedClassUtil.buildBridge = function(typePath:String, superInstance:Dynamic):RuleScript
-        {
+        ScriptedTypeUtil.resolveScript = function(name:String):Dynamic {
+            final path = Tools.parseTypePath(name);
+            if (path.name == null || path.name.length == 0) {
+                if (shouldTraceErrors()) trace('Invalid script path: $name');
+                return null;
+            }
+
+            final moduleName = path.modulePath();
+            final module = ScriptedTypeUtil.resolveModule(moduleName);
+            if (module == null) return null;
+
+            try {
+                @:privateAccess
+                var scriptedModule = new ScriptedModule(moduleName, module, ScriptedTypeUtil._currentContext);
+                var type = scriptedModule.types[path.typeName];
+                if (type != null)
+                    RuleScriptedClassUtil.registerRuleScriptedClass(name, cast type);
+                
+                return type;
+            } catch (e:Dynamic) {
+                if (shouldTraceErrors()) trace('Failed to create scripted module for $name: $e');
+                return null;
+            }
+        };
+
+        RuleScriptedClassUtil.buildBridge = function(typePath:String, superInstance:Dynamic):RuleScript {
             var type:ScriptedClassType = ScriptedTypeUtil.resolveScript(typePath);
             if (type == null) {
-                if (shouldTraceErrors())
-                    trace('Failed to resolve script type: $typePath');
+                if (shouldTraceErrors()) trace('Failed to resolve script type: $typePath');
                 return null;
             }
-
             var script = new RuleScript(new RuleScriptInterpEx());
             script.scriptName = typePath;
-
             script.getParser(HxParser).allowAll();
             script.superInstance = superInstance;
             script.getInterp(RuleScriptInterpEx).skipNextRestore = true;
-
             if (type.isExpr) {
                 script.execute(cast type);
                 return script;
@@ -221,34 +228,7 @@ class FunkinRuleScript {
                 var cl:ScriptedClass = cast type;
                 RuleScriptedClassUtil.buildScriptedClass(cl, script);
             }
-
             return script;
-        };
-
-        ScriptedTypeUtil.resolveScript = function(name:String):Dynamic
-        {
-            var path = Tools.parseTypePath(name);
-            if (path.name == null || path.name.length == 0) {
-                if (shouldTraceErrors())
-                    trace('Invalid script path: $name');
-                return null;
-            }
-
-            final module:Array<ModuleDecl> = ScriptedTypeUtil.resolveModule(path.modulePath());
-            if (module == null) {
-                //trace('Module not found for script: $name');
-                return null;
-            }
-
-            try {
-                @:privateAccess
-                var scriptedModule = new ScriptedModule(path.modulePath(), module, ScriptedTypeUtil._currentContext);
-                return scriptedModule.types[path.typeName];
-            } catch (e:Dynamic) {
-                if (shouldTraceErrors())
-                    trace('Failed to create scripted module for $name: $e');
-                return null;
-            }
         };
     }
 
@@ -395,15 +375,21 @@ class FunkinRuleScript {
     }
 
     public function resolveType(typeName:String):Dynamic {
-        var cl = Type.resolveClass(typeName);
+        var full = typeName;
+        var cl = Type.resolveClass(full);
         if (cl != null) return cl;
+
+        var scripted = ScriptedTypeUtil.resolveScript(full);
+        if (scripted != null) return scripted;
         
         for (pkg in importedPackages.keys()) {
-            cl = Type.resolveClass(pkg + "." + typeName);
+            var candidate = pkg + "." + typeName;
+            cl = Type.resolveClass(candidate);
             if (cl != null) return cl;
+            scripted = ScriptedTypeUtil.resolveScript(candidate);
+            if (scripted != null) return scripted;
         }
         
-        // Try to resolve as scripted class
         try {
             var scriptedType = ScriptedTypeUtil.resolveScript(typeName);
             if (scriptedType != null) return scriptedType;
@@ -500,3 +486,4 @@ class FunkinRuleScript {
         parentInstance = null;
     }
 }
+#end

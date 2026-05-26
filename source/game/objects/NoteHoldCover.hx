@@ -85,6 +85,8 @@ class NoteHoldCover extends flixel.addons.effects.FlxSkewedSprite {
             return;
         }
 
+        visible = true;
+
         if (activeCovers.exists(strum)) {
             var existingCover = activeCovers.get(strum);
             if (existingCover != this) existingCover.finishCover();
@@ -98,11 +100,7 @@ class NoteHoldCover extends flixel.addons.effects.FlxSkewedSprite {
             return;
         }
 
-        final strumTime = parentNote.strumTime;
-        final lengthToGet = parentNote.tail.length;
-        
-        final timeThingy = (startCrochet * lengthToGet + (strumTime - Conductor.songPosition + ClientPrefs.ratingOffset)) / 1000;
-        endTime = Conductor.songPosition + (timeThingy * 1000);
+        endTime = parentNote.strumTime + parentNote.sustainLength;
 
         colorSwap.hue = hueColor;
         colorSwap.saturation = satColor;

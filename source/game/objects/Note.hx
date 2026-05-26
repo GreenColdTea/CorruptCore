@@ -50,6 +50,9 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 	public var prevNote:Note;
 	public var nextNote:Note;
 
+	public var holdNote:Sustain = null;
+	public var strum:StrumNote = null;
+
 	public var spawned:Bool = false;
 
 	public var tail:Array<Note> = [];
@@ -118,11 +121,20 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 
 	private function get_canBeHit():Bool {
 		if (!mustPress) return false;
+		
+		if (isSustainNote) {
+			return Conductor.songPosition >= strumTime - (Conductor.safeZoneOffset * lateHitMult) && 
+				   Conductor.songPosition <= strumTime + sustainLength + (Conductor.safeZoneOffset * earlyHitMult);
+		}
+		
 		return strumTime > Conductor.songPosition - (Conductor.safeZoneOffset * lateHitMult)
 			&& strumTime < Conductor.songPosition + (Conductor.safeZoneOffset * earlyHitMult);
 	}
 
 	private function get_tooLate():Bool {
+		if (isSustainNote) {
+			return mustPress && !wasGoodHit && Conductor.songPosition > strumTime + sustainLength + Conductor.safeZoneOffset;
+		}
 		return mustPress && !wasGoodHit && strumTime < Conductor.songPosition - Conductor.safeZoneOffset;
 	}
 
@@ -213,11 +225,9 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 			shader = colorSwap.shader;
 
 			x += swagWidth * (noteData);
-			if(!isSustainNote && noteData > -1 && noteData < 4) {
-				var animToPlay:String = '';
-				animToPlay = colArray[noteData % 4];
-				animation.play(animToPlay + 'Scroll');
-			}
+
+			if(!isSustainNote && noteData > -1 && noteData < 4)
+				animation.play(colArray[noteData % 4] + 'Scroll');
 		}
 
 		if(prevNote != null)
@@ -227,11 +237,7 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 		{
 			hitsoundDisabled = true;
 
-			#if MODCHART_ALLOWED
-			flipX = ClientPrefs.downScroll;
-			#else
-			flipY = ClientPrefs.downScroll;
-			#end
+			#if MODCHART_ALLOWED flipX = #end flipY = ClientPrefs.downScroll;
 
 			offsetX += width / 2;
 			copyAngle = false;
@@ -407,5 +413,81 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 		defScale?.put();
 		clipRect = flixel.util.FlxDestroyUtil.put(clipRect);
 		super.destroy();
+	}
+}
+
+class Sustain extends game.graphics.TileRenderer
+{
+	private var lastFlip:Bool = false;
+	private var lastSpeed:Float = -1.0;
+
+	public var hit:Bool = false;
+	public var timeStuff:Float = 0.;
+	public var parent:Note;
+
+	public function updateVisuals(speed:Float = 1, flipped:Bool = false)
+	{
+		final dirty:Bool = lastFlip != flipped || lastSpeed != speed || hit;
+
+		if (this.alpha != parent.alpha)
+			this.alpha = parent.alpha;
+
+		if (this.antialiasing != parent.antialiasing)
+			this.antialiasing = parent.antialiasing;
+
+		if (this.shader != parent.shader)
+			this.shader = parent.shader;
+			
+		if (!dirty)
+			return;
+
+		lastFlip = flipped;
+		lastSpeed = speed;
+
+		height = (0.45 * speed * (parent.sustainLength - timeStuff));
+		angle = lastFlip ? 180 : 0;
+		flipX = lastFlip;
+	}
+
+	public function updatePos()
+	{
+		if (x != parent.x)
+			x = parent.x;
+		
+		final yOffset:Float = (Note.swagWidth * 0.5) - 2.5;
+		final eatenPixels:Float = (0.45 * lastSpeed * timeStuff);
+
+		if (hit)
+		{
+			y = parent.strum.y + yOffset;
+			parent.y = parent.strum.y;
+			return;
+		}
+		y = parent.y + yOffset - (lastFlip ? eatenPixels : -eatenPixels);
+	}
+
+	public function new(p:Note)
+	{
+		super();
+		parent = p;
+		reloadSkin();
+	}
+
+	public function reloadSkin()
+	{
+		if (parent == null || parent.animation == null) return;
+		
+		frames = parent.frames;
+		animation.copyFrom(parent.animation);
+		
+		final animName = Note.colArray[parent.noteData % 4] + 'hold';
+		
+		animation.play(animName);
+		tailAnim = animName + 'end';
+		
+		scale.copyFrom(parent.scale);
+		updateHitbox();
+
+		offset.y = origin.y = 0;
 	}
 }

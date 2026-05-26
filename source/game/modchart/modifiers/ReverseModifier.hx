@@ -57,44 +57,6 @@ class ReverseModifier extends NoteModifier {
 
 	override function ignoreUpdateNote():Bool
 		return false;
-    
-	override function updateNote(beat:Float, daNote:Note, pos:Vector3, player:Int)
-	{
-		if (daNote.isSustainNote)
-		{
-			var revPerc:Float = getReverseValue(daNote.noteData, player);
-
-            var y = pos.y;
-            var strumLine = modMgr.receptors[player][daNote.noteData];
-            var shitGotHit:Bool = (strumLine.sustainReduce
-                && daNote.isSustainNote
-                && (daNote.mustPress || !daNote.ignoreNote)
-                && (!daNote.mustPress || (daNote.wasGoodHit || (daNote.prevNote.wasGoodHit && !daNote.canBeHit))));
-
-            if (shitGotHit)
-            {
-                var center:Float = strumLine.y + Note.swagWidth / 2;
-                var swagRect = new FlxRect(0, 0, daNote.frameWidth, daNote.frameHeight);
-                if (revPerc >= 0.5) // Downscroll behavior
-                {
-                    if (y - daNote.offset.y * daNote.scale.y + daNote.height >= center)
-                    {
-                        swagRect.height = (center - y) / daNote.scale.y;
-                        swagRect.y = daNote.frameHeight - swagRect.height;
-                    }
-                }
-                else // Upscroll behavior
-                {
-                    if (y + daNote.offset.y * daNote.scale.y <= center)
-                    {
-                        swagRect.y = (center - y) / daNote.scale.y;
-                        swagRect.height -= swagRect.y;
-                    }
-                }
-                daNote.clipRect = swagRect;
-            }
-        }
-    }
 	
 	override function getPos(time:Float, visualDiff:Float, timeDiff:Float, beat:Float, pos:Vector3, data:Int, player:Int, obj:FlxSprite)
     {
@@ -110,9 +72,7 @@ class ReverseModifier extends NoteModifier {
             var note:Note = cast obj;
             if (note.isSustainNote && note.parent != null)
             {
-                if (perc < 0.5) // upscroll
-                    pos.y += note.parent.height / 2;
-                else // downscroll
+                if (perc >= 0.5) // downscroll
                     pos.y -= (note.frameHeight * note.scale.y) - (Note.swagWidth / 2);
             }
         }

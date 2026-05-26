@@ -171,6 +171,8 @@ class Character extends FlxSprite
     public var healthColorArray:Array<Int> = [255, 0, 0];
     public var danced:Bool = false;
     public var danceEveryNumBeats:Int = 2;
+
+    public var endAnimTimer:FlxTimer = null;
     
     public static final DEFAULT_CHARACTER:String = 'bf';
     
@@ -851,6 +853,11 @@ class Character extends FlxSprite
         {
             animController.destroy();
             animController = null;
+        }
+
+        if (endAnimTimer != null) {
+            endAnimTimer.cancel();
+            endAnimTimer = null;
         }
         
         super.destroy();

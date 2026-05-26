@@ -116,8 +116,8 @@ class RotateModifier extends NoteModifier {
     ):Vector3 {
         var rotationOrigin = getRotationOrigin(data, player);
         
-        // Convert to local coordinates relative to rotation origin
-        var localOffset = pos.subtract(rotationOrigin);
+        var originClone = new Vector3(rotationOrigin.x, rotationOrigin.y, rotationOrigin.z);
+        var localOffset = new Vector3(pos.x, pos.y, pos.z).subtract(originClone);
         
         // Apply scale to Z-axis for consistent depth effect
         var depthScale = FlxG.height;
@@ -133,7 +133,7 @@ class RotateModifier extends NoteModifier {
         
         // Restore Z-axis scale and convert back to world coordinates
         rotatedOffset.z /= depthScale;
-        return rotationOrigin.add(rotatedOffset);
+        return originClone.add(rotatedOffset);
     }
 
     /**
