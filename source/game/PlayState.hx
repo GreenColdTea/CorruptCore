@@ -2447,8 +2447,7 @@ class PlayState extends MusicBeatState
 												char.playAnim(endAnim, true);
 												char.endAnimTimer?.cancel();
 
-												final anim = !char.isAnimateAtlas ? char.animation.getByName(endAnim) : char.atlas.anim.getByName(endAnim);
-												final duration = anim != null ? anim.numFrames / char.getCurrentFrameRate() : 0.5;
+												final duration = !char.isAnimationNull() ? char.getTotalFrames() / char.getCurrentFrameRate() : 0.5;
 												char.endAnimTimer = new FlxTimer().start(duration, _ -> {
 													if (char?.getAnimationName() == endAnim && !char?.specialAnim)
 														char.dance();
@@ -2490,8 +2489,7 @@ class PlayState extends MusicBeatState
 												char.playAnim(endAnim, true);
 												char.endAnimTimer?.cancel();
 
-												final anim = !char.isAnimateAtlas ? char.animation.getByName(endAnim) : char.atlas.anim.getByName(endAnim);
-												final duration = anim != null ? anim.numFrames / char.getCurrentFrameRate() : 0.5;
+												final duration = !char.isAnimationNull() ? char.getTotalFrames() / char.getCurrentFrameRate() : 0.5;
 												char.endAnimTimer = new FlxTimer().start(duration, _ -> {
 													if (char?.getAnimationName() == endAnim && !char?.specialAnim)
 														char.dance();
@@ -3814,6 +3812,31 @@ class PlayState extends MusicBeatState
 				else
 					char.playAnim(animToPlay, true);
 			}
+
+			final endAnim = singAnimations[Std.int(Math.abs(note.noteData))] + altAnim + '-end';
+			
+			if (!note.isSustainNote && note.sustainLength <= 0 && char?.hasAnimation(endAnim)) {
+				char.endAnimTimer?.cancel();
+
+				var duration:Float = (Conductor.stepCrochet * (0.0011 / playbackRate) * char.singDuration) - 0.01;
+				if (duration <= 0.02) duration = 0.02;
+
+				char.endAnimTimer = new FlxTimer().start(duration, _ -> {
+					if (char.getAnimationName() == animToPlay && !char.specialAnim) {
+						char.playAnim(endAnim, true);
+						char.specialAnim = true;
+
+						final endDuration:Float = !char.isAnimationNull() ? char.getTotalFrames() / char.getCurrentFrameRate() : 0.5;
+						char.endAnimTimer = new FlxTimer().start(endDuration, _ -> {
+							if (char.getAnimationName() == endAnim && char.specialAnim) {
+								char.specialAnim = false;
+								char.dance();
+							}
+							char.endAnimTimer = null;
+						});
+					}
+				});
+			}
 		}
 
 		if (SONG.needsVoices)
@@ -3822,7 +3845,7 @@ class PlayState extends MusicBeatState
 		iconP2.flash(1.12, 1);
 
 		var time:Float = 0.15;
-		if(note.isSustainNote && !note.animation.curAnim.name.endsWith('end')) {
+		if(note.isSustainNote && !note.animation?.curAnim?.name?.endsWith('end')) {
 			time += 0.15;
 		}
 		StrumPlayAnim(true, Std.int(Math.abs(note.noteData)), time);
@@ -3945,11 +3968,37 @@ class PlayState extends MusicBeatState
 						}
 					}
 				}
+
+				final targetChar:Character = (note.gfNote && gf != null) ? gf : char;
+				final endAnim = singAnimations[Std.int(Math.abs(note.noteData))] + note.animSuffix + '-end';
+				
+				if (!note.isSustainNote && note.sustainLength <= 0 && targetChar.hasAnimation(endAnim)) {
+					targetChar.endAnimTimer?.cancel();
+
+					var duration:Float = (Conductor.stepCrochet * (0.0011 / playbackRate) * targetChar.singDuration) - 0.01;
+					if (duration <= 0.02) duration = 0.02;
+
+					targetChar.endAnimTimer = new FlxTimer().start(duration, _ -> {
+						if (targetChar.getAnimationName() == animToPlay && !targetChar.specialAnim) {
+							targetChar.playAnim(endAnim, true);
+							targetChar.specialAnim = true;
+
+							final endDuration:Float = !targetChar.isAnimationNull() ? targetChar.getTotalFrames() / targetChar.getCurrentFrameRate() : 0.5;
+							targetChar.endAnimTimer = new FlxTimer().start(endDuration, _ -> {
+								if (targetChar.getAnimationName() == endAnim && targetChar.specialAnim) {
+									targetChar.specialAnim = false;
+									targetChar.dance();
+								}
+								targetChar.endAnimTimer = null;
+							});
+						}
+					});
+				}
 			}
 
 			if(cpuControlled) {
 				var time:Float = 0.15;
-				if(note.isSustainNote && !note.animation.curAnim.name.endsWith('end')) {
+				if(note.isSustainNote && !note.animation?.curAnim?.name?.endsWith('end')) {
 					time += 0.15;
 				}
 				StrumPlayAnim(false, Std.int(Math.abs(note.noteData)), time);
@@ -3964,7 +4013,7 @@ class PlayState extends MusicBeatState
 
 			if (!note.noteWasHit)
 				spawnHoldCoverOnNote(note);
-			
+
 			note.noteWasHit = true;
 
 			callOnLuas('goodNoteHit', [notes.members.indexOf(note), leData, leType, isSus]);
