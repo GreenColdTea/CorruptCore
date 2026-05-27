@@ -461,7 +461,9 @@ class PlayState extends MusicBeatState
 			FlxTimer.globalManager.forEach(t -> if (!t.finished) t.active = true);
 			FlxTween.globalManager.forEach(t -> if (!t.finished) t.active = true);
 			
-			resyncVocals();
+			if (!startingSong)
+				resyncVocals();
+			
 			callOnScripts('onResume', []);
 			runSongSyncThread();
 			#if DISCORD_ALLOWED
