@@ -3853,6 +3853,8 @@ class PlayState extends MusicBeatState
 
 		spawnHoldCoverOnNote(note);
 
+		stagesFunc((stage:BaseStage) -> stage.opponentNoteHit(note));
+
 		callOnLuas('opponentNoteHit', [notes.members.indexOf(note), Math.abs(note.noteData), note.noteType, note.isSustainNote]);
 		callOnHScript('opponentNoteHit', [note]);
 
@@ -4015,6 +4017,8 @@ class PlayState extends MusicBeatState
 				spawnHoldCoverOnNote(note);
 
 			note.noteWasHit = true;
+
+			stagesFunc((stage:BaseStage) -> stage.goodNoteHit(note));
 
 			callOnLuas('goodNoteHit', [notes.members.indexOf(note), leData, leType, isSus]);
 			callOnHScript('goodNoteHit', [note]);

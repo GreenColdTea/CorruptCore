@@ -454,7 +454,7 @@ class Sustain extends game.graphics.TileRenderer
 		if (x != parent.x)
 			x = parent.x;
 		
-		final yOffset:Float = (Note.swagWidth * 0.5) - 2.5;
+		final yOffset:Float = (Note.swagWidth * 0.5) - (!PlayState.isPixelStage ? 2.5 : 0);
 		final eatenPixels:Float = (0.45 * lastSpeed * timeStuff);
 
 		if (hit)
