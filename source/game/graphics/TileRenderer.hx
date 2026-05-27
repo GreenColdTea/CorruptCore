@@ -193,8 +193,8 @@ class TileRenderer extends flixel.FlxStrip
             final swagWidth:Float = Reflect.hasField(pNote, "swagWidth") ? Reflect.getProperty(pNote, "swagWidth") : 112;
             
             final offsetX = swagWidth / 2 - (!PlayState.isPixelStage ? 0 : 5);
-            final offsetY = swagWidth / 2 + (!PlayState.isPixelStage ? (ClientPrefs.downScroll ? 3.5 : -3.5) : 
-                            (ClientPrefs.downScroll ? -3.5 * PlayState.daPixelZoom : 3.5 * PlayState.daPixelZoom));
+            final offsetY = swagWidth / 2 + (!PlayState.isPixelStage ? (ClientPrefs.downScroll ? 3.5 : -4) : 
+                            (ClientPrefs.downScroll ? -3.5 * PlayState.daPixelZoom : -1 * PlayState.daPixelZoom));
 
             for (seg in 0...segmentsPerTile) {
                 final pStart = seg / segmentsPerTile;
