@@ -192,8 +192,7 @@ class TileRenderer extends flixel.FlxStrip
             final widthLocal = frameToDraw.frame.width * absScaleX;
             final swagWidth:Float = Reflect.hasField(pNote, "swagWidth") ? Reflect.getProperty(pNote, "swagWidth") : 112;
             
-            final offsetX = (swagWidth / 2) - (widthLocal / 2) + 1;
-            final offsetY = swagWidth / 2; 
+            final offsetXY = swagWidth / 2; 
 
             for (seg in 0...segmentsPerTile) {
                 final pStart = seg / segmentsPerTile;
@@ -233,10 +232,10 @@ class TileRenderer extends flixel.FlxStrip
                 final vd1_next = -(0.45 * td1_next * sSpeed * pNote.multSpeed);
                 final bent1_next = modMgr.getPos(t1 + 1.0, vd1_next, td1_next, cBeat, headNote.noteData, pN, headNote);
 
-                final cx0 = (bent0.x + swagWidth / 2 + 1.25) - this.x;
-                final cy0 = (bent0.y + offsetY) - this.y;
-                final cx1 = (bent1.x + swagWidth / 2 + 1.25) - this.x;
-                final cy1 = (bent1.y + offsetY) - this.y;
+                final cx0 = (bent0.x + offsetXY) - this.x;
+                final cy0 = (bent0.y + offsetXY) - this.y;
+                final cx1 = (bent1.x + offsetXY) - this.x;
+                final cy1 = (bent1.y + offsetXY) - this.y;
 
                 final dirX0 = bent0_next.x - bent0.x;
                 final dirY0 = bent0_next.y - bent0.y;

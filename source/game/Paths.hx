@@ -724,7 +724,18 @@ class Paths
         };
 
         #if flixel_animate
-        return FlxAnimateFrames.fromAnimate(getPath('images/$key', TEXT, library, true), validatedSettings.spritemaps, validatedSettings.metadataJson, validatedSettings.cacheKey,
+        var path = getPath('images/$key', TEXT, library, true);
+        #if MODS_ALLOWED
+        if (library != null)
+        {
+            var modPath = Mods.modFolders('$library/images/$key');
+
+            if (FileSystem.exists(modPath))
+                path = modPath;
+        }
+        #end
+
+        return FlxAnimateFrames.fromAnimate(path, validatedSettings.spritemaps, validatedSettings.metadataJson, validatedSettings.cacheKey,
             validatedSettings.uniqueInCache, {
                 swfMode: validatedSettings.swfMode,
                 cacheOnLoad: validatedSettings.cacheOnLoad,
@@ -737,7 +748,19 @@ class Paths
 
     inline static public function gif(key:String, ?library:String = null):FlxGifAsset
     {
-        return getPath('images/$key.gif', IMAGE, library, true);
+        var path = getPath('images/$key.gif', IMAGE, library, true);
+
+        #if MODS_ALLOWED
+        if (library != null)
+        {
+            var modPath = Mods.modFolders('$library/images/$key.gif');
+
+            if (FileSystem.exists(modPath))
+                path = modPath;
+        }
+        #end
+
+        return path;
     }
 
     inline static public function formatToSongPath(path:String) {
