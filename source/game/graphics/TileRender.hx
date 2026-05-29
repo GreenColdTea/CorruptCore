@@ -13,7 +13,7 @@ import openfl.geom.ColorTransform;
 
 using flixel.util.FlxColorTransformUtil;
 
-class TileRenderer extends flixel.FlxStrip
+class TileRender extends flixel.FlxStrip
 {
     public var tailAnim(default, set):String = null;
 

@@ -416,7 +416,7 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 	}
 }
 
-class Sustain extends game.graphics.TileRenderer
+class Sustain extends game.graphics.TileRender
 {
 	private var lastFlip:Bool = false;
 	private var lastSpeed:Float = -1.0;

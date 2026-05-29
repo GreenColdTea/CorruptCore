@@ -64,42 +64,76 @@ class Paths
     public static function clearUnusedMemory(cleanMajor:Bool = true) {
         if (FlxG.state is PlayState) cleanMajor = false; // dont do major cleans ingame
 
+        var keysToRemove:Array<String> = [];
         for (key in currentTrackedAssets.keys())
         {
             if (!localTrackedAssets.contains(key) && !dumpExclusions.contains(key))
             {
-                destroyGraphic(currentTrackedAssets.get(key));
-                currentTrackedAssets.remove(key);
+                final graphic = currentTrackedAssets.get(key);
+                if (graphic != null)
+                    destroyGraphic(graphic);
+
+                keysToRemove.push(key);
+                openfl.Assets.cache.removeBitmapData(key); 
             }
         }
+        
+        for (key in keysToRemove)
+            currentTrackedAssets.remove(key);
+
         MemoryUtil.forceGC(cleanMajor);
     }
 
     @:access(flixel.system.frontEnds.BitmapFrontEnd._cache)
     public static function clearStoredMemory() {
-        // its buggy for haxeui
-        /*for (key in FlxG.bitmap._cache.keys())
+        var flxgKeysToRemove:Array<String> = [];
+        for (key in FlxG.bitmap._cache.keys())
         {
-            if (!currentTrackedAssets.exists(key))
-                destroyGraphic(FlxG.bitmap.get(key));
-        }*/
+            if (!currentTrackedAssets.exists(key)) {
+                final graphic = FlxG.bitmap.get(key);
+                if (graphic != null)
+                    destroyGraphic(graphic);
 
-        for (key => asset in currentTrackedSounds)
-        {
-            if (!localTrackedAssets.contains(key) && !dumpExclusions.contains(key) && asset != null)
-            {
-                Assets.cache.clear(key);
-                currentTrackedSounds.remove(key);
+                flxgKeysToRemove.push(key);
             }
         }
 
+        for (key in flxgKeysToRemove)
+            FlxG.bitmap.removeByKey(key);
+
+        var soundKeysToRemove:Array<String> = [];
+        for (key => asset in currentTrackedSounds)
+        {
+            if (!localTrackedAssets.contains(key) && !dumpExclusions.contains(key))
+            {
+                openfl.Assets.cache.removeSound(key);
+                soundKeysToRemove.push(key);
+            }
+        }
+        
+        for (key in soundKeysToRemove)
+            currentTrackedSounds.remove(key);
+
         FlxG.bitmap.clearUnused();
+        
+        final protectedLibs:Array<String> = ["default", "preload"];
+
+        @:privateAccess
+        for (libName in Assets.libraries.keys()) 
+        {
+            if (!protectedLibs.contains(libName) && libName != null) 
+                openfl.Assets.cache.clear(libName);
+        }
+        
         MemoryUtil.compact();
 
         localTrackedAssets.resize(0);
-        openfl.Assets.cache.clear("songs");
+        
+        MemoryUtil.compact();
+        MemoryUtil.forceGC(true);
+        MemoryUtil.forceGC(true);
     }
-
+    
     public static function freeGraphicsFromMemory()
     {
         var protectedGfx:Array<FlxGraphic> = [];
@@ -145,8 +179,22 @@ class Paths
 
     inline static function destroyGraphic(graphic:FlxGraphic)
     {
-        graphic?.bitmap?.__texture?.dispose();
-        FlxG.bitmap?.remove(graphic);
+        if (graphic?.bitmap != null)
+        {
+            graphic.bitmap.__texture?.dispose();
+            
+            if (graphic.bitmap.image != null)
+            {
+                graphic.bitmap.image.data = null;
+                graphic.bitmap.image = null;
+            }
+            
+            graphic.bitmap.disposeImage();
+            graphic.bitmap.dispose();
+            
+            FlxG.bitmap.remove(graphic);
+            graphic.destroy();
+        }
     }
 
     public static var currentLevel:String;
@@ -607,7 +655,7 @@ class Paths
     {
         var imageLoaded:FlxGraphic = image(key, library, allowGPU);
 
-        var myXml:Dynamic = getPath('images/$key.xml', TEXT, library, true);
+        var myXml:Dynamic = getPath(library == null ? 'images/$key.xml' : '$library/images/$key.xml', TEXT, library, true);
         #if MODS_ALLOWED
         if(myXml.startsWith('zip://')) {
             var parts = myXml.substr(6).split('/');
@@ -624,7 +672,7 @@ class Paths
         }
         else
         {
-            var myJson:Dynamic = getPath('images/$key.json', TEXT, library, true);
+            var myJson:Dynamic = getPath(library == null ? 'images/$key.json' : '$library/images/$key.json', TEXT, library, true);
             #if MODS_ALLOWED
             if(myJson.startsWith('zip://')) {
                 var parts = myJson.substr(6).split('/');
@@ -649,7 +697,7 @@ class Paths
         
         var imageLoaded:FlxGraphic = image(key, library, allowGPU);
         #if MODS_ALLOWED
-        var xml:String = Mods.modFolders('images/$key.xml');
+        var xml:String = Mods.modFolders(library == null ? 'images/$key.xml' : '$library/images/$key.xml');
         if(xml.startsWith('zip://')) {
             var parts = xml.substr(6).split('/');
             var mod = parts[0];
@@ -662,7 +710,7 @@ class Paths
         }
         #end
 
-        return FlxAtlasFrames.fromSparrow(imageLoaded, getPath('images/$key.xml', library));
+        return FlxAtlasFrames.fromSparrow(imageLoaded, getPath(library == null ? 'images/$key.xml' : '$library/images/$key.xml', library));
     }
 
     static public function getPackerAtlas(key:String, ?library:String = null, ?allowGPU:Bool = false):FlxAtlasFrames
@@ -671,7 +719,7 @@ class Paths
 
         var imageLoaded:FlxGraphic = image(key, library, allowGPU);
         #if MODS_ALLOWED
-        var txt:String = Mods.modFolders('images/$key.txt');
+        var txt:String = Mods.modFolders(library == null ? 'images/$key.txt' : '$library/images/$key.txt');
         if(txt.startsWith('zip://')) {
             var parts = txt.substr(6).split('/');
             var mod = parts[0];
@@ -684,14 +732,14 @@ class Paths
         }
         #end
 
-        return FlxAtlasFrames.fromSpriteSheetPacker(imageLoaded, getPath('images/$key.txt', library));
+        return FlxAtlasFrames.fromSpriteSheetPacker(imageLoaded, getPath(library == null ? 'images/$key.txt' : '$library/images/$key.txt', library));
     }
 
     static public function getAsepriteAtlas(key:String, ?library:String = null, ?allowGPU:Bool = true):FlxAtlasFrames
     {
         var imageLoaded:FlxGraphic = image(key, library, allowGPU);
         #if MODS_ALLOWED
-        var json:String = Mods.modFolders('images/$key.json');
+        var json:String = Mods.modFolders(library == null ? 'images/$key.json' : '$library/images/$key.json');
         if(json.startsWith('zip://')) {
             var parts = json.substr(6).split('/');
             var mod = parts[0];
@@ -704,7 +752,7 @@ class Paths
         }
         #end
 
-        return FlxAtlasFrames.fromTexturePackerJson(imageLoaded, getPath('images/$key.json', library));
+        return FlxAtlasFrames.fromTexturePackerJson(imageLoaded, getPath(library == null ? 'images/$key.json' : '$library/images/$key.json', library));
     }
 
     inline static public function getAnimateAtlas(key:String, ?library:String = null, ?settings:AtlasSpriteSettings):FlxAnimateFrames
