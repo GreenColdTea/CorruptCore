@@ -117,7 +117,6 @@ class NoteHoldCover extends flixel.addons.effects.FlxSkewedSprite {
         strumNote = strum;
         curNote = daNote;
         setPosition(strumNote.x, strumNote.y);
-        offset.set(PlayState.isPixelStage ? PIXEL_OFFSET_X : OFFSET_X, OFFSET_Y);
 
         reloadCover();
     }
@@ -235,14 +234,19 @@ class NoteHoldCover extends flixel.addons.effects.FlxSkewedSprite {
             });
         }
 
+        scale.set(1, 1);
+        updateHitbox();
+
         if (PlayState.isPixelStage) {
             clipRect = null;
-            setGraphicSize(Std.int(width * PlayState.daPixelZoom));
+            setGraphicSize(Std.int(frameWidth * PlayState.daPixelZoom));
             updateHitbox();
+            
             offset.x /= scale.x - 1.5;
             offset.y /= scale.y;
         } else {
             clipRect = new FlxRect(0, 0, frameWidth, frameHeight);
+            offset.set(OFFSET_X, OFFSET_Y);
         }
 
         defScale.copyFrom(scale);

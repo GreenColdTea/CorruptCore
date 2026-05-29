@@ -64,6 +64,8 @@ class Paths
     public static function clearUnusedMemory(cleanMajor:Bool = true) {
         if (FlxG.state is PlayState) cleanMajor = false; // dont do major cleans ingame
 
+        missingAssets.clear();
+
         var keysToRemove:Array<String> = [];
         for (key in currentTrackedAssets.keys())
         {
@@ -498,6 +500,8 @@ class Paths
     }
 
     public static var currentTrackedAssets:Map<String, FlxGraphic> = [];
+    public static var missingAssets:Map<String, Bool> = [];
+
     static public function image(key:String, ?library:String = null, ?allowGPU:Bool = true):FlxGraphic
     {
         if (currentTrackedAssets.exists(key))
@@ -510,6 +514,8 @@ class Paths
 
     static public function cacheBitmap(key:String, ?library:String = null, ?bitmap:BitmapData = null, ?allowGPU:Bool = true)
     {
+        if (missingAssets.exists(key)) return null;
+
         if (bitmap == null)
         {
             for (ext in IMAGE_EXTS)
@@ -558,6 +564,7 @@ class Paths
             if (bitmap == null)
             {
                 trace('Bitmap not found for key: $key (tried: ${IMAGE_EXTS.join(", ")})');
+                missingAssets.set(key, true);
                 return null;
             }
         }

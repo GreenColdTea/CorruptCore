@@ -155,6 +155,8 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 	}
 
 	private function set_texture(value:String):String {
+		if (customSkinPrefix != '') return value;
+
 		if(texture != value) reloadNote('', value);
 		texture = value;
 		return value;
@@ -288,7 +290,19 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 	public var originalHeightForCalcs:Float = 6;
 	public var correctionOffset:Float = 0;
 
-	public function reloadNote(?prefix:String, ?texture:String, ?postfix:String) {
+	public var customSkinPrefix:String = '';
+	public var customSkinPostfix:String = '';
+	public function reloadNote(?prefix:String, ?texture:String, ?postfix:String) 
+	{
+		if (prefix != null && prefix != '') customSkinPrefix = prefix;
+		if (postfix != null && postfix != '') customSkinPostfix = postfix;
+
+		if (customSkinPrefix != '') {
+			texture = ''; 
+			prefix = customSkinPrefix;
+			postfix = customSkinPostfix;
+		}
+
 		prefix ??= '';
 		texture ??= '';
 		postfix ??= '';
@@ -314,9 +328,23 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 		if(PlayState.isPixelStage) {
 			if(isSustainNote) {
 				var graphic = Paths.image('pixelUI/' + skinName + 'ENDS');
+				
+				if (graphic == null) {
+					skinName = PlayState.SONG.arrowSkin;
+					if(skinName == null || skinName.length < 1) skinName = defaultNoteSkin;
+					graphic = Paths.image('pixelUI/' + skinName + 'ENDS');
+				}
+				
 				loadGraphic(graphic, true, Math.floor(graphic.width / 4), Math.floor(graphic.height / 2));
 			} else {
 				var graphic = Paths.image('pixelUI/' + skinName);
+				
+				if (graphic == null) {
+					skinName = PlayState.SONG.arrowSkin;
+					if(skinName == null || skinName.length < 1) skinName = defaultNoteSkin;
+					graphic = Paths.image('pixelUI/' + skinName);
+				}
+				
 				loadGraphic(graphic, true, Math.floor(graphic.width / 4), Math.floor(graphic.height / 5));
 			}
 			setGraphicSize(Std.int(width * PlayState.daPixelZoom));
@@ -329,7 +357,15 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 				offsetX -= _lastNoteOffX;
 			}
 		} else {
-			frames = Paths.getSparrowAtlas(skinName);
+			var animFrames = Paths.getSparrowAtlas(skinName);
+			
+			if (animFrames == null) {
+				skinName = PlayState.SONG.arrowSkin;
+				if(skinName == null || skinName.length < 1) skinName = defaultNoteSkin;
+				animFrames = Paths.getSparrowAtlas(skinName);
+			}
+			
+			frames = animFrames;
 			loadNoteAnims();
 			antialiasing = ClientPrefs.globalAntialiasing;
 			if(!isSustainNote)
