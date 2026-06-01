@@ -69,6 +69,7 @@ import game.objects.Note;
 import game.objects.Note.EventNote;
 import game.objects.NoteSplash;
 import game.objects.NoteHoldCover;
+import game.objects.StrumLine;
 import game.objects.StrumNote;
 
 #if VIDEOS_ALLOWED
@@ -135,6 +136,8 @@ class PlayState extends MusicBeatState
 
 	//event variables
 	private var isCameraOnForcedPos:Bool = false;
+
+	public var skipArrowStartTween:Bool = false; //for lua
 
 	public var boyfriendMap:Map<String, Character> = new Map();
 	public var dadMap:Map<String, Character> = new Map();
@@ -207,8 +210,8 @@ class PlayState extends MusicBeatState
 	private static var prevCamFollow:FlxObject;
 
 	public var strumLineNotes:FlxTypedGroup<StrumNote>;
-	public var opponentStrums:FlxTypedGroup<StrumNote>;
-	public var playerStrums:FlxTypedGroup<StrumNote>;
+	public var opponentStrums:StrumLine;
+	public var playerStrums:StrumLine;
 	public var grpNoteSplashes:FlxTypedGroup<NoteSplash>;
 	public var grpHoldCovers:FlxTypedGroup<NoteHoldCover>;
 
@@ -874,8 +877,6 @@ class PlayState extends MusicBeatState
 		holdCover.alpha = 0.0;
 
 		notesSustains = new FlxTypedGroup<Sustain>();
-		opponentStrums = new FlxTypedGroup<StrumNote>();
-		playerStrums = new FlxTypedGroup<StrumNote>();
 
 		generateSong(SONG.song);
 
@@ -1401,22 +1402,27 @@ class PlayState extends MusicBeatState
 		if(ret != ScriptResult.Function_Stop) {
 			if (skipCountdown || startOnTime > 0) skipArrowStartTween = true;
 
-			generateStaticArrows(0);
-			generateStaticArrows(1);
-			for (i in 0...playerStrums.length) {
+			#if MODCHART_ALLOWED
+			modManager.registerDefaultModifiers();
+			#end
+
+			final keysAmount:Int = 4;
+			final strumLineX:Float = ClientPrefs.middleScroll ? STRUM_X_MIDDLESCROLL : STRUM_X;
+			final strumLineY:Float = ClientPrefs.downScroll ? (FlxG.height - 150) : 50;
+
+			opponentStrums = new StrumLine(strumLineX, strumLineY, 0, keysAmount, ClientPrefs.downScroll);
+			playerStrums = new StrumLine(strumLineX + (FlxG.width / 2), strumLineY, 1, keysAmount, ClientPrefs.downScroll);
+
+			for (i in 0...playerStrums.members.length) {
 				setOnScripts('defaultPlayerStrumX' + i, playerStrums.members[i].x);
 				setOnScripts('defaultPlayerStrumY' + i, playerStrums.members[i].y);
 			}
-			for (i in 0...opponentStrums.length) {
+			for (i in 0...opponentStrums.members.length) {
 				setOnScripts('defaultOpponentStrumX' + i, opponentStrums.members[i].x);
 				setOnScripts('defaultOpponentStrumY' + i, opponentStrums.members[i].y);
-				//if(ClientPrefs.middleScroll) opponentStrums.members[i].visible = false;
 			}
 
-			//modchart calling func
 			#if MODCHART_ALLOWED
-			modManager.receptors = [playerStrums.members, opponentStrums.members];
-			modManager.registerDefaultModifiers();
 			Modcharts.loadModchart(modManager, SONG.song);
 			#end
 
@@ -1943,50 +1949,6 @@ class PlayState extends MusicBeatState
 	{
 		return FlxSort.byValues(FlxSort.ASCENDING, Obj1.strumTime, Obj2.strumTime);
 	}
-
-	public var skipArrowStartTween:Bool = false; //for lua
-	private function generateStaticArrows(player:Int):Void
-	{
-		var strumLineX:Float = ClientPrefs.middleScroll ? STRUM_X_MIDDLESCROLL : STRUM_X;
-		var strumLineY:Float = ClientPrefs.downScroll ? (FlxG.height - 150) : 50;
-		for (i in 0...4)
-		{
-			var targetAlpha:Float = 1;
-			if (player < 1)
-			{
-				if(!ClientPrefs.opponentStrums) targetAlpha = 0;
-				else if(ClientPrefs.middleScroll) targetAlpha = 0.35;
-			}
-
-			var babyArrow:StrumNote = new StrumNote(strumLineX, strumLineY, i, player);
-			babyArrow.downScroll = ClientPrefs.downScroll;
-			if (!isStoryMode && !skipArrowStartTween)
-			{
-				babyArrow.alpha = 0;
-				FlxTween.tween(babyArrow, {/*y: babyArrow.y + 10,*/ alpha: targetAlpha}, 1, {ease: FlxEase.circOut, startDelay: 0.5 + (0.2 * i)});
-			}
-			else
-				babyArrow.alpha = targetAlpha;
-
-			if (player == 1)
-				playerStrums.add(babyArrow);
-			else
-			{
-				if(ClientPrefs.middleScroll)
-				{
-					babyArrow.x += 310;
-					if(i > 1) { //Up and Right
-						babyArrow.x += FlxG.width / 2 + 25;
-					}
-				}
-				opponentStrums.add(babyArrow);
-			}
-
-			strumLineNotes.add(babyArrow);
-			babyArrow.postAddedToGroup();
-		}
-	}
-
 
 	override function openSubState(SubState:FlxSubState) {
 		stagesFunc(function(stage:BaseStage) stage.openSubState(SubState));

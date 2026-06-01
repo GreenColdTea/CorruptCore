@@ -283,29 +283,27 @@ class ModManager {
      * Gets the base X position for a note based on direction and player
      */
     public function getBaseX(direction:Int, player:Int):Float {
-        var baseX:Float = PlayState.STRUM_X_MIDDLESCROLL + Note.swagWidth * direction;
+        final keyCount:Int = receptors[player]?.length ?? 4;
+        final totalWidth = Note.swagWidth * keyCount;
+        final screenCenter = FlxG.width / 2;
         
+        var baseX:Float = 0;
         if (ClientPrefs.middleScroll) {
             if (player == 1) { // opponent strums
-                baseX += 360;
-                if (direction > 1) {
+                baseX = screenCenter - (totalWidth / 2) + (Note.swagWidth * direction);
+                baseX -= 360;
+
+                if (direction > (keyCount / 2 - 1))
                     baseX += FlxG.width / 2 + 25;
-                }
             } else { // player strums
-                var totalWidth = Note.swagWidth * 4;
-                var screenCenter = FlxG.width / 2;
-                baseX = screenCenter - totalWidth / 2 + Note.swagWidth * direction;
+                baseX = screenCenter - (totalWidth / 2) + (Note.swagWidth * direction);
             }
         } else {
-            baseX = (FlxG.width / 2) - Note.swagWidth - 54 + Note.swagWidth * direction;
-            
-            switch (player) {
-                case 0: // player strums
-                    baseX += FlxG.width / 2 - Note.swagWidth * 2 - 100;
-                case 1: // opponent strums
-                    baseX -= FlxG.width / 2 - Note.swagWidth * 2 - 100;
-            }
-            baseX -= 56;
+            final offset = (screenCenter / 2) - (totalWidth / 2);
+            baseX = offset + (Note.swagWidth * direction);
+
+            if (player == 0)
+                baseX += screenCenter;
         }
         
         return baseX;
