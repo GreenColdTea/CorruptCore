@@ -44,7 +44,6 @@ class Init extends FlxState
     private function performInitialInit():Void {
         game.backend.PlayerSettings.init();
 
-        FlxG.save.bind('ccengine', CoolUtil.getSavePath());
 		ClientPrefs.init();
 		game.backend.Highscore.load();
 
