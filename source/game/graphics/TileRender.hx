@@ -115,54 +115,63 @@ class TileRender extends flixel.FlxStrip
         }
     }
 
-    #if MODCHART_ALLOWED
+   #if MODCHART_ALLOWED
     private function buildMesh(pNote:Dynamic, state:Dynamic, modMgr:Dynamic, pN:Int):Void
     {
-        if (vertices == null) {
-            vertices = new Vector<Float>();
-            uvtData = new Vector<Float>();
-            indices = new Vector<Int>();
+        final headNote:Dynamic = pNote.parent != null ? pNote.parent : pNote;
+        var tStuffVal:Float = 0;
+        
+        if (pNote.timeStuff != null) {
+            tStuffVal = cast(pNote.timeStuff, Float);
+        } else if (pNote.holdNote != null && pNote.holdNote.timeStuff != null) {
+            tStuffVal = cast(pNote.holdNote.timeStuff, Float);
         }
-
-        vertices.splice(0, vertices.length);
-        uvtData.splice(0, uvtData.length);
-        indices.splice(0, indices.length);
-
-        final absScaleY = Math.abs(scale.y);
-        final absScaleX = Math.abs(scale.x);
-        final bodyIndex = flipY ? tileCount - 1 : 0;
-        final tailIndex = flipY ? 0 : tileCount - 1;
-
-        var tStuffDyn:Dynamic = Reflect.getProperty(this, "timeStuff");
-        if (tStuffDyn == null && pNote != null) {
-            final hNote = Reflect.getProperty(pNote, "holdNote");
-            if (hNote != null)
-                tStuffDyn = Reflect.getProperty(hNote, "timeStuff");
-        }
-
-        var tStuffVal:Float = tStuffDyn != null ? cast(tStuffDyn, Float) : 0;
 
         final currentLengthMs:Float = pNote.sustainLength - tStuffVal;
         final pointTimeBase:Float = pNote.strumTime + tStuffVal;
         final cBeat:Float = state.curDecBeat;
         final sSpeed:Float = state.songSpeed;
-
-        final headNote:Dynamic = Reflect.hasField(pNote, "parent") ? Reflect.getProperty(pNote, "parent") : pNote;
-
+        
+        final speedMult:Float = -0.45 * sSpeed * pNote.multSpeed;
+        
+        final absScaleY = Math.abs(scale.y);
+        final absScaleX = Math.abs(scale.x);
+        final bodyIndex = flipY ? tileCount - 1 : 0;
+        final tailIndex = flipY ? 0 : tileCount - 1;
         final totalHeight = this.height;
+        
+        final swagWidth:Float = pNote.swagWidth != null ? pNote.swagWidth : 112;
+        final offsetX = swagWidth * 0.5 - (!PlayState.isPixelStage ? 0 : 5);
+        final offsetY = swagWidth * 0.5 + (!PlayState.isPixelStage ? (ClientPrefs.downScroll ? 3.5 : -4) : 
+                            (ClientPrefs.downScroll ? -3.5 * PlayState.daPixelZoom : -1 * PlayState.daPixelZoom));
+
+        final neededVertices = tileCount * segmentsPerTile * 8; 
+        final neededIndices = tileCount * segmentsPerTile * 6;
+
+        if (vertices == null) {
+            vertices = new Vector<Float>(neededVertices, false);
+            uvtData = new Vector<Float>(neededVertices, false);
+            indices = new Vector<Int>(neededIndices, false);
+        } else {
+            vertices.length = neededVertices;
+            uvtData.length = neededVertices;
+            indices.length = neededIndices;
+        }
 
         var currentLocalY:Float = 0.0;
+        var vIdx:Int = 0;
+        var iIdx:Int = 0;
 
         for (i in 0...tileCount)
         {
             final isTail = (i == tailIndex);
             final isClip = (i == bodyIndex && tiles < tileCount);
-            final frameToDraw = isTail ? (tailFrame ?? _frame) : _frame;
-
+            final frameToDraw = isTail ? (tailFrame != null ? tailFrame : _frame) : _frame;
+            
             var tileHeight = frameToDraw.frame.height * absScaleY;
             var clipReduction = 0.0;
             var uvYOffset = 0.0;
-
+            
             if (isClip) {
                 clipReduction = frameToDraw.frame.height * (tileCount - tiles);
                 tileHeight -= clipReduction * absScaleY;
@@ -174,28 +183,16 @@ class TileRender extends flixel.FlxStrip
 
             var u0 = frameToDraw.frame.x / parentW;
             var u1 = (frameToDraw.frame.x + frameToDraw.frame.width) / parentW;
-
-            if (flipX) {
-                final tempU = u0;
-                u0 = u1;
-                u1 = tempU;
-            }
+            if (flipX) { final tempU = u0; u0 = u1; u1 = tempU; }
             
             var vTop = (frameToDraw.frame.y + uvYOffset) / parentH;
             var vBot = (frameToDraw.frame.y + frameToDraw.frame.height) / parentH;
-
-            if (flipY) {
-                final temp = vTop;
-                vTop = vBot;
-                vBot = temp;
-            }
+            if (flipY) { final temp = vTop; vTop = vBot; vBot = temp; }
 
             final widthLocal = frameToDraw.frame.width * absScaleX;
-            final swagWidth:Float = Reflect.hasField(pNote, "swagWidth") ? Reflect.getProperty(pNote, "swagWidth") : 112;
-            
-            final offsetX = swagWidth / 2 - (!PlayState.isPixelStage ? 0 : 5);
-            final offsetY = swagWidth / 2 + (!PlayState.isPixelStage ? (ClientPrefs.downScroll ? 3.5 : -4) : 
-                            (ClientPrefs.downScroll ? -3.5 * PlayState.daPixelZoom : -1 * PlayState.daPixelZoom));
+            final halfWidth = widthLocal * 0.5;
+            final sign = flipY ? 1.0 : -1.0;
+            final invTotalHeight = totalHeight > 0 ? 1.0 / totalHeight : 0;
 
             for (seg in 0...segmentsPerTile) {
                 final pStart = seg / segmentsPerTile;
@@ -207,9 +204,8 @@ class TileRender extends flixel.FlxStrip
                 final v0 = vTop + (vBot - vTop) * pStart;
                 final v1 = vTop + (vBot - vTop) * pEnd;
 
-                var timeProg0 = totalHeight > 0 ? (y0 / totalHeight) : 0;
-                var timeProg1 = totalHeight > 0 ? (y1 / totalHeight) : 0;
-                
+                var timeProg0 = y0 * invTotalHeight;
+                var timeProg1 = y1 * invTotalHeight;
                 if (flipY) {
                     timeProg0 = 1.0 - timeProg0;
                     timeProg1 = 1.0 - timeProg1;
@@ -220,19 +216,19 @@ class TileRender extends flixel.FlxStrip
 
                 final td0 = Conductor.songPosition - t0;
                 final td1 = Conductor.songPosition - t1;
-
-                final vd0 = -(0.45 * td0 * sSpeed * pNote.multSpeed);
-                final vd1 = -(0.45 * td1 * sSpeed * pNote.multSpeed);
-
+                
+                final vd0 = td0 * speedMult;
+                final vd1 = td1 * speedMult;
+                
                 final bent0 = modMgr.getPos(t0, vd0, td0, cBeat, headNote.noteData, pN, headNote);
                 final bent1 = modMgr.getPos(t1, vd1, td1, cBeat, headNote.noteData, pN, headNote);
-
+                
                 final td0_next = td0 - 1.0;
-                final vd0_next = -(0.45 * td0_next * sSpeed * pNote.multSpeed);
+                final vd0_next = td0_next * speedMult;
                 final bent0_next = modMgr.getPos(t0 + 1.0, vd0_next, td0_next, cBeat, headNote.noteData, pN, headNote);
                 
                 final td1_next = td1 - 1.0;
-                final vd1_next = -(0.45 * td1_next * sSpeed * pNote.multSpeed);
+                final vd1_next = td1_next * speedMult;
                 final bent1_next = modMgr.getPos(t1 + 1.0, vd1_next, td1_next, cBeat, headNote.noteData, pN, headNote);
 
                 final cx0 = (bent0.x + offsetX) - this.x;
@@ -248,10 +244,7 @@ class TileRender extends flixel.FlxStrip
                 final dirY1 = bent1_next.y - bent1.y;
                 final dist1 = Math.sqrt(dirX1 * dirX1 + dirY1 * dirY1);
 
-                var normX0 = 1.0; var normY0 = 0.0;
-                var normX1 = 1.0; var normY1 = 0.0;
-
-                final sign = flipY ? 1.0 : -1.0;
+                var normX0 = 1.0, normY0 = 0.0, normX1 = 1.0, normY1 = 0.0;
 
                 if (dist0 > 0.001) {
                     normX0 = (-dirY0 / dist0) * sign;
@@ -262,41 +255,28 @@ class TileRender extends flixel.FlxStrip
                     normY1 = (dirX1 / dist1) * sign;
                 }
 
-                final halfWidth = widthLocal / 2;
+                final bVertex = Std.int(vIdx / 2);
 
-                final l0x = cx0 - normX0 * halfWidth;
-                final l0y = cy0 - normY0 * halfWidth;
-                final r0x = cx0 + normX0 * halfWidth;
-                final r0y = cy0 + normY0 * halfWidth;
+                vertices[vIdx] = cx0 - normX0 * halfWidth; uvtData[vIdx++] = u0;
+                vertices[vIdx] = cy0 - normY0 * halfWidth; uvtData[vIdx++] = v0;
 
-                final l1x = cx1 - normX1 * halfWidth;
-                final l1y = cy1 - normY1 * halfWidth;
-                final r1x = cx1 + normX1 * halfWidth;
-                final r1y = cy1 + normY1 * halfWidth;
+                vertices[vIdx] = cx0 + normX0 * halfWidth; uvtData[vIdx++] = u1;
+                vertices[vIdx] = cy0 + normY0 * halfWidth; uvtData[vIdx++] = v0;
 
-                final bVertex = Std.int(vertices.length / 2);
+                vertices[vIdx] = cx1 - normX1 * halfWidth; uvtData[vIdx++] = u0;
+                vertices[vIdx] = cy1 - normY1 * halfWidth; uvtData[vIdx++] = v1;
 
-                vertices.push(l0x); vertices.push(l0y);
-                uvtData.push(u0); uvtData.push(v0);
+                vertices[vIdx] = cx1 + normX1 * halfWidth; uvtData[vIdx++] = u1;
+                vertices[vIdx] = cy1 + normY1 * halfWidth; uvtData[vIdx++] = v1;
 
-                vertices.push(r0x); vertices.push(r0y);
-                uvtData.push(u1); uvtData.push(v0);
+                indices[iIdx++] = bVertex;
+                indices[iIdx++] = bVertex + 1;
+                indices[iIdx++] = bVertex + 2;
 
-                vertices.push(l1x); vertices.push(l1y);
-                uvtData.push(u0); uvtData.push(v1);
-
-                vertices.push(r1x); vertices.push(r1y);
-                uvtData.push(u1); uvtData.push(v1);
-
-                indices.push(bVertex);
-                indices.push(bVertex + 1);
-                indices.push(bVertex + 2);
-
-                indices.push(bVertex + 1);
-                indices.push(bVertex + 3);
-                indices.push(bVertex + 2);
+                indices[iIdx++] = bVertex + 1;
+                indices[iIdx++] = bVertex + 3;
+                indices[iIdx++] = bVertex + 2;
             }
-
             currentLocalY += tileHeight;
         }
     }
