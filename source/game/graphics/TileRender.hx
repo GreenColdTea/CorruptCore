@@ -17,6 +17,8 @@ class TileRender extends flixel.FlxStrip
 {
     public var tailAnim(default, set):String = null;
 
+    public var segmentsPerTile:Int = 12;
+
     var tailFrame:FlxFrame;
     var tiles:Float;
     var tileCount:Int;
@@ -147,7 +149,6 @@ class TileRender extends flixel.FlxStrip
 
         final headNote:Dynamic = Reflect.hasField(pNote, "parent") ? Reflect.getProperty(pNote, "parent") : pNote;
 
-        final segmentsPerTile = 4; 
         final totalHeight = this.height;
 
         var currentLocalY:Float = 0.0;

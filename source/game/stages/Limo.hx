@@ -30,14 +30,14 @@ class Limo extends BaseStage
 
 	override function create()
 	{
-		var skyBG:BGSprite = new BGSprite('bgs/limo/limoSunset', -120, -50, 0.1, 0.1);
+		var skyBG:BGSprite = new BGSprite('limo/limoSunset', -120, -50, 0.1, 0.1);
 		add(skyBG);
 
 		if(!ClientPrefs.lowQuality) {
 			limoMetalPole = new BGSprite('gore/metalPole', -500, 220, 0.4, 0.4);
 			add(limoMetalPole);
 
-			bgLimo = new BGSprite('bgs/limo/bgLimo', -150, 480, 0.4, 0.4, ['background limo pink'], true);
+			bgLimo = new BGSprite('limo/bgLimo', -150, 480, 0.4, 0.4, ['background limo pink'], true);
 			add(bgLimo);
 
 			limoCorpse = new BGSprite('gore/noooooo', -500, limoMetalPole.y - 130, 0.4, 0.4, ['Henchmen on rail'], true);
@@ -73,7 +73,7 @@ class Limo extends BaseStage
 			setDefaultGF('gf-car');
 		}
 
-		fastCar = new BGSprite('bgs/limo/fastCarLol', -300, 160);
+		fastCar = new BGSprite('limo/fastCarLol', -300, 160);
 		fastCar.active = true;
 	}
 	override function createPost()
@@ -81,7 +81,7 @@ class Limo extends BaseStage
 		resetFastCar();
 		addBehindGF(fastCar);
 		
-		var limo:BGSprite = new BGSprite('bgs/limo/limoDrive', -120, 550, 1, 1, ['Limo stage'], true);
+		var limo:BGSprite = new BGSprite('limo/limoDrive', -120, 550, 1, 1, ['Limo stage'], true);
 		addBehindGF(limo); //Shitty layering but whatev it works LOL
 	}
 

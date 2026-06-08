@@ -2071,11 +2071,9 @@ class PlayState extends MusicBeatState
 
 		if (controls.PAUSE && startedCountdown && canPause)
 		{
-			var ret:Dynamic = callOnScripts('onPause', [], false);
-			if(ret != ScriptResult.Function_Stop) {
-				paused = true;
+			final ret:Dynamic = callOnScripts('onPause', [], false);
+			if(ret != ScriptResult.Function_Stop)
 				openPauseMenu();
-			}
 		}
 
 		if (FlxG.keys.anyJustPressed(debugKeysChart) && !endingSong && !inCutscene)
@@ -2104,22 +2102,30 @@ class PlayState extends MusicBeatState
 			paused = true;
 			canResync = false;
 			cancelMusicFadeTween();
-			FlxG.switchState(() -> new CharacterEditorState(SONG.player2));
+			FlxG.switchState(() -> new CharacterEditorState(dad?.curCharacter ?? SONG.player2));
 		}
 
 		if (startedCountdown && !paused)
 		{
-			if (FlxG.sound.music?.playing)
-				Conductor.songPosition = FlxG.sound.music.time + Conductor.offset;
-			else
-				Conductor.songPosition += elapsed * 1000 * playbackRate;
-
-			if (Conductor.songPosition >= Conductor.offset)
+			if (startingSong)
 			{
-				Conductor.songPosition = FlxMath.lerp(FlxG.sound.music.time + Conductor.offset, Conductor.songPosition, Math.exp(-elapsed * 5));
-				var timeDiff:Float = Math.abs((FlxG.sound.music.time + Conductor.offset) - Conductor.songPosition);
-				if (timeDiff > 1000 * playbackRate)
-					Conductor.songPosition = Conductor.songPosition + 1000 * FlxMath.signOf(timeDiff);
+				Conductor.songPosition += elapsed * 1000 * playbackRate;
+			}
+			else
+			{
+				if (FlxG.sound.music?.playing)
+					Conductor.songPosition = FlxG.sound.music.time + Conductor.offset;
+				else
+					Conductor.songPosition += elapsed * 1000 * playbackRate;
+
+				if (Conductor.songPosition >= Conductor.offset)
+				{
+					Conductor.songPosition = FlxMath.lerp(FlxG.sound.music.time + Conductor.offset, Conductor.songPosition, Math.exp(-elapsed * 5));
+
+					final timeDiff:Float = Math.abs((FlxG.sound.music.time + Conductor.offset) - Conductor.songPosition);
+					if (timeDiff > 1000 * playbackRate)
+						Conductor.songPosition = Conductor.songPosition + 1000 * FlxMath.signOf(timeDiff);
+				}
 			}
 		}
 
@@ -2195,7 +2201,7 @@ class PlayState extends MusicBeatState
 		}
 
 		#if MODCHART_ALLOWED
-		opponentStrums.forEachAlive((strum:StrumNote) ->
+		opponentStrums?.forEachAlive((strum:StrumNote) ->
 		{
 			var pos = modManager.getPos(0, 0, 0, curDecBeat, strum.noteData, 1, strum, [], strum.vec3Cache);
 			modManager.updateObject(curDecBeat, strum, pos, 1);
@@ -2203,7 +2209,7 @@ class PlayState extends MusicBeatState
 			strum.y = pos.y;
 		});
 
-		playerStrums.forEachAlive((strum:StrumNote) ->
+		playerStrums?.forEachAlive((strum:StrumNote) ->
 		{
 			var pos = modManager.getPos(0, 0, 0, curDecBeat, strum.noteData, 0, strum, [], strum.vec3Cache);
 			modManager.updateObject(curDecBeat, strum, pos, 0);
@@ -2211,7 +2217,7 @@ class PlayState extends MusicBeatState
 			strum.y = pos.y;
 		});
 
-		/*grpNoteSplashes.forEachAlive((splash:NoteSplash) -> {
+		/*grpNoteSplashes?.forEachAlive((splash:NoteSplash) -> {
 			if (splash.babyArrow != null) {
 				var player:Int = -1;
 				if (playerStrums.members.contains(splash.babyArrow)) player = 0;
@@ -2226,7 +2232,7 @@ class PlayState extends MusicBeatState
 			}
 		});*/
 
-		grpHoldCovers.forEachAlive((cover:NoteHoldCover) -> {
+		grpHoldCovers?.forEachAlive((cover:NoteHoldCover) -> {
 			if (cover.curNote != null) {
 				var player = cover.curNote.mustPress ? 0 : 1;
 				var pos = modManager.getPos(0, 0, 0, curDecBeat, cover.curNote.noteData, player, cover, [], cover.vec3Cache);

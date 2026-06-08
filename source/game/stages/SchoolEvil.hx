@@ -10,20 +10,20 @@ class SchoolEvil extends BaseStage
 {
 	override function create()
 	{
-		var _song = PlayState.SONG;
+		final _song = PlayState.SONG;
 		if(_song.gameOverSound == null || _song.gameOverSound.trim().length < 1) GameOverSubstate.deathSoundName = 'fnf_loss_sfx-pixel';
 		if(_song.gameOverLoop == null || _song.gameOverLoop.trim().length < 1) GameOverSubstate.loopSoundName = 'gameOver-pixel';
 		if(_song.gameOverEnd == null || _song.gameOverEnd.trim().length < 1) GameOverSubstate.endSoundName = 'gameOverEnd-pixel';
 		if(_song.gameOverChar == null || _song.gameOverChar.trim().length < 1) GameOverSubstate.characterName = 'bf-pixel-dead';
 		
-		var posX = 400;
-		var posY = 200;
+		final posX = 400;
+		final posY = 200;
 
 		var bg:BGSprite;
 		if(!ClientPrefs.lowQuality)
-			bg = new BGSprite('bgs/weeb/animatedEvilSchool', posX, posY, 0.8, 0.9, ['background 2'], true);
+			bg = new BGSprite('weeb/animatedEvilSchool', posX, posY, 0.8, 0.9, ['background 2'], true);
 		else
-			bg = new BGSprite('bgs/weeb/animatedEvilSchool_low', posX, posY, 0.8, 0.9);
+			bg = new BGSprite('weeb/animatedEvilSchool_low', posX, posY, 0.8, 0.9);
 
 		bg.scale.set(PlayState.daPixelZoom, PlayState.daPixelZoom);
 		bg.antialiasing = false;
@@ -66,7 +66,7 @@ class SchoolEvil extends BaseStage
 			case "Trigger BG Ghouls":
 				if(!ClientPrefs.lowQuality)
 				{
-					bgGhouls = new BGSprite('bgs/weeb/bgGhouls', -100, 190, 0.9, 0.9, ['BG freaks glitch instance'], false);
+					bgGhouls = new BGSprite('weeb/bgGhouls', -100, 190, 0.9, 0.9, ['BG freaks glitch instance'], false);
 					bgGhouls.setGraphicSize(Std.int(bgGhouls.width * PlayState.daPixelZoom));
 					bgGhouls.updateHitbox();
 					bgGhouls.visible = false;
@@ -83,12 +83,8 @@ class SchoolEvil extends BaseStage
 	var doof:DialogueBox = null;
 	function initDoof()
 	{
-		var file:String = Paths.txt(songName + '/' + songName + 'Dialogue'); //Checks for vanilla/Senpai dialogue
-		#if MODS_ALLOWED
-		if (!FileSystem.exists(file))
-		#else
-		if (!OpenFlAssets.exists(file))
-		#end
+		final file:String = Paths.txt('songs/$songName/${songName}Dialogue'); //Checks for vanilla/Senpai dialogue
+		if (#if sys !FileSystem.exists(file) || #end !OpenFlAssets.exists(file))
 		{
 			startCountdown();
 			return;
@@ -105,12 +101,13 @@ class SchoolEvil extends BaseStage
 	function schoolIntro():Void
 	{
 		inCutscene = true;
+		
 		var red:FlxSprite = new FlxSprite(-100, -100).makeGraphic(FlxG.width * 2, FlxG.height * 2, 0xFFff1b31);
 		red.scrollFactor.set();
 		add(red);
 
 		var senpaiEvil:FlxSprite = new FlxSprite();
-		senpaiEvil.frames = Paths.getSparrowAtlas('bgs/weeb/senpaiCrazy');
+		senpaiEvil.frames = Paths.getSparrowAtlas('weeb/senpaiCrazy');
 		senpaiEvil.animation.addByPrefix('idle', 'Senpai Pre Explosion', 24, false);
 		senpaiEvil.setGraphicSize(Std.int(senpaiEvil.width * 6));
 		senpaiEvil.scrollFactor.set();

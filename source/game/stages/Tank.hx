@@ -14,40 +14,40 @@ class Tank extends BaseStage
 
 	override function create()
 	{
-		var sky:BGSprite = new BGSprite('bgs/tankman/tankSky', -400, -400, 0, 0);
+		var sky:BGSprite = new BGSprite('tankman/tankSky', -400, -400, 0, 0);
 		add(sky);
 
 		if(!ClientPrefs.lowQuality)
 		{
-			var clouds:BGSprite = new BGSprite('bgs/tankman/tankClouds', FlxG.random.int(-700, -100), FlxG.random.int(-20, 20), 0.1, 0.1);
+			var clouds:BGSprite = new BGSprite('tankman/tankClouds', FlxG.random.int(-700, -100), FlxG.random.int(-20, 20), 0.1, 0.1);
 			clouds.active = true;
 			clouds.velocity.x = FlxG.random.float(5, 15);
 			add(clouds);
 
-			var mountains:BGSprite = new BGSprite('bgs/tankman/tankMountains', -300, -20, 0.2, 0.2);
+			var mountains:BGSprite = new BGSprite('tankman/tankMountains', -300, -20, 0.2, 0.2);
 			mountains.setGraphicSize(Std.int(1.2 * mountains.width));
 			mountains.updateHitbox();
 			add(mountains);
 
-			var buildings:BGSprite = new BGSprite('bgs/tankman/tankBuildings', -200, 0, 0.3, 0.3);
+			var buildings:BGSprite = new BGSprite('tankman/tankBuildings', -200, 0, 0.3, 0.3);
 			buildings.setGraphicSize(Std.int(1.1 * buildings.width));
 			buildings.updateHitbox();
 			add(buildings);
 		}
 
-		var ruins:BGSprite = new BGSprite('bgs/tankman/tankRuins',-200,0,.35,.35);
+		var ruins:BGSprite = new BGSprite('tankman/tankRuins',-200,0,.35,.35);
 		ruins.setGraphicSize(Std.int(1.1 * ruins.width));
 		ruins.updateHitbox();
 		add(ruins);
 
 		if(!ClientPrefs.lowQuality)
 		{
-			var smokeLeft:BGSprite = new BGSprite('smokeLeft', -200, -100, 0.4, 0.4, ['SmokeBlurLeft'], true);
+			var smokeLeft:BGSprite = new BGSprite('tankman/smokeLeft', -200, -100, 0.4, 0.4, ['SmokeBlurLeft'], true);
 			add(smokeLeft);
-			var smokeRight:BGSprite = new BGSprite('smokeRight', 1100, -100, 0.4, 0.4, ['SmokeRight'], true);
+			var smokeRight:BGSprite = new BGSprite('tankman/smokeRight', 1100, -100, 0.4, 0.4, ['SmokeRight'], true);
 			add(smokeRight);
 
-			tankWatchtower = new BGSprite('bgs/tankman/tankWatchtower', 100, 50, 0.5, 0.5, ['watchtower gradient color']);
+			tankWatchtower = new BGSprite('tankman/tankWatchtower', 100, 50, 0.5, 0.5, ['watchtower gradient color']);
 			add(tankWatchtower);
 		}
 
@@ -57,18 +57,18 @@ class Tank extends BaseStage
 		tankmanRun = new FlxTypedGroup<TankmenBG>();
 		add(tankmanRun);
 
-		var ground:BGSprite = new BGSprite('bgs/tankman/tankGround', -420, -150);
+		var ground:BGSprite = new BGSprite('tankman/tankGround', -420, -150);
 		ground.setGraphicSize(Std.int(1.15 * ground.width));
 		ground.updateHitbox();
 		add(ground);
 
 		foregroundSprites = new FlxTypedGroup<BGSprite>();
-		foregroundSprites.add(new BGSprite('bgs/tankman/tank0', -500, 650, 1.7, 1.5, ['fg']));
-		if(!ClientPrefs.lowQuality) foregroundSprites.add(new BGSprite('bgs/tankman/tank1', -300, 750, 2, 0.2, ['fg']));
-		foregroundSprites.add(new BGSprite('bgs/tankman/tank2', 450, 940, 1.5, 1.5, ['foreground']));
-		if(!ClientPrefs.lowQuality) foregroundSprites.add(new BGSprite('bgs/tankman/tank4', 1300, 900, 1.5, 1.5, ['fg']));
-		foregroundSprites.add(new BGSprite('bgs/tankman/tank5', 1620, 700, 1.5, 1.5, ['fg']));
-		if(!ClientPrefs.lowQuality) foregroundSprites.add(new BGSprite('bgs/tankman/tank3', 1300, 1200, 3.5, 2.5, ['fg']));
+		foregroundSprites.add(new BGSprite('tankman/tank0', -500, 650, 1.7, 1.5, ['fg']));
+		if(!ClientPrefs.lowQuality) foregroundSprites.add(new BGSprite('tankman/tank1', -300, 750, 2, 0.2, ['fg']));
+		foregroundSprites.add(new BGSprite('tankman/tank2', 450, 940, 1.5, 1.5, ['foreground']));
+		if(!ClientPrefs.lowQuality) foregroundSprites.add(new BGSprite('tankman/tank4', 1300, 900, 1.5, 1.5, ['fg']));
+		foregroundSprites.add(new BGSprite('tankman/tank5', 1620, 700, 1.5, 1.5, ['fg']));
+		if(!ClientPrefs.lowQuality) foregroundSprites.add(new BGSprite('tankman/tank3', 1300, 1200, 3.5, 2.5, ['fg']));
 
 		// Default GFs
 		if(songName == 'stress') setDefaultGF('pico-speaker');
@@ -144,8 +144,8 @@ class Tank extends BaseStage
 		camHUD.visible = false;
 		//inCutscene = true; //this would stop the camera movement, oops
 
-		tankman = new FlxAnimate(dad.x + 419, dad.y + 225);
-		tankman.frames = Paths.getAnimateAtlas('cutscenes/tankman');
+		tankman = new FlxAnimate(dad.x, dad.y - 65);
+		tankman.frames = Paths.getAnimateAtlas('tankman/cutscenes/tankman');
 		tankman.antialiasing = ClientPrefs.globalAntialiasing;
 		addBehindDad(tankman);
 		cutsceneHandler.push(tankman);
@@ -207,7 +207,7 @@ class Tank extends BaseStage
 		tankman.anim.addBySymbol('wellWell', 'TANK TALK 1 P1', 24, false);
 		tankman.anim.addBySymbol('killYou', 'TANK TALK 1 P2', 24, false);
 		tankman.anim.play('wellWell', true);
-		FlxG.camera.zoom *= 1.2;
+		FlxG.camera.zoom *= 1.3;
 
 		// Well well well, what do we got here?
 		cutsceneHandler.timer(0.1, function()
@@ -291,8 +291,8 @@ class Tank extends BaseStage
 		});
 		Paths.sound('stressCutscene');
 
-		pico = new FlxAnimate(gf.x + 150, gf.y + 450);
-		pico.frames = Paths.getAnimateAtlas('cutscenes/picoAppears');
+		pico = new FlxAnimate(gf.x + 50, gf.y + 50);
+		pico.frames = Paths.getAnimateAtlas('tankman/cutscenes/picoAppears');
 		pico.antialiasing = ClientPrefs.globalAntialiasing;
 		pico.anim.addBySymbol('dance', 'GF Dancing at Gunpoint', 24, true);
 		pico.anim.addBySymbol('dieBitch', 'GF Time to Die sequence', 24, false);
@@ -331,7 +331,7 @@ class Tank extends BaseStage
 
 		boyfriendCutscene = new FlxSprite(boyfriend.x + 5, boyfriend.y + 20);
 		boyfriendCutscene.antialiasing = ClientPrefs.globalAntialiasing;
-		boyfriendCutscene.frames = Paths.getSparrowAtlas('characters/BOYFRIEND');
+		boyfriendCutscene.frames = Paths.getSparrowAtlas('characters/bf/BOYFRIEND');
 		boyfriendCutscene.animation.addByPrefix('idle', 'BF idle dance', 24, false);
 		boyfriendCutscene.animation.play('idle', true);
 		boyfriendCutscene.animation.curAnim.finish();

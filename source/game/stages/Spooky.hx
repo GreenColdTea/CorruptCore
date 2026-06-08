@@ -7,9 +7,9 @@ class Spooky extends BaseStage
 	override function create()
 	{
 		if(!ClientPrefs.lowQuality) {
-			halloweenBG = new BGSprite('bgs/spooky/halloween_bg', -200, -100, ['halloweem bg0', 'halloweem bg lightning strike']);
+			halloweenBG = new BGSprite('spooky/halloween_bg', -200, -100, ['halloweem bg0', 'halloweem bg lightning strike']);
 		} else {
-			halloweenBG = new BGSprite('bgs/spooky/halloween_bg_low', -200, -100);
+			halloweenBG = new BGSprite('spooky/halloween_bg_low', -200, -100);
 		}
 		add(halloweenBG);
 

@@ -21,31 +21,31 @@ class Philly extends BaseStage
 	override function create()
 	{
 		if(!ClientPrefs.lowQuality) {
-			var bg:BGSprite = new BGSprite('bgs/philly/sky', -100, 0, 0.1, 0.1);
+			var bg:BGSprite = new BGSprite('philly/sky', -100, 0, 0.1, 0.1);
 			add(bg);
 		}
 
-		var city:BGSprite = new BGSprite('bgs/philly/city', -10, 0, 0.3, 0.3);
+		var city:BGSprite = new BGSprite('philly/city', -10, 0, 0.3, 0.3);
 		city.setGraphicSize(Std.int(city.width * 0.85));
 		city.updateHitbox();
 		add(city);
 
 		phillyLightsColors = [0xFF31A2FD, 0xFF31FD8C, 0xFFFB33F5, 0xFFFD4531, 0xFFFBA633];
-		phillyWindow = new BGSprite('bgs/philly/window', city.x, city.y, 0.3, 0.3);
+		phillyWindow = new BGSprite('philly/window', city.x, city.y, 0.3, 0.3);
 		phillyWindow.setGraphicSize(Std.int(phillyWindow.width * 0.85));
 		phillyWindow.updateHitbox();
 		add(phillyWindow);
 		phillyWindow.alpha = 0;
 
 		if(!ClientPrefs.lowQuality) {
-			var streetBehind:BGSprite = new BGSprite('bgs/philly/behindTrain', -40, 50);
+			var streetBehind:BGSprite = new BGSprite('philly/behindTrain', -40, 50);
 			add(streetBehind);
 		}
 
 		phillyTrain = new PhillyTrain(2000, 360);
 		add(phillyTrain);
 
-		phillyStreet = new BGSprite('bgs/philly/street', -40, 50);
+		phillyStreet = new BGSprite('philly/street', -40, 50);
 		add(phillyStreet);
 	}
 	override function eventPushed(event:game.objects.Note.EventNote)
@@ -57,7 +57,7 @@ class Philly extends BaseStage
 				blammedLightsBlack.visible = false;
 				insert(members.indexOf(phillyStreet), blammedLightsBlack);
 
-				phillyWindowEvent = new BGSprite('bgs/philly/window', phillyWindow.x, phillyWindow.y, 0.3, 0.3);
+				phillyWindowEvent = new BGSprite('philly/window', phillyWindow.x, phillyWindow.y, 0.3, 0.3);
 				phillyWindowEvent.setGraphicSize(Std.int(phillyWindowEvent.width * 0.85));
 				phillyWindowEvent.updateHitbox();
 				phillyWindowEvent.visible = false;
@@ -69,7 +69,7 @@ class Philly extends BaseStage
 				insert(members.indexOf(blammedLightsBlack) + 1, phillyGlowGradient);
 				if(!ClientPrefs.flashing) phillyGlowGradient.intendedAlpha = 0.7;
 
-				Paths.image('bgs/philly/particle'); //precache philly glow particle image
+				Paths.image('philly/particle'); //precache philly glow particle image
 				phillyGlowParticles = new FlxTypedGroup<PhillyGlowParticle>();
 				phillyGlowParticles.visible = false;
 				insert(members.indexOf(phillyGlowGradient) + 1, phillyGlowParticles);

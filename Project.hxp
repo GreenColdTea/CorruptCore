@@ -40,6 +40,7 @@ class Project extends HXProject
     static final SCRIPTABLE_STATES:FeatureFlag = "SCRIPTABLE_STATES";
     static final GLOBAL_SCRIPTS:FeatureFlag = "GLOBAL_SCRIPTS";
     static final CUSTOM_CLASSES:FeatureFlag = "CUSTOM_CLASSES";
+    static final INCLUDE_BASE_GAME:FeatureFlag = "INCLUDE_BASE_GAME";
     static final TITLE_SCREEN_EASTER_EGG:FeatureFlag = "TITLE_SCREEN_EASTER_EGG";
 
     //
@@ -155,6 +156,7 @@ class Project extends HXProject
         VIDEOS_ALLOWED.apply(this, isCPP());
         CRASH_HANDLER.apply(this, true);
         NDLL_ALLOWED.apply(this, true);
+        INCLUDE_BASE_GAME.apply(this, true);
 
         // TITLE_SCREEN_EASTER_EGG is enabled only if "officialBuild" is defined
         TITLE_SCREEN_EASTER_EGG.apply(this, defines.exists("officialBuild"));
@@ -363,7 +365,7 @@ class Project extends HXProject
         }
 
         // base_game if INCLUDE_BASE_GAME is defined
-        if (defines.exists("INCLUDE_BASE_GAME"))
+        if (INCLUDE_BASE_GAME.isEnabled(this))
         {
             if (isWeb())
             {
