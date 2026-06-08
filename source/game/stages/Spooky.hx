@@ -62,7 +62,7 @@ class Spooky extends BaseStage
 			dad.playAnim('scared', true);
 		}
 
-		if(gf != null && gf.animOffsets.exists('scared')) {
+		if(gf?.animOffsets.exists('scared')) {
 			gf.playAnim('scared', true);
 		}
 
@@ -92,7 +92,7 @@ class Spooky extends BaseStage
 
 		// character anims
 		FlxG.sound.play(Paths.soundRandom('thunder_', 1, 2));
-		if(gf != null) gf.playAnim('scared', true);
+		gf?.playAnim('scared', true);
 		boyfriend.playAnim('scared', true);
 
 		// white flash
