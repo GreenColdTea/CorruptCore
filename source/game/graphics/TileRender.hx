@@ -10,13 +10,11 @@ import flixel.util.FlxDestroyUtil;
 
 import openfl.Vector;
 import openfl.geom.ColorTransform;
-
 using flixel.util.FlxColorTransformUtil;
 
 class TileRender extends flixel.FlxStrip
 {
     public var tailAnim(default, set):String = null;
-
     public var segmentsPerTile:Int = 12;
 
     var tailFrame:FlxFrame;
@@ -24,7 +22,7 @@ class TileRender extends flixel.FlxStrip
     var tileCount:Int;
 
     #if MODCHART_ALLOWED
-    public var parentNote:Dynamic = null; 
+    public var parentNote:Dynamic = null;
     #end
 
     public function new(?X:Float = 0, ?Y:Float = 0)
@@ -42,7 +40,6 @@ class TileRender extends flixel.FlxStrip
     function adjustFrame(frame:FlxFrame):Void
     {
         if (frame == null) return;
-        
         frame.sourceSize.y -= 2;
         frame.frame.height -= 2;
         frame.frame.y += 1;
@@ -51,7 +48,6 @@ class TileRender extends flixel.FlxStrip
     function updateTailFrame():Void
     {
         if (frames == null || animation == null || tailAnim == null || animation.getByName(tailAnim) == null) return;
-
         tailFrame = frames.frames[animation.getByName(tailAnim).frames[animation.curAnim.curFrame]].copyTo(tailFrame);
         adjustFrame(tailFrame);
     }
@@ -62,13 +58,12 @@ class TileRender extends flixel.FlxStrip
 
         #if MODCHART_ALLOWED
         final pNote:Dynamic = parentNote ?? Reflect.getProperty(this, "parent");
-
-        if (pNote != null && game.PlayState.instance?.modManager != null) {
-            final modMgr:Dynamic = game.PlayState.instance.modManager;
+        if (pNote != null && PlayState.instance?.modManager != null) {
+            final modMgr:Dynamic = PlayState.instance.modManager;
             final pN:Int = pNote.mustPress ? 0 : 1;
             
             if (modMgr.activeMods[pN].length > 0) {
-                buildMesh(pNote, game.PlayState.instance, modMgr, pN);
+                buildMesh(pNote, PlayState.instance, modMgr, pN);
                 
                 final oldAngle = this.angle;
                 final oldScaleX = this.scale.x;
@@ -82,20 +77,17 @@ class TileRender extends flixel.FlxStrip
                 this.scale.set(1, 1);
                 this.offset.set(0, 0);
                 this.origin.set(0, 0);
-                
+
                 for (camera in cameras) {
                     if (!camera.visible || !camera.exists) continue;
-
+                    
                     final origCT = this.colorTransform;
-
                     @:privateAccess
                     final ct:ColorTransform = origCT?.__clone() ?? new ColorTransform();
                     ct.alphaMultiplier *= camera.alpha;
 
                     this.colorTransform = ct;
-
                     super.draw();
-
                     this.colorTransform = origCT;
                 }
                 
@@ -115,36 +107,9 @@ class TileRender extends flixel.FlxStrip
         }
     }
 
-   #if MODCHART_ALLOWED
+    #if MODCHART_ALLOWED
     private function buildMesh(pNote:Dynamic, state:Dynamic, modMgr:Dynamic, pN:Int):Void
     {
-        final headNote:Dynamic = pNote.parent != null ? pNote.parent : pNote;
-        var tStuffVal:Float = 0;
-        
-        if (pNote.timeStuff != null) {
-            tStuffVal = cast(pNote.timeStuff, Float);
-        } else if (pNote.holdNote != null && pNote.holdNote.timeStuff != null) {
-            tStuffVal = cast(pNote.holdNote.timeStuff, Float);
-        }
-
-        final currentLengthMs:Float = pNote.sustainLength - tStuffVal;
-        final pointTimeBase:Float = pNote.strumTime + tStuffVal;
-        final cBeat:Float = state.curDecBeat;
-        final sSpeed:Float = state.songSpeed;
-        
-        final speedMult:Float = -0.45 * sSpeed * pNote.multSpeed;
-        
-        final absScaleY = Math.abs(scale.y);
-        final absScaleX = Math.abs(scale.x);
-        final bodyIndex = flipY ? tileCount - 1 : 0;
-        final tailIndex = flipY ? 0 : tileCount - 1;
-        final totalHeight = this.height;
-        
-        final swagWidth:Float = pNote.swagWidth != null ? pNote.swagWidth : 112;
-        final offsetX = swagWidth * 0.5 - (!PlayState.isPixelStage ? 0 : 5);
-        final offsetY = swagWidth * 0.5 + (!PlayState.isPixelStage ? (ClientPrefs.downScroll ? 3.5 : -4) : 
-                            (ClientPrefs.downScroll ? -3.5 * PlayState.daPixelZoom : -1 * PlayState.daPixelZoom));
-
         final neededVertices = tileCount * segmentsPerTile * 8; 
         final neededIndices = tileCount * segmentsPerTile * 6;
 
@@ -158,15 +123,50 @@ class TileRender extends flixel.FlxStrip
             indices.length = neededIndices;
         }
 
+        final absScaleY = Math.abs(scale.y);
+        final absScaleX = Math.abs(scale.x);
+        final bodyIndex = flipY ? tileCount - 1 : 0;
+        final tailIndex = flipY ? 0 : tileCount - 1;
+
+        var tStuffDyn:Dynamic = Reflect.field(this, "timeStuff");
+        if (tStuffDyn == null && pNote != null) {
+            final hNote = Reflect.field(pNote, "holdNote");
+            if (hNote != null) tStuffDyn = Reflect.field(hNote, "timeStuff");
+        }
+
+        final tStuffVal:Float = tStuffDyn != null ? cast(tStuffDyn, Float) : 0;
+        final currentLengthMs:Float = pNote.sustainLength - tStuffVal;
+        final pointTimeBase:Float = pNote.strumTime + tStuffVal;
+        final cBeat:Float = state.curDecBeat;
+        final sSpeed:Float = state.songSpeed;
+        
+        final speedMult:Float = -0.45 * sSpeed * pNote.multSpeed;
+        final headNote:Dynamic = Reflect.hasField(pNote, "parent") ? Reflect.field(pNote, "parent") : pNote;
+        final hNoteData = headNote.noteData;
+        final totalHeight = this.height;
+        final invTotalHeight = totalHeight > 0 ? 1.0 / totalHeight : 0;
+        
+        final swagWidth:Float = Reflect.hasField(pNote, "swagWidth") ? Reflect.field(pNote, "swagWidth") : 112;
+        final isPixel = Reflect.hasField(PlayState, "isPixelStage") ? Reflect.field(PlayState, "isPixelStage") : false;
+        final zoom = Reflect.hasField(PlayState, "daPixelZoom") ? Reflect.field(PlayState, "daPixelZoom") : 6;
+        final dScroll = Reflect.hasField(ClientPrefs, "downScroll") ? Reflect.field(ClientPrefs, "downScroll") : false;
+
+        final offsetX = swagWidth * 0.5 - (!isPixel ? 0 : 5) - this.x;
+        final offsetY = swagWidth * 0.5 + (!isPixel ? (dScroll ? 3.5 : -4) : (dScroll ? -3.5 * zoom : -1 * zoom)) - this.y;
+        final songPos = Reflect.field(Conductor, "songPosition");
+
         var currentLocalY:Float = 0.0;
         var vIdx:Int = 0;
         var iIdx:Int = 0;
+
+        var cx0:Float = 0, cy0:Float = 0, normX0:Float = 1.0, normY0:Float = 0;
+        var isFirstPoint = true;
 
         for (i in 0...tileCount)
         {
             final isTail = (i == tailIndex);
             final isClip = (i == bodyIndex && tiles < tileCount);
-            final frameToDraw = isTail ? (tailFrame != null ? tailFrame : _frame) : _frame;
+            final frameToDraw = isTail ? (tailFrame ?? _frame) : _frame;
             
             var tileHeight = frameToDraw.frame.height * absScaleY;
             var clipReduction = 0.0;
@@ -192,7 +192,6 @@ class TileRender extends flixel.FlxStrip
             final widthLocal = frameToDraw.frame.width * absScaleX;
             final halfWidth = widthLocal * 0.5;
             final sign = flipY ? 1.0 : -1.0;
-            final invTotalHeight = totalHeight > 0 ? 1.0 / totalHeight : 0;
 
             for (seg in 0...segmentsPerTile) {
                 final pStart = seg / segmentsPerTile;
@@ -204,52 +203,49 @@ class TileRender extends flixel.FlxStrip
                 final v0 = vTop + (vBot - vTop) * pStart;
                 final v1 = vTop + (vBot - vTop) * pEnd;
 
-                var timeProg0 = y0 * invTotalHeight;
-                var timeProg1 = y1 * invTotalHeight;
-                if (flipY) {
-                    timeProg0 = 1.0 - timeProg0;
-                    timeProg1 = 1.0 - timeProg1;
+                if (isFirstPoint) {
+                    var timeProg0 = y0 * invTotalHeight;
+                    if (flipY) timeProg0 = 1.0 - timeProg0;
+
+                    final t0 = pointTimeBase + (currentLengthMs * timeProg0);
+                    final td0 = songPos - t0;
+                    final bent0 = modMgr.getPos(t0, td0 * speedMult, td0, cBeat, hNoteData, pN, headNote);
+                    
+                    final td0_next = td0 - 1.0;
+                    final bent0_next = modMgr.getPos(t0 + 1.0, td0_next * speedMult, td0_next, cBeat, hNoteData, pN, headNote);
+
+                    cx0 = bent0.x + offsetX;
+                    cy0 = bent0.y + offsetY;
+
+                    final dirX0 = bent0_next.x - bent0.x;
+                    final dirY0 = bent0_next.y - bent0.y;
+                    final dist0 = Math.sqrt(dirX0 * dirX0 + dirY0 * dirY0);
+                    
+                    if (dist0 > 0.001) {
+                        normX0 = (-dirY0 / dist0) * sign;
+                        normY0 = (dirX0 / dist0) * sign;
+                    }
+                    isFirstPoint = false;
                 }
 
-                final t0 = pointTimeBase + (currentLengthMs * timeProg0);
+                var timeProg1 = y1 * invTotalHeight;
+                if (flipY) timeProg1 = 1.0 - timeProg1;
+
                 final t1 = pointTimeBase + (currentLengthMs * timeProg1);
-
-                final td0 = Conductor.songPosition - t0;
-                final td1 = Conductor.songPosition - t1;
+                final td1 = songPos - t1;
                 
-                final vd0 = td0 * speedMult;
-                final vd1 = td1 * speedMult;
-                
-                final bent0 = modMgr.getPos(t0, vd0, td0, cBeat, headNote.noteData, pN, headNote);
-                final bent1 = modMgr.getPos(t1, vd1, td1, cBeat, headNote.noteData, pN, headNote);
-                
-                final td0_next = td0 - 1.0;
-                final vd0_next = td0_next * speedMult;
-                final bent0_next = modMgr.getPos(t0 + 1.0, vd0_next, td0_next, cBeat, headNote.noteData, pN, headNote);
-                
+                final bent1 = modMgr.getPos(t1, td1 * speedMult, td1, cBeat, hNoteData, pN, headNote);
                 final td1_next = td1 - 1.0;
-                final vd1_next = td1_next * speedMult;
-                final bent1_next = modMgr.getPos(t1 + 1.0, vd1_next, td1_next, cBeat, headNote.noteData, pN, headNote);
+                final bent1_next = modMgr.getPos(t1 + 1.0, td1_next * speedMult, td1_next, cBeat, hNoteData, pN, headNote);
 
-                final cx0 = (bent0.x + offsetX) - this.x;
-                final cy0 = (bent0.y + offsetY) - this.y;
-                final cx1 = (bent1.x + offsetX) - this.x;
-                final cy1 = (bent1.y + offsetY) - this.y;
+                final cx1 = bent1.x + offsetX;
+                final cy1 = bent1.y + offsetY;
 
-                final dirX0 = bent0_next.x - bent0.x;
-                final dirY0 = bent0_next.y - bent0.y;
-                final dist0 = Math.sqrt(dirX0 * dirX0 + dirY0 * dirY0);
-                
                 final dirX1 = bent1_next.x - bent1.x;
                 final dirY1 = bent1_next.y - bent1.y;
                 final dist1 = Math.sqrt(dirX1 * dirX1 + dirY1 * dirY1);
 
-                var normX0 = 1.0, normY0 = 0.0, normX1 = 1.0, normY1 = 0.0;
-
-                if (dist0 > 0.001) {
-                    normX0 = (-dirY0 / dist0) * sign;
-                    normY0 = (dirX0 / dist0) * sign;
-                }
+                var normX1 = 1.0; var normY1 = 0.0;
                 if (dist1 > 0.001) {
                     normX1 = (-dirY1 / dist1) * sign;
                     normY1 = (dirX1 / dist1) * sign;
@@ -276,6 +272,11 @@ class TileRender extends flixel.FlxStrip
                 indices[iIdx++] = bVertex + 1;
                 indices[iIdx++] = bVertex + 3;
                 indices[iIdx++] = bVertex + 2;
+
+                cx0 = cx1;
+                cy0 = cy1;
+                normX0 = normX1;
+                normY0 = normY1;
             }
             currentLocalY += tileHeight;
         }
@@ -293,13 +294,12 @@ class TileRender extends flixel.FlxStrip
         if (bakedRotationAngle <= 0)
         {
             updateTrig();
-            if (angle != 0)
-                _matrix.rotateWithTrig(_cosAngle, _sinAngle);
+            if (angle != 0) _matrix.rotateWithTrig(_cosAngle, _sinAngle);
         }
 
         getScreenPosition(_point, camera).subtract(offset.x, offset.y).add(origin.x, origin.y);
         _matrix.translate(_point.x, _point.y);
-
+        
         @:privateAccess
         final ct:ColorTransform = colorTransform?.__clone() ?? new ColorTransform();
         ct.alphaMultiplier *= camera.alpha;
@@ -313,6 +313,7 @@ class TileRender extends flixel.FlxStrip
         final hasRGB = ct.redMultiplier != 1 || ct.greenMultiplier != 1 || ct.blueMultiplier != 1;
         final hasOffsets = ct.alphaMultiplier != 1 || ct.redOffset != 0 || ct.greenOffset != 0 || ct.blueOffset != 0 || ct.alphaOffset != 0;
         final batch = camera.startQuadBatch(_frame.parent, hasRGB, hasOffsets, blend, antialiasing, shader);
+        
         final bodyIndex = flipY ? tileCount - 1 : 0;
         final tailIndex = flipY ? 0 : tileCount - 1;
         final absScaleY = Math.abs(scale.y);
@@ -326,8 +327,8 @@ class TileRender extends flixel.FlxStrip
         for (i in 0...tileCount)
         {
             final frameToDraw = (i == tailIndex) ? (tailFrame ?? _frame) : _frame;
-
             var offsetAmount = (flipY ? _frame.frame.height : frameToDraw.frame.height) * absScaleY;
+            
             if (i == bodyIndex && tiles < tileCount)
             {
                 final clipReduction = frameToDraw.frame.height * (tileCount - tiles);
@@ -384,10 +385,10 @@ class TileRender extends flixel.FlxStrip
     override function set_height(value:Float):Float
     {
         if (height == value || frames == null) return value;
-
         final absScaleY = Math.abs(scale.y);
         final tailHeight = (tailFrame?.frame.height ?? _frame.frame.height) * absScaleY;
-        tileCount = Math.ceil(tiles = value <= tailHeight ? value / tailHeight : (value - tailHeight) / (_frame.frame.height * absScaleY) + 1);
+        tiles = value <= tailHeight ? value / tailHeight : (value - tailHeight) / (_frame.frame.height * absScaleY) + 1;
+        tileCount = Math.ceil(tiles);
         return super.set_height(value);
     }
 

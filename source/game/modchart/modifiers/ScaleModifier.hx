@@ -160,6 +160,11 @@ class ScaleModifier extends NoteModifier {
         }
 
         note.scale.copyFrom(finalScale);
+
+        if (note.isSustainNote && note.holdNote != null) {
+            note.holdNote.scale.x = finalScale.x;
+        }
+
         finalScale.putWeak();
         baseScale.putWeak();
     }
