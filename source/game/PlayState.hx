@@ -2939,21 +2939,27 @@ class PlayState extends MusicBeatState
 	}
 
 	var cameraTwn:FlxTween;
-	public function moveCamera(isDad:Bool)
+	public function moveCamera(isDad:Bool, ?customTarget:Character = null, ?customOffset:Array<Float> = null)
 	{
-		if(isDad)
+		final target:Character = customTarget ?? (isDad ? dad : boyfriend);
+		final offset:Array<Float> = customOffset ?? (isDad ? opponentCameraOffset : boyfriendCameraOffset);
+		
+		if (target == null) return;
+
+		final isOpponentFace:Bool = isDad || !customTarget?.isPlayer;
+		if(isOpponentFace)
 		{
-			camFollow.setPosition(dad.getMidpoint().x + 150, dad.getMidpoint().y - 100);
-			camFollow.x += dad.cameraPosition[0] + opponentCameraOffset[0];
-			camFollow.y += dad.cameraPosition[1] + opponentCameraOffset[1];
+			camFollow.setPosition(target.getMidpoint().x + 150, target.getMidpoint().y - 100);
+			camFollow.x += target.cameraPosition[0] + offset[0];
+			camFollow.y += target.cameraPosition[1] + offset[1];
 			tweenCamIn();
 		}
 		else
 		{
-			camFollow.setPosition(boyfriend.getMidpoint().x - 100, boyfriend.getMidpoint().y - 100);
-			camFollow.x -= boyfriend.cameraPosition[0] - boyfriendCameraOffset[0];
-			camFollow.y += boyfriend.cameraPosition[1] + boyfriendCameraOffset[1];
-
+			camFollow.setPosition(target.getMidpoint().x - 100, target.getMidpoint().y - 100);
+			camFollow.x -= target.cameraPosition[0] - offset[0];
+			camFollow.y += target.cameraPosition[1] + offset[1];
+			
 			if (songName == 'tutorial' && cameraTwn == null && FlxG.camera.zoom != 1)
 			{
 				cameraTwn = FlxTween.tween(FlxG.camera, {zoom: 1}, (Conductor.stepCrochet * 4 / 1000), {ease: FlxEase.elasticInOut, onComplete:

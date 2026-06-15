@@ -30,7 +30,6 @@ class FPSCounterPlugin extends Sprite
 	public var currentFPS(default, null):Int = 0;
 	public var currentMemory(get, never):Float;
 	public var showDebugInfo:Bool = false;
-
 	public var strokeSize:Int = 1;
 	public var strokeColor:Int = 0xFF000000;
 	public var fillColor:Int = 0xFFFFFFFF;
@@ -38,7 +37,8 @@ class FPSCounterPlugin extends Sprite
 	public var fontCustom:String = "_sans";
 
 	public var performanceWarnings(default, null):Array<String> = [];
-	public var warningLevel(default, null):Int = 0; // 0 = normal, 1 = warning, 2 = dangerous, 3 = critical
+	public var warningLevel(default, null):Int = 0;
+	// 0 = normal, 1 = warning, 2 = dangerous, 3 = critical
 
 	// Warning thresholds
 	private var warningThresholds = {
@@ -53,7 +53,9 @@ class FPSCounterPlugin extends Sprite
 		systemMemoryLow: 0.21e9 // 200 MB free RAM
 	};
 
-	private var times:Array<Float> = [];
+	private var frameCount:Int = 0;
+	private var lastFPSTime:Float = 0;
+	
 	private var lastFrameTime:Float = 0;
 	private var lastUpdateTime:Float = 0;
 	private var lastMemoryUpdate:Float = 0;
@@ -67,14 +69,18 @@ class FPSCounterPlugin extends Sprite
 	private var graphUpdateInterval:Float = 0.12;
 
 	private var memoryReadings:Array<Float> = [];
+	private var vramReadings:Array<Float> = [];
 	private var maxMemoryReadings:Int = 10;
 	private var smoothMemory:Float = 0;
+	private var smoothVRAM:Float = 0;
 	private var availableSystemMemory:Float = 0;
 
 	#if (openfl >= "9.4.0")
 	private var peakMemory:Float = 0;
+	private var peakVRAM:Float = 0;
 	#else
 	private var peakMemory:UInt = 0;
+	private var peakVRAM:UInt = 0;
 	#end
 
 	private var graphWidth:Int = 135;
@@ -130,6 +136,7 @@ class FPSCounterPlugin extends Sprite
 		this.fillColor = fillColor;
 
 		lastFrameTime = Timer.stamp();
+		lastFPSTime = lastFrameTime;
 		lastUpdateTime = lastFrameTime;
 		lastMemoryUpdate = lastFrameTime;
 		lastWarningUpdate = lastFrameTime;
@@ -137,7 +144,10 @@ class FPSCounterPlugin extends Sprite
 		lastStatReset = lastFrameTime;
 
 		for (i in 0...maxMemoryReadings)
+		{
 			memoryReadings.push(0);
+			vramReadings.push(0);
+		}
 
 		textFormat = new TextFormat(fontCustom, fontSize, fillColor);
 		shadowFormat = new TextFormat(fontCustom, fontSize, strokeColor);
@@ -206,14 +216,15 @@ class FPSCounterPlugin extends Sprite
 		if (keyCooldown > 0)
 			keyCooldown -= deltaTime;
 
-		final currentTimeMs = now * 1000;
-		times.push(currentTimeMs);
-
-		while (times.length > 0 && times[0] < currentTimeMs - 1000)
-			times.shift();
-
-		final currentCount = times.length < FlxG.updateFramerate ? times.length : FlxG.updateFramerate;
-		currentFPS = ClientPrefs.unlimitedFPS ? times.length : Math.round(currentCount);
+		frameCount++;
+		if (now - lastFPSTime >= 0.25)
+		{
+			var calculatedFPS = Math.round(frameCount / (now - lastFPSTime));
+			var currentCount = calculatedFPS < FlxG.updateFramerate ? calculatedFPS : FlxG.updateFramerate;
+			currentFPS = ClientPrefs.unlimitedFPS ? calculatedFPS : Math.round(currentCount);
+			frameCount = 0;
+			lastFPSTime = now;
+		}
 
 		updateFrameTiming(deltaTime);
 
@@ -240,6 +251,7 @@ class FPSCounterPlugin extends Sprite
 			{
 				final output = buildOutputString();
 				final memBucket = Std.int(smoothMemory / (16 * 1024 * 1024));
+
 				final needsVisualRefresh = output != lastOutput
 					|| currentFPS != lastFPS
 					|| memBucket != lastMemBucket
@@ -366,6 +378,7 @@ class FPSCounterPlugin extends Sprite
 	private function updateMemoryStats(currentTime:Float):Void
 	{
 		var currentMem = MemoryUtil.getAccurateRamUsage();
+		var currentVRAMUsage = MemoryUtil.getVRAMUsage();
 
 		if (currentMem < 0)
 		{
@@ -385,11 +398,25 @@ class FPSCounterPlugin extends Sprite
 			total += reading;
 
 		smoothMemory = total / memoryReadings.length;
+
+		vramReadings.push(currentVRAMUsage);
+		if (vramReadings.length > maxMemoryReadings)
+			vramReadings.shift();
+
+		var totalVRAM:Float = 0;
+		for (reading in vramReadings)
+			totalVRAM += reading;
+			
+		smoothVRAM = totalVRAM / vramReadings.length;
+
 		availableSystemMemory = MemoryUtil.getAvailableSystemMemory();
 		lastMemoryUpdate = currentTime;
 
 		if (currentMem > peakMemory)
 			peakMemory = currentMem;
+			
+		if (currentVRAMUsage > peakVRAM)
+			peakVRAM = currentVRAMUsage;
 	}
 
 	private function updateStats():Void
@@ -411,6 +438,7 @@ class FPSCounterPlugin extends Sprite
 		totalFrames++;
 
 		var fpsScore:Float;
+
 		if (ClientPrefs.unlimitedFPS)
 		{
 			fpsScore = Math.min(currentFPS / 120.0 * 60.0, 60.0);
@@ -438,6 +466,7 @@ class FPSCounterPlugin extends Sprite
 		performanceScore = Math.max(0, Math.min(100, performanceScore));
 
 		final now = Timer.stamp();
+
 		if (now - lastStatReset > 30)
 			resetStats();
 	}
@@ -477,6 +506,7 @@ class FPSCounterPlugin extends Sprite
 		{
 			final lastFrame = frameTimes[frameTimes.length - 1];
 			final prevFrame = frameTimes[frameTimes.length - 2];
+
 			if (lastFrame > prevFrame * 2.0 && lastFrame > 33.0)
 				stabilityIssues++;
 		}
@@ -512,7 +542,13 @@ class FPSCounterPlugin extends Sprite
 			memoryText += " / " + getSizeLabel(availableSystemMemory);
 
 		output += "\n" + memoryText;
-		output += '\nRAM Peak: ${getSizeLabel(peakMemory)}';
+		
+		if (smoothVRAM > 0) {
+			output += "\nVRAM: " + getSizeLabel(smoothVRAM);
+			output += '\nRAM Peak: ${getSizeLabel(peakMemory)} | VRAM Peak: ${getSizeLabel(peakVRAM)}';
+		} else {
+			output += '\nRAM Peak: ${getSizeLabel(peakMemory)}';
+		}
 
 		var performanceGrade = getPerformanceGrade();
 		output += '\nPerformance: ${Math.round(performanceScore)}% (${performanceGrade})';
@@ -702,7 +738,7 @@ class FPSCounterPlugin extends Sprite
 
 			var xPos = graphX + Std.int((i / segmentCount) * graphWidth);
 			var yPos = graphY + graphHeight - Std.int((graphHistory[historyIndex] / maxValue) * graphHeight);
-
+			
 			yPos = Std.int(Math.max(graphY + 1, Math.min(graphY + graphHeight - 2, yPos)));
 			xPos = Std.int(Math.max(graphX + 1, Math.min(graphX + graphWidth - 2, xPos)));
 
@@ -744,24 +780,12 @@ class FPSCounterPlugin extends Sprite
 
 		while (pointsDrawn < maxPoints && pointsDrawn < 100)
 		{
-			for (tx in -thickness...thickness + 1)
-			{
-				for (ty in -thickness...thickness + 1)
-				{
-					var dist = Math.sqrt(tx * tx + ty * ty);
-					if (dist <= thickness)
-					{
-						final px = x + tx;
-						final py = y + ty;
-						if (px >= 0 && px < bmd.width && py >= 0 && py < bmd.height)
-							bmd.setPixel32(px, py, color);
-					}
-				}
-			}
+			bmd.fillRect(new Rectangle(x - thickness, y - thickness, thickness * 2, thickness * 2), color);
 
 			if (x == x2 && y == y2) break;
 
 			final e2 = 2 * err;
+			
 			if (e2 > -dy)
 			{
 				err -= dy;
@@ -807,11 +831,12 @@ class FPSCounterPlugin extends Sprite
 		{
 			final timestamp = Date.now().toString();
 			final warnings = performanceWarnings.join("; ");
+			
 			final logLine = timestamp + "," + currentFPS + "," + smoothMemory + "," + peakMemory + "," +
 				availableSystemMemory + "," + (ClientPrefs.vsync ? "ON" : "OFF") + "," +
 				(ClientPrefs.vsync ? getDisplayRefreshRate() : ClientPrefs.framerate) + "," +
 				performanceScore + "," + warnings + "\n";
-
+				
 			File.saveContent(logFile, File.getContent(logFile) + logLine);
 		}
 		catch (e:Dynamic)
@@ -841,10 +866,16 @@ class FPSCounterPlugin extends Sprite
 		graphHistory = [];
 		frameTimes = [];
 		memoryReadings = [];
+		vramReadings = [];
+		
 		for (i in 0...maxMemoryReadings)
+		{
 			memoryReadings.push(0);
-
+			vramReadings.push(0);
+		}
+		
 		peakMemory = 0;
+		peakVRAM = 0;
 		performanceWarnings = [];
 		warningLevel = 0;
 		graphDirty = true;
