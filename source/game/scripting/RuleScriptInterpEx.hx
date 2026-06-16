@@ -537,6 +537,12 @@ class RuleScriptInterpEx extends RuleScriptInterp
     
     private function validateFieldAccess(obj:Dynamic, field:String, ?expr:Expr):Void {
         if (!strictMode || obj == null) return;
+
+        if (Std.isOfType(obj, rulescript.scriptedClass.RuleScriptedClass) || 
+			Type.getClassName(Type.getClass(obj)) == "rulescript.scriptedClass.ScriptedClass") 
+		{
+			return;
+		}
         
         if (isMapType(obj)) return;
         
