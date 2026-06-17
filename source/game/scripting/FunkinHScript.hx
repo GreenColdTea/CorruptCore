@@ -1,12 +1,5 @@
 package game.scripting;
 
-import game.scripting.RuleScriptParserEx as HxParser;
-import game.scripting.RuleScriptInterpEx as Interp;
-#if sys
-import sys.io.File;
-#end
-using StringTools;
-
 class FunkinHScript extends FunkinRuleScript
 {
     public function new(path:String, parentInstance:Dynamic = null, skipCreate:Bool = false) {
@@ -14,16 +7,10 @@ class FunkinHScript extends FunkinRuleScript
 
         set("FunkinHScript", FunkinHScript);
 
-        var hxParser = new HxParser();
+        var hxParser = new rulescript.parsers.HxParser();
         rule.parser = hxParser;
         
         hxParser.allowAll();
-        
-        hxParser.setParserParameters({
-            strictMode: true,
-            reportWarnings: true
-        });
-        hxParser.scriptPath = path;
 
         var scriptToRun:String = loadScriptContent(path);
         execute(scriptToRun, skipCreate);

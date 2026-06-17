@@ -11,19 +11,17 @@ import haxe.io.Path;
 import rulescript.*;
 import rulescript.parsers.*;
 import rulescript.RuleScript;
+import rulescript.interps.RuleScriptInterp;
 import rulescript.scriptedClass.RuleScriptedClassUtil.*;
 import rulescript.scriptedClass.RuleScriptedClassUtil;
 import rulescript.scriptedClass.RuleScriptedClass.*;
 import rulescript.scriptedClass.RuleScriptedClass;
 import rulescript.types.ScriptedTypeUtil;
 import rulescript.types.ScriptedAbstract;
-import rulescript.interps.RuleScriptInterp;
 import rulescript.types.ScriptedModule;
 import rulescript.types.Abstracts;
 
 import hscript.Expr;
-
-import game.scripting.RuleScriptParserEx as HxParser;
 
 import flixel.group.FlxGroup.FlxTypedGroup;
 import flixel.group.FlxGroup;
@@ -148,7 +146,7 @@ class FunkinRuleScript {
 
         initScriptedClasses();
 
-        rule = new RuleScript(new RuleScriptInterpEx(this));
+        rule = new RuleScript(new RuleScriptInterp());
         rule.scriptName = path;
         rule.errorHandler = onError;
 
@@ -174,7 +172,7 @@ class FunkinRuleScript {
                 return null;
             }
 
-            var parser = new HxParser();
+            final parser = new HxParser();
             parser.allowAll();
             parser.mode = MODULE;
             try {
@@ -198,8 +196,8 @@ class FunkinRuleScript {
 
             try {
                 @:privateAccess
-                var scriptedModule = new ScriptedModule(moduleName, module, ScriptedTypeUtil._currentContext);
-                var type = scriptedModule.types[path.typeName];
+                final scriptedModule = new ScriptedModule(moduleName, module, ScriptedTypeUtil._currentContext);
+                final type = scriptedModule.types[path.typeName];
                 if (type != null)
                     RuleScriptedClassUtil.registerRuleScriptedClass(name, cast type);
                 
@@ -211,16 +209,17 @@ class FunkinRuleScript {
         };
 
         RuleScriptedClassUtil.buildBridge = function(typePath:String, superInstance:Dynamic):RuleScript {
-            var type:ScriptedClassType = ScriptedTypeUtil.resolveScript(typePath);
+            final type:ScriptedClassType = ScriptedTypeUtil.resolveScript(typePath);
             if (type == null) {
                 if (shouldTraceErrors()) trace('Failed to resolve script type: $typePath');
                 return null;
             }
-            var script = new RuleScript(new RuleScriptInterpEx());
+
+            final script = new RuleScript(new RuleScriptInterp());
             script.scriptName = typePath;
-            script.getParser(HxParser).allowAll();
             script.superInstance = superInstance;
-            script.getInterp(RuleScriptInterpEx).skipNextRestore = true;
+            script.getParser(HxParser).allowAll();
+            script.getInterp(RuleScriptInterp).skipNextRestore = true;
             if (type.isExpr) {
                 script.execute(cast type);
                 return script;
