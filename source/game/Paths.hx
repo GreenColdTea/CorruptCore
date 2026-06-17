@@ -57,7 +57,7 @@ class Paths
 
     public static var dumpExclusions:Array<String> =
     [
-        'assets/music/freakyMenu.$SOUND_EXT',
+        getPath('music/freakyMenu.$SOUND_EXT'),
     ];
 
     public static var localTrackedAssets:Array<String> = [];
@@ -260,7 +260,13 @@ class Paths
     inline static function getLibraryPathForce(file:String, library:String, ?level:String)
     {
         level ??= library;
-        return 'assets/$level/$file';
+
+        #if MODS_ALLOWED
+        final modLibrary:String = Mods.modFolders('$level/$file');
+        if(FileSystem.exists(modLibrary)) return modLibrary;
+        #end
+
+        return getPreloadPath('$level/$file');
     }
 
     inline public static function getPreloadPath(file:String = '')
@@ -439,12 +445,11 @@ class Paths
     #if NDLL_ALLOWED
     inline static public function ndll(key:String) {
         #if MODS_ALLOWED
-        var file:String = Mods.modsNdll(key + "-" + game.backend.utils.NdllUtil.os + ".ndll");
-        if(FileSystem.exists(file)) {
-            return file;
-        }
+        final file:String = Mods.modsNdll('ndlls/$key-${game.backend.utils.NdllUtil.os}.ndll');
+        if(FileSystem.exists(file))return file;
         #end
-        return 'assets/$key';
+
+        return getPreloadPath('ndlls/$key-${game.backend.utils.NdllUtil.os}.ndll');
     }
     #end
 
@@ -629,7 +634,7 @@ class Paths
             if(FileSystem.exists(file)) return file;
         }
         #end
-        return 'assets/fonts/$key';
+        return getPreloadPath('fonts/$key');
     }
 
     public static function fileExists(key:String, ?type:AssetType, ?ignoreMods:Bool = false, ?library:String = null)

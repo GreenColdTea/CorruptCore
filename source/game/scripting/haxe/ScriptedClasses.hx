@@ -60,3 +60,25 @@ class ScriptedOption extends game.substates.backend.Option implements RuleScript
 
 class ScriptedAttachedSprite extends game.objects.AttachedSprite implements RuleScriptedClass {}
 class ScriptedAttachedText extends game.objects.AttachedText implements RuleScriptedClass {}
+
+#if flixel_animate
+class ScriptedFlxAnimate extends animate.FlxAnimate implements RuleScriptedClass {}
+#end
+
+#if flxgif
+class ScriptedFlxGifSprite extends flxgif.FlxGifSprite implements RuleScriptedClass {}
+class ScriptedFlxGifBackdrop extends flxgif.FlxGifBackdrop implements RuleScriptedClass {}
+#end
+
+#if flxsoundfilters
+class ScriptedFlxFilteredSound extends flixel.sound.filters.FlxFilteredSound implements RuleScriptedClass {}
+#end
+
+#if VIDEOS_ALLOWED
+class ScriptedFunkinVideoSprite extends game.objects.FunkinVideoSprite implements RuleScriptedClass {}
+#end
+
+#if MODCHART_ALLOWED
+class ScriptedModifier extends game.modchart.Modifier implements RuleScriptedClass {}
+class ScriptedNoteModifier extends game.modchart.NoteModifier implements RuleScriptedClass {}
+#end

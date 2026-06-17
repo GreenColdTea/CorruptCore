@@ -2946,7 +2946,7 @@ class PlayState extends MusicBeatState
 		
 		if (target == null) return;
 
-		final isOpponentFace:Bool = isDad || !customTarget?.isPlayer;
+		final isOpponentFace:Bool = isDad || (customTarget != null && !customTarget.isPlayer);
 		if(isOpponentFace)
 		{
 			camFollow.setPosition(target.getMidpoint().x + 150, target.getMidpoint().y - 100);
@@ -2957,8 +2957,8 @@ class PlayState extends MusicBeatState
 		else
 		{
 			camFollow.setPosition(target.getMidpoint().x - 100, target.getMidpoint().y - 100);
-			camFollow.x -= target.cameraPosition[0] - offset[0];
-			camFollow.y += target.cameraPosition[1] + offset[1];
+			camFollow.x -= target.cameraPosition[0] - offset[0]; 
+    		camFollow.y += target.cameraPosition[1] + offset[1];
 			
 			if (songName == 'tutorial' && cameraTwn == null && FlxG.camera.zoom != 1)
 			{

@@ -67,6 +67,8 @@ class LoadingState extends MusicBeatState
     public final maxAudioThreads:Int = Std.int(Math.max(1, lime.Native.getCPUThreadsCount() - 2));
     public final maxJSONThreads:Int = Std.int(Math.max(1, lime.Native.getCPUThreadsCount() - 2));
 
+    static var formatCache:Map<String, Dynamic> = new Map();
+
     public function new(target:NextState, stopMusic:Bool, directory:String)
     {
         super();
@@ -271,6 +273,11 @@ class LoadingState extends MusicBeatState
 
     function loadStageImage(image:String, onComplete:Void->Void)
     {
+        if (isGraphicCached(image)) {
+            onComplete();
+            return;
+        }
+
         loadQueue.push({
             type: MAIN_THREAD,
             description: 'Load image: $image',
@@ -304,8 +311,19 @@ class LoadingState extends MusicBeatState
         });
     }
 
+    @:access(flixel.system.frontEnds.BitmapFrontEnd._cache)
+    static function isGraphicCached(imageName:String):Bool {
+        for (ext in Paths.IMAGE_EXTS) {
+            var key = 'images/$imageName.$ext';
+            if (FlxG.bitmap._cache.exists(key)) return true;
+        }
+        return false;
+    }
+
     function checkImageFormats(image:String):Dynamic
     {
+        if (formatCache.exists(image)) return formatCache.get(image);
+
         var hasImage = false;
         for (ext in Paths.IMAGE_EXTS) {
             if (Paths.fileExists('images/$image.$ext', IMAGE)) {
@@ -314,13 +332,15 @@ class LoadingState extends MusicBeatState
             }
         }
 
-        return {
+        var result = {
             animate: #if flixel_animate Paths.fileExists('images/$image/Animation.json', TEXT) #else false #end,
             xml: Paths.fileExists('images/$image.xml', TEXT),
             json: Paths.fileExists('images/$image.json', TEXT),
             txt: Paths.fileExists('images/$image.txt', TEXT),
             png: hasImage
         };
+        formatCache[image] = result;
+        return result;
     }
 
     function checkLoadSong(path:String, onComplete:Void->Void)
@@ -511,26 +531,12 @@ class LoadingState extends MusicBeatState
     }
 
     static function isCharacterLoaded(character:String):Bool {
-        if (Paths.fileExists('data/characters/$character.json', TEXT)) return true;
-        for (ext in Paths.IMAGE_EXTS) {
-            if (Paths.fileExists('images/characters/$character.$ext', IMAGE)) return true;
-        }
-        var atlasPaths = ['images/characters/$character.xml', 'images/characters/$character.json', 'images/characters/$character.txt'];
-        for (path in atlasPaths) {
-            if (Paths.fileExists(path, TEXT)) return true;
-        }
-        return false;
+        if (isGraphicCached('characters/$character')) return true;
+        return Paths.fileExists('data/characters/$character.json', TEXT);
     }
 
     static function isStageImageLoaded(image:String):Bool {
-        for (ext in Paths.IMAGE_EXTS) {
-            if (Paths.fileExists('images/$image.$ext', IMAGE)) return true;
-        }
-        var atlasPaths = ['images/$image.xml', 'images/$image.json', 'images/$image.txt'];
-        for (path in atlasPaths) {
-            if (Paths.fileExists(path, TEXT)) return true;
-        }
-        return false;
+        return isGraphicCached(image);
     }
 
     #if MODS_ALLOWED
@@ -577,6 +583,8 @@ class LoadingState extends MusicBeatState
             jsonProcessingPool.cancel();
             jsonProcessingPool = null;
         }
+
+        formatCache.clear();
 
         callbacks = null;
         percentText?.destroy();
