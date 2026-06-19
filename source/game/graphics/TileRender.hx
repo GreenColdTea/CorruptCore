@@ -40,9 +40,9 @@ class TileRender extends flixel.FlxStrip
     function adjustFrame(frame:FlxFrame):Void
     {
         if (frame == null) return;
-        // frame.sourceSize.y -= 2;
-        // frame.frame.height -= 2;
-        // frame.frame.y += 1;
+        frame.sourceSize.y -= 2;
+        frame.frame.height -= 2;
+        frame.frame.y += 1;
     }
 
     function updateTailFrame():Void
