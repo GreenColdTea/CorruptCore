@@ -134,15 +134,23 @@ class TileRender extends flixel.FlxStrip
             if (hNote != null) tStuffDyn = Reflect.field(hNote, "timeStuff");
         }
 
-        final tStuffVal:Float = tStuffDyn != null ? cast(tStuffDyn, Float) : 0;
-        final currentLengthMs:Float = pNote.sustainLength - tStuffVal;
+        final songPos = Reflect.field(Conductor, "songPosition");
+        var tStuffVal:Float = tStuffDyn != null ? cast(tStuffDyn, Float) : 0;
+
+        final isHit:Bool = Reflect.field(this, "hit");
+        if (isHit)
+            tStuffVal = songPos - pNote.strumTime;
+
+        var currentLengthMs:Float = pNote.sustainLength - tStuffVal;
+        if (currentLengthMs < 0) currentLengthMs = 0;
+
         final pointTimeBase:Float = pNote.strumTime + tStuffVal;
         final cBeat:Float = state.curDecBeat;
         final sSpeed:Float = state.songSpeed;
         
         final speedMult:Float = -0.45 * sSpeed * pNote.multSpeed;
         final headNote:Dynamic = Reflect.hasField(pNote, "parent") ? Reflect.field(pNote, "parent") : pNote;
-        final hNoteData = headNote.noteData;
+        final hNoteData = pNote.noteData;
         final totalHeight = this.height;
         final invTotalHeight = totalHeight > 0 ? 1.0 / totalHeight : 0;
         
@@ -150,7 +158,7 @@ class TileRender extends flixel.FlxStrip
         final isPixel = Reflect.hasField(PlayState, "isPixelStage") ? Reflect.field(PlayState, "isPixelStage") : false;
         final zoom = Reflect.hasField(PlayState, "daPixelZoom") ? Reflect.field(PlayState, "daPixelZoom") : 6;
         final dScroll = Reflect.hasField(ClientPrefs, "downScroll") ? Reflect.field(ClientPrefs, "downScroll") : false;
-
+        
         final offsetX = swagWidth * 0.5 - (!isPixel ? 0 : 5) - this.x;
         final offsetY = swagWidth * 0.5 + (!isPixel ? (dScroll ? 3.5 : -4) : (dScroll ? -3.5 * zoom : -1 * zoom)) - this.y;
         final songPos = Reflect.field(Conductor, "songPosition");

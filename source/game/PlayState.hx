@@ -1411,7 +1411,7 @@ class PlayState extends MusicBeatState
 			final strumLineY:Float = ClientPrefs.downScroll ? (FlxG.height - 150) : 50;
 
 			opponentStrums = new StrumLine(strumLineX, strumLineY, 0, keysAmount, ClientPrefs.downScroll);
-			playerStrums = new StrumLine(strumLineX + (FlxG.width / 2), strumLineY, 1, keysAmount, ClientPrefs.downScroll);
+			playerStrums = new StrumLine(strumLineX, strumLineY, 1, keysAmount, ClientPrefs.downScroll);
 
 			for (i in 0...playerStrums.members.length) {
 				setOnScripts('defaultPlayerStrumX' + i, playerStrums.members[i].x);

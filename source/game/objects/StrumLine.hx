@@ -40,8 +40,12 @@ class StrumLine extends FlxTypedGroup<StrumNote> {
             babyArrow.downScroll = this.isDownscroll;
 
             babyArrow.postAddedToGroup();
-            
-            babyArrow.x = this.startX + (i * noteWidth) - strumlineOffset;
+
+            if (ClientPrefs.middleScroll && player < 1) {
+                babyArrow.x += 310;
+                if (i > 1)
+                    babyArrow.x += FlxG.width / 2 + 25;
+            }
 
             if (!PlayState.isStoryMode && !PlayState.instance.skipArrowStartTween) {
                 babyArrow.alpha = 0;
