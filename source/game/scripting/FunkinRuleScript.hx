@@ -140,7 +140,7 @@ class FunkinRuleScript {
     private var callbacks:haxe.ds.Map<String, Array<Dynamic>> = new haxe.ds.Map();
     private var importedPackages:haxe.ds.Map<String, Bool> = new haxe.ds.Map();
 
-    public function new(path:String, parentInstance:Dynamic = null, skipCreate:Bool = false) {
+    public function new(path:String, parentInstance:Dynamic = null, skipCreate:Bool = false, runScript:Bool = true) {
         this.parentInstance = parentInstance;
         scriptName = path;
 
@@ -150,13 +150,15 @@ class FunkinRuleScript {
         rule.scriptName = path;
         rule.errorHandler = onError;
 
-        try {
-            var content = loadScriptContent(path);
-            execute(content, skipCreate);
-        } catch (e:haxe.Exception) {
-            if (shouldTraceErrors())
-                trace('Failed to load script $path: ${e.message}');
-            active = false;
+        if (runScript) {
+            try {
+                var content = loadScriptContent(path);
+                execute(content, skipCreate);
+            } catch (e:haxe.Exception) {
+                if (shouldTraceErrors())
+                    trace('Failed to load script $path: ${e.message}');
+                active = false;
+            }
         }
     }
 

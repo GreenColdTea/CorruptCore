@@ -3,16 +3,16 @@ package game.scripting;
 class FunkinHScript extends FunkinRuleScript
 {
     public function new(path:String, parentInstance:Dynamic = null, skipCreate:Bool = false) {
-        super(path, parentInstance, skipCreate);
+        super(path, parentInstance, skipCreate, false);
 
         set("FunkinHScript", FunkinHScript);
 
-        var hxParser = new rulescript.parsers.HxParser();
+        final hxParser = new rulescript.parsers.HxParser();
         rule.parser = hxParser;
         
         hxParser.allowAll();
 
-        var scriptToRun:String = loadScriptContent(path);
+        final scriptToRun:String = loadScriptContent(path);
         execute(scriptToRun, skipCreate);
     }
 

@@ -1003,11 +1003,11 @@ class PlayState extends MusicBeatState
 		eventPushedMap = null;
 
 		// SONG SPECIFIC SCRIPTS
-		var filesPushed:Array<String> = [];
-		var foldersToCheck:Array<String> = [Paths.getPreloadPath('data/songs/' + Paths.formatToSongPath(SONG.song) + '/')];
+		filesPushed = [];
+		foldersToCheck = [Paths.getPreloadPath('data/songs/${Paths.formatToSongPath(SONG.song)}/')];
 
 		#if MODS_ALLOWED
-		foldersToCheck.insert(0, Mods.getModPath('data/songs/' + Paths.formatToSongPath(SONG.song) + '/'));
+		foldersToCheck.insert(0, Mods.getModPath('data/songs/${Paths.formatToSongPath(SONG.song)}/'));
 		if(Mods.currentModDirectory?.length > 0)
 			foldersToCheck.insert(0, Mods.getModPath(Mods.currentModDirectory + '/data/songs/' + Paths.formatToSongPath(SONG.song) + '/'));
 
