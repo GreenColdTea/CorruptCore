@@ -3352,6 +3352,7 @@ class PlayState extends MusicBeatState
 		// add(coolText);
 
 		FlxTween.tween(rating, {alpha: 0}, 0.2 / playbackRate, {
+			onComplete: (_) -> rating.kill(),
 			startDelay: Conductor.crochet * 0.001 / playbackRate
 		});
 

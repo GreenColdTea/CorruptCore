@@ -164,7 +164,7 @@ class FunkinRuleScript {
 
     private function initScriptedClasses() {
         ScriptedTypeUtil.resolveModule = function(name:String):Array<ModuleDecl> {
-            final filePath = 'source/${name.replace('.', '/')}.hxc';
+            final filePath = 'scripts/classes/${name.replace('.', '/')}.hxc';
             if (!Paths.fileExists(filePath, TEXT))
                 return null;
 

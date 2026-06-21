@@ -36,23 +36,6 @@ class FPSCounterPlugin extends Sprite
 	public var fontSize:Int = 11;
 	public var fontCustom:String = "_sans";
 
-	public var performanceWarnings(default, null):Array<String> = [];
-	public var warningLevel(default, null):Int = 0;
-	// 0 = normal, 1 = warning, 2 = dangerous, 3 = critical
-
-	// Warning thresholds
-	private var warningThresholds = {
-		fpsLow: 0.8,        // 80% of target FPS
-		fpsVeryLow: 0.6,    // 60% of target FPS
-		fpsCritical: 0.4,   // 40% of target FPS
-		memoryHigh: 2e9,    // 2 GB
-		memoryVeryHigh: 3e9, // 3 GB
-		memoryCritical: 4e9, // 4 GB
-		frameTimeHigh: 25.0, // 25ms (40 FPS)
-		frameTimeVeryHigh: 40.0, // 40ms (25 FPS)
-		systemMemoryLow: 0.21e9 // 200 MB free RAM
-	};
-
 	private var frameCount:Int = 0;
 	private var lastFPSTime:Float = 0;
 	
@@ -124,7 +107,6 @@ class FPSCounterPlugin extends Sprite
 	private var lastOutput:String = "";
 	private var lastFPS:Int = -1;
 	private var lastMemBucket:Int = -1;
-	private var lastWarningLevel:Int = -1;
 	private var lastShowDebugInfo:Bool = false;
 
 	public function new(x:Float = 10, y:Float = 10, ?fillColor:Int = 0xFFFFFFFF)
@@ -237,12 +219,6 @@ class FPSCounterPlugin extends Sprite
 			lastGraphUpdate = now;
 		}
 
-		if (now - lastWarningUpdate >= warningUpdateInterval)
-		{
-			updatePerformanceWarnings();
-			lastWarningUpdate = now;
-		}
-
 		if (now - lastUpdateTime >= updateInterval)
 		{
 			updateStats();
@@ -255,7 +231,6 @@ class FPSCounterPlugin extends Sprite
 				final needsVisualRefresh = output != lastOutput
 					|| currentFPS != lastFPS
 					|| memBucket != lastMemBucket
-					|| warningLevel != lastWarningLevel
 					|| showDebugInfo != lastShowDebugInfo;
 
 				if (needsVisualRefresh)
@@ -264,7 +239,6 @@ class FPSCounterPlugin extends Sprite
 					lastOutput = output;
 					lastFPS = currentFPS;
 					lastMemBucket = memBucket;
-					lastWarningLevel = warningLevel;
 					lastShowDebugInfo = showDebugInfo;
 				}
 			}
@@ -276,81 +250,6 @@ class FPSCounterPlugin extends Sprite
 			updateLogging(now);
 
 		lastFrameTime = now;
-	}
-
-	private function updatePerformanceWarnings():Void
-	{
-		performanceWarnings = [];
-		warningLevel = 0;
-
-		if (!ClientPrefs.unlimitedFPS)
-		{
-			var targetFPS = ClientPrefs.vsync ? getDisplayRefreshRate() : ClientPrefs.framerate;
-
-			if (currentFPS < targetFPS * warningThresholds.fpsCritical)
-			{
-				performanceWarnings.push("CRITICAL: Very low FPS!");
-				warningLevel = 3;
-			}
-			else if (currentFPS < targetFPS * warningThresholds.fpsVeryLow)
-			{
-				performanceWarnings.push("WARNING: Low FPS");
-				if (warningLevel < 2) warningLevel = 2;
-			}
-			else if (currentFPS < targetFPS * warningThresholds.fpsLow)
-			{
-				performanceWarnings.push("Notice: FPS below normal");
-				if (warningLevel < 1) warningLevel = 1;
-			}
-
-			if (frameTimes.length > 0)
-			{
-				var frameStats = getFrameTimingStats();
-
-				if (frameStats.avg > warningThresholds.frameTimeVeryHigh)
-				{
-					performanceWarnings.push("WARNING: High frame time");
-					if (warningLevel < 2) warningLevel = 2;
-				}
-				else if (frameStats.avg > warningThresholds.frameTimeHigh)
-				{
-					performanceWarnings.push("Notice: Elevated frame time");
-					if (warningLevel < 1) warningLevel = 1;
-				}
-			}
-
-			if (graphHistory.length > 10)
-			{
-				var stability = calculateFPSStability();
-				if (stability < 0.7)
-				{
-					performanceWarnings.push("Notice: Unstable FPS");
-					if (warningLevel < 1) warningLevel = 1;
-				}
-			}
-		}
-
-		if (smoothMemory > warningThresholds.memoryCritical)
-		{
-			performanceWarnings.push("CRITICAL: Critical memory usage!");
-			warningLevel = 3;
-		}
-		else if (smoothMemory > warningThresholds.memoryVeryHigh)
-		{
-			performanceWarnings.push("WARNING: High memory usage");
-			if (warningLevel < 2) warningLevel = 2;
-		}
-		else if (smoothMemory > warningThresholds.memoryHigh)
-		{
-			performanceWarnings.push("Notice: Elevated memory usage");
-			if (warningLevel < 1) warningLevel = 1;
-		}
-
-		if (availableSystemMemory > 0 && availableSystemMemory < warningThresholds.systemMemoryLow)
-		{
-			performanceWarnings.push("WARNING: Low free system memory");
-			if (warningLevel < 2) warningLevel = 2;
-		}
 	}
 
 	private function calculateFPSStability():Float
@@ -553,13 +452,6 @@ class FPSCounterPlugin extends Sprite
 		var performanceGrade = getPerformanceGrade();
 		output += '\nPerformance: ${Math.round(performanceScore)}% (${performanceGrade})';
 
-		if (performanceWarnings.length > 0)
-		{
-			output += "\n\n--- WARNINGS ---";
-			for (warning in performanceWarnings)
-				output += '\n$warning';
-		}
-
 		if (showDebugInfo)
 		{
 			output += "\n\n--- DETAILS ---";
@@ -585,12 +477,7 @@ class FPSCounterPlugin extends Sprite
 			output += "\nProblem frames: " + stabilityIssues;
 		}
 
-		switch (warningLevel) {
-			case 3: fillColor = 0xFFFF0000; // Red - critical
-			case 2: fillColor = 0xFFFFFF00; // Yellow - dangerous
-			case 1: fillColor = 0xFFFFA500; // Orange - warning
-			default: fillColor = 0xFFFFFFFF; // White - normal
-		}
+		fillColor = 0xFFFFFFFF;
 
 		return output;
 	}
@@ -830,12 +717,11 @@ class FPSCounterPlugin extends Sprite
 		try
 		{
 			final timestamp = Date.now().toString();
-			final warnings = performanceWarnings.join("; ");
 			
 			final logLine = timestamp + "," + currentFPS + "," + smoothMemory + "," + peakMemory + "," +
 				availableSystemMemory + "," + (ClientPrefs.vsync ? "ON" : "OFF") + "," +
 				(ClientPrefs.vsync ? getDisplayRefreshRate() : ClientPrefs.framerate) + "," +
-				performanceScore + "," + warnings + "\n";
+				performanceScore + "\n";
 				
 			File.saveContent(logFile, File.getContent(logFile) + logLine);
 		}
@@ -876,13 +762,10 @@ class FPSCounterPlugin extends Sprite
 		
 		peakMemory = 0;
 		peakVRAM = 0;
-		performanceWarnings = [];
-		warningLevel = 0;
 		graphDirty = true;
 		lastOutput = "";
 		lastFPS = -1;
 		lastMemBucket = -1;
-		lastWarningLevel = -1;
 	}
 
 	public function setLogging(enabled:Bool):Void
