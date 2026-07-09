@@ -21,6 +21,8 @@ class FunkinVideoSprite extends FlxVideoSprite
     public var skipNeed:Float = 1;
     public var pie:FlxPieDial;
 
+    private var wasPlayingBeforeFocusLost:Bool = false;
+
     /**
      * Creates a new video sprite
      * @param x X coordinate
@@ -257,15 +259,22 @@ class FunkinVideoSprite extends FlxVideoSprite
         }
     }
     
-    private function onFocusGained():Void
-    {
-        bitmap?.resume();
-    }
-    
     private function onFocusLost():Void
-    {
-        bitmap?.pause();
-    }
+	{
+		if (FlxG.autoPause)
+		{
+			wasPlayingBeforeFocusLost = isPlaying();
+			
+			if (wasPlayingBeforeFocusLost)
+				bitmap?.pause();
+		}
+	}
+
+	private function onFocusGained():Void
+	{
+		if (FlxG.autoPause && wasPlayingBeforeFocusLost)
+			bitmap?.resume();
+	}
 
     override public function update(elapsed:Float):Void
     {
