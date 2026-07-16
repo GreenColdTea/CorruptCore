@@ -145,7 +145,7 @@ class Main extends Sprite
 
 		FlxG.save.bind('ccengine', CoolUtil.getSavePath());
 
-		var push:FlxGame = new FlxGame(game.width, game.height, game.initialState, #if (flixel < "5.0.0") game.zoom, #end game.framerate, game.framerate, game.skipSplash, game.startFullscreen);
+		final push:FlxGame = new FlxGame(game.width, game.height, game.initialState, #if (flixel < "5.0.0") game.zoom, #end game.framerate, game.framerate, game.skipSplash, game.startFullscreen);
 		@:privateAccess
         push._customSoundTray = FunkinSoundTray;
 

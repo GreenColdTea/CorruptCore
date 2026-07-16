@@ -2368,109 +2368,13 @@ class PlayState extends MusicBeatState
 							}
 
 							if (daNote.mustPress) {
-								if (cpuControlled && daNote.canBeHit && !daNote.wasGoodHit && !daNote.blockHit) {
-									if (daNote.strumTime <= Conductor.songPosition) {
-										goodNoteHit(daNote);
-									}
-								}
-								
 								if (daNote.isSustainNote && daNote.wasGoodHit && !daNote.ignoreNote) {
-									final isHeld:Bool = cpuControlled ? true : getControl(controlArray[daNote.noteData]);
-									
-									var noteEndTime:Float = daNote.strumTime;
-									if (daNote.parent != null) {
-										noteEndTime = daNote.parent.strumTime + daNote.parent.sustainLength;
-									} else if (daNote.sustainLength > 0) {
-										noteEndTime = daNote.strumTime + daNote.sustainLength;
-									}
-
-									final char:Character = daNote.gfNote ? gf : boyfriend;
-									
-									if (!isHeld && Conductor.songPosition <= noteEndTime) {
-										daNote.wasGoodHit = false;
-										vocals.volume = 0;
-
-										final strum = playerStrums.members[daNote.noteData];
-										if (NoteHoldCover.activeCovers.exists(strum))
-											NoteHoldCover.activeCovers.get(strum).finishCover();
-										
-										if (char?.hasMissAnimations) {
-											final daAlt = (daNote.noteType == 'Alt Animation') ? '-alt' : '';
-											final animToPlay:String = singAnimations[Std.int(Math.abs(daNote.noteData))] + 'miss' + daAlt;
-											char.playAnim(animToPlay, true);
-										}
-									} else if (isHeld) {
-										final strum = playerStrums.members[daNote.noteData];
-
-										strum.playAnim('confirm', true);
-										strum.resetAnim = 0.15;
-										if (char != null) char.holdTimer = 0;
-										if (!practiceMode) health += 4.0 * elapsed * daNote.hitHealth * healthGain;
-									}
-
-									if (Conductor.songPosition >= noteEndTime && !endingSong) {
-										if (!char?.specialAnim) {
-											final singAnim = singAnimations[Std.int(Math.abs(daNote.noteData))];
-											final endAnim = singAnim + '-end';
-											
-											if (char.hasAnimation(endAnim)) {
-												char.playAnim(endAnim, true);
-												char.endAnimTimer?.cancel();
-
-												final duration = !char.isAnimationNull() ? char.getTotalFrames() / char.getCurrentFrameRate() : 0.5;
-												char.endAnimTimer = new FlxTimer().start(duration, _ -> {
-													if (char?.getAnimationName() == endAnim && !char?.specialAnim)
-														char.dance();
-													char.endAnimTimer = null;
-												});
-											}
-										}
-										char.holdTimer = 0;
-										invalidateNote(daNote);
-									}
+        							handleSustainLogic(daNote, elapsed);
 								}
 							} else {
 								if (daNote.isSustainNote && daNote.wasGoodHit) {
-									final char:Character = daNote.gfNote ? gf : dad;
-									
-									if (char?.endAnimTimer != null) {
-										char.endAnimTimer.cancel();
-										char.endAnimTimer = null;
-									}
-									
-									final strum = opponentStrums.members[daNote.noteData];
-									strum.playAnim('confirm', true);
-									strum.resetAnim = 0.15;
-									if (char != null) char.holdTimer = 0;
-
-									var noteEndTime:Float = daNote.strumTime;
-									if (daNote.parent != null) {
-										noteEndTime = daNote.parent.strumTime + daNote.parent.sustainLength;
-									} else if (daNote.sustainLength > 0) {
-										noteEndTime = daNote.strumTime + daNote.sustainLength;
-									}
-
-									if (Conductor.songPosition >= noteEndTime && !endingSong) {
-										if (!char?.specialAnim) {
-											final singAnim = singAnimations[Std.int(Math.abs(daNote.noteData))];
-											final endAnim = singAnim + '-end';
-											
-											if (char.hasAnimation(endAnim)) {
-												char.playAnim(endAnim, true);
-												char.endAnimTimer?.cancel();
-
-												final duration = !char.isAnimationNull() ? char.getTotalFrames() / char.getCurrentFrameRate() : 0.5;
-												char.endAnimTimer = new FlxTimer().start(duration, _ -> {
-													if (char?.getAnimationName() == endAnim && !char?.specialAnim)
-														char.dance();
-													char.endAnimTimer = null;
-												});
-											}
-										}
-										char.holdTimer = 0;
-										invalidateNote(daNote);
-									}
-								}
+       	 							handleSustainLogic(daNote, elapsed);
+   								}
 							}
 
 							if (daNote.isSustainNote && daNote.holdNote != null)
@@ -4001,6 +3905,151 @@ class PlayState extends MusicBeatState
 			callOnHScript('goodNoteHit', [note]);
 
 			if (!note.isSustainNote) invalidateNote(note);
+		}
+	}
+
+	function handleSustainLogic(daNote:Note, elapsed:Float):Void 
+	{
+		if (daNote.mustPress) {
+			final isHeld:Bool = cpuControlled ? true : getControl(controlArray[daNote.noteData]);
+			
+			var noteEndTime:Float = daNote.strumTime;
+			if (daNote.parent != null) {
+				noteEndTime = daNote.parent.strumTime + daNote.parent.sustainLength;
+			} else if (daNote.sustainLength > 0) {
+				noteEndTime = daNote.strumTime + daNote.sustainLength;
+			}
+
+			final char:Character = daNote.gfNote ? gf : boyfriend;
+			
+			if (!isHeld && Conductor.songPosition <= noteEndTime) {
+				daNote.wasGoodHit = false;
+				vocals.volume = 0;
+
+				final strum = playerStrums.members[daNote.noteData];
+				if (NoteHoldCover.activeCovers.exists(strum))
+					NoteHoldCover.activeCovers.get(strum).finishCover();
+				
+				if (char?.hasMissAnimations) {
+					final daAlt = (daNote.noteType == 'Alt Animation') ? '-alt' : '';
+					final animToPlay:String = singAnimations[Std.int(Math.abs(daNote.noteData))] + 'miss' + daAlt;
+					char.playAnim(animToPlay, true);
+				}
+			} else if (isHeld) {
+				final strum = playerStrums.members[daNote.noteData];
+
+				strum.playAnim('confirm', true);
+				strum.resetAnim = 0.15;
+
+				if (char != null) {
+					char.holdTimer = 0;
+					
+					if (char.twitchyAnimations) 
+					{
+						var animToPlay = singAnimations[Std.int(Math.abs(daNote.noteData))] + daNote.animSuffix;
+						var holdAnim = animToPlay + '-hold';
+						
+						if (char.hasAnimation(holdAnim))
+							animToPlay = holdAnim;
+						
+						if (char.getAnimationName() != holdAnim && char.getAnimationName() != holdAnim + '-loop') {
+							final frame = char.animation.curAnim?.curFrame ?? 0;
+							
+							if (frame >= 2 || !char.getAnimationName().startsWith('sing')) {
+								char.playAnim(animToPlay, true);
+							}
+						}
+					}
+				}
+
+				if (!practiceMode) health += 4.0 * elapsed * daNote.hitHealth * healthGain;
+			}
+
+			if (Conductor.songPosition >= noteEndTime && !endingSong) {
+				if (!char?.specialAnim) {
+					final singAnim = singAnimations[Std.int(Math.abs(daNote.noteData))];
+					final endAnim = singAnim + '-end';
+					
+					if (char.hasAnimation(endAnim)) {
+						char.playAnim(endAnim, true);
+						char.endAnimTimer?.cancel();
+
+						final duration = !char.isAnimationNull() ? char.getTotalFrames() / char.getCurrentFrameRate() : 0.5;
+						char.endAnimTimer = new FlxTimer().start(duration, _ -> {
+							if (char?.getAnimationName() == endAnim && !char?.specialAnim)
+								char.dance();
+							char.endAnimTimer = null;
+						});
+					}
+				}
+				char.holdTimer = 0;
+				invalidateNote(daNote);
+			}
+		} else {
+			final char:Character = daNote.gfNote ? gf : dad;
+			
+			if (char?.endAnimTimer != null) {
+				char.endAnimTimer.cancel();
+				char.endAnimTimer = null;
+			}
+			
+			final strum = opponentStrums.members[daNote.noteData];
+			strum.playAnim('confirm', true);
+			strum.resetAnim = 0.15;
+
+			if (char != null) 
+			{
+				char.holdTimer = 0;
+
+				if (char.twitchyAnimations) 
+				{
+					var altAnim = daNote.animSuffix;
+					if (SONG.notes[curSection]?.altAnim && !SONG.notes[curSection]?.gfSection)
+						altAnim = '-alt';
+					
+					var animToPlay = singAnimations[Std.int(Math.abs(daNote.noteData))] + altAnim;
+					var holdAnim = animToPlay + '-hold';
+					
+					if (char.hasAnimation(holdAnim))
+						animToPlay = holdAnim;
+					
+					if (char.getAnimationName() != holdAnim && char.getAnimationName() != holdAnim + '-loop') {
+						final frame = char.animation.curAnim?.curFrame ?? 0;
+						
+						if (frame >= 2 || !char.getAnimationName().startsWith('sing')) {
+							char.playAnim(animToPlay, true);
+						}
+					}
+				}
+			}
+
+			var noteEndTime:Float = daNote.strumTime;
+			if (daNote.parent != null) {
+				noteEndTime = daNote.parent.strumTime + daNote.parent.sustainLength;
+			} else if (daNote.sustainLength > 0) {
+				noteEndTime = daNote.strumTime + daNote.sustainLength;
+			}
+
+			if (Conductor.songPosition >= noteEndTime && !endingSong) {
+				if (!char?.specialAnim) {
+					final singAnim = singAnimations[Std.int(Math.abs(daNote.noteData))];
+					final endAnim = singAnim + '-end';
+					
+					if (char.hasAnimation(endAnim)) {
+						char.playAnim(endAnim, true);
+						char.endAnimTimer?.cancel();
+
+						final duration = !char.isAnimationNull() ? char.getTotalFrames() / char.getCurrentFrameRate() : 0.5;
+						char.endAnimTimer = new FlxTimer().start(duration, _ -> {
+							if (char?.getAnimationName() == endAnim && !char?.specialAnim)
+								char.dance();
+							char.endAnimTimer = null;
+						});
+					}
+				}
+				char.holdTimer = 0;
+				invalidateNote(daNote);
+			}
 		}
 	}
 

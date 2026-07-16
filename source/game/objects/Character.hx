@@ -171,6 +171,7 @@ class Character extends FlxSprite
     public var healthColorArray:Array<Int> = [255, 0, 0];
     public var danced:Bool = false;
     public var danceEveryNumBeats:Int = 2;
+    public var twitchyAnimations:Bool = false;
 
     public var endAnimTimer:FlxTimer = null;
     
