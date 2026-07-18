@@ -23,6 +23,7 @@ import flixel.math.FlxRect;
 import flixel.text.FlxText;
 import flixel.tweens.FlxEase;
 import flixel.tweens.FlxTween;
+import flixel.FlxCamera;
 
 import flixel.util.FlxColor;
 import flixel.util.FlxSave;
@@ -106,24 +107,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	var undos = [];
 	var redos = [];
 	var maxUndoSteps:Int = 50;
-	/*var eventStuff:Array<Array<String>> =
-	[
-		['', "Nothing. Yep, that's right."],
-		['Dadbattle Spotlight', "Used in Dad Battle,\nValue 1: 0/1 = ON/OFF,\n2 = Target Dad\n3 = Target BF"],
-		['Hey!', "Plays the \"Hey!\" animation from Bopeebo,\nValue 1: BF = Only Boyfriend, GF = Only Girlfriend,\nSomething else = Both.\nValue 2: Custom animation duration,\nleave it blank for 0.6s"],
-		['Set GF Speed', "Sets GF head bopping speed,\nValue 1: 1 = Normal speed,\n2 = 1/2 speed, 4 = 1/4 speed etc.\nUsed on Fresh during the beatbox parts.\n\nWarning: Value must be integer!"],
-		['Add Camera Zoom', "Used on MILF on that one \"hard\" part\nValue 1: Camera zoom add (Default: 0.015)\nValue 2: UI zoom add (Default: 0.03)\nLeave the values blank if you want to use Default."],
-		['Play Animation', "Plays an animation on a Character,\nonce the animation is completed,\nthe animation changes to Idle\n\nValue 1: Animation to play.\nValue 2: Character (Dad, BF, GF)"],
-		['Camera Follow Pos', "Value 1: X\nValue 2: Y\n\nThe camera won't change the follow point\nafter using this, for getting it back\nto normal, leave both values blank."],
-		['Alt Idle Animation', "Sets a specified suffix after the idle animation name.\nYou can use this to trigger 'idle-alt' if you set\nValue 2 to -alt\n\nValue 1: Character to set (Dad, BF or GF)\nValue 2: New suffix (Leave it blank to disable)"],
-		['Screen Shake', "Value 1: Camera shake\nValue 2: HUD shake\n\nEvery value works as the following example: \"1, 0.05\".\nThe first number (1) is the duration.\nThe second number (0.05) is the intensity."],
-		['Change Character', "Value 1: Character to change (Dad, BF, GF)\nValue 2: New character's name"],
-		['Change Scroll Speed', "Value 1: Scroll Speed Multiplier (1 is default)\nValue 2: Time it takes to change fully in seconds."],
-		['Play Sound', "Value 1: Sound file name\nValue 2: Volume (Default: 1), ranges from 0 to 1"],
-		['Play Video', "Value 1: Video file name"],
-		["Lyrics", "Lyrics!!!\nValue 1: Text and optionally, colour\n(To specify colour, seperate it by a --)\nValue 2: Duration, in seconds.\nDuration defaults to text length multiplied by 0.5"],
-		['Set Property', "Value 1: Variable name\nValue 2: New value"]
-	]; for mods*/
 
 	var eventStuff:Array<Array<String>> =
 	[
@@ -210,20 +193,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	var currentSongName:String;
 	var zoomTxt:FlxText;
 
-	var zoomList:Array<Float> = [
-		0.25,
-		0.5,
-		1,
-		2,
-		3,
-		4,
-		6,
-		8,
-		12,
-		16,
-		24
-	];
-	var curZoom:Int = 2;
+	var camGridZoom:Float = 1.0;
 
 	var gridColors:Dynamic = {
 		background: 0xFF0C1020,
@@ -282,7 +252,9 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 	var chartEditorSave:FlxSave;
 
+	var camGrid:FlxCamera;
 	var camUI:FlxCamera;
+	var _gridMousePos:FlxPoint = FlxPoint.get();
 
 	var cachedSectionTimes:Array<Float> = [];
 	var cachedSectionSteps:Array<Float> = [];
@@ -307,8 +279,13 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		}
 
 		initFunkinCamera();
+		
+		camGrid = new FlxCamera();
 		camUI = new FlxCamera();
+		camGrid.bgColor.alpha = 0;
 		camUI.bgColor.alpha = 0;
+		
+		FlxG.cameras.add(camGrid, false);
 		FlxG.cameras.add(camUI, false);
 
 		chartEditorSave = new FlxSave();
@@ -335,6 +312,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		add(bg);
 
 		gridLayer = new FlxTypedGroup<FlxSprite>();
+		gridLayer.cameras = [camGrid];
 		add(gridLayer);
 
 		gridWidth = GRID_SIZE * (GRID_COLUMNS_TOTAL + 1); 
@@ -347,13 +325,16 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		gridLayer.add(gridTiledSprite);
 
 		sectionLinesGroup = new FlxTypedGroup<FlxSprite>();
+		sectionLinesGroup.cameras = [camGrid];
 		add(sectionLinesGroup);
 
 		waveform = new FlxSpriteGroup(gridTiledSprite.x + GRID_SIZE, 0);
+		waveform.cameras = [camGrid];
 		waveform.visible = false;
 		add(waveform);
 
 		renderedNotes = new FlxTypedGroup<MetaNote>();
+		renderedNotes.cameras = [camGrid];
 
 		eventIcon = new FlxSprite(GRID_SIZE + 375).loadGraphic(Paths.image('editors/eventArrow'));
 		eventIcon.scrollFactor.set();
@@ -401,8 +382,9 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		Conductor.changeBPM(_song.bpm);
 		Conductor.mapBPMChanges(_song);
 
-		strumLine = new FlxSprite(0, 50).makeGraphic(Std.int(GRID_SIZE * (GRID_COLUMNS_TOTAL + 1)), 4);
+		strumLine = new FlxSprite(0, 50).makeGraphic(Std.int(gridWidth), 4);
 		strumLine.screenCenter(X);
+		strumLine.cameras = [camGrid];
 		add(strumLine);
 
 		quant = new AttachedSprite('chart_quant', 'chart_quant');
@@ -411,9 +393,11 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		quant.sprTracker = strumLine;
 		quant.xAdd = -GRID_SIZE;
 		quant.yAdd = 8;
+		quant.cameras = [camGrid];
 		add(quant);
 
 		strumLineNotes = new FlxTypedGroup<StrumNote>();
+		strumLineNotes.cameras = [camGrid];
 		for (i in 0...GRID_COLUMNS_TOTAL){
 			var note:StrumNote = new StrumNote(gridTiledSprite.x + GRID_SIZE * (i+1), strumLine.y, i % GRID_COLUMNS_PER_PLAYER, 0);
 			
@@ -431,6 +415,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 		dummyArrow = new FlxSprite().makeGraphic(GRID_SIZE, GRID_SIZE);
 		dummyArrow.screenCenter(X);
+		dummyArrow.cameras = [camGrid];
 		add(dummyArrow);
 
 		opponent = new Character(25, 390, "dad", false, true);
@@ -475,7 +460,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 		waveformNeedsUpdate = true;
 
-		FlxG.camera.follow(strumLine, LOCKON, 999);
+		camGrid.follow(strumLine, LOCKON, 999);
 
 		add(renderedNotes);
 
@@ -484,9 +469,9 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 		loadJSONEvents();
 
-		zoomTxt = new FlxText(10, 10, 0, "Zoom: 1 / 1", 16);
-		zoomTxt.y -= 500;
+		zoomTxt = new FlxText(10, 10, 0, "Zoom: 1", 16);
 		zoomTxt.scrollFactor.set();
+		zoomTxt.cameras = [camUI];
 		add(zoomTxt);
 
 		createSongSlider();
@@ -499,12 +484,14 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		selectBox.alpha = 0.4;
 		selectBox.visible = false;
 		selectBox.blend = ADD;
+		selectBox.cameras = [camGrid];
 		add(selectBox);
 
 		selectBoxOutline = new FlxSprite();
 		selectBoxOutline.makeGraphic(1, 1, FlxColor.TRANSPARENT);
 		selectBoxOutline.alpha = 0.8;
 		selectBoxOutline.visible = false;
+		selectBoxOutline.cameras = [camGrid];
 		add(selectBoxOutline);
 
 		autoBackupTimer = new FlxTimer();
@@ -1209,7 +1196,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 					{
 						note.songData[2] = stepperSusLength.value;
 						note.sustainLength = stepperSusLength.value;
-						note.setSustainLength(stepperSusLength.value, Conductor.stepCrochet, zoomList[curZoom]);
+						note.setSustainLength(stepperSusLength.value, Conductor.stepCrochet, 1.0);
 					}
 				}
 			}
@@ -1220,7 +1207,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 				renderedNotes.forEachAlive((note:MetaNote) -> {
 					if (note.songData == curSelectedNote) {
 						note.sustainLength = stepperSusLength.value;
-						note.setSustainLength(stepperSusLength.value, Conductor.stepCrochet, zoomList[curZoom]);
+						note.setSustainLength(stepperSusLength.value, Conductor.stepCrochet, 1.0);
 					}
 				});
 			}
@@ -1773,7 +1760,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	}
 
 	function generateSong() {
-		FlxG.sound.playMusic(Paths.inst(currentSongName), instVolume?.value ?? 0.6);
+		FlxG.sound.playMusic(Paths.inst(currentSongName), instVolume?.value ?? 1);
 		if (instVolume != null) FlxG.sound.music.volume = instVolume.value;
 		if (check_mute_inst?.checked) FlxG.sound.music.volume = 0;
 
@@ -1859,6 +1846,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	{
 		super.update(elapsed);
 
+		FlxG.mouse.getWorldPosition(camGrid, _gridMousePos);
 		FlxG.mouse.visible = true;
 
 		curStep = recalculateSteps();
@@ -1884,7 +1872,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		updateSongSlider();
 		
 		if (!blockInput) {
-			ClientPrefs.toggleVolumeKeys();
+			ClientPrefs.toggleVolumeKeys(!FlxG.keys.pressed.CONTROL);
 			handleKeyboardInput();
 			handleMouseInput(mouseOverUI);
 		} else {
@@ -1905,6 +1893,8 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		updateInfoText();
 		
 		lastConductorPos = conductorTime;
+		
+		_gridMousePos.put();
 	}
 
 	function updateMusicPlayback():Void
@@ -1949,33 +1939,38 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		strumLineUpdateY();
 
 		strumLine.x = gridTiledSprite.x;
-		strumLine.setGraphicSize(Std.int(gridWidth * zoomList[curZoom]), 4);
+		strumLine.setGraphicSize(Std.int(gridWidth), 4);
 		strumLine.updateHitbox();
 
 		for (i in 0...GRID_COLUMNS_TOTAL) {
 			var note = strumLineNotes.members[i];
 			
-			final perfectScale = strumScales[i] * zoomList[curZoom];
+			final perfectScale = strumScales[i];
 			note.scale.set(perfectScale, perfectScale);
 			note.updateHitbox();
 			
-			final targetX = gridTiledSprite.x + ((i + 1) * GRID_SIZE * zoomList[curZoom]);
+			final targetX = gridTiledSprite.x + ((i + 1) * GRID_SIZE);
 			final targetY = strumLine.y;
 			
-			note.x = targetX - (note.width - (GRID_SIZE * zoomList[curZoom])) / 2;
-			note.y = targetY - (note.height - (GRID_SIZE * zoomList[curZoom])) / 2;
+			note.x = targetX - (note.width - GRID_SIZE) / 2;
+			note.y = targetY - (note.height - GRID_SIZE) / 2;
 			
 			note.alpha = FlxG.sound.music.playing ? 1 : 0.35;
 		}
 
 		if (quant?.exists) {
-			quant.scale.set(zoomList[curZoom], zoomList[curZoom]);
+			quant.scale.set(1, 1);
 			
-			quant.xAdd = -GRID_SIZE * zoomList[curZoom];
-			quant.yAdd = 8 * zoomList[curZoom];
+			quant.xAdd = -GRID_SIZE;
+			quant.yAdd = 8;
 			
 			quant.update(elapsed);
 		}
+	}
+
+	function updateZoom() {
+		camGrid.zoom = camGridZoom;
+		zoomTxt.text = 'Zoom: ' + camGridZoom;
 	}
 
 	function handleKeyboardInput():Void
@@ -2010,15 +2005,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		if (FlxG.keys.justPressed.F1) showTips();
 		if (FlxG.keys.justPressed.F2) toggleCharacters();
 		if (FlxG.keys.justPressed.BACKSPACE #if android || FlxG.android.justReleased.BACK #end) exitToMenu();
-		
-		if(FlxG.keys.justPressed.Z && curZoom > 0 && !FlxG.keys.pressed.CONTROL) {
-			--curZoom;
-			updateZoom();
-		}
-		if(FlxG.keys.justPressed.X && curZoom < zoomList.length-1) {
-			curZoom++;
-			updateZoom();
-		}
 		
 		if (FlxG.keys.justPressed.TAB) switchTabs();
 		
@@ -2078,6 +2064,18 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 				}
 				
 				copyNote(note);
+			}
+
+			if (FlxG.keys.anyJustPressed([PLUS, NUMPADPLUS])) {
+				camGridZoom += 0.25;
+				updateZoom();
+			}
+
+
+			if (FlxG.keys.anyJustPressed([MINUS, NUMPADMINUS])) {
+				camGridZoom -= 0.25;
+				if(camGridZoom < 0.25) camGridZoom = 0.25;
+				updateZoom();
 			}
 
 			if (FlxG.keys.justPressed.V) pasteNote();
@@ -2140,22 +2138,22 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 	function updateDummyArrowVisibility():Void
 	{
-		if (FlxG.mouse.x > gridTiledSprite.x
-			&& FlxG.mouse.x < gridTiledSprite.x + (gridWidth * zoomList[curZoom])
-			&& FlxG.mouse.y > gridTiledSprite.y)
+		if (_gridMousePos.x > gridTiledSprite.x
+			&& _gridMousePos.x < gridTiledSprite.x + gridWidth
+			&& _gridMousePos.y > gridTiledSprite.y)
 		{
 			dummyArrow.visible = true;
-			dummyArrow.setGraphicSize(Std.int(GRID_SIZE * zoomList[curZoom]));
+			dummyArrow.setGraphicSize(GRID_SIZE);
 			dummyArrow.updateHitbox();
 			
-			dummyArrow.x = Math.floor((FlxG.mouse.x - gridTiledSprite.x) / (GRID_SIZE * zoomList[curZoom])) * (GRID_SIZE * zoomList[curZoom]) + gridTiledSprite.x;
+			dummyArrow.x = Math.floor((_gridMousePos.x - gridTiledSprite.x) / GRID_SIZE) * GRID_SIZE + gridTiledSprite.x;
 			
 			if (FlxG.keys.pressed.SHIFT)
-				dummyArrow.y = FlxG.mouse.y;
+				dummyArrow.y = _gridMousePos.y;
 			else
 			{
-				final gridMult = (GRID_SIZE * zoomList[curZoom]) / (quantization / 16);
-				final rawTime = getStrumTime(FlxG.mouse.y, true);
+				final gridMult = GRID_SIZE / (quantization / 16);
+				final rawTime = getStrumTime(_gridMousePos.y);
 
 				var secIndex = 0;
 				for (i in 0...cachedSectionTimes.length - 1) {
@@ -2170,7 +2168,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 				}
 				
 				final sectionStartY = getYfromStrum(cachedSectionTimes[secIndex]);
-				final localY = FlxG.mouse.y - sectionStartY;
+				final localY = _gridMousePos.y - sectionStartY;
 				dummyArrow.y = sectionStartY + Math.floor(localY / gridMult) * gridMult;
 			}
 		} else {
@@ -2183,7 +2181,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		if (FlxG.mouse.justPressed && !FlxG.mouse.justPressedRight)
 		{
 			isMouseDown = true;
-			mouseDownPos.set(FlxG.mouse.x, FlxG.mouse.y);
+			mouseDownPos.set(_gridMousePos.x, _gridMousePos.y);
 			
 			var clickedNote:MetaNote = getNoteUnderMouse();
 			if (clickedNote != null)
@@ -2225,12 +2223,11 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 					selectedNotes.resize(0);
 					
 					selecting = true;
-					var mousePos = FlxG.mouse.getWorldPosition();
-					selectStart.set(mousePos.x, mousePos.y);
+					selectStart.set(_gridMousePos.x, _gridMousePos.y);
 					
 					selectBox.visible = true;
-					selectBox.x = mousePos.x;
-					selectBox.y = mousePos.y;
+					selectBox.x = _gridMousePos.x;
+					selectBox.y = _gridMousePos.y;
 					selectBox.scale.set(0, 0);
 				}
 			}
@@ -2243,9 +2240,8 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		{
 			isMouseDown = false;
 			
-			final mouseUpPos = FlxG.mouse.getWorldPosition();
-			final distance = Math.sqrt(Math.pow(mouseUpPos.x - mouseDownPos.x, 2) + 
-									Math.pow(mouseUpPos.y - mouseDownPos.y, 2));
+			final distance = Math.sqrt(Math.pow(_gridMousePos.x - mouseDownPos.x, 2) + 
+									Math.pow(_gridMousePos.y - mouseDownPos.y, 2));
 			
 			if (selecting)
 			{
@@ -2287,8 +2283,8 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 				{
 					if (!FlxG.keys.pressed.CONTROL && dummyArrow.visible)
 					{
-						var noteData = Math.floor((FlxG.mouse.x - gridTiledSprite.x) / GRID_SIZE) - 1;
-						var noteStrum = getStrumTime(dummyArrow.y, true);
+						var noteData = Math.floor((_gridMousePos.x - gridTiledSprite.x) / GRID_SIZE) - 1;
+						var noteStrum = getStrumTime(dummyArrow.y);
 						addNote(noteStrum, noteData, currentType);
 					}
 				}
@@ -2303,7 +2299,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		renderedNotes.forEachAlive(function(note:MetaNote) {
 			if (note == null || !note.visible) return;
 			
-			if (FlxG.mouse.overlaps(note)) {
+			if (FlxG.mouse.overlaps(note, camGrid)) {
 				if (noteUnderMouse == null || note.strumTime < noteUnderMouse.strumTime) {
 					noteUnderMouse = note;
 				}
@@ -2365,8 +2361,8 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		final activeNotes = ["player" => false, "opponent" => false];
 		final playedSound = [false, false, false, false, false, false, false, false];
 		
-		final camY = FlxG.camera.scroll.y;
-		final camHeight = FlxG.camera.height;
+		final camY = camGrid.scroll.y;
+		final camHeight = camGrid.height;
 		final safeZone = 300; 
 
 		renderedNotes.forEachAlive((note:MetaNote) -> {
@@ -2634,7 +2630,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 					renderedNotes.forEachAlive((note:MetaNote) -> {
 						if (note.songData == curSelectedNote) {
 							note.sustainLength = curSelectedNote[2];
-							note.setSustainLength(curSelectedNote[2], Conductor.stepCrochet, zoomList[curZoom]);
+							note.setSustainLength(curSelectedNote[2], Conductor.stepCrochet, 1);
 						}
 					});
 					
@@ -2712,21 +2708,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		}
 	}
 
-	function updateZoom() {
-		var daZoom:Float = zoomList[curZoom];
-		var zoomThing:String = '1 / ' + daZoom;
-		if(daZoom < 1) zoomThing = Math.round(1 / daZoom) + ' / 1';
-		zoomTxt.text = 'Zoom: ' + zoomThing;
-		
-		dummyArrow.setGraphicSize(Std.int(GRID_SIZE * daZoom), Std.int(GRID_SIZE * daZoom));
-		dummyArrow.updateHitbox();
-		
-		reloadGridLayer();
-		updateGrid();
-
-		waveformNeedsUpdate = true;
-	}
-
 	function reloadCharacter(char:String) {
 		switch(char) {
 			case 'player':
@@ -2782,9 +2763,8 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			line?.destroy();
 		sectionLinesGroup.clear();
 
-		final curZoomMult = zoomList[curZoom];
-		final scaledGridSize = Std.int(GRID_SIZE * curZoomMult);
-		final scaledGridWidth = Std.int(gridWidth * curZoomMult);
+		final scaledGridSize = Std.int(GRID_SIZE);
+		final scaledGridWidth = Std.int(gridWidth);
 		
 		final absoluteHeight = getYfromStrum(songLength) - getYfromStrum(0);
 		final maxPixelY = gridTiledSprite.y + absoluteHeight;
@@ -2792,10 +2772,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		for (line in sectionLinesGroup)
 			line?.destroy();
 		sectionLinesGroup.clear();
-
-		final curZoomMult = zoomList[curZoom];
-		final scaledGridSize = Std.int(GRID_SIZE * curZoomMult);
-		final scaledGridWidth = Std.int(gridWidth * curZoomMult);
 
 		final gridTex:FlxSprite = FlxGridOverlay.create(scaledGridSize, scaledGridSize, scaledGridWidth, scaledGridSize * 2, true, 
 			gridColors.mainLines, gridColors.secondaryLines
@@ -2809,11 +2785,11 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		gridTiledSprite.x = (FlxG.width - scaledGridWidth) / 2;
 		gridTiledSprite.scale.set(1, 1);
 
-		final gridLineLeft = new FlxSprite(gridTiledSprite.x + GRID_SIZE * curZoomMult, gridTiledSprite.y).makeGraphic(2, Std.int(absoluteHeight), 0xFF3C5888);
+		final gridLineLeft = new FlxSprite(gridTiledSprite.x + GRID_SIZE, gridTiledSprite.y).makeGraphic(2, Std.int(absoluteHeight), 0xFF3C5888);
 		sectionLinesGroup.add(gridLineLeft);
 
 		for (i in 0...GRID_PLAYERS - 1) {
-			final lineX = gridTiledSprite.x + (GRID_SIZE * curZoomMult) + (GRID_SIZE * GRID_COLUMNS_PER_PLAYER * curZoomMult) * (i + 1);
+			final lineX = gridTiledSprite.x + GRID_SIZE + (GRID_SIZE * GRID_COLUMNS_PER_PLAYER) * (i + 1);
 			final gridLineRight = new FlxSprite(lineX, gridTiledSprite.y)
 				.makeGraphic(2, Std.int(absoluteHeight), 0xFF3C5888);
 			sectionLinesGroup.add(gridLineRight);
@@ -2827,7 +2803,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			if (secY > maxPixelY + 1) continue; 
 
 			final beats = getSectionBeats(i);
-			final beatHeight = GRID_SIZE * 4 * curZoomMult;
+			final beatHeight = GRID_SIZE * 4;
 			
 			final sLine = new FlxSprite(gridTiledSprite.x, secY);
 			sLine.loadGraphic(dummySecLine.graphic); 
@@ -2863,7 +2839,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 					note.songData[2] += value;
 					note.songData[2] = Math.max(note.songData[2], 0);
 					note.sustainLength = note.songData[2];
-					note.setSustainLength(note.songData[2], Conductor.stepCrochet, zoomList[curZoom]);
+					note.setSustainLength(note.songData[2], Conductor.stepCrochet, 1);
 				}
 			}
 		}
@@ -2875,7 +2851,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			renderedNotes.forEachAlive((note:MetaNote) -> {
 				if (note.songData == curSelectedNote) {
 					note.sustainLength = curSelectedNote[2];
-					note.setSustainLength(curSelectedNote[2], Conductor.stepCrochet, zoomList[curZoom]);
+					note.setSustainLength(curSelectedNote[2], Conductor.stepCrochet, 1);
 				}
 			});
 		}
@@ -2904,7 +2880,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			renderedNotes.add(newNote);
 			
 			if (newNote.sustainLength > 0)
-				newNote.setSustainLength(newNote.sustainLength, Conductor.stepCrochet, zoomList[curZoom]);
+				newNote.setSustainLength(newNote.sustainLength, Conductor.stepCrochet, 1);
 			
 			if (oldSelected.contains(oldNote)) {
 				selectedNotes.push(newNote);
@@ -3219,7 +3195,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 				renderedNotes.add(note);
 				
 				if (note.sustainLength > 0)
-					note.setSustainLength(note.sustainLength, Conductor.stepCrochet, zoomList[curZoom]);
+					note.setSustainLength(note.sustainLength, Conductor.stepCrochet, 1);
 			}
 		}
 
@@ -3261,13 +3237,13 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			
 			note.changeNoteData(noteDataInt);
 			
-			var columnOffset = ((visualColumn + 1) * GRID_SIZE * zoomList[curZoom]);
-			if (isPlayerNote) columnOffset += (GRID_COLUMNS_PER_PLAYER * GRID_SIZE * zoomList[curZoom]);
+			var columnOffset = ((visualColumn + 1) * GRID_SIZE);
+			if (isPlayerNote) columnOffset += (GRID_COLUMNS_PER_PLAYER * GRID_SIZE);
 			note.x = gridTiledSprite.x + columnOffset;
 			note.mustPress = isPlayerNote;
 		}
 
-		note.setGraphicSize(Std.int(GRID_SIZE * zoomList[curZoom]), note.sustainLength > 0 ? 0 : Std.int(GRID_SIZE * zoomList[curZoom]));
+		note.setGraphicSize(Std.int(GRID_SIZE), note.sustainLength > 0 ? 0 : Std.int(GRID_SIZE));
 		note.updateHitbox();
 		
 		note.y = getYfromStrum(daStrumTime);
@@ -3478,13 +3454,15 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	{
 		saveToUndo();
 		
-		var noteStrum:Float = strum ?? getStrumTime(FlxG.mouse.y, true);
+		var noteStrum:Float = strum ?? getStrumTime(_gridMousePos.y);
 		
-		var noteData:Int = Math.floor((FlxG.mouse.x - gridTiledSprite.x) / (GRID_SIZE * zoomList[curZoom])) - 1;
+		var noteData:Int = Math.floor((_gridMousePos.x - gridTiledSprite.x) / GRID_SIZE) - 1;
 		#if mobile
 		for (touch in FlxG.touches.list)
 		{
-			noteData = Math.floor((touch.x - gridTiledSprite.x) / GRID_SIZE) - 1;
+			var touchPos = touch.getWorldPosition(camGrid);
+			noteData = Math.floor((touchPos.x - gridTiledSprite.x) / GRID_SIZE) - 1;
+			touchPos.put();
 		}
 		#end
 
@@ -3529,7 +3507,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		renderedNotes.add(visualNote);
 
 		if (visualNote.sustainLength > 0)
-			visualNote.setSustainLength(visualNote.sustainLength, Conductor.stepCrochet, zoomList[curZoom]);
+			visualNote.setSustainLength(visualNote.sustainLength, Conductor.stepCrochet, 1);
 
 		updateNoteUI();
 	}
@@ -3563,16 +3541,14 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
         }
     }
 
-	function getStrumTime(yPos:Float, doZoomCalc:Bool = true):Float
+	function getStrumTime(yPos:Float):Float
 	{
-		final leZoom:Float = doZoomCalc ? zoomList[curZoom] : 1;
-		return getTimeFromVisualSteps((yPos - gridTiledSprite.y) / (GRID_SIZE * leZoom));
+		return getTimeFromVisualSteps((yPos - gridTiledSprite.y) / GRID_SIZE);
 	}
 
-	function getYfromStrum(strumTime:Float, doZoomCalc:Bool = true):Float
+	function getYfromStrum(strumTime:Float):Float
 	{
-		final leZoom:Float = doZoomCalc ? zoomList[curZoom] : 1;
-		return gridTiledSprite.y + (getVisualSteps(strumTime) * GRID_SIZE * leZoom);
+		return gridTiledSprite.y + (getVisualSteps(strumTime) * GRID_SIZE);
 	}
 
 	function copyNote(note:MetaNote):Void
@@ -3732,16 +3708,15 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			selectBox.visible = true;
 			selectBoxOutline.visible = true;
 			
-			var mousePos = FlxG.mouse.getWorldPosition();
-			var width = mousePos.x - selectStart.x;
-			var height = mousePos.y - selectStart.y;
+			var width = _gridMousePos.x - selectStart.x;
+			var height = _gridMousePos.y - selectStart.y;
 			
 			if (Math.abs(width) > 1 || Math.abs(height) > 1)
 			{
 				selectBox.scale.set(Math.abs(width), Math.abs(height));
 				selectBox.updateHitbox();
-				selectBox.x = width < 0 ? mousePos.x : selectStart.x;
-				selectBox.y = height < 0 ? mousePos.y : selectStart.y;
+				selectBox.x = width < 0 ? _gridMousePos.x : selectStart.x;
+				selectBox.y = height < 0 ? _gridMousePos.y : selectStart.y;
 
 				updateSelectBoxOutline(selectBox.x, selectBox.y, Math.abs(width), Math.abs(height));
 			}
@@ -4051,8 +4026,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		#if (lime_cffi && !macro)
 		if (FlxG.sound.music == null || FlxG.sound.music.length <= 0) return;
 
-		var zoomMult:Float = zoomList[curZoom];
-		var width:Int = Std.int(GRID_SIZE * GRID_COLUMNS_TOTAL * zoomMult);
+		var width:Int = Std.int(GRID_SIZE * GRID_COLUMNS_TOTAL);
 		var songLen:Float = FlxG.sound.music.length;
 		
 		var totalHeight:Int = Std.int(getYfromStrum(songLen) - getYfromStrum(0));
@@ -4082,7 +4056,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 		var waveformColor:FlxColor = waveformColors.exists(waveformTarget) ?
 			waveformColors.get(waveformTarget) : FlxColor.WHITE;
-		final gSize:Int = Std.int(GRID_SIZE * 8 * zoomMult);
+		final gSize:Int = Std.int(GRID_SIZE * 8);
 		final hSize:Int = Std.int(gSize / 2);
 
 		final chunkSize:Int = 4000;
@@ -4091,7 +4065,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		waveform.x = 0;
 		waveform.y = 0;
 		
-		var absoluteX:Float = gridTiledSprite.x + GRID_SIZE * zoomMult;
+		var absoluteX:Float = gridTiledSprite.x + GRID_SIZE;
 		var absoluteY:Float = getYfromStrum(0);
 
 		for (i in 0...numChunks)
@@ -4170,15 +4144,13 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		array[0][0] = []; array[0][1] = [];
 		array[1][0] = []; array[1][1] = [];
 
-		var zoomMult:Float = zoomList[curZoom];
-
 		for (row in 0...Std.int(steps))
 		{
 			var lmin:Float = 0, lmax:Float = 0;
 			var rmin:Float = 0, rmax:Float = 0;
 
-			var rowTime:Float = getTimeFromVisualSteps(row / (GRID_SIZE * zoomMult));
-			var nextRowTime:Float = getTimeFromVisualSteps((row + 1) / (GRID_SIZE * zoomMult));
+			var rowTime:Float = getTimeFromVisualSteps(row / GRID_SIZE);
+			var nextRowTime:Float = getTimeFromVisualSteps((row + 1) / GRID_SIZE);
 
 			var rowStartSample:Int = Std.int(rowTime * khz);
 			var rowEndSample:Int = Std.int(nextRowTime * khz);
@@ -4263,6 +4235,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	override function destroy() {
 		autoBackupTimer?.cancel();
 		autoBackupTimer?.destroy();
+		_gridMousePos?.put();
 
 		mouseDownPos?.put();
 
@@ -4278,66 +4251,78 @@ class ChartingTipsSubstate extends MusicBeatSubstate
     {
         super();
 
-		var bg:FlxSprite = new FlxSprite().makeGraphic(FlxG.width, FlxG.height, FlxColor.BLACK);
-		bg.alpha = 0.8;
-		bg.screenCenter();
-		bg.scrollFactor.set();
-		add(bg);
+        var bg:FlxSprite = new FlxSprite().makeGraphic(FlxG.width, FlxG.height, FlxColor.BLACK);
+        bg.alpha = 0.6;
+        bg.scrollFactor.set();
+        add(bg);
 
-		var text:String = 
-			"F2 - Toggle characters visibility\n" +
-			"W/S or Mouse Wheel - Change playback position\n" +
-			"A/D - Go to previous/next section\n" +
-			"Left/Right - Change quantization\n" +
-			"Up/Down - Change playback position with quantization\n" +
-			#if FLX_PITCH
-			"[ / ] - Change playback speed (SHIFT for faster change)\n" +
-			#end
-			"ALT + [ / ] - Reset playback speed\n" +
-			"CTRL + [ / ] - Fine playback speed adjustment\n" +
-			"SHIFT - Move faster (3x speed)\n" +
-			"CTRL + click - Select/deselect notes\n" +
-			"CTRL + C - Copy selected notes\n" +
-			"CTRL + V - Paste copied notes\n" +
-			"CTRL + Z - Undo\n" +
-			"CTRL + Y - Redo\n" +
-			"DELETE/CTRL + D - Delete selected notes\n" +
-			"Z/X - Zoom in/out\n" +
-			"ENTER - Play chart in PlayState\n" +
-			"ESCAPE - Play chart in Editor PlayState\n" +
-			"Q/E - Decrease/increase note sustain length\n" +
-			"SPACE - Pause/resume playback\n" +
-			"TAB - Cycle through UI tabs (SHIFT for reverse)\n" +
-			"R - Reset section (SHIFT for reset to start)\n" +
-			"BACKSPACE - Return to editor menu\n" +
-			"RIGHT CLICK - Delete note under cursor\n" +
-			"Click + Drag - Select multiple notes\n" +
-			"CTRL + SHIFT + A - Select all notes in current section";
+        var panel = new FlxSprite(0, 0);
+        panel.makeGraphic(900, 600, FlxColor.TRANSPARENT);
+        flixel.util.FlxSpriteUtil.drawRoundRect(panel, 0, 0, 900, 600, 20, 20, 0xDD111111);
+        flixel.util.FlxSpriteUtil.drawRoundRect(panel, 2, 2, 896, 596, 20, 20, FlxColor.TRANSPARENT, {thickness: 2, color: 0xFF555555});
+        panel.screenCenter();
+        panel.scrollFactor.set();
+        add(panel);
 
-		var tipTextArray:Array<String> = text.split('\n');
-		var grpTexts:FlxTypedGroup<FlxText> = new FlxTypedGroup<FlxText>();
-		add(grpTexts);
+        var title = new FlxText(0, panel.y + 20, FlxG.width, "CHART EDITOR SHORTCUTS", 28);
+        title.setFormat(Paths.font("vcr.ttf"), 28, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+        title.scrollFactor.set();
+        add(title);
 
-		// calculate total height for vertical centering --math brouu
-		final lineHeight:Int = 25;
-		final totalHeight:Int = tipTextArray.length * lineHeight;
-		final startY:Float = (FlxG.height - totalHeight) / 2;
+        var shortcutsLeft = [
+            "F2 - Toggle characters visibility",
+            "W/S or Mouse Wheel - Change playback position",
+            "A/D - Go to previous/next section",
+            "Left/Right - Change quantization",
+            "Up/Down - Change pos with quantization",
+            "SPACE - Pause/resume playback",
+            "ENTER - Play chart in PlayState",
+            "ESCAPE - Play chart in Editor PlayState",
+            "TAB - Cycle UI tabs (SHIFT to reverse)",
+            "BACKSPACE - Return to editor menu"
+        ];
+        
+        var shortcutsRight = [
+            "CTRL + click - Select/deselect notes",
+            "Click + Drag - Select multiple notes",
+            "CTRL + SHIFT + A - Select all notes in section",
+            "CTRL + C / V - Copy / Paste selected notes",
+            "CTRL + Z / Y - Undo / Redo",
+            "DEL / CTRL + D - Delete selected notes",
+            "RIGHT CLICK - Delete note under cursor",
+            "Q/E - Decrease/increase sustain length",
+            "CTRL + (PLUS/MINUS) - Zoom in/out grid",
+            "R - Reset section (SHIFT for start of song)"
+        ];
 
-		for (i in 0...tipTextArray.length) {
-			var text:FlxText = new FlxText(0, startY + (i * lineHeight), FlxG.width, tipTextArray[i], 18);
-			text.setFormat(null, 18, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
-			text.screenCenter(X);
-			text.scrollFactor.set();
-			grpTexts.add(text);
-		}
-		
-		var closeText:FlxText = new FlxText(0, FlxG.height - (lineHeight - 5), FlxG.width, "Press F1/ESC to close tips", 16);
-		closeText.setFormat(null, 16, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
-		closeText.screenCenter(X);
-		closeText.scrollFactor.set();
-		add(closeText);
+        var startY = panel.y + 90;
+        for (i in 0...shortcutsLeft.length) {
+            var text = new FlxText(panel.x + 30, startY + (i * 35), 400, shortcutsLeft[i], 16);
+            text.setFormat(Paths.font("vcr.ttf"), 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+            text.scrollFactor.set();
+            add(text);
+        }
+        
+        for (i in 0...shortcutsRight.length) {
+            var text = new FlxText(panel.x + 450, startY + (i * 35), 400, shortcutsRight[i], 16);
+            text.setFormat(Paths.font("vcr.ttf"), 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+            text.scrollFactor.set();
+            add(text);
+        }
 
-		camera = FlxG.cameras.list[FlxG.cameras.list.length - 1];
+        #if FLX_PITCH
+        var speedText = new FlxText(0, panel.y + 480, FlxG.width, "[ / ] - Change playback speed (SHIFT for faster)  |  ALT + [ / ] - Reset speed", 18);
+        speedText.setFormat(Paths.font("vcr.ttf"), 18, FlxColor.YELLOW, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+        speedText.scrollFactor.set();
+        add(speedText);
+        #end
+
+        var closeText = new FlxText(0, panel.y + 550, FlxG.width, "Press F1 or ESC to close", 16);
+        closeText.setFormat(Paths.font("vcr.ttf"), 16, 0xFFAAAAAA, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+        closeText.scrollFactor.set();
+        add(closeText);
+
+        camera = FlxG.cameras.list[FlxG.cameras.list.length - 1];
     }
 
     override function update(elapsed:Float)

@@ -2363,18 +2363,24 @@ class PlayState extends MusicBeatState
 								daNote.y = strumY + daNote.correctionOffset + strumDirSin * daNote.distance;
 							}
 
-							if (!daNote.mustPress && daNote.wasGoodHit && !daNote.hitByOpponent && !daNote.ignoreNote) {
+							if (!daNote.mustPress && daNote.wasGoodHit && !daNote.hitByOpponent && !daNote.ignoreNote) 
+							{
 								opponentNoteHit(daNote);
 							}
 
-							if (daNote.mustPress) {
-								if (daNote.isSustainNote && daNote.wasGoodHit && !daNote.ignoreNote) {
-        							handleSustainLogic(daNote, elapsed);
-								}
+							if (daNote.mustPress && cpuControlled && !daNote.ignoreNote && !daNote.hitCausesMiss && !daNote.wasGoodHit) 
+							{
+								if (daNote.strumTime <= Conductor.songPosition)
+									goodNoteHit(daNote);
+							}
+
+							if (daNote.mustPress) 
+							{
+								if (daNote.isSustainNote && daNote.wasGoodHit && !daNote.ignoreNote)
+									handleSustainLogic(daNote, elapsed);
 							} else {
-								if (daNote.isSustainNote && daNote.wasGoodHit) {
+								if (daNote.isSustainNote && daNote.wasGoodHit)
        	 							handleSustainLogic(daNote, elapsed);
-   								}
 							}
 
 							if (daNote.isSustainNote && daNote.holdNote != null)
@@ -3955,7 +3961,7 @@ class PlayState extends MusicBeatState
 						if (char.getAnimationName() != holdAnim && char.getAnimationName() != holdAnim + '-loop') {
 							final frame = char.animation.curAnim?.curFrame ?? 0;
 							
-							if (frame >= 2 || !char.getAnimationName().startsWith('sing')) {
+							if (frame >= 3 || !char.getAnimationName().startsWith('sing')) {
 								char.playAnim(animToPlay, true);
 							}
 						}
@@ -4016,7 +4022,7 @@ class PlayState extends MusicBeatState
 					if (char.getAnimationName() != holdAnim && char.getAnimationName() != holdAnim + '-loop') {
 						final frame = char.animation.curAnim?.curFrame ?? 0;
 						
-						if (frame >= 2 || !char.getAnimationName().startsWith('sing')) {
+						if (frame >= 3 || !char.getAnimationName().startsWith('sing')) {
 							char.playAnim(animToPlay, true);
 						}
 					}
@@ -4522,11 +4528,12 @@ class PlayState extends MusicBeatState
 
 	public function updatePixelStage() {
 		introSoundsSuffix = isPixelStage ? '-pixel' : '';
-		
+
 		for (note in unspawnNotes)
 			note?.reloadNote();
-		
+
 		notes?.forEachAlive((note:Note) -> note.reloadNote());
+		notesSustains?.forEachAlive((sustain:Sustain) -> sustain.reloadSkin());
 		playerStrums?.forEachAlive((strum:StrumNote) -> strum.reloadNote());
 		opponentStrums?.forEachAlive((strum:StrumNote) -> strum.reloadNote());
 		grpHoldCovers?.forEach((cover:NoteHoldCover) -> cover.reloadCover());

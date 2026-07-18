@@ -10,6 +10,7 @@ import flixel.util.FlxDestroyUtil;
 
 import openfl.Vector;
 import openfl.geom.ColorTransform;
+
 using flixel.util.FlxColorTransformUtil;
 
 class TileRender extends flixel.FlxStrip
@@ -110,8 +111,14 @@ class TileRender extends flixel.FlxStrip
     #if MODCHART_ALLOWED
     private function buildMesh(pNote:Dynamic, state:Dynamic, modMgr:Dynamic, pN:Int):Void
     {
-        final neededVertices = tileCount * segmentsPerTile * 8; 
-        final neededIndices = tileCount * segmentsPerTile * 6;
+        final isPixel:Bool = state.isPixelStage;
+        final zoom:Float = state.daPixelZoom;
+        
+        var currentSegments = isPixel ? Math.floor(segmentsPerTile / zoom) : segmentsPerTile;
+        if (currentSegments < 1) currentSegments = 1;
+
+        final neededVertices = tileCount * currentSegments * 8; 
+        final neededIndices = tileCount * currentSegments * 6;
 
         if (vertices == null) {
             vertices = new Vector<Float>(neededVertices, false);
@@ -134,10 +141,10 @@ class TileRender extends flixel.FlxStrip
             if (hNote != null) tStuffDyn = Reflect.field(hNote, "timeStuff");
         }
 
-        final songPos = Reflect.field(Conductor, "songPosition");
+        final songPos = Conductor.songPosition;
         var tStuffVal:Float = tStuffDyn != null ? cast(tStuffDyn, Float) : 0;
 
-        final isHit:Bool = Reflect.field(this, "hit");
+        final isHit:Bool = Reflect.hasField(this, "hit") ? Reflect.field(this, "hit") : false;
         if (isHit)
             tStuffVal = songPos - pNote.strumTime;
 
@@ -155,13 +162,10 @@ class TileRender extends flixel.FlxStrip
         final invTotalHeight = totalHeight > 0 ? 1.0 / totalHeight : 0;
         
         final swagWidth:Float = Reflect.hasField(pNote, "swagWidth") ? Reflect.field(pNote, "swagWidth") : 112;
-        final isPixel = Reflect.hasField(PlayState, "isPixelStage") ? Reflect.field(PlayState, "isPixelStage") : false;
-        final zoom = Reflect.hasField(PlayState, "daPixelZoom") ? Reflect.field(PlayState, "daPixelZoom") : 6;
-        final dScroll = Reflect.hasField(ClientPrefs, "downScroll") ? Reflect.field(ClientPrefs, "downScroll") : false;
+        final dScroll:Bool = ClientPrefs.downScroll;
         
         final offsetX = swagWidth * 0.5 - (!isPixel ? 0 : 5) - this.x;
         final offsetY = swagWidth * 0.5 + (!isPixel ? (dScroll ? 3.5 : -4) : (dScroll ? -3.5 * zoom : -1 * zoom)) - this.y;
-        final songPos = Reflect.field(Conductor, "songPosition");
 
         var currentLocalY:Float = 0.0;
         var vIdx:Int = 0;
@@ -201,9 +205,9 @@ class TileRender extends flixel.FlxStrip
             final halfWidth = widthLocal * 0.5;
             final sign = flipY ? 1.0 : -1.0;
 
-            for (seg in 0...segmentsPerTile) {
-                final pStart = seg / segmentsPerTile;
-                final pEnd = (seg + 1) / segmentsPerTile;
+            for (seg in 0...currentSegments) {
+                final pStart = seg / currentSegments;
+                final pEnd = (seg + 1) / currentSegments;
 
                 final y0 = currentLocalY + (tileHeight * pStart);
                 final y1 = currentLocalY + (tileHeight * pEnd);
