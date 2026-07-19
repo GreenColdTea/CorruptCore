@@ -39,6 +39,7 @@ class PsychUICheckBox extends PsychUIGroup
 		box.animation.add('false', [0]);
 		box.animation.add('true', [1]);
 		box.animation.play('false');
+		box.antialiasing = false;
 	}
 
 	public var broadcastCheckBoxEvent:Bool = true;

@@ -59,11 +59,9 @@ class WeekEditorState extends MusicBeatState implements PsychUIEventHandler.Psyc
 		var ui_tex = Paths.getSparrowAtlas('campaign_menu_UI_assets');
 		var bgYellow:FlxSprite = new FlxSprite(0, 56).makeGraphic(FlxG.width, 386, 0xFFF9CF51);
 		bgSprite = new FlxSprite(0, 56);
-		bgSprite.antialiasing = ClientPrefs.globalAntialiasing;
 
 		weekThing = new MenuItem(0, bgSprite.y + 396, weekFileName);
 		weekThing.y += weekThing.height + 20;
-		weekThing.antialiasing = ClientPrefs.globalAntialiasing;
 		add(weekThing);
 
 		var blackBarThingie:FlxSprite = new FlxSprite().makeGraphic(FlxG.width, 56, FlxColor.BLACK);
@@ -75,7 +73,6 @@ class WeekEditorState extends MusicBeatState implements PsychUIEventHandler.Psyc
 		lock.frames = ui_tex;
 		lock.animation.addByPrefix('lock', 'lock');
 		lock.animation.play('lock');
-		lock.antialiasing = ClientPrefs.globalAntialiasing;
 		add(lock);
 		
 		missingFileText = new FlxText(0, 0, FlxG.width, "");
@@ -96,8 +93,7 @@ class WeekEditorState extends MusicBeatState implements PsychUIEventHandler.Psyc
 		add(bgSprite);
 		add(grpWeekCharacters);
 
-		var tracksSprite:FlxSprite = new FlxSprite(FlxG.width * 0.07, bgSprite.y + 435).loadGraphic(Paths.image('Menu_Tracks'));
-		tracksSprite.antialiasing = ClientPrefs.globalAntialiasing;
+		final tracksSprite:FlxSprite = new FlxSprite(FlxG.width * 0.07, bgSprite.y + 435).loadGraphic(Paths.image('Menu_Tracks'));
 		add(tracksSprite);
 
 		txtTracklist = new FlxText(FlxG.width * 0.05, tracksSprite.y + 60, 0, "", 32);
@@ -576,8 +572,6 @@ class WeekEditorFreeplayState extends MusicBeatState implements PsychUIEventHand
 
 	override function create() {
 		bg = new FlxSprite().loadGraphic(Paths.image('menuDesat'));
-		bg.antialiasing = ClientPrefs.globalAntialiasing;
-
 		bg.color = FlxColor.WHITE;
 		add(bg);
 

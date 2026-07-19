@@ -134,16 +134,12 @@ class NoteOffsetState extends MusicBeatState
 		rating.camera = camHUD;
 		rating.setGraphicSize(Std.int(rating.width * 0.6));
 		rating.updateHitbox();
-		rating.antialiasing = ClientPrefs.globalAntialiasing;
-		
 		add(rating);
 
 		comboSpr.loadGraphic(Paths.image('combo'));
 		comboSpr.camera = camHUD;
 		comboSpr.setGraphicSize(Std.int(comboSpr.width * 0.6));
 		comboSpr.updateHitbox();
-		comboSpr.antialiasing = ClientPrefs.globalAntialiasing;
-
 		add(comboSpr);
 		
 		comboNums = new FlxSpriteGroup();
@@ -163,7 +159,6 @@ class NoteOffsetState extends MusicBeatState
 			numScore.camera = camHUD;
 			numScore.setGraphicSize(Std.int(numScore.width * 0.45));
 			numScore.updateHitbox();
-			numScore.antialiasing = ClientPrefs.globalAntialiasing;
 			comboNums.add(numScore);
 			daLoop++;
 		}
@@ -914,7 +909,6 @@ class CalibrationNote extends FlxSprite
 		if (Paths.image('NOTE_assets') != null)
 		{
 			frames = Paths.getSparrowAtlas('NOTE_assets');
-			antialiasing = ClientPrefs.globalAntialiasing;
 			
 			switch(noteData)
 			{
@@ -978,7 +972,6 @@ class CalibrationStrum extends FlxSprite
 			
 			setGraphicSize(Std.int(width * 0.7));
 			updateHitbox();
-			antialiasing = ClientPrefs.globalAntialiasing;
 			
 			switch (Math.abs(noteData) % 4)
 			{

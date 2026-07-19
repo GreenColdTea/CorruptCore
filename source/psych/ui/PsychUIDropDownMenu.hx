@@ -36,6 +36,7 @@ class PsychUIDropDownMenu extends PsychUIInputText
 		button.animation.add('normal', [0], false);
 		button.animation.add('pressed', [1], false);
 		button.animation.play('normal', true);
+		button.antialiasing = false;
 		add(button);
 
 		onSelect = callback;

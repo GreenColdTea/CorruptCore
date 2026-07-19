@@ -67,10 +67,9 @@ class BaseOptionsMenu extends MusicBeatSubstate
 		DiscordClient.changePresence(rpcTitle, null);
 		#end
 		
-		var bg:FlxSprite = new FlxSprite().loadGraphic(Paths.image('menuDesat'));
+		final bg:FlxSprite = new FlxSprite().loadGraphic(Paths.image('menuDesat'));
 		bg.color = 0xFFea71fd;
 		bg.screenCenter();
-		bg.antialiasing = ClientPrefs.globalAntialiasing;
 		add(bg);
 
 		// avoids lagspikes while scrolling through menus!
@@ -87,7 +86,7 @@ class BaseOptionsMenu extends MusicBeatSubstate
 		descBox.alpha = 0.6;
 		add(descBox);
 
-		var titleText:Alphabet = new Alphabet(75, 40, title, true);
+		final titleText:Alphabet = new Alphabet(75, 40, title, true);
 		titleText.scaleX = 0.6;
 		titleText.scaleY = 0.6;
 		titleText.alpha = 0.4;

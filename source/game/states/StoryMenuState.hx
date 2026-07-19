@@ -125,20 +125,17 @@ class StoryMenuState extends MusicBeatState
 		add(yellowBg);
 
 		background = new FlxSprite(0, 56);
-		background.antialiasing = ClientPrefs.globalAntialiasing;
 		add(background);
 
 		var blackBar = new FlxSprite().makeGraphic(FlxG.width, 56, FlxColor.BLACK);
 		add(blackBar);
 
 		var tracksSprite = new FlxSprite(FlxG.width * 0.07, background.y + 425).loadGraphic(Paths.image('Menu_Tracks'));
-		tracksSprite.antialiasing = ClientPrefs.globalAntialiasing;
 		add(tracksSprite);
 
 		tracklistText = new FlxText(FlxG.width * 0.05, 0, 0, "", 32);
 		tracklistText.alignment = CENTER;
 		tracklistText.font = Paths.font("vcr.ttf");
-		tracklistText.antialiasing = ClientPrefs.globalAntialiasing;
 		tracklistText.color = 0xFFe55777;
 		tracklistText.y = tracksSprite.y + 60;
 		add(tracklistText);
@@ -169,7 +166,6 @@ class StoryMenuState extends MusicBeatState
 		weekItem.y += ((weekItem.height + 25) * index);
 		weekItem.targetY = index;
 		weekItem.screenCenter(X);
-		weekItem.antialiasing = ClientPrefs.globalAntialiasing;
 		weekTextGroup.add(weekItem);
 
 		if (locked)
@@ -185,7 +181,6 @@ class StoryMenuState extends MusicBeatState
 		lock.animation.addByPrefix('lock', 'lock');
 		lock.animation.play('lock');
 		lock.ID = index;
-		lock.antialiasing = ClientPrefs.globalAntialiasing;
 		lockGroup.add(lock);
 	}
 
@@ -202,11 +197,9 @@ class StoryMenuState extends MusicBeatState
 		leftArrow.animation.addByPrefix('idle', "arrow left");
 		leftArrow.animation.addByPrefix('press', "arrow push left");
 		leftArrow.animation.play('idle');
-		leftArrow.antialiasing = ClientPrefs.globalAntialiasing;
 		difficultyGroup.add(leftArrow);
 
 		difficultySpr = new FlxSprite(0, leftArrow.y);
-		difficultySpr.antialiasing = ClientPrefs.globalAntialiasing;
 		difficultyGroup.add(difficultySpr);
 
 		rightArrow = new FlxSprite(leftArrow.x + 376, leftArrow.y);
@@ -214,7 +207,6 @@ class StoryMenuState extends MusicBeatState
 		rightArrow.animation.addByPrefix('idle', 'arrow right');
 		rightArrow.animation.addByPrefix('press', "arrow push right", 24, false);
 		rightArrow.animation.play('idle');
-		rightArrow.antialiasing = ClientPrefs.globalAntialiasing;
 		difficultyGroup.add(rightArrow);
 
 		initializeDifficulty();

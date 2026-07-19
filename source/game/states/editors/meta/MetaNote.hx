@@ -109,14 +109,12 @@ class MetaNote extends Note
 			{
 				sustainSprite = new FlxSprite();
 				sustainSprite.scrollFactor.x = 0;
-				sustainSprite.antialiasing = ClientPrefs.globalAntialiasing;
 			}
 
 			if(sustainEndSprite == null)
 			{
 				sustainEndSprite = new FlxSprite();
 				sustainEndSprite.scrollFactor.x = 0;
-				sustainEndSprite.antialiasing = ClientPrefs.globalAntialiasing;
 			}
 
 			refreshSustainAssets();

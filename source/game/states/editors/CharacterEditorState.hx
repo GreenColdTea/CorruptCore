@@ -146,10 +146,10 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		charLayer = new FlxTypedGroup<Character>();
 		add(charLayer);
 
-		var pointer:FlxGraphic = FlxGraphic.fromClass(GraphicCursorCross);
-		cameraFollowPointer = new FlxSprite().loadGraphic(pointer);
+		cameraFollowPointer = new FlxSprite().loadGraphic(FlxGraphic.fromClass(GraphicCursorCross));
 		cameraFollowPointer.setGraphicSize(40, 40);
 		cameraFollowPointer.updateHitbox();
+		cameraFollowPointer.antialiasing = false;
 		add(cameraFollowPointer);
 
 		loadChar(!daAnim.startsWith('bf'), false);
@@ -253,7 +253,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			makeGhostButton.label = ghostChar.visible ? "Hide Ghost" : "Make Ghost";
 			
 			if (ghostChar.visible) {
-				ghostAnim = (!char.isAnimateAtlas) ? char.animation.curAnim.name : char.atlas.anim.curAnim.name;
+				ghostAnim = char.getAnimationName();
 				ghostSingleAnimMode = true;
 			}
 			reloadGhost();
@@ -578,8 +578,11 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 					lastOffsets = anim.offsets;
 					if(char.hasAnimation(animationInputText.text))
 					{
-						if(!char.isAnimateAtlas) char.animation.remove(animationInputText.text);
-						else char.atlas.anim.remove(animationInputText.text);
+						#if flixel_animate
+						if(char.isAnimateAtlas) char.anim.remove(animationInputText.text);
+						else
+						#end
+							char.animation.remove(animationInputText.text);
 					}
 					char.animationsArray.remove(anim);
 				}
@@ -593,13 +596,17 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 				indices: indices,
 				offsets: lastOffsets
 			};
+			
+			#if flixel_animate
 			if(char.isAnimateAtlas) {
 				if(indices?.length > 0) {
-					char.atlas.anim.addBySymbolIndices(newAnim.anim, newAnim.name, newAnim.indices, newAnim.fps, newAnim.loop);
+					char.anim.addBySymbolIndices(newAnim.anim, newAnim.name, newAnim.indices, newAnim.fps, newAnim.loop);
 				} else {
-					char.atlas.anim.addBySymbol(newAnim.anim, newAnim.name, newAnim.fps, newAnim.loop);
+					char.anim.addBySymbol(newAnim.anim, newAnim.name, newAnim.fps, newAnim.loop);
 				}
-			} else {
+			} else 
+			#end
+			{
 				if(indices?.length > 0) {
 					char.animation.addByIndices(newAnim.anim, newAnim.name, newAnim.indices, "", newAnim.fps, newAnim.loop);
 				} else {
@@ -611,13 +618,24 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			char.animationsArray.push(newAnim);
 
 			if(lastAnim == animationInputText.text) {
-				var leAnim = !char.isAnimateAtlas ? char.animation.getByName(lastAnim) : char.atlas.anim.getByName(lastAnim);
+				var leAnim:Dynamic = null;
+				#if flixel_animate
+				if(char.isAnimateAtlas) leAnim = char.anim.getByName(lastAnim);
+				else
+				#end
+					leAnim = char.animation.getByName(lastAnim);
+					
 				if(leAnim?.frames.length > 0) {
 					char.playAnim(lastAnim, true);
 				} else {
 					for(i in 0...char.animationsArray.length) {
 						if(char.animationsArray[i] != null) {
-							leAnim = !char.isAnimateAtlas ? char.animation.getByName(char.animationsArray[i].anim) : char.atlas.anim.getByName(char.animationsArray[i].anim);
+							#if flixel_animate
+							if(char.isAnimateAtlas) leAnim = char.anim.getByName(char.animationsArray[i].anim);
+							else
+							#end
+								leAnim = char.animation.getByName(char.animationsArray[i].anim);
+								
 							if(leAnim?.frames.length > 0) {
 								char.playAnim(char.animationsArray[i].anim, true);
 								curAnim = i;
@@ -645,8 +663,11 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 
 					if(char.hasAnimation(anim.anim))
 					{
-						if(!char.isAnimateAtlas) char.animation.remove(anim.anim);
-						else char.atlas.anim.remove(anim.anim);
+						#if flixel_animate
+						if(char.isAnimateAtlas) char.anim.remove(anim.anim);
+						else
+						#end
+							char.animation.remove(anim.anim);
 						char.animOffsets.remove(anim.anim);
 						char.animationsArray.remove(anim);
 					}
@@ -699,22 +720,22 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 	{
 		var lastAnim:String = char.getAnimationName() ?? '';
 		
-		char.atlas = FlxDestroyUtil.destroy(char.atlas);
-		char.isAnimateAtlas = false;
-
-		ghostChar.atlas = FlxDestroyUtil.destroy(ghostChar.atlas);
-		ghostChar.isAnimateAtlas = false;
+		#if flixel_animate
+		if(char.isAnimateAtlas) {
+			char.anim?.destroyAnimations();
+			ghostChar.anim?.destroyAnimations();
+		}
+		#end
+		
+		char.animation.destroyAnimations();
+		ghostChar.animation.destroyAnimations();
 
 		if(Paths.fileExists('images/' + char.imageFile + '/Animation.json', TEXT)) {
 			#if flixel_animate
-			char.isAnimateAtlas = true;
-			ghostChar.isAnimateAtlas = true;
-
-			char.atlas = new FlxAnimate();
-			char.atlas.frames = Paths.getAnimateAtlas(char.imageFile);
-			
-			ghostChar.atlas = new FlxAnimate();
-			ghostChar.atlas.frames = Paths.getAnimateAtlas(char.imageFile);
+			try {
+				char.frames = Paths.getAnimateAtlas(char.imageFile);
+				ghostChar.frames = Paths.getAnimateAtlas(char.imageFile);
+			} catch(e:Dynamic) {}
 			#end
 		} else {
 			if(Paths.fileExists('images/' + char.imageFile + '.txt', TEXT)) {
@@ -739,21 +760,22 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 				var animLoop = anim.loop;
 				var animIndices = anim.indices;
 				
+				#if flixel_animate
 				if(char.isAnimateAtlas) {
-					#if flixel_animate
 					if(animIndices?.length > 0) {
-						char.atlas.anim.addBySymbolIndices(animAnim, animName, animIndices, animFps, animLoop);
+						char.anim.addBySymbolIndices(animAnim, animName, animIndices, animFps, animLoop);
 					} else {
-						char.atlas.anim.addBySymbol(animAnim, animName, animFps, animLoop);
+						char.anim.addBySymbol(animAnim, animName, animFps, animLoop);
 					}
 					
 					if(animIndices?.length > 0) {
-						ghostChar.atlas.anim.addBySymbolIndices(animAnim, animName, animIndices, animFps, animLoop);
+						ghostChar.anim.addBySymbolIndices(animAnim, animName, animIndices, animFps, animLoop);
 					} else {
-						ghostChar.atlas.anim.addBySymbol(animAnim, animName, animFps, animLoop);
+						ghostChar.anim.addBySymbol(animAnim, animName, animFps, animLoop);
 					}
-					#end
-				} else {
+				} else 
+				#end
+				{
 					if(animIndices?.length > 0) {
 						char.animation.addByIndices(animAnim, animName, animIndices, "", animFps, animLoop);
 						ghostChar.animation.addByIndices(animAnim, animName, animIndices, "", animFps, animLoop);
@@ -783,9 +805,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			}
 		}
 		
-		ghostChar.isAnimateAtlas = char.isAnimateAtlas;
 		reloadGhost();
-		
 		updatePointerPos(false);
 		
 		if(!char.isAnimationNull()) {
@@ -868,8 +888,6 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			char.playAnim(char.animationsArray[0].anim, true);
 		}
 		char.debugMode = true;
-
-		ghostChar.isAnimateAtlas = char.isAnimateAtlas;
 
 		charLayer.add(ghostChar);
 		charLayer.add(char);
@@ -969,11 +987,12 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		
 		ghostChar.animOffsets.clear();
 
+		#if flixel_animate
 		if(ghostChar.isAnimateAtlas) {
-			#if flixel_animate
-			ghostChar.atlas?.anim.destroyAnimations();
-			#end
-		} else {
+			ghostChar.anim.destroyAnimations();
+		} else 
+		#end
+		{
 			ghostChar.animation.destroyAnimations();
 		}
 		
@@ -984,15 +1003,16 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			var animLoop:Bool = anim.loop;
 			var animIndices:Array<Int> = anim.indices;
 			
+			#if flixel_animate
 			if(ghostChar.isAnimateAtlas) {
-				#if flixel_animate
 				if(animIndices?.length > 0) {
-					ghostChar.atlas.anim.addBySymbolIndices(animAnim, animName, animIndices, animFps, animLoop);
+					ghostChar.anim.addBySymbolIndices(animAnim, animName, animIndices, animFps, animLoop);
 				} else {
-					ghostChar.atlas.anim.addBySymbol(animAnim, animName, animFps, animLoop);
+					ghostChar.anim.addBySymbol(animAnim, animName, animFps, animLoop);
 				}
-				#end
-			} else {
+			} else 
+			#end
+			{
 				if(animIndices?.length > 0) {
 					ghostChar.animation.addByIndices(animAnim, animName, animIndices, "", animFps, animLoop);
 				} else {
@@ -1112,7 +1132,9 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			var validAnim = false;
 			
 			if(char.isAnimateAtlas) {
-				validAnim = char.atlas.anim.getByName(animName) != null;
+				#if flixel_animate
+				validAnim = char.anim.getByName(animName) != null;
+				#end
 			} else {
 				final anim = char.animation.getByName(animName);
 				validAnim = anim?.frames?.length > 0;
@@ -1294,13 +1316,8 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			final dx = ((arrowKeysJustPressed[0] ? 1 : 0) - (arrowKeysJustPressed[1] ? 1 : 0)) * shiftMultBig;
 			final dy = ((arrowKeysJustPressed[2] ? 1 : 0) - (arrowKeysJustPressed[3] ? 1 : 0)) * shiftMultBig;
 
-			if (char.isAnimateAtlas) {
-				char.atlas.offset.x += dx;
-				char.atlas.offset.y += dy;
-			} else {
-				char.offset.x += dx;
-				char.offset.y += dy;
-			}
+			char.offset.x += dx;
+			char.offset.y += dy;
 			offsetChanged = true;
 		}
 
@@ -1312,13 +1329,8 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 					final dx = ((arrowKeysPressed[0] ? 1 : 0) - (arrowKeysPressed[1] ? 1 : 0)) * shiftMultBig;
 					final dy = ((arrowKeysPressed[2] ? 1 : 0) - (arrowKeysPressed[3] ? 1 : 0)) * shiftMultBig;
 
-					if (char.isAnimateAtlas) {
-						char.atlas.offset.x += dx;
-						char.atlas.offset.y += dy;
-					} else {
-						char.offset.x += dx;
-						char.offset.y += dy;
-					}
+					char.offset.x += dx;
+					char.offset.y += dy;
 
 					holdingArrowsElapsed -= (1 / 60);
 					offsetChanged = true;
@@ -1347,8 +1359,8 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 	function saveOffsetChanges()
 	{
 		if (char.animationsArray[curAnim] != null) {
-			final curX = char.isAnimateAtlas ? char.atlas.offset.x : char.offset.x;
-			final curY = char.isAnimateAtlas ? char.atlas.offset.y : char.offset.y;
+			final curX = char.offset.x;
+			final curY = char.offset.y;
 
 			final animName = char.animationsArray[curAnim].anim;
 			char.animOffsets.set(animName, [curX, curY]);

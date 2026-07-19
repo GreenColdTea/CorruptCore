@@ -300,6 +300,8 @@ class ClientPrefs {
         }
 		#end
 
+        FlxSprite.defaultAntialiasing = globalAntialiasing;
+
         FlxG.scaleMode = noBordersScreen ? new flixel.system.scaleModes.BaseScaleMode() : new flixel.system.scaleModes.RatioScaleMode();
         FlxG.sound.useStreamingForAll = ClientPrefs.useStreamingAudio;
         

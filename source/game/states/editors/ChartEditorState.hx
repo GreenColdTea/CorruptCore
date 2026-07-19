@@ -306,7 +306,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		ignoreWarnings = chartEditorSave.data.ignoreWarnings;
 		
 		var bg:FlxSprite = new FlxSprite().loadGraphic(Paths.image('menuDesat'));
-		bg.antialiasing = ClientPrefs.globalAntialiasing;
 		bg.color = gridColors.background;
 		bg.scrollFactor.set();
 		add(bg);
@@ -361,7 +360,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		playerIcon.setPosition(opponentIcon.x + 162, opponentIcon.y);
 
 		mustHitIndicator = flixel.util.FlxSpriteUtil.drawTriangle(new FlxSprite(0, eventIcon.y + 20).makeGraphic(20, 20, FlxColor.TRANSPARENT), 0, 0, 20);
-		mustHitIndicator.antialiasing = ClientPrefs.globalAntialiasing;
 		mustHitIndicator.scrollFactor.set();
 		mustHitIndicator.offset.x += mustHitIndicator.width / 2;
 		mustHitIndicator.flipY = true;
@@ -4071,25 +4069,24 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		for (i in 0...numChunks)
 		{
 			var currentChunkHeight:Int = chunkSize;
-			if (i == numChunks - 1) {
+			if (i == numChunks - 1)
 				currentChunkHeight = totalHeight - (i * chunkSize);
-			}
 
 			if (currentChunkHeight <= 0) continue;
 
-			var chunkSprite = new FlxSprite(absoluteX, absoluteY + (i * chunkSize));
-			
+			final chunkSprite = new FlxSprite(absoluteX, absoluteY + (i * chunkSize));
 			chunkSprite.makeGraphic(width, currentChunkHeight, FlxColor.TRANSPARENT, true, 'waveChunk_${waveformTarget}_${width}x${currentChunkHeight}_${i}');
+			chunkSprite.antialiasing = false;
 			
-			var startY:Int = i * chunkSize;
-			var endY:Int = startY + currentChunkHeight;
+			final startY:Int = i * chunkSize;
+			final endY:Int = startY + currentChunkHeight;
 
 			chunkSprite.pixels.lock();
-			var colorUInt:UInt = waveformColor;
 
+			final colorUInt:UInt = waveformColor;
 			for (index in startY...endY)
 			{
-				var localY = index - startY;
+				final localY = index - startY;
 
 				final lmin = (index < wavData[0][0].length ? wavData[0][0][index] : 0) * (gSize / 2);
 				final lmax = (index < wavData[0][1].length ? wavData[0][1][index] : 0) * (gSize / 2);

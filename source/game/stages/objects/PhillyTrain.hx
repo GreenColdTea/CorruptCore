@@ -7,7 +7,6 @@ class PhillyTrain extends BGSprite
 	{
 		super(image, x, y);
 		active = true; //Allow update
-		antialiasing = ClientPrefs.globalAntialiasing;
 
 		this.sound = new FlxSound().load(Paths.sound(sound));
 		FlxG.sound.list.add(this.sound);

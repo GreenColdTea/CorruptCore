@@ -367,7 +367,6 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 			
 			frames = animFrames;
 			loadNoteAnims();
-			antialiasing = ClientPrefs.globalAntialiasing;
 			if(!isSustainNote)
 			{
 				centerOffsets();

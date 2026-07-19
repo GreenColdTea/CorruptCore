@@ -1249,7 +1249,6 @@ class ModchartSprite extends FlxSprite {
 
     public function new(?x:Float = 0, ?y:Float = 0) {
         super(x, y);
-        antialiasing = ClientPrefs.globalAntialiasing;
     }
 }
 
@@ -1260,7 +1259,6 @@ class ModchartAnimateSprite extends FlxAnimate
 	public function new(?x:Float = 0, ?y:Float = 0, ?path:String)
 	{
 		super(x, y, path);
-		antialiasing = ClientPrefs.globalAntialiasing;
 	}
 
 	public function playAnim(name:String, forced:Bool = false, ?reverse:Bool = false, ?startFrame:Int = 0)
@@ -1288,8 +1286,6 @@ class ModchartBackdrop extends FlxBackdrop {
         if (graphic != null) {
             loadGraphic(graphic, repeatX, repeatY);
         }
-
-        antialiasing = ClientPrefs.globalAntialiasing;
     }
 }
 

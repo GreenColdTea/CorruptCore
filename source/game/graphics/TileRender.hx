@@ -111,8 +111,8 @@ class TileRender extends flixel.FlxStrip
     #if MODCHART_ALLOWED
     private function buildMesh(pNote:Dynamic, state:Dynamic, modMgr:Dynamic, pN:Int):Void
     {
-        final isPixel:Bool = state.isPixelStage;
-        final zoom:Float = state.daPixelZoom;
+        final isPixel:Bool = PlayState.isPixelStage;
+        final zoom:Float = PlayState.daPixelZoom;
         
         var currentSegments = isPixel ? Math.floor(segmentsPerTile / zoom) : segmentsPerTile;
         if (currentSegments < 1) currentSegments = 1;
@@ -165,7 +165,7 @@ class TileRender extends flixel.FlxStrip
         final dScroll:Bool = ClientPrefs.downScroll;
         
         final offsetX = swagWidth * 0.5 - (!isPixel ? 0 : 5) - this.x;
-        final offsetY = swagWidth * 0.5 + (!isPixel ? (dScroll ? 3.5 : -4) : (dScroll ? -3.5 * zoom : -1 * zoom)) - this.y;
+        final offsetY = swagWidth * 0.5 + (!isPixel ? (dScroll ? 3.5 : -4) : (dScroll ? -4.5 * zoom : -0.75 * zoom)) - this.y;
 
         var currentLocalY:Float = 0.0;
         var vIdx:Int = 0;

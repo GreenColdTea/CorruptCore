@@ -1291,7 +1291,6 @@ class PlayState extends MusicBeatState
 		}
 
 		video = new FunkinVideoSprite(0, 0, true);
-		video.antialiasing = ClientPrefs.globalAntialiasing;
 		video.cameras = [camOther];
 		add(video);
 
@@ -1812,7 +1811,7 @@ class PlayState extends MusicBeatState
 				var swagNote:Note = new Note(daStrumTime, daNoteData, oldNote);
 				swagNote.mustPress = gottaHitNote;
 				swagNote.sustainLength = holdLength;
-				swagNote.gfNote = (section.gfSection && (songNotes[1]<4));
+				swagNote.gfNote = (section.gfSection && (gottaHitNote == section.mustHitSection));
 				swagNote.row = Conductor.secsToRow(daStrumTime);
 				swagNote.noteType = !Std.isOfType(songNotes[3], String) ? game.states.editors.ChartEditorState.noteTypeList[songNotes[3]] : songNotes[3];
 
@@ -3167,18 +3166,17 @@ class PlayState extends MusicBeatState
 
 		if (!PlayState.isPixelStage)
 		{
-			rating.setGraphicSize(Std.int(rating.width * 0.6));
-			rating.antialiasing = ClientPrefs.globalAntialiasing;
-			comboSpr.setGraphicSize(Std.int(comboSpr.width * 0.6));
-			comboSpr.antialiasing = ClientPrefs.globalAntialiasing;
+			for (obj in [rating, comboSpr])
+				obj.setGraphicSize(Std.int(obj.width * 0.6));
 		}
 		else
 		{
-			rating.setGraphicSize(Std.int(rating.width * daPixelZoom * 0.7));
-			comboSpr.setGraphicSize(Std.int(comboSpr.width * daPixelZoom * 0.7));
-
-			rating.y -= 50;
-			comboSpr.y -= 50;
+			for (obj in [rating, comboSpr])
+			{
+				obj.setGraphicSize(Std.int(obj.width * daPixelZoom * 0.7));
+				obj.antialiasing = false;
+				obj.y -= 50;
+			}
 		}
 
 		comboSpr.updateHitbox();
@@ -3225,12 +3223,12 @@ class PlayState extends MusicBeatState
 
 			if (!PlayState.isPixelStage)
 			{
-				numScore.antialiasing = ClientPrefs.globalAntialiasing;
 				numScore.setGraphicSize(Std.int(numScore.width * 0.45));
 			}
 			else
 			{
 				numScore.setGraphicSize(Std.int(numScore.width * daPixelZoom * 0.75));
+				numScore.antialiasing = false;
 				numScore.y -= 50;
 			}
 			numScore.updateHitbox();
@@ -3654,10 +3652,11 @@ class PlayState extends MusicBeatState
 
 		if(result == ScriptResult.Function_Stop) return;
 
-		if(note.noteType == 'Hey!' && dad.animOffsets.exists('hey')) {
-			dad.playAnim('hey', true);
-			dad.specialAnim = true;
-			dad.heyTimer = 0.6;
+		final char:Character = (note.gfNote && gf != null) ? gf : dad;
+		if(note.noteType == 'Hey!' && char.animOffsets.exists('hey')) {
+			char.playAnim('hey', true);
+			char.specialAnim = true;
+			char.heyTimer = 0.6;
 		} else if(!note.noAnimation) {
 			var altAnim:String = note.animSuffix;
 
@@ -3668,31 +3667,24 @@ class PlayState extends MusicBeatState
 				}
 			}
 
-			var char:Character = dad;
-			var animToPlay:String = singAnimations[Std.int(Math.abs(note.noteData))] + altAnim;
-			if(note.gfNote) {
-				char = gf;
-			}
-
 			char.holdTimer = 0;
 
+			final animToPlay:String = singAnimations[Std.int(Math.abs(note.noteData))] + altAnim;
 			if(char != null && !char.voicelining)
 			{
 				if (!note.isSustainNote
 					&& noteRows[note.gfNote ? 2 : note.mustPress ? 0 : 1][note.row] != null
 					&& noteRows[note.gfNote ? 2 : note.mustPress ? 0 : 1][note.row].length > 1)
 				{
-					// potentially have jump anims?
-					var chord = noteRows[note.gfNote ? 2 : note.mustPress ? 0 : 1][note.row];
-					var animNote = chord[0];
-					var realAnim = singAnimations[Std.int(Math.abs(animNote.noteData))] + altAnim;
-					if (char.mostRecentRow != note.row) {
-						char.playAnim(realAnim, true);
-					}
+					final chord = noteRows[note.gfNote ? 2 : note.mustPress ? 0 : 1][note.row];
+					final animNote = chord[0];
 
-					if (note != animNote) {
+					final realAnim = singAnimations[Std.int(Math.abs(animNote.noteData))] + altAnim;
+					if (char.mostRecentRow != note.row)
+						char.playAnim(realAnim, true);
+
+					if (note != animNote)
 						char.playGhostAnim(chord.indexOf(note) - 1, animToPlay, true);
-					}
 
 					char.mostRecentRow = note.row;
 				}
@@ -3812,26 +3804,19 @@ class PlayState extends MusicBeatState
 			}
 
 			if(!note.noAnimation) {
-				var animToPlay:String = singAnimations[Std.int(Math.abs(note.noteData))] + note.animSuffix;
+				final animToPlay:String = singAnimations[Std.int(Math.abs(note.noteData))] + note.animSuffix;
 
-				var char:Character = boyfriend;
+				final char:Character = (note.gfNote && gf != null) ? gf : boyfriend;
 				char.holdTimer = 0;
-				if(note.gfNote)
-				{
-					if(gf != null)
-					{
-						gf.playAnim(animToPlay, true);
-						gf.holdTimer = 0;
-					}
-				}
-				else if(char.animTimer <= 0 && !char.voicelining)
+				
+				if(char.animTimer <= 0 && !char.voicelining)
 				{
 					if (!note.isSustainNote && noteRows[note.gfNote ? 2 : note.mustPress ? 0 : 1][note.row]!=null && noteRows[note.gfNote ? 2 : note.mustPress ? 0 : 1][note.row].length > 1)
 					{
-						// potentially have jump anims?
-						var chord = noteRows[note.gfNote ? 2 : note.mustPress ? 0 : 1][note.row];
-						var animNote = chord[0];
-						var realAnim = singAnimations[Std.int(Math.abs(note.noteData))] + note.animSuffix;
+						final chord = noteRows[note.gfNote ? 2 : note.mustPress ? 0 : 1][note.row];
+						final animNote = chord[0];
+						
+						final realAnim = singAnimations[Std.int(Math.abs(animNote.noteData))] + note.animSuffix;
 						if (char.mostRecentRow != note.row)
 							char.playAnim(realAnim, true);
 
@@ -3850,7 +3835,7 @@ class PlayState extends MusicBeatState
 							char.heyTimer = 0.6;
 						}
 
-						if(gf != null && gf.animOffsets.exists('cheer')) {
+						if(char != gf && gf != null && gf.animOffsets.exists('cheer')) {
 							gf.playAnim('cheer', true);
 							gf.specialAnim = true;
 							gf.heyTimer = 0.6;
@@ -3858,27 +3843,26 @@ class PlayState extends MusicBeatState
 					}
 				}
 
-				final targetChar:Character = (note.gfNote && gf != null) ? gf : char;
 				final endAnim = singAnimations[Std.int(Math.abs(note.noteData))] + note.animSuffix + '-end';
 				
-				if (!note.isSustainNote && note.sustainLength <= 0 && targetChar.hasAnimation(endAnim)) {
-					targetChar.endAnimTimer?.cancel();
+				if (!note.isSustainNote && note.sustainLength <= 0 && char.hasAnimation(endAnim)) {
+					char.endAnimTimer?.cancel();
 
-					var duration:Float = (Conductor.stepCrochet * (0.0011 / playbackRate) * targetChar.singDuration) - 0.01;
+					var duration:Float = (Conductor.stepCrochet * (0.0011 / playbackRate) * char.singDuration) - 0.01;
 					if (duration <= 0.02) duration = 0.02;
 
-					targetChar.endAnimTimer = new FlxTimer().start(duration, _ -> {
-						if (targetChar.getAnimationName() == animToPlay && !targetChar.specialAnim) {
-							targetChar.playAnim(endAnim, true);
-							targetChar.specialAnim = true;
+					char.endAnimTimer = new FlxTimer().start(duration, _ -> {
+						if (char.getAnimationName() == animToPlay && !char.specialAnim) {
+							char.playAnim(endAnim, true);
+							char.specialAnim = true;
 
-							final endDuration:Float = !targetChar.isAnimationNull() ? targetChar.getTotalFrames() / targetChar.getCurrentFrameRate() : 0.5;
-							targetChar.endAnimTimer = new FlxTimer().start(endDuration, _ -> {
-								if (targetChar.getAnimationName() == endAnim && targetChar.specialAnim) {
-									targetChar.specialAnim = false;
-									targetChar.dance();
+							final endDuration:Float = !char.isAnimationNull() ? char.getTotalFrames() / char.getCurrentFrameRate() : 0.5;
+							char.endAnimTimer = new FlxTimer().start(endDuration, _ -> {
+								if (char.getAnimationName() == endAnim && char.specialAnim) {
+									char.specialAnim = false;
+									char.dance();
 								}
-								targetChar.endAnimTimer = null;
+								char.endAnimTimer = null;
 							});
 						}
 					});

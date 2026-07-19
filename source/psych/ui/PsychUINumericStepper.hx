@@ -38,12 +38,14 @@ class PsychUINumericStepper extends PsychUIInputText
 		buttonPlus.animation.add('normal', [0], false);
 		buttonPlus.animation.add('pressed', [1], false);
 		buttonPlus.animation.play('normal');
+		buttonPlus.antialiasing = false;
 		add(buttonPlus);
 		
 		buttonMinus = new FlxSprite(fieldWidth + buttonPlus.width).loadGraphic(Paths.image('stepper_minus', 'psych-ui').bitmap, true, 16, 16);
 		buttonMinus.animation.add('normal', [0], false);
 		buttonMinus.animation.add('pressed', [1], false);
 		buttonMinus.animation.play('normal');
+		buttonMinus.antialiasing = false;
 		add(buttonMinus);
 
 		unfocus = function()

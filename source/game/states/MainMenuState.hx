@@ -99,7 +99,6 @@ class MainMenuState extends MusicBeatState
 		background.setGraphicSize(Std.int(background.width * 1.175));
 		background.updateHitbox();
 		background.screenCenter();
-		background.antialiasing = ClientPrefs.globalAntialiasing;
 		add(background);
 
 		overlay = new FlxSprite(-80).loadGraphic(Paths.image('menuDesat'));
@@ -108,7 +107,6 @@ class MainMenuState extends MusicBeatState
 		overlay.updateHitbox();
 		overlay.screenCenter();
 		overlay.visible = false;
-		overlay.antialiasing = ClientPrefs.globalAntialiasing;
 		overlay.color = 0xFFfd719b;
 		add(overlay);
 	}
@@ -134,7 +132,6 @@ class MainMenuState extends MusicBeatState
 	{
 		var menuItem = new FlxSprite(0, yPos);
 		menuItem.frames = Paths.getSparrowAtlas('mainmenu/menu_' + MENU_OPTIONS[id]);
-		menuItem.antialiasing = ClientPrefs.globalAntialiasing;
 		menuItem.animation.addByPrefix('idle', MENU_OPTIONS[id] + " basic", 24);
 		menuItem.animation.addByPrefix('selected', MENU_OPTIONS[id] + " white", 24);
 		menuItem.animation.play('idle');

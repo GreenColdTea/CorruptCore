@@ -45,10 +45,9 @@ class NotesSubState extends MusicBeatSubstate
 	public function new() {
 		super();
 		
-		var bg:FlxSprite = new FlxSprite().loadGraphic(Paths.image('menuDesat'));
+		final bg:FlxSprite = new FlxSprite().loadGraphic(Paths.image('menuDesat'));
 		bg.color = 0xFFea71fd;
 		bg.screenCenter();
-		bg.antialiasing = ClientPrefs.globalAntialiasing;
 		add(bg);
 		
 		blackBG = new FlxSprite(posX - 25).makeGraphic(870, 200, FlxColor.BLACK);
@@ -57,25 +56,25 @@ class NotesSubState extends MusicBeatSubstate
 
 		grpNotes = new FlxTypedGroup<FlxSprite>();
 		add(grpNotes);
+
 		grpNumbers = new FlxTypedGroup<Alphabet>();
 		add(grpNumbers);
 
 		for (i in 0...ClientPrefs.arrowHSV.length) {
-			var yPos:Float = (165 * i) + 35;
+			final yPos:Float = (165 * i) + 35;
 			for (j in 0...3) {
-				var optionText:Alphabet = new Alphabet(posX + (225 * j) + 250, yPos + 60, Std.string(ClientPrefs.arrowHSV[i][j]), true);
+				final optionText:Alphabet = new Alphabet(posX + (225 * j) + 250, yPos + 60, Std.string(ClientPrefs.arrowHSV[i][j]), true);
 				grpNumbers.add(optionText);
 			}
 
-			var note:FlxSprite = new FlxSprite(posX, yPos);
+			final animations:Array<String> = ['purple0', 'blue0', 'green0', 'red0'];
+			final note:FlxSprite = new FlxSprite(posX, yPos);
 			note.frames = Paths.getSparrowAtlas('NOTE_assets');
-			var animations:Array<String> = ['purple0', 'blue0', 'green0', 'red0'];
 			note.animation.addByPrefix('idle', animations[i]);
 			note.animation.play('idle');
-			note.antialiasing = ClientPrefs.globalAntialiasing;
 			grpNotes.add(note);
 
-			var newShader:ColorSwap = new ColorSwap();
+			final newShader:ColorSwap = new ColorSwap();
 			note.shader = newShader.shader;
 			newShader.hue = ClientPrefs.arrowHSV[i][0] / 360;
 			newShader.saturation = ClientPrefs.arrowHSV[i][1] / 100;

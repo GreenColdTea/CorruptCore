@@ -18,12 +18,12 @@ class LuaSprites
         LuaUtils.addFunction(lua, "makeLuaSprite", function(tag:String, image:String, x:Float, y:Float) {
 			tag = tag.replace('.', '');
 			resetSpriteTag(tag);
-			var leSprite:ModchartSprite = new ModchartSprite(x, y);
-			if(image != null && image.length > 0)
+
+			final leSprite:ModchartSprite = new ModchartSprite(x, y);
+			if(image?.length > 0)
 			{
 				leSprite.loadGraphic(Paths.image(image));
 			}
-			leSprite.antialiasing = ClientPrefs.globalAntialiasing;
 			PlayState.instance.modchartSprites.set(tag, leSprite);
 			leSprite.active = true;
 		});
@@ -32,9 +32,8 @@ class LuaSprites
 			tag = tag.replace('.', '');
 			resetSpriteTag(tag);
 		
-			var backdrop = new ModchartBackdrop(Paths.image(image), 1, 1, repeatX, repeatY);
+			final backdrop = new ModchartBackdrop(Paths.image(image), 1, 1, repeatX, repeatY);
 			backdrop.setPosition(x, y);
-			backdrop.antialiasing = ClientPrefs.globalAntialiasing;
 		
 			PlayState.instance.modchartBackdrops.set(tag, backdrop);
 			backdrop.active = true;
@@ -43,10 +42,9 @@ class LuaSprites
 		LuaUtils.addFunction(lua, "makeAnimatedLuaSprite", function(tag:String, image:String, x:Float, y:Float, ?spriteType:String = "sparrow") {
 			tag = tag.replace('.', '');
 			resetSpriteTag(tag);
-			var leSprite:ModchartSprite = new ModchartSprite(x, y);
 
+			final leSprite:ModchartSprite = new ModchartSprite(x, y);
 			loadFrames(leSprite, image, spriteType);
-			leSprite.antialiasing = ClientPrefs.globalAntialiasing;
 			PlayState.instance.modchartSprites.set(tag, leSprite);
 		});
 

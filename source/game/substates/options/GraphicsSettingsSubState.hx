@@ -56,7 +56,7 @@ class GraphicsSettingsSubState extends BaseOptionsMenu
 			'bool',
 			true);
 		option.showBoyfriend = true;
-		option.onChange = onChangeAntiAliasing;
+		option.onChange = () -> FlxSprite.defaultAntialiasing = ClientPrefs.globalAntialiasing;
 		addOption(option);
 
 		var option:Option = new Option('Shaders',
@@ -119,7 +119,6 @@ class GraphicsSettingsSubState extends BaseOptionsMenu
 	function onChangeLowQuality()
     {
         FlxG.stage.quality = ClientPrefs.lowQuality ? LOW : BEST;
-        onChangeAntiAliasing();
     }
 
 	private function updateFramerateVisibility():Void
@@ -148,24 +147,6 @@ class GraphicsSettingsSubState extends BaseOptionsMenu
 		
 		updateFramerateVisibility();
 		ClientPrefs.saveSettings();
-	}
-
-	//stupid hl fix
-	function onChangeAntiAliasing()
-	{
-		for (sprite in members)
-		{
-			if (sprite != null)
-			{
-				switch (Type.getClass(sprite))
-				{
-					case FlxSprite:
-						var flxSprite:FlxSprite = cast(sprite, FlxSprite);
-						flxSprite.antialiasing = ClientPrefs.globalAntialiasing;
-					default:
-				}
-			}
-		}
 	}
 
 	function onChangeFramerate()

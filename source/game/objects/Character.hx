@@ -10,6 +10,7 @@ import flixel.tweens.FlxEase;
 import flixel.math.FlxPoint;
 import flixel.util.FlxSort;
 import flixel.util.FlxColor;
+import flixel.util.FlxTimer;
 
 #if flixel_animate
 import animate.FlxAnimate;
@@ -25,9 +26,6 @@ import haxe.Json;
 import haxe.format.JsonParser;
 
 import game.backend.Section.SwagSection;
-import game.backend.interfaces.IAnimationController;
-
-import game.backend.animation.*;
 
 using StringTools;
 
@@ -56,26 +54,20 @@ typedef AnimArray =
     var offsets:Array<Int>;
 }
 
-class Character extends FlxSprite
+class Character extends #if flixel_animate FlxAnimate #else FlxSprite #end
 {
     public static final templateCharacter:String = '{
 		"animations": [
 			{
 				"loop": false,
-				"offsets": [
-					0,
-					0
-				],
+				"offsets": [0, 0],
 				"fps": 24,
 				"anim": "idle",
 				"indices": [],
 				"name": "Dad idle dance"
 			},
 			{
-				"offsets": [
-					0,
-					0
-				],
+				"offsets": [0, 0],
 				"indices": [],
 				"fps": 24,
 				"anim": "singLEFT",
@@ -83,10 +75,7 @@ class Character extends FlxSprite
 				"name": "Dad Sing Note LEFT"
 			},
 			{
-				"offsets": [
-					0,
-					0
-				],
+				"offsets": [0, 0],
 				"indices": [],
 				"fps": 24,
 				"anim": "singDOWN",
@@ -94,10 +83,7 @@ class Character extends FlxSprite
 				"name": "Dad Sing Note DOWN"
 			},
 			{
-				"offsets": [
-					0,
-					0
-				],
+				"offsets": [0, 0],
 				"indices": [],
 				"fps": 24,
 				"anim": "singUP",
@@ -105,10 +91,7 @@ class Character extends FlxSprite
 				"name": "Dad Sing Note UP"
 			},
 			{
-				"offsets": [
-					0,
-					0
-				],
+				"offsets": [0, 0],
 				"indices": [],
 				"fps": 24,
 				"anim": "singRIGHT",
@@ -118,21 +101,11 @@ class Character extends FlxSprite
 		],
 		"no_antialiasing": false,
 		"image": "characters/daddy/DADDY_DEAREST",
-		"position": [
-			0,
-			0
-		],
+		"position": [0, 0],
 		"healthicon": "face",
 		"flip_x": false,
-		"healthbar_colors": [
-			161,
-			161,
-			161
-		],
-		"camera_position": [
-			0,
-			0
-		],
+		"healthbar_colors": [161, 161, 161],
+		"camera_position": [0, 0],
 		"sing_duration": 6.1,
 		"vocals_file": null,
 		"scale": 1
@@ -178,8 +151,6 @@ class Character extends FlxSprite
     public static final DEFAULT_CHARACTER:String = 'bf';
     
     public var animOffsets(default, null):Map<String, Array<Float>> = new Map();
-    
-    private var animController:IAnimationController;
     private var settingCharacterUp:Bool = true;
     
     public function new(x:Float, y:Float, ?character:String = 'bf', ?isPlayer:Bool = false, ?isChibiChar:Bool = false)
@@ -188,7 +159,6 @@ class Character extends FlxSprite
         
         curCharacter = character;
         this.isPlayer = isPlayer;
-        antialiasing = ClientPrefs.globalAntialiasing;
         
         var characterPath:String = 'data/characters/' + curCharacter + '.json';
         if (!Paths.fileExists(characterPath, TEXT))
@@ -196,34 +166,27 @@ class Character extends FlxSprite
             characterPath = 'data/characters/' + DEFAULT_CHARACTER + '.json';
         }
         
-        var json:CharacterFile = cast Json.parse(Paths.getTextFromFile(characterPath));
+        final json:CharacterFile = cast Json.parse(Paths.getTextFromFile(characterPath));
         imageFile = json.image;
         
-        var spriteType:String = getSpriteType(json.image);
-        
+        final spriteType:String = getSpriteType(json.image);
         switch (spriteType)
         {
             case "packer":
                 frames = Paths.getPackerAtlas(json.image);
-                animController = new SpriteAnimationController(this, animOffsets);
-                
             case "sparrow":
                 frames = Paths.getSparrowAtlas(json.image);
-                animController = new SpriteAnimationController(this, animOffsets);
-                
             #if flixel_animate
             case "texture":
-                var animate = new FlxAnimate();
                 try
                 {
-                    animate.frames = Paths.getAnimateAtlas(json.image);
+                    frames = Paths.getAnimateAtlas(json.image);
                 }
                 catch (e:haxe.Exception)
                 {
                     FlxG.log.warn('Could not load atlas ${json.image}: $e');
                     trace(e.stack);
                 }
-                animController = new AnimateAnimationController(this, animate, animOffsets);
             #end
         }
         
@@ -257,48 +220,43 @@ class Character extends FlxSprite
         animationsArray = json.animations;
         if (animationsArray?.length > 0)
         {
-            for (anim in animationsArray)
+            for (animData in animationsArray)
             {
-                final animAnim:String = '' + anim.anim;
-                final animName:String = '' + anim.name;
-                final animFps:Int = anim.fps;
-                final animLoop:Bool = !!anim.loop;
-                final animIndices:Array<Int> = anim.indices;
-                
-                if (Std.isOfType(animController, SpriteAnimationController))
+                final animAnim:String = '' + animData.anim;
+                final animName:String = '' + animData.name;
+                final animFps:Int = animData.fps;
+                final animLoop:Bool = !!animData.loop;
+                final animIndices:Array<Int> = animData.indices;
+
+                #if flixel_animate
+                if (isAnimate)
+                {
+                    if (animIndices?.length > 0)
+                    {
+                        if (library?.getSymbol(animName) != null)
+                            anim.addBySymbolIndices(animAnim, animName, animIndices, animFps, animLoop);
+                        else
+                            anim.addByFrameLabelIndices(animAnim, animName, animIndices, animFps, animLoop);
+                    }
+                    else
+                    {
+                        if (library?.getSymbol(animName) != null)
+                            anim.addBySymbol(animAnim, animName, animFps, animLoop);
+                        else
+                            anim.addByFrameLabel(animAnim, animName, animFps, animLoop);
+                    }
+                }
+                else
+                #end
                 {
                     if (animIndices?.length > 0)
                         animation.addByIndices(animAnim, animName, animIndices, "", animFps, animLoop);
                     else
                         animation.addByPrefix(animAnim, animName, animFps, animLoop);
                 }
-                #if flixel_animate
-                else if (Std.isOfType(animController, AnimateAnimationController))
-                {
-                    final animateCtrl:AnimateAnimationController = cast animController;
-                    final atlas = animateCtrl.getInternalSprite();
-                    final animateAtlas:FlxAnimate = cast atlas;
-                    final library = animateAtlas.library;
 
-                    if (animIndices?.length > 0)
-                    {
-                        if (library?.getSymbol(animName) != null)
-                            animateAtlas.anim.addBySymbolIndices(animAnim, animName, animIndices, animFps, animLoop);
-                        else
-                            animateAtlas.anim.addByFrameLabelIndices(animAnim, animName, animIndices, animFps, animLoop);
-                    }
-                    else
-                    {
-                        if (library?.getSymbol(animName) != null)
-                            animateAtlas.anim.addBySymbol(animAnim, animName, animFps, animLoop);
-                        else
-                            animateAtlas.anim.addByFrameLabel(animAnim, animName, animFps, animLoop);
-                    }
-                }
-                #end
-
-                if (anim.offsets?.length > 1)
-                    animOffsets.set(anim.anim, [anim.offsets[0], anim.offsets[1]]);
+                if (animData.offsets?.length > 1)
+                    animOffsets.set(animData.anim, [animData.offsets[0], animData.offsets[1]]);
             }
         }
         else
@@ -315,10 +273,10 @@ class Character extends FlxSprite
             x -= width * 0.5;
             y -= height;
             
-            for (anim in animationsArray)
+            for (animData in animationsArray)
             {
-                if (anim.offsets != null)
-                    animOffsets.set(anim.anim, [anim.offsets[0] * scale.x, anim.offsets[1] * scale.y]);
+                if (animData.offsets != null)
+                    animOffsets.set(animData.anim, [animData.offsets[0] * scale.x, animData.offsets[1] * scale.y]);
             }
         }
         
@@ -345,15 +303,11 @@ class Character extends FlxSprite
     private function getSpriteType(imageName:String):String
     {
         if (Paths.fileExists('images/' + imageName + '.txt', TEXT))
-        {
             return "packer";
-        }
         
         #if flixel_animate
         if (Paths.fileExists('images/' + imageName + '/Animation.json', TEXT))
-        {
             return "texture";
-        }
         #end
         
         return "sparrow";
@@ -363,19 +317,12 @@ class Character extends FlxSprite
     {
         for (i in 0...4)
         {
-            var ghost:FlxSprite;
+            var ghost:FlxSprite = null;
             
-            if (Std.isOfType(animController, SpriteAnimationController))
-            {
-                ghost = new FlxSprite();
-                ghost.frames = frames;
-                ghost.animation.copyFrom(animation);
-            }
             #if flixel_animate
-            else if (Std.isOfType(animController, AnimateAnimationController))
+            if (isAnimate)
             {
                 var animateGhost = new FlxAnimate();
-                
                 try
                 {
                     animateGhost.frames = Paths.getAnimateAtlas(imageFile);
@@ -387,13 +334,13 @@ class Character extends FlxSprite
                 
                 if (animationsArray != null)
                 {
-                    for (anim in animationsArray)
+                    for (animData in animationsArray)
                     {
-                        var animAnim:String = '' + anim.anim;
-                        var animName:String = '' + anim.name;
-                        var animFps:Int = anim.fps;
-                        var animLoop:Bool = !!anim.loop;
-                        var animIndices:Array<Int> = anim.indices;
+                        var animAnim:String = '' + animData.anim;
+                        var animName:String = '' + animData.name;
+                        var animFps:Int = animData.fps;
+                        var animLoop:Bool = !!animData.loop;
+                        var animIndices:Array<Int> = animData.indices;
                         
                         if (animIndices?.length > 0)
                             animateGhost.anim.addBySymbolIndices(animAnim, animName, animIndices, animFps, animLoop);
@@ -403,17 +350,17 @@ class Character extends FlxSprite
                             animateGhost.anim.addByFrameLabel(animAnim, animName, animFps, animLoop);
                     }
                 }
-                
                 ghost = animateGhost;
             }
-            #end
             else
+            #end
             {
                 ghost = new FlxSprite();
+                ghost.frames = frames;
+                ghost.animation.copyFrom(animation);
             }
             
             ghost.visible = false;
-            ghost.antialiasing = ClientPrefs.globalAntialiasing;
             ghost.alpha = 0.6;
             
             animGhosts.push(ghost);
@@ -423,8 +370,6 @@ class Character extends FlxSprite
     
     override function update(elapsed:Float)
     {
-        animController?.update(elapsed);
-        
         if (debugMode || isAnimationNull())
         {
             super.update(elapsed);
@@ -438,9 +383,7 @@ class Character extends FlxSprite
                 {
                     var noteData:Int = 1;
                     if (animationNotes[0][1] > 2)
-                    {
                         noteData = 3;
-                    }
                     
                     noteData += FlxG.random.int(0, 1);
                     playAnim('shoot' + noteData, true);
@@ -456,7 +399,6 @@ class Character extends FlxSprite
         if (animTimer > 0) 
         {
             animTimer -= elapsed;
-            
             if (animTimer <= 0)
             {
                 animTimer = 0;
@@ -467,7 +409,6 @@ class Character extends FlxSprite
         if (heyTimer > 0)
         {
             heyTimer -= elapsed * PlayState.instance.playbackRate;
-            
             if (heyTimer <= 0)
             {
                 if (specialAnim && (getAnimationName() == 'hey' || getAnimationName() == 'cheer'))
@@ -475,7 +416,6 @@ class Character extends FlxSprite
                     specialAnim = false;
                     dance();
                 }
-                
                 heyTimer = 0;
             }
         }
@@ -491,7 +431,7 @@ class Character extends FlxSprite
         }
         
         var animName = getAnimationName();
-        if (animName?.startsWith('sing'))
+        if (animName != null && animName.startsWith('sing'))
         {
             holdTimer += elapsed;
         }
@@ -500,7 +440,7 @@ class Character extends FlxSprite
             holdTimer = 0;
         }
         
-        if (!isPlayer && holdTimer >= Conductor.stepCrochet * (0.0011 #if FLX_PITCH / (FlxG.sound.music != null ? FlxG.sound.music.pitch : 1) #end) * singDuration)
+        if (!isPlayer && holdTimer >= Conductor.stepCrochet * (0.0011 * (FlxG.sound.music != null ? FlxG.sound.music.pitch : 1)) * singDuration)
         {
             dance();
             holdTimer = 0;
@@ -519,34 +459,13 @@ class Character extends FlxSprite
     
     override public function draw()
     {
-        if (animController == null)
-        {
-            super.draw();
-            return;
-        }
-        
         for (ghost in animGhosts)
         {
             if (ghost.visible)
                 ghost.draw();
         }
         
-        if (Std.isOfType(animController, SpriteAnimationController))
-        {
-            super.draw();
-        }
-        #if flixel_animate
-        else if (Std.isOfType(animController, AnimateAnimationController))
-        {
-            for (camera in cameras)
-            {
-                if (camera != null && camera.visible && camera.exists)
-                {
-                    animController.draw(camera);
-                }
-            }
-        }
-        #end
+        super.draw();
     }
     
     public function dance():Void
@@ -567,25 +486,23 @@ class Character extends FlxSprite
     
     public function playAnim(AnimName:String, Force:Bool = false, Reversed:Bool = false, Frame:Int = 0):Void
     {
-        if (animController == null) return;
-        
         specialAnim = false;
-        animController.playAnim(AnimName, Force, Reversed, Frame);
+        animation.play(AnimName, Force, Reversed, Frame);
+
+        var daOffset = animOffsets.get(AnimName);
+        if (animOffsets.exists(AnimName))
+            offset.set(daOffset[0], daOffset[1]);
+        else
+            offset.set(0, 0);
         
         if (curCharacter.startsWith('gf'))
         {
             if (AnimName == 'singLEFT')
-            {
                 danced = true;
-            }
             else if (AnimName == 'singRIGHT')
-            {
                 danced = false;
-            }
             else if (AnimName == 'singUP' || AnimName == 'singDOWN')
-            {
                 danced = !danced;
-            }
         }
     }
     
@@ -613,29 +530,22 @@ class Character extends FlxSprite
 			Std.int((healthColorArray[2]/255) * color.blue)
 		);
         
+        final daOffset = animOffsets.get(AnimName);
+        if (daOffset != null)
+            ghost.offset.set(daOffset[0], daOffset[1]);
+        else
+            ghost.offset.set(0, 0);
+
         #if flixel_animate
         if (Std.isOfType(ghost, FlxAnimate))
         {
             final animateGhost:FlxAnimate = cast ghost;
-            
-            final offset = animOffsets.get(AnimName);
-            if (offset != null)
-                animateGhost.offset.set(offset[0], offset[1]);
-            else
-                animateGhost.offset.set(0, 0);
-            
             animateGhost.anim.play(AnimName, Force, Reversed, Frame);
             animateGhost.update(0);
         }
         else
         #end
         {
-            final offset = animOffsets.get(AnimName);
-            if (offset != null)
-                ghost.offset.set(offset[0], offset[1]);
-            else
-                ghost.offset.set(0, 0);
-
             ghost.animation.play(AnimName, Force, Reversed, Frame);
         }
         
@@ -655,26 +565,14 @@ class Character extends FlxSprite
         });
     }
     
-    public function quickAnimAdd(name:String, anim:String):Void
+    public function quickAnimAdd(name:String, animName:String):Void
     {
-        if (animController == null)
-        {
-            return;
-        }
-        
-        if (Std.isOfType(animController, SpriteAnimationController))
-        {
-            animation.addByPrefix(name, anim, 24, false);
-        }
         #if flixel_animate
-        else if (Std.isOfType(animController, AnimateAnimationController))
-        {
-            var animateCtrl:AnimateAnimationController = cast animController;
-            var atlas = animateCtrl.getInternalSprite();
-            var animateAtlas:FlxAnimate = cast atlas;
-            animateAtlas.anim.addBySymbol(name, anim, 24, false);
-        }
+        if (isAnimate)
+            anim.addBySymbol(name, animName, 24, false);
+        else
         #end
+            animation.addByPrefix(name, animName, 24, false);
     }
     
     public function addOffset(name:String, x:Float = 0, y:Float = 0):Void
@@ -682,69 +580,71 @@ class Character extends FlxSprite
         animOffsets.set(name, [x, y]);
     }
     
-    public function hasAnimation(anim:String):Bool
+    public function hasAnimation(animName:String):Bool
     {
-        return animOffsets.exists(anim);
+        return animOffsets.exists(animName);
     }
     
     public function isAnimationNull():Bool
     {
-        return animController?.isAnimationNull() ?? true;
+        return animation.curAnim == null;
     }
     
     public function getAnimationName():String
     {
-        return animController?.getAnimationName() ?? null;
+        return animation.curAnim?.name ?? null;
     }
     
     public function isAnimationFinished():Bool
     {
-        return animController?.isAnimationFinished() ?? false;
+        return animation.curAnim?.finished ?? true;
     }
     
     public function isAnimationLooped():Bool
     {
-        return animController?.isAnimationLooped() ?? false;
+        return animation.curAnim?.looped ?? false;
     }
     
     public function getTotalFrames():Int
     {
-        return animController?.getTotalFrames() ?? 0;
+        return animation.curAnim?.frames.length ?? 0;
     }
     
     public function setCurrentFrameRate(fps:Float):Void
     {
-        animController?.setCurrentFrameRate(fps);
+        if (animation.curAnim != null)
+            animation.curAnim.frameRate = fps;
     }
     
     public function getCurrentFrameRate():Float
     {
-        return animController?.getCurrentFrameRate() ?? 0;
+        return animation.curAnim?.frameRate ?? 0;
     }
     
     public function setCurrentFrame(frame:Int):Void
     {
-        animController?.setCurrentFrame(frame);
+        if (animation.curAnim != null)
+            animation.curAnim.curFrame = frame;
     }
     
     public function getCurrentFrame():Int
     {
-        return animController?.getCurrentFrame() ?? 0;
+        return animation.curAnim?.curFrame ?? 0;
     }
     
     public function isPlaying(animName:String):Bool
     {
-        return animController?.isPlaying(animName) ?? false;
+        return animation.curAnim?.name == animName && !animation.curAnim?.finished;
     }
     
     public function finishAnimation():Void
     {
-        animController?.finishAnimation();
+        animation.curAnim?.finish();
     }
     
     public function stopAnimation():Void
     {
-        animController?.stopAnimation();
+        animation.curAnim?.stop();
     }
     
     private function loadMappedAnims():Void
@@ -788,40 +688,35 @@ class Character extends FlxSprite
         
         settingCharacterUp = false;
     }
-    
-    public var isAnimateAtlas(get, set):Bool;
-    private function get_isAnimateAtlas():Bool
+
+    public var isAnimateAtlas(get, never):Bool;
+    private inline function get_isAnimateAtlas():Bool
     {
-        return Std.isOfType(animController, AnimateAnimationController);
+        #if flixel_animate
+        return isAnimate;
+        #else
+        return false;
+        #end
     }
-    private function set_isAnimateAtlas(value:Bool):Bool
-    {
-        return value;
-    }
-    
-    #if flixel_animate
-    public var atlas(get, set):FlxAnimate;
-    private function get_atlas():FlxAnimate
-    {
-        if (Std.isOfType(animController, AnimateAnimationController))
-        {
-            return cast(cast(animController, AnimateAnimationController).getInternalSprite(), FlxAnimate);
-        }
-        return null;
-    }
-    private function set_atlas(value:FlxAnimate):FlxAnimate
-    {
-        animController?.destroy();
-        animController = value == null ? new SpriteAnimationController(this, animOffsets) : new AnimateAnimationController(this, value, animOffsets);
-        return value;
-    }
-    #end
     
     override public function destroy():Void
     {
         for (ghost in animGhosts)
         {
-            ghost?.destroy();
+            if (ghost == null) continue;
+            
+            #if flixel_animate
+            if (Std.isOfType(ghost, FlxAnimate))
+            {
+                final animateGhost:FlxAnimate = cast ghost;
+                animateGhost.anim?.destroyAnimations();
+                animateGhost.destroy();
+            }
+            else
+            #end
+            {
+                ghost.destroy();
+            }
         }
         animGhosts.resize(0);
         
@@ -830,31 +725,6 @@ class Character extends FlxSprite
             tween?.cancel();
         }
         ghostTweens.resize(0);
-
-		for (ghost in animGhosts)
-		{
-			if (ghost == null) continue;
-			
-			#if flixel_animate
-			if (Std.isOfType(ghost, FlxAnimate))
-			{
-				final animateGhost:FlxAnimate = cast ghost;
-				animateGhost.anim?.destroyAnimations();
-				animateGhost.destroy();
-			}
-			else
-			#end
-			{
-				ghost.destroy();
-			}
-		}
-		animGhosts.resize(0);
-        
-        if (animController != null)
-        {
-            animController.destroy();
-            animController = null;
-        }
 
         if (endAnimTimer != null) {
             endAnimTimer.cancel();
