@@ -105,19 +105,22 @@ class MetaNote extends Note
 
 		if(sustainLength > 0)
 		{
+			var needsRefresh = false;
 			if(sustainSprite == null)
 			{
 				sustainSprite = new FlxSprite();
 				sustainSprite.scrollFactor.x = 0;
+				needsRefresh = true;
 			}
 
 			if(sustainEndSprite == null)
 			{
 				sustainEndSprite = new FlxSprite();
 				sustainEndSprite.scrollFactor.x = 0;
+				needsRefresh = true;
 			}
 
-			refreshSustainAssets();
+			if (needsRefresh) refreshSustainAssets();
 
 			final halfSteps:Float = sustainLength / (stepCrochet / 2);
 
@@ -131,6 +134,9 @@ class MetaNote extends Note
 			sustainEndSprite.setGraphicSize(Std.int(10 * zoom), 0);
 			sustainEndSprite.updateHitbox();
 		}
+		
+		setGraphicSize(Std.int(ChartEditorState.GRID_SIZE), sustainLength > 0 ? 0 : Std.int(ChartEditorState.GRID_SIZE));
+		updateHitbox();
 	}
 
 	public var hasSustain(get, never):Bool;

@@ -1209,7 +1209,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 					}
 				});
 			}
-			refreshSelectedNotesVisuals();
 		}
 
 		strumTimeInputText = new PsychUIInputText(10, 65, 180, "0");
@@ -1830,9 +1829,10 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		return 0;
 	}
 
-	function isMouseOverUI():Bool {
-		return FlxG.mouse.overlaps(mainBox, camUI) || 
-			FlxG.mouse.overlaps(infoBox, camUI) || 
+	function isMouseOverUI():Bool 
+	{
+		return FlxG.mouse.overlaps(mainBox.bg, camUI) || 
+			FlxG.mouse.overlaps(infoBox.bg, camUI) || 
 			FlxG.mouse.overlaps(positionSlider, camUI) ||
 			FlxG.mouse.overlaps(sliderBg, camUI);
 	}
@@ -1872,10 +1872,10 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		if (!blockInput) {
 			ClientPrefs.toggleVolumeKeys(!FlxG.keys.pressed.CONTROL);
 			handleKeyboardInput();
-			handleMouseInput(mouseOverUI);
 		} else {
 			ClientPrefs.toggleVolumeKeys(false);
 		}
+		handleMouseInput(mouseOverUI);
 
 		_song.bpm = tempBpm;
 
@@ -1891,8 +1891,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		updateInfoText();
 		
 		lastConductorPos = conductorTime;
-		
-		_gridMousePos.put();
 	}
 
 	function updateMusicPlayback():Void
@@ -2125,13 +2123,12 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 			if (FlxG.mouse.justPressedRight)
 				handleRightClick();
+
+			if (FlxG.mouse.deltaWheel.y != 0)
+				handleMouseWheel();
 		}
 		
 		updateSelectionBox();
-		#if !mobile
-		if (FlxG.mouse.deltaWheel.y != 0)
-			handleMouseWheel();
-		#end
 	}
 
 	function updateDummyArrowVisibility():Void
@@ -2633,7 +2630,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 					});
 					
 					updateNoteUI();
-					refreshSelectedNotesVisuals();
 				}
 			}
 		}
@@ -2855,7 +2851,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		}
 
 		updateNoteUI();
-		refreshSelectedNotesVisuals();
 	}
 
 	function refreshSelectedNotesVisuals()

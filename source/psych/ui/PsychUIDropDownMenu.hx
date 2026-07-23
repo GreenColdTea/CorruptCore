@@ -94,21 +94,22 @@ class PsychUIDropDownMenu extends PsychUIInputText
 	public var curScroll:Int = 0;
 	override function update(elapsed:Float)
 	{
-		var lastFocus = PsychUIInputText.focusOn;
+		final lastFocus = PsychUIInputText.focusOn;
+
 		super.update(elapsed);
 		
-		var isOverButton = FlxG.mouse.overlaps(button, camera);
-		var isOverField = FlxG.mouse.overlaps(behindText, camera);
+		final isOverButton = FlxG.mouse.overlaps(button, camera);
+		final isOverField = FlxG.mouse.overlaps(behindText, camera);
 		
 		if ((isOverButton || isOverField) && !_isHovered)
 		{
-			if (flixel.FlxG.mouse.useSystemCursor) 
+			if (FlxG.mouse.useSystemCursor) 
 				Mouse.cursor = MouseCursor.BUTTON;
 			_isHovered = true;
 		}
 		else if (!isOverButton && !isOverField && _isHovered)
 		{
-			if (flixel.FlxG.mouse.useSystemCursor) 
+			if (FlxG.mouse.useSystemCursor) 
 				Mouse.cursor = MouseCursor.AUTO;
 			_isHovered = false;
 		}
@@ -290,7 +291,7 @@ class PsychUIDropDownItem extends PsychUIGroup
 	{
 		super.update(elapsed);
 		
-		var overlapped:Bool = (FlxG.mouse.overlaps(bg, camera));
+		final overlapped:Bool = (FlxG.mouse.overlaps(bg, camera));
 
 		if (overlapped && !_isHovered)
 		{
@@ -307,7 +308,7 @@ class PsychUIDropDownItem extends PsychUIGroup
 
 		if(FlxG.mouse.justMoved || FlxG.mouse.justPressed || forceNextUpdate)
 		{
-			var style = overlapped ? hoverStyle : normalStyle;
+			final style = overlapped ? hoverStyle : normalStyle;
 			bg.color = style.bgColor;
 			text.color = style.textColor;
 			bg.alpha = style.bgAlpha;
