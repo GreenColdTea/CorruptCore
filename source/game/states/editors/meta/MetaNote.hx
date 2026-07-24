@@ -99,6 +99,8 @@ class MetaNote extends Note
 	var _lastZoom:Float = -1;
 	public function setSustainLength(v:Float, stepCrochet:Float, zoom:Float = 1)
 	{
+		if (this.scale == null || !this.exists) return;
+		
 		_lastZoom = zoom;
 		v = Math.round(v / (stepCrochet / 2)) * (stepCrochet / 2);
 		songData[2] = sustainLength = Math.max(Math.min(v, stepCrochet * 128), 0);

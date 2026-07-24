@@ -3312,7 +3312,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		
 		if (curSelectedNote != null) {
 			changeEventSelected();
-			updateGrid();
 			updateNoteUI();
 		}
 	}
@@ -3506,33 +3505,62 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	}
 
 	function saveToUndo() {
-        if (undos.length >= maxUndoSteps) {
+		if (undos.length >= maxUndoSteps) {
 			var removed = undos.shift();
 			removed = null;
 		}
-        undos.push(Json.parse(Json.stringify(_song)));
-        redos = [];
-    }
+		undos.push(cloneSong(_song));
+		redos = [];
+	}
 
 	function undo() {
-        if (undos.length > 0) {
-            var lastState = undos.pop();
-            redos.push(Json.parse(Json.stringify(_song)));
-            _song = lastState;
-            updateGrid();
-            updateSectionUI();
-        }
-    }
+		if (undos.length > 0) {
+			var lastState = undos.pop();
+			redos.push(cloneSong(_song));
+			_song = lastState;
+			updateGrid();
+			updateSectionUI();
+		}
+	}
 
-    function redo() {
-        if (redos.length > 0) {
-            var lastState = redos.pop();
-            undos.push(Json.parse(Json.stringify(_song)));
-            _song = lastState;
-            updateGrid();
-            updateSectionUI();
-        }
-    }
+	function redo() {
+		if (redos.length > 0) {
+			var lastState = redos.pop();
+			undos.push(cloneSong(_song));
+			_song = lastState;
+			updateGrid();
+			updateSectionUI();
+		}
+	}
+
+	function cloneSong(song:Dynamic):Dynamic {
+		var copied:Dynamic = Reflect.copy(song);
+		
+		if (song.notes != null) {
+			copied.notes = [];
+			for (sec in cast(song.notes, Array<Dynamic>)) {
+				final newSec:Dynamic = Reflect.copy(sec);
+				newSec.sectionNotes = [];
+				if (sec.sectionNotes != null)
+					for (n in cast(sec.sectionNotes, Array<Dynamic>)) newSec.sectionNotes.push(n.copy());
+
+				copied.notes.push(newSec);
+			}
+		}
+		
+		if (song.events != null) {
+			copied.events = [];
+			for (ev in cast(song.events, Array<Dynamic>)) {
+				final newEvDetails = [];
+				if (ev[1] != null)
+					for (e in cast(ev[1], Array<Dynamic>)) newEvDetails.push(e.copy());
+				
+				copied.events.push([ev[0], newEvDetails]);
+			}
+		}
+		
+		return copied;
+	}
 
 	function getStrumTime(yPos:Float):Float
 	{
