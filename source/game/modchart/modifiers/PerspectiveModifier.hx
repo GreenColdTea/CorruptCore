@@ -35,7 +35,7 @@ final class PerspectiveModifier extends NoteModifier {
 
   function FastTan(rad:Float) // thanks schmoovin
   {
-    return FlxMath.fastSin(rad) / FlxMath.fastCos(rad);
+    return Math.sin(rad) / Math.cos(rad);
   }
 
 

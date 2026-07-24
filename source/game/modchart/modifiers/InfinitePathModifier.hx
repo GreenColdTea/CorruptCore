@@ -65,8 +65,8 @@ class InfinitePathModifier extends PathModifier {
         var screenCenterX = FlxG.width / 2;
         var screenCenterY = FlxG.height / 2;
         
-        var x = screenCenterX + FlxMath.fastSin(radians) * scaleFactor;
-        var y = screenCenterY + (FlxMath.fastSin(radians) * FlxMath.fastCos(radians)) * scaleFactor;
+        var x = screenCenterX + Math.sin(radians) * scaleFactor;
+        var y = screenCenterY + (Math.sin(radians) * Math.cos(radians)) * scaleFactor;
         
         return new Vector3(x, y, 0);
     }
@@ -77,19 +77,5 @@ class InfinitePathModifier extends PathModifier {
             safeVisualDiff = 0;
         
         return super.getPos(time, safeVisualDiff, timeDiff, beat, pos, data, player, obj);
-    }
-
-    override private function calculatePathProgress(timeDiff:Float, noteData:Int):Float {
-        var progress = super.calculatePathProgress(timeDiff, noteData);
-        var loopDist = totalDists[noteData];
-        
-        if (loopDist > 0) {
-            progress = progress % loopDist;
-            
-            if (progress < 0)
-                progress += loopDist;
-        }
-        
-        return progress;
     }
 }

@@ -66,7 +66,7 @@ class DrunkModifier extends NoteModifier {
             
             // Calculate vertical offset using cosine wave
             var waveAngle = currentTime * ((speed * 1.2) + 1.2) + noteData * ((offset * 1.8) + 1.8);
-            var verticalOffset = tipsyIntensity * FlxMath.fastCos(waveAngle) * Note.swagWidth * 0.4;
+            var verticalOffset = tipsyIntensity * Math.cos(waveAngle) * Note.swagWidth * 0.4;
             
             pos.y += verticalOffset;
         }
@@ -90,7 +90,7 @@ class DrunkModifier extends NoteModifier {
                           + noteData * ((offset * 0.2) + 0.2)
                           + visualDiff * ((period * 10) + 10) / FlxG.height;
             
-            var horizontalOffset = drunkIntensity * FlxMath.fastCos(waveAngle) * Note.swagWidth * 0.5;
+            var horizontalOffset = drunkIntensity * Math.cos(waveAngle) * Note.swagWidth * 0.5;
             
             pos.x += horizontalOffset;
         }
@@ -110,7 +110,7 @@ class DrunkModifier extends NoteModifier {
             
             // Calculate Z-axis offset using cosine wave
             var waveAngle = currentTime * ((speed * 1.2) + 1.2) + noteData * ((offset * 1.8) + 3.2);
-            var depthOffset = tipZIntensity * FlxMath.fastCos(waveAngle) * 0.15;
+            var depthOffset = tipZIntensity * Math.cos(waveAngle) * 0.15;
             
             pos.z += depthOffset;
         }
@@ -129,7 +129,7 @@ class DrunkModifier extends NoteModifier {
             
             // Calculate Z-axis offset using sine wave based on visual position
             var waveAngle = (visualDiff + (100.0 * offset)) / ((period * 16.0) + 16.0);
-            var depthOffset = (bumpyIntensity * 40 * FlxMath.fastSin(waveAngle)) / 250;
+            var depthOffset = (bumpyIntensity * 40 * Math.sin(waveAngle)) / 250;
             
             pos.z += depthOffset;
         }

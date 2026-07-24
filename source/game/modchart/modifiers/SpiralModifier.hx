@@ -30,19 +30,19 @@ class SpiralModifier extends NoteModifier {
         if (spiralX != 0) {
             final offset = getSubmodValue("spiralXOffset", player);
             final period = getSubmodValue("spiralXPeriod", player);
-            pos.x += tDiff * spiralX * FlxMath.fastCos((period + 1) * tDiff + offset);
+            pos.x += tDiff * spiralX * Math.cos((period + 1) * tDiff + offset);
         }
 
         if (spiralY != 0) {
             final offset = getSubmodValue("spiralYOffset", player);
             final period = getSubmodValue("spiralYPeriod", player);
-            pos.y += tDiff * spiralY * FlxMath.fastSin((period + 1) * tDiff + offset);
+            pos.y += tDiff * spiralY * Math.sin((period + 1) * tDiff + offset);
         }
 
         if (spiralZ != 0) {
             final offset = getSubmodValue("spiralZOffset", player);
             final period = getSubmodValue("spiralZPeriod", player);
-            pos.z += tDiff * spiralZ * FlxMath.fastSin((period + 1) * tDiff + offset);
+            pos.z += tDiff * spiralZ * Math.sin((period + 1) * tDiff + offset);
         }
 
         final schmovinSpiralX = getSubmodValue("schmovinSpiralX", player);
@@ -54,7 +54,7 @@ class SpiralModifier extends NoteModifier {
             final angleBeat = ((getSubmodValue("schmovinSpiralXSpeed", player) * beat) + getSubmodValue("schmovinSpiralXOffset", player)) * Math.PI / 4;
             final radiusOffset = -diff / 4;
             final radius = radiusOffset + dist * (data % 4);
-            pos.x += FlxMath.fastCos(-tDiff / Conductor.crochet * Math.PI + angleBeat) * radius * schmovinSpiralX;
+            pos.x += Math.cos(-tDiff / Conductor.crochet * Math.PI + angleBeat) * radius * schmovinSpiralX;
         }
 
         if (schmovinSpiralY != 0) {
@@ -62,7 +62,7 @@ class SpiralModifier extends NoteModifier {
             final angleBeat = ((getSubmodValue("schmovinSpiralYSpeed", player) * beat) + getSubmodValue("schmovinSpiralYOffset", player)) * Math.PI / 4;
             final radiusOffset = -diff / 4;
             final radius = radiusOffset + dist * (data % 4);
-            pos.y += FlxMath.fastSin(-tDiff / Conductor.crochet * Math.PI + angleBeat) * radius * schmovinSpiralY;
+            pos.y += Math.sin(-tDiff / Conductor.crochet * Math.PI + angleBeat) * radius * schmovinSpiralY;
         }
 
         if (schmovinSpiralZ != 0) {
@@ -70,7 +70,7 @@ class SpiralModifier extends NoteModifier {
             final angleBeat = ((getSubmodValue("schmovinSpiralZSpeed", player) * beat) + getSubmodValue("schmovinSpiralZOffset", player)) * Math.PI / 4;
             final radiusOffset = -diff / 4;
             final radius = radiusOffset + dist * (data % 4);
-            pos.z += FlxMath.fastSin(-tDiff / Conductor.crochet * Math.PI + angleBeat) * radius * schmovinSpiralZ;
+            pos.z += Math.sin(-tDiff / Conductor.crochet * Math.PI + angleBeat) * radius * schmovinSpiralZ;
         }
 
         return pos;

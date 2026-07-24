@@ -131,7 +131,7 @@ class BeatModifier extends NoteModifier {
 
         // Apply sine wave based on visual position for wave-like effect
         var baseShift = 40 * wobbleIntensity;
-        var waveEffect = FlxMath.fastSin((visualDiff / 30) + Math.PI / 2);
+        var waveEffect = Math.sin((visualDiff / 30) + Math.PI / 2);
         
         return baseShift * waveEffect;
     }

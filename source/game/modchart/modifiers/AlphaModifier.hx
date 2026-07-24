@@ -146,7 +146,7 @@ class AlphaModifier extends NoteModifier {
 
         // Apply blinking effect
         if (getSubmodValue("blink", player) != 0) {
-            var blinkFactor = MathUtil.quantize(FlxMath.fastSin(currentTime * 10), 0.3333);
+            var blinkFactor = MathUtil.quantize(Math.sin(currentTime * 10), 0.3333);
             alpha += MathUtil.scale(blinkFactor, 0, 1, -1, 0);
         }
 
