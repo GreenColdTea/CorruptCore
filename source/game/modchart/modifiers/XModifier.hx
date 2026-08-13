@@ -4,23 +4,21 @@ import game.objects.Note;
 import math.Vector3;
 
 class XModifier extends NoteModifier {
-	override function getName()
-		return 'xmod';
+    private static final XMOD_KEYS:Array<String> = ['xmod0', 'xmod1', 'xmod2', 'xmod3'];
 
-	override function shouldExecute(player:Int, val:Float)
-		return true;
+    override function getName()
+        return 'xmod';
+
+    override function shouldExecute(player:Int, val:Float)
+        return true;
     
-	override function updateNote(beat:Float, daNote:Note, pos:Vector3, player:Int)
-	{
-        daNote.multSpeed = getValue(player) * getSubmodValue('xmod' + daNote.noteData, player);
+    override function updateNote(beat:Float, daNote:Note, pos:Vector3, player:Int)
+    {
+        daNote.multSpeed = getValue(player) * getSubmodValue(XMOD_KEYS[daNote.noteData], player);
     }
 
-	override function getSubmods()
-	{
-		var subMods:Array<String> = [];
-		for (i in 0...4)
-			subMods.push('xmod$i');
-		
-		return subMods;
-	}
+    override function getSubmods()
+    {
+        return XMOD_KEYS.copy();
+    }
 }

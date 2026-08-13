@@ -39,33 +39,28 @@ final class PerspectiveModifier extends NoteModifier {
   }
 
 
-  public function getVector(curZ:Float,pos:Vector3):Vector3{
-    var halfOffset = new Vector3(FlxG.width/2, FlxG.height/2);
-    pos = pos.subtract(halfOffset);
-    var oX = pos.x;
-    var oY = pos.y;
+  public function getVector(curZ:Float, pos:Vector3):Vector3 {
+      final halfX = FlxG.width / 2;
+      final halfY = FlxG.height / 2;
+      
+      final oX = pos.x - halfX;
+      final oY = pos.y - halfY;
 
+      final aspect = 1.0;
 
-    // should I be using a matrix?
-    // .. nah im sure itll be fine just doing this manually
-    // instead of doing a proper perspective projection matrix
+      var shit = curZ - 1;
+      if(shit > 0) shit = 0; 
 
-    //var aspect = FlxG.width/FlxG.height;
-    var aspect = 1;
+      final ta = FastTan(fov / 2);
+      final x = oX * aspect / ta;
+      final y = oY / ta;
+      final a = (near + far) / (near - far);
+      final b = 2 * near * far / (near - far);
+      final z = (a * shit + b);
 
-    var shit = curZ-1;
-    if(shit > 0)shit=0; // thanks schmovin!!
+      pos.setTo((x / z) + halfX, (y / z) + halfY, z);
 
-    var ta = FastTan(fov/2);
-    var x = oX * aspect/ta;
-    var y = oY/ta;
-    var a = (near+far)/(near-far);
-    var b = 2*near*far/(near-far);
-    var z = (a*shit+b);
-    //trace(shit, curZ, z, x/z, y/z);
-    var returnedVector = new Vector3(x/z,y/z,z).add(halfOffset);
-
-    return returnedVector;
+      return pos;
   }
 
   /*override function getReceptorPos(receptor:Receptor, pos:Vector3, data:Int, player:Int){ // maybe replace FlxPoint with a Vector3?

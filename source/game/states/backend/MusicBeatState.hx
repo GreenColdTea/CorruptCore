@@ -63,7 +63,6 @@ class MusicBeatState extends FlxTransitionableState #if (HSCRIPT_ALLOWED && SCRI
             game.states.editors.ChartEditorState,
             game.states.editors.DialogueCharacterEditorState,
             game.states.editors.DialogueEditorState,
-            game.states.editors.EditorPlayState,
             game.states.editors.MasterEditorMenu,
             game.states.editors.MenuCharacterEditorState,
             game.states.editors.WeekEditorState,

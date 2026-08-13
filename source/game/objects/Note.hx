@@ -201,88 +201,98 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 		return value;
 	}
 
-	public function new(strumTime:Float, noteData:Int, ?prevNote:Note, ?sustainNote:Bool = false, ?inEditor:Bool = false)
-	{
+	public function new() {
 		super();
-
 		animation = new PsychAnimationController(this);
+		defScale = FlxPoint.get(1, 1);
+		vec3Cache = new Vector3(1, 1, 0);
+		colorSwap = new ColorSwap();
+		shader = colorSwap.shader;
+	}
 
-		prevNote ??= this;
+	public function setupNote(strumTime:Float, noteData:Int, ?prevNote:Note, ?sustainNote:Bool = false, ?inEditor:Bool = false):Note
+	{
+		this.alive = true;
+		this.exists = true;
+		this.visible = true;
+		this.alpha = 1;
+		this.multAlpha = 1;
+		this.multSpeed = 1;
+		this.offsetX = 0;
+		this.offsetY = 0;
+		this.offsetAngle = 0;
+		this.wasGoodHit = false;
+		this.ignoreNote = false;
+		this.hitByOpponent = false;
+		this.noteWasHit = false;
+		this.blockHit = false;
+		this.hitCausesMiss = false;
+		this.tail = [];
+		this.parent = null;
+		this.holdNote = null;
+		this.strum = null;
+		this.extraData.clear();
 
-		this.prevNote = prevNote;
-		isSustainNote = sustainNote;
+		this.prevNote = prevNote ?? this;
+		this.isSustainNote = sustainNote;
 		this.inEditor = inEditor;
 		this.rawData = null;
 
-		x += (ClientPrefs.middleScroll ? PlayState.STRUM_X_MIDDLESCROLL : PlayState.STRUM_X) + 50;
-		y -= 2000;
-		this.strumTime = strumTime;
-		if(!inEditor) this.strumTime += ClientPrefs.noteOffset;
-
+		x = (ClientPrefs.middleScroll ? PlayState.STRUM_X_MIDDLESCROLL : PlayState.STRUM_X) + 50;
+		y = -2000;
+		this.strumTime = strumTime + (inEditor ? 0 : ClientPrefs.noteOffset);
 		this.noteData = noteData;
 
 		if(noteData > -1) {
 			texture = '';
-			colorSwap = new ColorSwap();
-			shader = colorSwap.shader;
-
-			x += swagWidth * (noteData);
-
-			if(!isSustainNote && noteData > -1 && noteData < 4)
+			x += swagWidth * noteData;
+			if(!isSustainNote && noteData < 4)
 				animation.play(colArray[noteData % 4] + 'Scroll');
 		}
 
-		if(prevNote != null)
-			prevNote.nextNote = this;
+		if(this.prevNote != null && this.prevNote != this)
+			this.prevNote.nextNote = this;
 
-		if (isSustainNote && prevNote != null)
+		if (isSustainNote && this.prevNote != null)
 		{
 			hitsoundDisabled = true;
-
 			#if MODCHART_ALLOWED flipX = #end flipY = ClientPrefs.downScroll;
-
 			offsetX += width / 2;
 			copyAngle = false;
 
 			animation.play(colArray[noteData % 4] + 'holdend');
-
 			defScale.copyFrom(scale);
 			updateHitbox();
 
 			offsetX -= width / 2;
+			if (PlayState.isPixelStage) offsetX += 30;
 
-			if (PlayState.isPixelStage)
-				offsetX += 30;
-
-			if (prevNote.isSustainNote)
+			if (this.prevNote.isSustainNote)
 			{
-				prevNote.animation.play(colArray[prevNote.noteData % 4] + 'hold');
-
-				prevNote.scale.y *= Conductor.stepCrochet / 102 * 1.05;
+				this.prevNote.animation.play(colArray[this.prevNote.noteData % 4] + 'hold');
+				this.prevNote.scale.y *= Conductor.stepCrochet / 102 * 1.05;
+				
 				if(PlayState.instance != null)
-				{
-					prevNote.scale.y *= PlayState.instance.songSpeed;
-				}
+					this.prevNote.scale.y *= PlayState.instance.songSpeed;
 
 				if(PlayState.isPixelStage) {
-					prevNote.scale.y *= 1.22;
-					prevNote.scale.y *= (6 / height);
+					this.prevNote.scale.y *= 1.22 * (6 / height);
 				}
-
-				prevNote.defScale?.copyFrom(prevNote.scale);
-				prevNote.updateHitbox();
+				this.prevNote.defScale?.copyFrom(this.prevNote.scale);
+				this.prevNote.updateHitbox();
 			}
 
 			if(PlayState.isPixelStage) {
 				scale.y *= PlayState.daPixelZoom;
 				updateHitbox();
 			}
-		} else if(!isSustainNote) {
+		} else {
 			earlyHitMult = 1;
 		}
 
 		defScale?.copyFrom(scale);
 		x += offsetX;
+		return this;
 	}
 
 	var _lastNoteOffX:Float = 0;
@@ -511,6 +521,8 @@ class Sustain extends game.graphics.TileRender
 	public function reloadSkin()
 	{
 		if (parent == null || parent.animation == null) return;
+		
+		lastSpeed = -1.0;
 		
 		frames = parent.frames;
 		animation.copyFrom(parent.animation);

@@ -64,22 +64,21 @@ class LocalRotateModifier extends NoteModifier {
      * @return The rotated vector
      */
     private function rotateVector3D(vec:Vector3, xAngle:Float, yAngle:Float, zAngle:Float):Vector3 {
-        // First rotation: around Z-axis
-        var rotatedZ = MathUtil.rotate(vec.x, vec.y, zAngle);
-        var afterZ = new Vector3(rotatedZ.x, rotatedZ.y, vec.z);
+        final rotatedZ = MathUtil.rotate(vec.x, vec.y, zAngle);
+        final afterZ = Vector3.get(rotatedZ.x, rotatedZ.y, vec.z);
 
-        // Second rotation: around X-axis
-        var rotatedX = MathUtil.rotate(afterZ.z, afterZ.y, xAngle);
-        var afterX = new Vector3(afterZ.x, rotatedX.y, rotatedX.x);
+        final rotatedX = MathUtil.rotate(afterZ.z, afterZ.y, xAngle);
+        final afterX = Vector3.get(afterZ.x, rotatedX.y, rotatedX.x);
 
-        // Third rotation: around Y-axis
-        var rotatedY = MathUtil.rotate(afterX.x, afterX.z, yAngle);
-        var afterY = new Vector3(rotatedY.x, afterX.y, rotatedY.y);
+        final rotatedY = MathUtil.rotate(afterX.x, afterX.z, yAngle);
+        final afterY = Vector3.get(rotatedY.x, afterX.y, rotatedY.y);
 
-        // Clean up temporary objects
         rotatedZ.putWeak();
         rotatedX.putWeak();
         rotatedY.putWeak();
+        
+        afterZ.put(); 
+        afterX.put();
 
         return afterY;
     }
@@ -108,26 +107,27 @@ class LocalRotateModifier extends NoteModifier {
         player:Int, 
         obj:FlxSprite
     ):Vector3 {
-        var rotationOrigin = calculateRotationOrigin(player);
+        final rotationOrigin = calculateRotationOrigin(player);
+        final positionOffset = pos.subtract(rotationOrigin);
         
-        // Calculate offset from rotation origin
-        var positionOffset = pos.subtract(rotationOrigin);
-        
-        // Apply scale to Z-axis for depth effect
-        var scale = FlxG.height;
+        final scale = FlxG.height;
         positionOffset.z *= scale;
         
-        // Apply 3D rotation
-        var rotatedOffset = rotateVector3D(
-            positionOffset, 
-            getValue(player),                    // X-axis rotation
-            getSubmodValue('${prefix}rotateY', player), // Y-axis rotation
-            getSubmodValue('${prefix}rotateZ', player)  // Z-axis rotation
+        var rotatedOffset = rotateVector3D(positionOffset, 
+            getValue(player),                    
+            getSubmodValue('${prefix}rotateY', player), 
+            getSubmodValue('${prefix}rotateZ', player)  
         );
         
-        // Restore Z-axis scale and apply final position
         rotatedOffset.z /= scale;
-        return rotationOrigin.add(rotatedOffset);
+        
+        pos.setTo(rotationOrigin.x + rotatedOffset.x, rotationOrigin.y + rotatedOffset.y, rotationOrigin.z + rotatedOffset.z);
+        
+        rotationOrigin.put();
+        positionOffset.put();
+        rotatedOffset.put();
+        
+        return pos;
     }
 
     /**
@@ -135,21 +135,18 @@ class LocalRotateModifier extends NoteModifier {
      * Based on player side and note layout
      */
     private function calculateRotationOrigin(player:Int):Vector3 {
-        // Calculate center X position for the player's side
         var centerX:Float = (FlxG.width / 2) - Note.swagWidth - 54 + Note.swagWidth * 1.5;
         
         switch (player) {
-            case 0: // Player 1 (BF)
+            case 0:
                 centerX += FlxG.width / 2 - Note.swagWidth * 2 - 100;
-            case 1: // Player 2 (Dad)
+            case 1:
                 centerX -= FlxG.width / 2 - Note.swagWidth * 2 - 100;
         }
         
-        centerX -= 56; // Additional offset
+        centerX -= 56;
+        final centerY = FlxG.height / 2 - Note.swagWidth / 2;
         
-        // Center Y position
-        var centerY = FlxG.height / 2 - Note.swagWidth / 2;
-        
-        return new Vector3(centerX, centerY);
+        return Vector3.get(centerX, centerY);
     }
 }

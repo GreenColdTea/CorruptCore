@@ -16,6 +16,9 @@ import math.*;
 class ZigZagModifier extends NoteModifier {
     private var prefix:String;
     
+    private static final HALF_PI:Float = Math.PI * 0.5;
+    private static final INV_PI:Float = 1.0 / Math.PI;
+    
     public function new(modMgr:ModManager, ?prefix:String = '', ?parent:Modifier) {
         this.prefix = prefix;
         super(modMgr, parent);
@@ -33,20 +36,6 @@ class ZigZagModifier extends NoteModifier {
         return [];
     }
 
-    /**
-     * Applies zigzag wave transformation to note positions
-     * Creates oscillating horizontal movement based on distance
-     * 
-     * @param time Note strum time
-     * @param visualDiff Visual position difference from receptor
-     * @param timeDiff Time difference (strumTime - currentTime)
-     * @param beat Current beat with decimal precision
-     * @param pos Current position vector to modify
-     * @param data Note direction/column (0-3)
-     * @param player Player index (0 = Player, 1 = Opponent)
-     * @param obj The game object (note or receptor)
-     * @return Modified position vector with zigzag effect applied
-     */
     override function getPos(
         time:Float, 
         visualDiff:Float, 
@@ -57,32 +46,20 @@ class ZigZagModifier extends NoteModifier {
         player:Int, 
         obj:FlxSprite
     ):Vector3 {
-        var zigzag = getValue(player);
+        final zigzag = getValue(player);
 
         if (zigzag == 0)
             return pos;
 
-        var arrowSize = Note.swagWidth;
-        var arrowSizeHalf = arrowSize / 2;
+        final arrowSize = Note.swagWidth;
+        final distance = Math.abs(visualDiff);
+        
+        final theta = -(distance / arrowSize) * Math.PI;
 
-        // Calculate theta based on visual distance (absolute value for consistent effect)
-        var distance = Math.abs(visualDiff);
-        var theta = -distance / arrowSize * Math.PI;
+        final outRelative = Math.acos(Math.cos(theta + HALF_PI)) * INV_PI * 2 - 1;
 
-        // Calculate wave offset using cosine function
-        var outRelative = Math.acos(Math.cos(theta + Math.PI / 2)) / Math.PI * 2 - 1;
-
-        // Apply zigzag effect
-        pos.x += outRelative * arrowSizeHalf * zigzag;
+        pos.x += outRelative * (arrowSize * 0.5) * zigzag;
 
         return pos;
-    }
-
-    override function updateNote(beat:Float, note:Note, pos:Vector3, player:Int) {
-        super.updateNote(beat, note, pos, player);
-    }
-
-    override function updateReceptor(beat:Float, receptor:StrumNote, pos:Vector3, player:Int) {
-        super.updateReceptor(beat, receptor, pos, player);
     }
 }

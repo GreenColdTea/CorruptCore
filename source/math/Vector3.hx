@@ -15,17 +15,40 @@ class Vector3
 	/**
 		A constant representing the x axis (1, 0, 0)
 	**/
-	public static var X_AXIS(get, never):Vector3;
+	public static final X_AXIS:Vector3 = new Vector3(1, 0, 0);
 
 	/**
 		A constant representing the y axis (0, 1, 0)
 	**/
-	public static var Y_AXIS(get, never):Vector3;
+	public static final Y_AXIS:Vector3 = new Vector3(0, 1, 0);
 
 	/**
 		A constant representing the z axis (0, 0, 1)
 	**/
-	public static var Z_AXIS(get, never):Vector3;
+	public static final Z_AXIS:Vector3 = new Vector3(0, 0, 1);
+
+	private static var _pool:Array<Vector3> = [];
+
+	/**
+	 * Retrieves a Vector3 from the pool, or creates a new one if empty.
+	 * ALWAYS use this instead of `new Vector3()` to prevent GC spikes.
+	 */
+	public static inline function get(x:Float = 0., y:Float = 0., z:Float = 0.):Vector3
+	{
+		var v:Vector3 = _pool.length > 0 ? _pool.pop() : new Vector3();
+		v.setTo(x, y, z);
+		return v;
+	}
+
+	/**
+	 * Returns this Vector3 back to the pool.
+	 */
+	public inline function put():Void
+	{
+		if (!_pool.contains(this)) {
+			_pool.push(this);
+		}
+	}
 
 	/**
 		Get the length of this vector
@@ -75,7 +98,7 @@ class Vector3
 	**/
 	public inline function add(a:Vector3, result:Vector3 = null):Vector3
 	{
-		if (result == null) result = new Vector3();
+		if (result == null) result = Vector3.get();
 		result.setTo(this.x + a.x, this.y + a.y, this.z + a.z);
 		return result;
 	}
@@ -93,7 +116,12 @@ class Vector3
 		var b0 = b.clone();
 		b0.normalize();
 
-		return Math.acos(a0.dotProduct(b0));
+		var angle = Math.acos(a0.dotProduct(b0));
+		
+		a0.put();
+		b0.put();
+		
+		return angle;
 	}
 
 	/**
@@ -102,7 +130,7 @@ class Vector3
 	**/
 	public inline function clone():Vector3
 	{
-		return new Vector3(x, y, z);
+		return Vector3.get(x, y, z);
 	}
 
 	/**
@@ -113,12 +141,14 @@ class Vector3
 	**/
 
 	//https://gamedev.stackexchange.com/questions/18615/how-do-i-linearly-interpolate-between-two-vectors
-	public inline function lerp(goal:Vector3, alpha:Float):Vector3{
-		return new Vector3(
+	public inline function lerp(goal:Vector3, alpha:Float, result:Vector3 = null):Vector3{
+		if (result == null) result = Vector3.get();
+		result.setTo(
 			alpha*goal.x + x*(1-alpha),
 			alpha*goal.y + y*(1-alpha),
 			alpha*goal.z + z*(1-alpha)
 		);
+		return result;
 	}
 
 
@@ -141,7 +171,7 @@ class Vector3
 	**/
 	public inline function crossProduct(a:Vector3, result:Vector3 = null):Vector3
 	{
-		if (result == null) result = new Vector3();
+		if (result == null) result = Vector3.get();
 		result.setTo(y * a.z - z * a.y, z * a.x - x * a.z, x * a.y - y * a.x);
 		return result;
 	}
@@ -256,9 +286,10 @@ class Vector3
 
 		if (l != 0)
 		{
-			x /= l;
-			y /= l;
-			z /= l;
+			var invL = 1.0 / l;
+			x *= invL;
+			y *= invL;
+			z *= invL;
 		}
 
 		return l;
@@ -297,7 +328,7 @@ class Vector3
 	**/
 	public inline function subtract(a:Vector3, result:Vector3 = null):Vector3
 	{
-		if (result == null) result = new Vector3();
+		if (result == null) result = Vector3.get();
 		result.setTo(x - a.x, y - a.y, z - a.z);
 		return result;
 	}
@@ -316,20 +347,5 @@ class Vector3
 	@:noCompletion private inline function get_lengthSquared():Float
 	{
 		return x * x + y * y + z * z;
-	}
-
-	private inline static function get_X_AXIS():Vector3
-	{
-		return new Vector3(1, 0, 0);
-	}
-
-	private inline static function get_Y_AXIS():Vector3
-	{
-		return new Vector3(0, 1, 0);
-	}
-
-	private inline static function get_Z_AXIS():Vector3
-	{
-		return new Vector3(0, 0, 1);
 	}
 }

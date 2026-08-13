@@ -21,6 +21,8 @@ import game.objects.*;
  */
 class ModManager {
     private var state:PlayState;
+
+    public var activeModInstances:Array<Array<Modifier>> = [[], []];
     
     public var notemodRegister:Map<String, Modifier> = [];
     public var miscmodRegister:Map<String, Modifier> = [];
@@ -172,21 +174,24 @@ class ModManager {
         modifier:Modifier, 
         parentMod:Modifier
     ) {
-        var shouldExecute = parentMod.shouldExecute(player, value);
+        final shouldExecute = parentMod.shouldExecute(player, value);
         
         if (!activeMods[player].contains(parentName) && shouldExecute) {
-            // Add modifier and its parent to active list
             if (modifier.getName() != parentName) {
                 activeMods[player].push(modifier.getName());
             }
             activeMods[player].push(parentName);
         } else if (!shouldExecute) {
-            // Remove modifier from active list
             removeModifierFromActiveList(modName, parentName, player, modifier, parentMod);
         }
 
-        // Maintain execution order
         activeMods[player].sort((a, b) -> Std.int(register.get(a).getOrder() - register.get(b).getOrder()));
+
+        activeModInstances[player] = [];
+        for (name in activeMods[player]) {
+            final mod = notemodRegister.get(name);
+            if (mod != null) activeModInstances[player].push(mod);
+        }
     }
 
     /**
@@ -246,22 +251,17 @@ class ModManager {
      * Updates visual properties of game objects based on active modifiers
      */
     public function updateObject(beat:Float, obj:FlxSprite, position:Vector3, player:Int) {
-        for (modName in activeMods[player]) {
-            var modifier = notemodRegister.get(modName);
-            if (modifier == null || !obj.active) continue;
+        if (!obj.active) return;
 
+        for (modifier in activeModInstances[player]) {
             if (Std.isOfType(obj, Note)) {
-                var note:Note = cast obj;
-                modifier.updateNote(beat, note, position, player);
+                modifier.updateNote(beat, cast obj, position, player);
             } else if (Std.isOfType(obj, StrumNote)) {
-                var strum:StrumNote = cast obj;
-                modifier.updateReceptor(beat, strum, position, player);
+                modifier.updateReceptor(beat, cast obj, position, player);
             } else if (Std.isOfType(obj, NoteSplash)) {
-                var splash:NoteSplash = cast obj;
-                modifier.updateSplash(beat, splash, position, player);
+                modifier.updateSplash(beat, cast obj, position, player);
             } else if (Std.isOfType(obj, NoteHoldCover)) {
-                var cover:NoteHoldCover = cast obj;
-                modifier.updateHoldCover(beat, cover, position, player);
+                modifier.updateHoldCover(beat, cast obj, position, player);
             }
         }
 
@@ -335,18 +335,12 @@ class ModManager {
 
         if (!obj.active) return position;
 
-        // Start with base position
         position.x = getBaseX(data, player);
         position.y = 50 + diff;
         position.z = 0;
 
-        // Apply all active modifiers
-        for (modName in activeMods[player]) {
-            if (exclusions.contains(modName)) continue;
-            
-            var modifier = notemodRegister.get(modName);
-            if (modifier == null || !obj.active) continue;
-            
+        for (modifier in activeModInstances[player]) {
+            if (exclusions.contains(modifier.getName())) continue;
             position = modifier.getPos(time, diff, tDiff, beat, position, data, player, obj);
         }
         

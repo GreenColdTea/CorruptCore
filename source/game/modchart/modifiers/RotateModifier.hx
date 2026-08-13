@@ -70,22 +70,21 @@ class RotateModifier extends NoteModifier {
      * @return The rotated vector
      */
     private function rotateVector3D(vec:Vector3, xAngle:Float, yAngle:Float, zAngle:Float):Vector3 {
-        // First rotation: around Z-axis (affects X and Y)
-        var rotatedZ = MathUtil.rotate(vec.x, vec.y, zAngle);
-        var afterZ = new Vector3(rotatedZ.x, rotatedZ.y, vec.z);
+        final rotatedZ = MathUtil.rotate(vec.x, vec.y, zAngle);
+        final afterZ = Vector3.get(rotatedZ.x, rotatedZ.y, vec.z);
 
-        // Second rotation: around X-axis (affects Y and Z)
-        var rotatedX = MathUtil.rotate(afterZ.z, afterZ.y, xAngle);
-        var afterX = new Vector3(afterZ.x, rotatedX.y, rotatedX.x);
+        final rotatedX = MathUtil.rotate(afterZ.z, afterZ.y, xAngle);
+        final afterX = Vector3.get(afterZ.x, rotatedX.y, rotatedX.x);
 
-        // Third rotation: around Y-axis (affects X and Z)
-        var rotatedY = MathUtil.rotate(afterX.x, afterX.z, yAngle);
-        var afterY = new Vector3(rotatedY.x, afterX.y, rotatedY.y);
+        final rotatedY = MathUtil.rotate(afterX.x, afterX.z, yAngle);
+        final afterY = Vector3.get(rotatedY.x, afterX.y, rotatedY.y);
 
-        // Clean up temporary objects to prevent memory leaks
         rotatedZ.putWeak();
         rotatedX.putWeak();
         rotatedY.putWeak();
+        
+        afterZ.put(); 
+        afterX.put();
 
         return afterY;
     }
@@ -104,36 +103,30 @@ class RotateModifier extends NoteModifier {
      * @param obj The game object (note or receptor)
      * @return Modified position vector with 3D rotation applied
      */
-    override function getPos(
-        time:Float, 
-        visualDiff:Float, 
-        timeDiff:Float, 
-        beat:Float, 
-        pos:Vector3, 
-        data:Int, 
-        player:Int, 
-        obj:FlxSprite
-    ):Vector3 {
-        var rotationOrigin = getRotationOrigin(data, player);
+    override function getPos(time:Float, visualDiff:Float, timeDiff:Float, beat:Float, pos:Vector3, data:Int, player:Int, obj:FlxSprite):Vector3 {
+        final rotationOrigin = getRotationOrigin(data, player);
         
-        var originClone = new Vector3(rotationOrigin.x, rotationOrigin.y, rotationOrigin.z);
-        var localOffset = new Vector3(pos.x, pos.y, pos.z).subtract(originClone);
+        final localOffset = Vector3.get(pos.x - rotationOrigin.x, pos.y - rotationOrigin.y, pos.z - rotationOrigin.z);
         
-        // Apply scale to Z-axis for consistent depth effect
-        var depthScale = FlxG.height;
+        final depthScale = FlxG.height;
         localOffset.z *= depthScale;
         
-        // Apply 3D rotation to local coordinates
-        var rotatedOffset = rotateVector3D(
+        final rotatedOffset = rotateVector3D(
             localOffset, 
-            getValue(player),                    // X-axis rotation
-            getSubmodValue('${prefix}rotateY', player), // Y-axis rotation  
-            getSubmodValue('${prefix}rotateZ', player)  // Z-axis rotation
+            getValue(player),
+            getSubmodValue('${prefix}rotateY', player),
+            getSubmodValue('${prefix}rotateZ', player)
         );
         
-        // Restore Z-axis scale and convert back to world coordinates
         rotatedOffset.z /= depthScale;
-        return originClone.add(rotatedOffset);
+        
+        pos.setTo(rotationOrigin.x + rotatedOffset.x, rotationOrigin.y + rotatedOffset.y, rotationOrigin.z + rotatedOffset.z);
+        
+        if (daOrigin == null) rotationOrigin.put();
+        localOffset.put();
+        rotatedOffset.put();
+        
+        return pos;
     }
 
     /**
@@ -144,10 +137,9 @@ class RotateModifier extends NoteModifier {
         if (daOrigin != null) {
             return daOrigin;
         } else {
-            // Default to note's base position centered vertically
             var baseX = modMgr.getBaseX(noteData, player);
             var centerY = FlxG.height / 2 - Note.swagWidth / 2;
-            return new Vector3(baseX, centerY);
+            return Vector3.get(baseX, centerY, 0);
         }
     }
 }

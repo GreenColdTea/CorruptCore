@@ -19,6 +19,9 @@ class TileRender extends flixel.FlxStrip
     public var segmentsPerTile:Int = 12;
 
     var tailFrame:FlxFrame;
+    var bodyFrame:FlxFrame;
+    var originalFrame:FlxFrame;
+
     var tiles:Float;
     var tileCount:Int;
 
@@ -49,7 +52,8 @@ class TileRender extends flixel.FlxStrip
     function updateTailFrame():Void
     {
         if (frames == null || animation == null || tailAnim == null || animation.getByName(tailAnim) == null) return;
-        tailFrame = frames.frames[animation.getByName(tailAnim).frames[animation.curAnim.curFrame]].copyTo(tailFrame);
+        var rawTail = frames.frames[animation.getByName(tailAnim).frames[animation.curAnim.curFrame]];
+        tailFrame = rawTail.copyTo(tailFrame);
         adjustFrame(tailFrame);
     }
 
@@ -117,18 +121,23 @@ class TileRender extends flixel.FlxStrip
         var currentSegments = isPixel ? Math.floor(segmentsPerTile / zoom) : segmentsPerTile;
         if (currentSegments < 1) currentSegments = 1;
 
+        if (modMgr.activeMods[pN].length == 0)
+            currentSegments = 1;
+
         final neededVertices = tileCount * currentSegments * 8; 
         final neededIndices = tileCount * currentSegments * 6;
 
-        if (vertices == null) {
-            vertices = new Vector<Float>(neededVertices, false);
-            uvtData = new Vector<Float>(neededVertices, false);
-            indices = new Vector<Int>(neededIndices, false);
-        } else {
-            vertices.length = neededVertices;
-            uvtData.length = neededVertices;
-            indices.length = neededIndices;
+        if (vertices == null || vertices.length < neededVertices) {
+            final allocSize = neededVertices + 128;
+            final allocIdx = neededIndices + 128;
+
+            vertices = new Vector<Float>(allocSize, false);
+            uvtData = new Vector<Float>(allocSize, false);
+            indices = new Vector<Int>(allocIdx, false);
         }
+        vertices.length = neededVertices;
+        uvtData.length = neededVertices;
+        indices.length = neededIndices;
 
         final absScaleY = Math.abs(scale.y);
         final absScaleX = Math.abs(scale.x);
@@ -143,23 +152,18 @@ class TileRender extends flixel.FlxStrip
 
         final songPos = Conductor.songPosition;
         var tStuffVal:Float = tStuffDyn != null ? cast(tStuffDyn, Float) : 0;
-
         final isHit:Bool = Reflect.hasField(this, "hit") ? Reflect.field(this, "hit") : false;
-        if (isHit)
-            tStuffVal = songPos - pNote.strumTime;
+        
+        if (isHit) tStuffVal = songPos - pNote.strumTime;
 
-        var currentLengthMs:Float = pNote.sustainLength - tStuffVal;
-        if (currentLengthMs < 0) currentLengthMs = 0;
-
+        var currentLengthMs:Float = Math.max(0, pNote.sustainLength - tStuffVal);
         final pointTimeBase:Float = pNote.strumTime + tStuffVal;
         final cBeat:Float = state.curDecBeat;
-        final sSpeed:Float = state.songSpeed;
         
-        final speedMult:Float = -0.45 * sSpeed * pNote.multSpeed;
+        final speedMult:Float = -0.45 * state.songSpeed * pNote.multSpeed;
         final headNote:Dynamic = Reflect.hasField(pNote, "parent") ? Reflect.field(pNote, "parent") : pNote;
         final hNoteData = pNote.noteData;
-        final totalHeight = this.height;
-        final invTotalHeight = totalHeight > 0 ? 1.0 / totalHeight : 0;
+        final invTotalHeight = height > 0 ? 1.0 / height : 0;
         
         final swagWidth:Float = Reflect.hasField(pNote, "swagWidth") ? Reflect.field(pNote, "swagWidth") : 112;
         final dScroll:Bool = ClientPrefs.downScroll;
@@ -181,28 +185,28 @@ class TileRender extends flixel.FlxStrip
             final frameToDraw = isTail ? (tailFrame ?? _frame) : _frame;
             
             var tileHeight = frameToDraw.frame.height * absScaleY;
-            var clipReduction = 0.0;
             var uvYOffset = 0.0;
             
             if (isClip) {
-                clipReduction = frameToDraw.frame.height * (tileCount - tiles);
+                var clipReduction = frameToDraw.frame.height * (tileCount - tiles);
                 tileHeight -= clipReduction * absScaleY;
                 uvYOffset = clipReduction;
             }
 
             final parentW = frameToDraw.parent.width;
             final parentH = frameToDraw.parent.height;
+            final invParentW = 1.0 / parentW;
+            final invParentH = 1.0 / parentH;
 
-            var u0 = frameToDraw.frame.x / parentW;
-            var u1 = (frameToDraw.frame.x + frameToDraw.frame.width) / parentW;
+            var u0 = frameToDraw.frame.x * invParentW;
+            var u1 = (frameToDraw.frame.x + frameToDraw.frame.width) * invParentW;
             if (flipX) { final tempU = u0; u0 = u1; u1 = tempU; }
             
-            var vTop = (frameToDraw.frame.y + uvYOffset) / parentH;
-            var vBot = (frameToDraw.frame.y + frameToDraw.frame.height) / parentH;
+            var vTop = (frameToDraw.frame.y + uvYOffset) * invParentH;
+            var vBot = (frameToDraw.frame.y + frameToDraw.frame.height) * invParentH;
             if (flipY) { final temp = vTop; vTop = vBot; vBot = temp; }
 
-            final widthLocal = frameToDraw.frame.width * absScaleX;
-            final halfWidth = widthLocal * 0.5;
+            final halfWidth = (frameToDraw.frame.width * absScaleX) * 0.5;
             final sign = flipY ? 1.0 : -1.0;
 
             for (seg in 0...currentSegments) {
@@ -231,11 +235,14 @@ class TileRender extends flixel.FlxStrip
 
                     final dirX0 = bent0_next.x - bent0.x;
                     final dirY0 = bent0_next.y - bent0.y;
-                    final dist0 = Math.sqrt(dirX0 * dirX0 + dirY0 * dirY0);
+                    final dist0Sq = dirX0 * dirX0 + dirY0 * dirY0;
                     
-                    if (dist0 > 0.001) {
-                        normX0 = (-dirY0 / dist0) * sign;
-                        normY0 = (dirX0 / dist0) * sign;
+                    if (dist0Sq > 0.000001) {
+                        final dist0 = Math.sqrt(dist0Sq);
+                        final invDist0 = 1.0 / dist0;
+                        
+                        normX0 = (-dirY0 * invDist0) * sign;
+                        normY0 = (dirX0 * invDist0) * sign;
                     }
                     isFirstPoint = false;
                 }
@@ -255,12 +262,14 @@ class TileRender extends flixel.FlxStrip
 
                 final dirX1 = bent1_next.x - bent1.x;
                 final dirY1 = bent1_next.y - bent1.y;
-                final dist1 = Math.sqrt(dirX1 * dirX1 + dirY1 * dirY1);
+                final dist1Sq = dirX1 * dirX1 + dirY1 * dirY1;
 
                 var normX1 = 1.0; var normY1 = 0.0;
-                if (dist1 > 0.001) {
-                    normX1 = (-dirY1 / dist1) * sign;
-                    normY1 = (dirX1 / dist1) * sign;
+                if (dist1Sq > 0.000001) {
+                    final dist1 = Math.sqrt(dist1Sq);
+                    final invDist1 = 1.0 / dist1;
+                    normX1 = (-dirY1 * invDist1) * sign;
+                    normY1 = (dirX1 * invDist1) * sign;
                 }
 
                 final bVertex = Std.int(vIdx / 2);
@@ -388,10 +397,17 @@ class TileRender extends flixel.FlxStrip
 
     override function set_frame(value:FlxFrame):FlxFrame
     {
-        super.set_frame(value);
-        adjustFrame(_frame);
+        if (value == null || value == bodyFrame)
+            return super.set_frame(value);
+
+        originalFrame = value;
+        
+        bodyFrame = originalFrame.copyTo(bodyFrame);
+        adjustFrame(bodyFrame);
+
+        super.set_frame(bodyFrame);
         updateTailFrame();
-        return value;
+        return bodyFrame;
     }
 
     override function set_height(value:Float):Float
@@ -407,6 +423,8 @@ class TileRender extends flixel.FlxStrip
     override function destroy()
     {
         tailFrame = FlxDestroyUtil.destroy(tailFrame);
+        bodyFrame = FlxDestroyUtil.destroy(bodyFrame);
+        originalFrame = null;
         super.destroy();
     }
 }

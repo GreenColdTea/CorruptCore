@@ -1971,15 +1971,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 	function handleKeyboardInput():Void
 	{
-		if (FlxG.keys.justPressed.ESCAPE) {
-			PlayState.SONG = _song;
-
-			FlxG.sound.music.pause();
-			vocals?.pause();
-			opponentVocals?.pause();
-			FlxG.switchState(() -> new game.states.editors.EditorPlayState(sectionStartTime()));
-		}
-		
 		if (FlxG.keys.justPressed.ENTER) {
 			FlxG.mouse.visible = false;
 			PlayState.SONG = _song;
@@ -4297,7 +4288,6 @@ class ChartingTipsSubstate extends MusicBeatSubstate
             "Up/Down - Change pos with quantization",
             "SPACE - Pause/resume playback",
             "ENTER - Play chart in PlayState",
-            "ESCAPE - Play chart in Editor PlayState",
             "TAB - Cycle UI tabs (SHIFT to reverse)",
             "BACKSPACE - Return to editor menu"
         ];
