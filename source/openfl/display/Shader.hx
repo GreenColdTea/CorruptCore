@@ -1,5 +1,8 @@
 package openfl.display;
 
+import openfl.display3D.Context3DWrapMode;
+import openfl.display3D.Context3DMipFilter;
+import openfl.display3D.Context3DTextureFilter;
 #if !flash
 import openfl.display3D._internal.GLProgram;
 import openfl.display3D._internal.GLShader;
@@ -8,7 +11,10 @@ import openfl.utils._internal.Float32Array;
 import openfl.utils._internal.Log;
 import openfl.display3D.Context3D;
 import openfl.display3D.Program3D;
+import openfl.display.OpenGLRenderer;
 import openfl.utils.ByteArray;
+
+using StringTools;
 
 /**
 	// TODO: Document GLSL Shaders
@@ -116,7 +122,6 @@ import openfl.utils.ByteArray;
 @:access(openfl.display3D.Program3D)
 @:access(openfl.display.ShaderInput)
 @:access(openfl.display.ShaderParameter)
-// #if (!display && !macro)
 #if !macro
 @:autoBuild(openfl.utils._internal.ShaderMacro.build())
 #end
@@ -140,15 +145,17 @@ class Shader
 	**/
 	public var data(get, set):ShaderData;
 
-	public var fragPath:String;
-    public var vertPath:String;
-
 	/**
 		Get or set the GLSL version used in the header when compiling with GLSL.
 		- `120` is required for initialization (i.e. providing a default value for) `uniform` variables
 		@default The default value is determined at compile time.
 	**/
 	public var glVersion(get, set):String;
+
+	/**
+		The default GLSL vertex body, before being applied to the vertex source.
+	**/
+	public var glFragmentBodyRaw(get, null):String;
 
 	/**
 		Provides additional `#extension` directives to insert in the vertex shader.
@@ -161,11 +168,20 @@ class Shader
 	public var glFragmentExtensions(get, set):Array<{name:String, behavior:String}>;
 
 	/**
-		Get or set the fragment source used when compiling with GLSL.
+		The default GLSL vertex header, before being applied to the vertex source.
+	**/
+	public var glFragmentHeaderRaw(get, null):String;
 
+	/**
+		Get or set the fragment source used when compiling with GLSL.
 		This property is not available on the Flash target.
 	**/
 	public var glFragmentSource(get, set):String;
+
+	/**
+		The default GLSL fragment source, before `#pragma` values are replaced.
+	**/
+	public var glFragmentSourceRaw(get, null):String;
 
 	/**
 		The compiled GLProgram if available.
@@ -173,6 +189,21 @@ class Shader
 		This property is not available on the Flash target.
 	**/
 	@SuppressWarnings("checkstyle:Dynamic") public var glProgram(default, null):GLProgram;
+
+	/**
+		The default GLSL vertex header, before being applied to the vertex source.
+	**/
+	public var glVertexHeaderRaw(get, null):String;
+
+	/**
+		The default GLSL vertex body, before being applied to the vertex source.
+	**/
+	public var glVertexBodyRaw(get, null):String;
+
+	/**
+		The default GLSL vertex source, before `#pragma` values are replaced.
+	**/
+	public var glVertexSourceRaw(get, null):String;
 
 	/**
 		Get or set the vertex source used when compiling with GLSL.
@@ -235,8 +266,14 @@ class Shader
 	@:noCompletion private var __colorOffset:ShaderParameter<Float>;
 	@:noCompletion private var __context:Context3D;
 	@:noCompletion private var __data:ShaderData;
+	@:noCompletion private var __glFragmentBodyRaw:String;
+	@:noCompletion private var __glFragmentHeaderRaw:String;
 	@:noCompletion private var __glFragmentSource:String;
+	@:noCompletion private var __glFragmentSourceRaw:String;
 	@:noCompletion private var __glSourceDirty:Bool;
+	@:noCompletion private var __glVertexHeaderRaw:String;
+	@:noCompletion private var __glVertexBodyRaw:String;
+	@:noCompletion private var __glVertexSourceRaw:String;
 	@:noCompletion private var __glVertexSource:String;
 	@:noCompletion private var __hasColorTransform:ShaderParameter<Bool>;
 	@:noCompletion private var __inputBitmapData:Array<ShaderInput<BitmapData>>;
@@ -263,10 +300,6 @@ class Shader
 				get: untyped #if haxe4 js.Syntax.code #else __js__ #end ("function () { return this.get_data (); }"),
 				set: untyped #if haxe4 js.Syntax.code #else __js__ #end ("function (v) { return this.set_data (v); }")
 			},
-			"glVersion": {
-				get: untyped #if haxe4 js.Syntax.code #else __js__ #end ("function () { return this.get_glVersion (); }"),
-				set: untyped #if haxe4 js.Syntax.code #else __js__ #end ("function (v) { return this.set_glVersion (v); }")
-			},
 			"glVertexExtensions": {
 				get: untyped #if haxe4 js.Syntax.code #else __js__ #end ("function () { return this.get_glVertexExtensions (); }"),
 				set: untyped #if haxe4 js.Syntax.code #else __js__ #end ("function (v) { return this.set_glVertexExtensions (v); }")
@@ -275,9 +308,31 @@ class Shader
 				get: untyped #if haxe4 js.Syntax.code #else __js__ #end ("function () { return this.get_glFragmentExtensions (); }"),
 				set: untyped #if haxe4 js.Syntax.code #else __js__ #end ("function (v) { return this.set_glFragmentExtensions (v); }")
 			},
+			"glVersion": {
+				get: untyped #if haxe4 js.Syntax.code #else __js__ #end ("function () { return this.get_glVersion (); }"),
+				set: untyped #if haxe4 js.Syntax.code #else __js__ #end ("function (v) { return this.set_glVersion (v); }")
+			},
+			"glFragmentHeaderRaw": {
+				get: untyped #if haxe4 js.Syntax.code #else __js__ #end ("function () { return this.get_glFragmentHeaderRaw (); }"),
+			},
+			"glFragmentBodyRaw": {
+				get: untyped #if haxe4 js.Syntax.code #else __js__ #end ("function () { return this.get_glFragmentBodyRaw (); }"),
+			},
+			"glFragmentSourceRaw": {
+				get: untyped #if haxe4 js.Syntax.code #else __js__ #end ("function () { return this.get_glFragmentSourceRaw (); }"),
+			},
 			"glFragmentSource": {
 				get: untyped #if haxe4 js.Syntax.code #else __js__ #end ("function () { return this.get_glFragmentSource (); }"),
 				set: untyped #if haxe4 js.Syntax.code #else __js__ #end ("function (v) { return this.set_glFragmentSource (v); }")
+			},
+			"glVertexHeaderRaw": {
+				get: untyped #if haxe4 js.Syntax.code #else __js__ #end ("function () { return this.get_glVertexHeaderRaw (); }"),
+			},
+			"glVertexBodyRaw": {
+				get: untyped #if haxe4 js.Syntax.code #else __js__ #end ("function () { return this.get_glVertexBodyRaw (); }"),
+			},
+			"glVertexSourceRaw": {
+				get: untyped #if haxe4 js.Syntax.code #else __js__ #end ("function () { return this.get_glVertexSourceRaw (); }"),
 			},
 			"glVertexSource": {
 				get: untyped #if haxe4 js.Syntax.code #else __js__ #end ("function () { return this.get_glVertexSource (); }"),
@@ -320,7 +375,38 @@ class Shader
 		}
 	}
 
-	@:noCompletion private function __createGLShader(source:String, type:Int):GLShader {
+	// private function __clone ():Shader {
+	// var classType = Type.getClass (this);
+	// var shader = Type.createInstance (classType, []);
+	// for (input in __inputBitmapData) {
+	// 	if (input.input != null) {
+	// 		var field = Reflect.field (shader.data, input.name);
+	// 		field.channels = input.channels;
+	// 		field.height = input.height;
+	// 		field.input = input.input;
+	// 		field.smoothing = input.smoothing;
+	// 		field.width = input.width;
+	// 	}
+	// }
+	// for (param in __paramBool) {
+	// 	if (param.value != null) {
+	// 		Reflect.field (shader.data, param.name).value = param.value.copy ();
+	// 	}
+	// }
+	// for (param in __paramFloat) {
+	// 	if (param.value != null) {
+	// 		Reflect.field (shader.data, param.name).value = param.value.copy ();
+	// 	}
+	// }
+	// for (param in __paramInt) {
+	// 	if (param.value != null) {
+	// 		Reflect.field (shader.data, param.name).value = param.value.copy ();
+	// 	}
+	// }
+	// return shader;
+	// }
+	@:noCompletion private function __createGLShader(source:String, type:Int):GLShader
+	{
 		var gl = __context.gl;
 		
 		if (gl == null) {
@@ -429,34 +515,77 @@ class Shader
 		return shader;
 	}
 
+	/**
+	 * Retrieves the line number from a shader log line.
+	 */
+	#if windows
+	// 0(5) : whatever
+	@:noCompletion private var __lineExtractor = ~/^\d+\((\d+)\) : (.+$)/;
+	#else // (html5 || macos || linux)
+	// ERROR: 0:5:whatever
+	@:noCompletion private var __lineExtractor = ~/^\w+?: \d+:(\d+):(.+$)/;
+	#end
+
+	/**
+	 * Searches for strings that have only whitespace.
+	 *
+	 * **Note:** Searching for all whitespace via `~/^\s*$/` caused false-negatives,
+	 * notably: `String.fromCharCode(0)` is `false` but `\W` is `true`.
+	 */
+	@:noCompletion private var __isEmptyLine = ~/^\W*$/;
+	@:noCompletion private function __logGLShaderInfo(isError:Bool, type:Int, infoLog:String, source:String):Void
+	{
+		var message = "";
+		var lines = source.split("\n");
+		var failingLine:String = null;
+		for (log in infoLog.split("\n"))
+		{
+			// ignore empty lines
+			if (__isEmptyLine.match(log))
+				continue;
+
+			// look for a line number
+			if (!__lineExtractor.match(log))
+			{
+				// Could not find expected info, abort pretty formatting
+				failingLine = log;
+				break;
+			}
+
+			var lineNumberStr = __lineExtractor.matched(1);
+			var lineNumber = Std.parseInt(lineNumberStr);
+			var info = __lineExtractor.matched(2);
+			if (lineNumber >= lines.length)
+			{
+				// EOF errors will not have a valid line
+				message += '\n\n $lineNumber | $info';
+			}
+			else
+			{
+				// Add the relevant line to each log
+				var line = lines[lineNumber - 1];
+				var indent = StringTools.lpad("|", " ", lineNumberStr.length + 3);
+				message += '\n\n $lineNumber | $line\n$indent ${info}';
+			}
+		}
+
+		// If we couldn't parse the logs, output the old, verbose format
+		if (failingLine != null)
+			message = '\nFailed to simplify log:"$failingLine"\n$infoLog\n$source';
+
+		var typeName = (type == __context.gl.VERTEX_SHADER) ? "Vertex" : "Fragment";
+		if (isError) Log.error('Error compiling $typeName shader $message');
+		else Log.debug('Info compiling $typeName shader $message');
+	}
+
 	@:noCompletion private function __createGLProgram(vertexSource:String, fragmentSource:String):GLProgram
 	{
-		if (__context == null) {
-			Log.error("OpenGL context is null, cannot create shader program", null);
-			return null;
-		}
-		
 		var gl = __context.gl;
-		
-		if (gl == null) {
-			Log.error("WebGL context is null, cannot create shader program", null);
-			return null;
-		}
 
 		var vertexShader = __createGLShader(vertexSource, gl.VERTEX_SHADER);
 		var fragmentShader = __createGLShader(fragmentSource, gl.FRAGMENT_SHADER);
 
-		if (vertexShader == null || fragmentShader == null) {
-			Log.error("Failed to create vertex or fragment shader", null);
-			return null;
-		}
-
 		var program = gl.createProgram();
-		
-		if (program == null) {
-			Log.error("Failed to create shader program", null);
-			return null;
-		}
 
 		// Fix support for drivers that don't draw if attribute 0 is disabled
 		for (param in __paramFloat)
@@ -476,10 +605,7 @@ class Shader
 		{
 			var message = "Unable to initialize the shader program";
 			message += "\n" + gl.getProgramInfoLog(program);
-			Log.error(message, null);
-			
-			gl.deleteProgram(program);
-			return null;
+			Log.error(message);
 		}
 
 		return program;
@@ -503,8 +629,7 @@ class Shader
 		{
 			input.__disableGL(__context, textureCount);
 			textureCount++;
-			if (textureCount == gl.MAX_TEXTURE_IMAGE_UNITS)
-				break;
+			if (textureCount == gl.MAX_TEXTURE_IMAGE_UNITS) break;
 		}
 
 		for (parameter in __paramBool)
@@ -582,7 +707,7 @@ class Shader
 	@:noCompletion private function __buildSourcePrefix(isFragment:Bool):String
 	{
 		var extensions = "";
-		
+
 		var extList = (isFragment ? __glFragmentExtensions : __glVertexExtensions);
 		if (extList != null)
 		{
@@ -591,7 +716,7 @@ class Shader
 				extensions += "#extension " + ext.name + " : " + ext.behavior + "\n";
 			}
 		}
-		
+
 		var versionLine = "";
 		if (__glVersion != null && __glVersion != "")
 		{
@@ -603,7 +728,7 @@ class Shader
 			// Detect from context
 			#if (js && html5)
 			// WebGL 1.0 uses GLSL ES 1.00, WebGL 2.0 uses GLSL ES 3.00
-			var isWebGL2 = __context.__context.type == WEBGL && __context.__context.version?.indexOf("2") == 0;
+			var isWebGL2 = __context.__context.type == WEBGL && __context.__context.version != null && __context.__context.version.indexOf("2") == 0;
 			versionLine = isWebGL2 ? "#version 300 es\n" : ""; // 100 is default for WebGL 1.0
 			#elseif lime_opengles
 			// OpenGL ES version is usually like "OpenGL ES 2.0" or "OpenGL ES 3.0"
@@ -627,7 +752,7 @@ class Shader
 			versionLine = "#version 120\n";
 			#end
 		}
-		
+
 		var complexBlendsSupported = false;
 		var standardDerivativesSupported = false;
 		#if (lime || openfl)
@@ -635,18 +760,18 @@ class Shader
 		{
 			complexBlendsSupported = OpenGLRenderer.__complexBlendsSupported && isFragment;
 			standardDerivativesSupported = OpenGLRenderer.__standardDerivativesSupported && isFragment;
-			
+
 			// Additional checks based on context type and version
 			if (complexBlendsSupported)
 			{
 				#if lime
 				var versionStr = __context.__context.version;
-				
+
 				if (__context.__context.type == OPENGL)
 				{
 					var major = __parseGLVersionMajor(versionStr);
 					var minor = __parseGLVersionMinor(versionStr);
-					
+
 					var versionOK = (major > 4) || (major == 4) || (major == 3 && minor >= 2);
 					var hasExtension = __context.gl.getExtension("GL_KHR_blend_equation_advanced") != null;
 					complexBlendsSupported = versionOK || hasExtension;
@@ -664,11 +789,11 @@ class Shader
 			}
 		}
 		#end
-		
+
 		if (complexBlendsSupported)
 		{
 			extensions += "#extension GL_KHR_blend_equation_advanced : enable\n";
-			
+
 			#if lime
 			if (__context != null && __context.__context.type == OPENGL)
 			{
@@ -681,7 +806,7 @@ class Shader
 		{
 			extensions += "#extension GL_OES_standard_derivatives : enable\n";
 		}
-		
+
 		var precisionPart = "";
 		if (versionLine.indexOf("es") > -1 || versionLine == "" || versionLine == "#version 100\n")
 		{
@@ -691,16 +816,16 @@ class Shader
 						+ "precision mediump float;\n"
 						+ "#endif" : "precision lowp float;");
 		}
-		
+
 		var prefix = versionLine
 			+ extensions
 			+ (precisionPart != "" ? "#ifdef GL_ES\n" + precisionPart + "\n#endif\n" : "");
-		
+
 		if (complexBlendsSupported)
 		{
 			prefix += "#ifdef GL_KHR_blend_equation_advanced\nlayout (blend_support_all_equations) out;\n#endif\n";
 		}
-		
+
 		return prefix;
 	}
 
@@ -710,7 +835,7 @@ class Shader
 	@:noCompletion private function __parseGLVersionMajor(versionStr:String):Int
 	{
 		if (versionStr == null || versionStr == "") return 0;
-		
+
 		var dotIndex = versionStr.indexOf(".");
 		if (dotIndex > 0)
 		{
@@ -726,7 +851,7 @@ class Shader
 	@:noCompletion private function __parseGLVersionMinor(versionStr:String):Int
 	{
 		if (versionStr == null || versionStr == "") return 0;
-		
+
 		var firstDot = versionStr.indexOf(".");
 		if (firstDot > 0)
 		{
@@ -747,10 +872,10 @@ class Shader
 	@:noCompletion private function __getGLSLVersionFromGLVersion(versionStr:String):String
 	{
 		if (versionStr == null || versionStr == "") return null;
-		
+
 		var major = __parseGLVersionMajor(versionStr);
 		var minor = __parseGLVersionMinor(versionStr);
-		
+
 		if (major >= 3)
 		{
 			if (major == 3)
@@ -764,13 +889,13 @@ class Shader
 				return "330";
 			}
 		}
-		
+
 		if (major == 2)
 		{
 			if (minor >= 1) return "120";
 			return "110";
 		}
-		
+
 		return "120";
 	}
 
@@ -794,35 +919,38 @@ class Shader
 		if (__context != null && program == null)
 		{
 			var gl = __context.gl;
-			
+
 			if (gl == null) {
 				Log.error("WebGL context is not available for shader initialization");
 				return;
 			}
 
+			var vertexSource = glVertexSource;
+			var fragmentSource = glFragmentSource;
+
 			var vertexPrefix = __buildSourcePrefix(false);
 			var fragmentPrefix = __buildSourcePrefix(true);
-
-			var vertex = vertexPrefix + glVertexSource;
-			var fragment = fragmentPrefix + glFragmentSource;
 
 			var usesGLSL300 = vertexPrefix.indexOf("#version 300 es") != -1
 				|| fragmentPrefix.indexOf("#version 300 es") != -1;
 
 			if (usesGLSL300)
 			{
-				vertex = vertex.replace("attribute", "in")
+				vertexSource = vertexSource.replace("attribute", "in")
 					.replace("varying", "out");
 
-				fragment = fragment.replace("varying", "in")
+				fragmentSource = fragmentSource.replace("varying", "in")
 					.replace("texture2D", "texture");
 
-				if (fragment.indexOf("gl_FragColor") != -1)
+				if (fragmentSource.indexOf("gl_FragColor") != -1)
 				{
-					fragment = "out vec4 output_FragColor;\n" + fragment;
-					fragment = fragment.replace("gl_FragColor", "output_FragColor");
+					fragmentSource = "out vec4 output_FragColor;\n" + fragmentSource;
+					fragmentSource = fragmentSource.replace("gl_FragColor", "output_FragColor");
 				}
 			}
+
+			var vertex = vertexPrefix + vertexSource;
+			var fragment = fragmentPrefix + fragmentSource;
 
 			var id = vertex + fragment;
 
@@ -836,7 +964,7 @@ class Shader
 
 				if (program != null) {
 					var glProgram = __createGLProgram(vertex, fragment);
-					
+
 					if (glProgram != null) {
 						program.__glProgram = glProgram;
 						__context.__programs.set(id, program);
@@ -952,8 +1080,7 @@ class Shader
 				}
 
 				Reflect.setField(__data, name, input);
-				if (__isGenerated)
-					Reflect.setField(this, name, input);
+				if (__isGenerated) Reflect.setField(this, name, input);
 			}
 			else if (!Reflect.hasField(__data, name) || Reflect.field(__data, name) == null)
 			{
@@ -1019,8 +1146,7 @@ class Shader
 						}
 
 						Reflect.setField(__data, name, parameter);
-						if (__isGenerated)
-							Reflect.setField(this, name, parameter);
+						if (__isGenerated) Reflect.setField(this, name, parameter);
 
 					case INT, INT2, INT3, INT4:
 						var parameter = new ShaderParameter<Int>();
@@ -1032,8 +1158,7 @@ class Shader
 						parameter.__length = length;
 						__paramInt.push(parameter);
 						Reflect.setField(__data, name, parameter);
-						if (__isGenerated)
-							Reflect.setField(this, name, parameter);
+						if (__isGenerated) Reflect.setField(this, name, parameter);
 
 					default:
 						var parameter = new ShaderParameter<Float>();
@@ -1041,8 +1166,7 @@ class Shader
 						parameter.type = parameterType;
 						parameter.__arrayLength = arrayLength;
 						#if lime
-						if (arrayLength > 0)
-							parameter.__uniformMatrix = new Float32Array(arrayLength * arrayLength);
+						if (arrayLength > 0) parameter.__uniformMatrix = new Float32Array(arrayLength * arrayLength);
 						#end
 						parameter.__isFloat = true;
 						parameter.__isUniform = isUniform;
@@ -1065,8 +1189,7 @@ class Shader
 						}
 
 						Reflect.setField(__data, name, parameter);
-						if (__isGenerated)
-							Reflect.setField(this, name, parameter);
+						if (__isGenerated) Reflect.setField(this, name, parameter);
 				}
 			}
 
@@ -1120,7 +1243,11 @@ class Shader
 	@:noCompletion private function __updateGLFromBuffer(shaderBuffer:ShaderBuffer, bufferOffset:Int):Void
 	{
 		var textureCount = 0;
-		var input, inputData, inputFilter, inputMipFilter, inputWrap;
+		var input:ShaderInput<BitmapData>;
+		var inputData:BitmapData;
+		var inputFilter:Context3DTextureFilter;
+		var inputMipFilter:Context3DMipFilter;
+		var inputWrap:Context3DWrapMode;
 
 		for (i in 0...shaderBuffer.inputCount)
 		{
@@ -1166,10 +1293,13 @@ class Shader
 		var floatCount = shaderBuffer.paramFloatCount;
 		var paramData = shaderBuffer.paramData;
 
-		var boolRef, floatRef, intRef, hasOverride;
-		var overrideBoolValue:Array<Bool> = null,
-			overrideFloatValue:Array<Float> = null,
-			overrideIntValue:Array<Int> = null;
+		var boolRef:ShaderParameter<Bool>;
+		var floatRef:ShaderParameter<Float>;
+		var intRef:ShaderParameter<Int>;
+		var hasOverride:Bool;
+		var overrideBoolValue:Array<Bool> = null;
+		var overrideFloatValue:Array<Float> = null;
+		var overrideIntValue:Array<Int> = null;
 
 		for (i in 0...shaderBuffer.paramCount)
 		{
@@ -1269,6 +1399,16 @@ class Shader
 		return __data = cast value;
 	}
 
+	@:noCompletion private function get_glFragmentBodyRaw():String
+	{
+		return __glFragmentBodyRaw;
+	}
+
+	@:noCompletion private function get_glFragmentHeaderRaw():String
+	{
+		return __glFragmentHeaderRaw;
+	}
+
 	@:noCompletion private function get_glFragmentSource():String
 	{
 		return __glFragmentSource;
@@ -1284,6 +1424,11 @@ class Shader
 		return __glFragmentSource = value;
 	}
 
+	@:noCompletion private function get_glFragmentSourceRaw():String
+	{
+		return __glFragmentSourceRaw;
+	}
+
 	@:noCompletion private function get_glVertexSource():String
 	{
 		return __glVertexSource;
@@ -1297,6 +1442,11 @@ class Shader
 		}
 
 		return __glVertexSource = value;
+	}
+
+	@:noCompletion private function get_glVertexSourceRaw():String
+	{
+		return __glVertexSourceRaw;
 	}
 
 	@:noCompletion private function get_glVersion():String
@@ -1339,6 +1489,16 @@ class Shader
 			__glSourceDirty = true;
 		}
 		return __glFragmentExtensions = value;
+	}
+
+	@:noCompletion private function get_glVertexHeaderRaw():String
+	{
+		return __glVertexHeaderRaw;
+	}
+
+	@:noCompletion private function get_glVertexBodyRaw():String
+	{
+		return __glVertexBodyRaw;
 	}
 }
 #else

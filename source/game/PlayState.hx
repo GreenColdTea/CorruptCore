@@ -802,8 +802,8 @@ class PlayState extends MusicBeatState
 		boyfriendGroup.add(boyfriend);
 		startCharacterScripts(boyfriend.curCharacter);
 
-		add(grpRatings);
 		add(grpCombos);
+		add(grpRatings);
 		add(grpNumbers);
 
 		var camPos:FlxPoint = FlxPoint.get(girlfriendCameraOffset[0], girlfriendCameraOffset[1]);
