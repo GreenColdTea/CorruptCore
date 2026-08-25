@@ -1359,7 +1359,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			var eventName = eventStuff[id][0];
 			descText.text = eventStuff[id][1] ?? "No description available lol.";
 
-			if (selectedNotes.length > 0) {
+			if (selectedNotes.length > 1) {
 				for (note in selectedNotes) {
 					if (note.chartNoteData < 0) {
 						if (note.songData[1][0] != null) {
@@ -1383,7 +1383,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		value2InputText = new PsychUIInputText(20, 150, 100, "");
 
 		value1InputText.onChange = function(old, curText) {
-			if (selectedNotes.length > 0) {
+			if (selectedNotes.length > 1) {
 				for (note in selectedNotes) {
 					if (note.chartNoteData < 0) {
 						if (note.songData[1][0] != null) {
@@ -1406,7 +1406,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		};
 
 		value2InputText.onChange = function(old, curText) {
-			if (selectedNotes.length > 0) {
+			if (selectedNotes.length > 1) {
 				for (note in selectedNotes) {
 					if (note.chartNoteData < 0) {
 						if (note.songData[1][0] != null) {
@@ -3053,7 +3053,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 	function updateNoteUI():Void
 	{
-		if (selectedNotes.length > 0)
+		if (selectedNotes.length > 1)
 		{
 			var firstNote = selectedNotes[0];
 			var allSameSustain:Bool = true;
