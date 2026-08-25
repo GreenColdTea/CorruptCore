@@ -3164,6 +3164,10 @@ class PlayState extends MusicBeatState
 		}
 
 		final rating:FlxSprite = grpRatings.recycle(FlxSprite);
+		
+		grpRatings.remove(rating, true);
+		grpRatings.add(rating);
+		
 		rating.alpha = 1;
 		rating.loadGraphic(Paths.image(pixelShitPart1 + daRating.image + pixelShitPart2));
 		rating.screenCenter();
@@ -3175,6 +3179,10 @@ class PlayState extends MusicBeatState
 		rating.visible = (!ClientPrefs.hideHud && showRating);
 
 		final comboSpr:FlxSprite = grpCombos.recycle(FlxSprite);
+
+		grpCombos.remove(comboSpr, true);
+		grpCombos.add(comboSpr);
+		
 		comboSpr.alpha = 1;
 		comboSpr.loadGraphic(Paths.image(pixelShitPart1 + 'combo' + pixelShitPart2));
 		comboSpr.screenCenter();
@@ -3182,7 +3190,9 @@ class PlayState extends MusicBeatState
 		comboSpr.y += ClientPrefs.comboOffset[5] + 35;
 		comboSpr.acceleration.y = FlxG.random.int(200, 300) * playbackRate * playbackRate;
 		comboSpr.velocity.y = -FlxG.random.int(140, 160) * playbackRate;
-		comboSpr.visible = (!ClientPrefs.hideHud && showCombo);
+		
+		comboSpr.visible = (!ClientPrefs.hideHud && showCombo && combo > 0 && combo % 10 == 0);
+		
 		comboSpr.velocity.x = FlxG.random.int(1, 10) * playbackRate;
 
 		if (!ClientPrefs.comboStacking)
@@ -3223,6 +3233,10 @@ class PlayState extends MusicBeatState
 		for (i in seperatedScore)
 		{
 			final numScore:FlxSprite = grpNumbers.recycle(FlxSprite);
+
+			grpNumbers.remove(numScore, true);
+			grpNumbers.add(numScore);
+			
 			numScore.alpha = 1;
 			numScore.loadGraphic(Paths.image(pixelShitPart1 + 'num' + Std.int(i) + pixelShitPart2));
 			numScore.screenCenter();
@@ -4639,16 +4653,21 @@ class PlayState extends MusicBeatState
 		Thread.create(() -> {
 			while (!endingSong && !paused && !shutdownThread)
 			{
-				if (requiresSyncing) continue;
+				if (requiresSyncing)
+				{
+					Sys.sleep(0.25);
+					continue;
+				}
 
 				if (gameFroze)
 				{
 					lastCorrectSongPos = Conductor.songPosition;
 					requiresSyncing = true;
+					Sys.sleep(0.25);
 					continue;
 				}
+				
 				gameFroze = true;
-
 				Sys.sleep(0.25);
 			}
 		});
