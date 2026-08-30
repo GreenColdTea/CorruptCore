@@ -22,6 +22,13 @@ using flixel.util.FlxColorTransformUtil;
 
 class TileRender extends flixel.FlxStrip
 {
+    static var sharedVertices:Vector<Float> = new Vector<Float>(2048, false);
+    static var sharedUvtData:Vector<Float> = new Vector<Float>(2048, false);
+    static var sharedIndices:Vector<Int> = new Vector<Int>(2048, false);
+    static var sharedColorTransform:ColorTransform = new ColorTransform();
+    static var sharedVec3_0:Vector3 = new Vector3(0, 0, 0);
+    static var sharedVec3_1:Vector3 = new Vector3(0, 0, 0);
+
     static inline final PIXEL_OFFSET_X:Float = 5.0;
 
     public var tailAnim(default, set):String = null;
@@ -120,11 +127,20 @@ class TileRender extends flixel.FlxStrip
             if (!camera.visible || !camera.exists) continue;
             
             final origCT = this.colorTransform;
-            @:privateAccess final ct:ColorTransform = origCT?.__clone() ?? new ColorTransform();
-            ct.alphaMultiplier *= camera.alpha;
+            
+            sharedColorTransform.redMultiplier = origCT?.redMultiplier ?? 1.0;
+            sharedColorTransform.greenMultiplier = origCT?.greenMultiplier ?? 1.0;
+            sharedColorTransform.blueMultiplier = origCT?.blueMultiplier ?? 1.0;
+            sharedColorTransform.alphaMultiplier = (origCT?.alphaMultiplier ?? 1.0) * camera.alpha;
+            sharedColorTransform.redOffset = origCT?.redOffset ?? 0;
+            sharedColorTransform.greenOffset = origCT?.greenOffset ?? 0;
+            sharedColorTransform.blueOffset = origCT?.blueOffset ?? 0;
+            sharedColorTransform.alphaOffset = origCT?.alphaOffset ?? 0;
 
-            this.colorTransform = ct;
+            this.colorTransform = sharedColorTransform;
+
             super.draw();
+            
             this.colorTransform = origCT;
         }  
           
@@ -149,18 +165,23 @@ class TileRender extends flixel.FlxStrip
 
     private function allocateBuffers(neededVertices:Int, neededIndices:Int):Void 
     {
-        if (vertices == null || vertices.length < neededVertices) 
+        if (sharedVertices.length < neededVertices) 
         {
-            final allocSize = neededVertices + 128;
-            final allocIdx = neededIndices + 128;
+            final allocSize = neededVertices + 512;
+            final allocIdx = neededIndices + 512;
 
-            vertices = new Vector<Float>(allocSize, false);
-            uvtData = new Vector<Float>(allocSize, false);
-            indices = new Vector<Int>(allocIdx, false);
+            sharedVertices = new Vector<Float>(allocSize, false);
+            sharedUvtData = new Vector<Float>(allocSize, false);
+            sharedIndices = new Vector<Int>(allocIdx, false);
         }
-        vertices.length = neededVertices;
-        uvtData.length = neededVertices;
-        indices.length = neededIndices;
+        
+        sharedVertices.length = neededVertices;
+        sharedUvtData.length = neededVertices;
+        sharedIndices.length = neededIndices;
+
+        this.vertices = sharedVertices;
+        this.uvtData = sharedUvtData;
+        this.indices = sharedIndices;
     }
 
     @:access(game.PlayState)
@@ -258,8 +279,8 @@ class TileRender extends flixel.FlxStrip
                     final td0 = songPos - t0;
                     final td0_next = td0 - 1.0;
 
-                    final bent0:Vector3 = modMgr.getPos(t0, td0 * speedMult, td0, cBeat, hNoteData, pN, headNote);
-                    final bent0_next:Vector3 = modMgr.getPos(t0 + 1.0, td0_next * speedMult, td0_next, cBeat, hNoteData, pN, headNote);
+                    final bent0 = modMgr.getPos(t0, td0 * speedMult, td0, cBeat, hNoteData, pN, headNote, null, sharedVec3_0);
+                    final bent0_next = modMgr.getPos(t0 + 1.0, td0_next * speedMult, td0_next, cBeat, hNoteData, pN, headNote, null, sharedVec3_1);
 
                     cx0 = bent0.x + offsets.x;
                     cy0 = bent0.y + offsets.y;
@@ -281,9 +302,9 @@ class TileRender extends flixel.FlxStrip
                 final t1 = pointTimeBase + (currentLengthMs * timeProg1);
                 final td1 = songPos - t1;
                 final td1_next = td1 - 1.0;
-                  
-                final bent1:Vector3 = modMgr.getPos(t1, td1 * speedMult, td1, cBeat, hNoteData, pN, headNote);
-                final bent1_next:Vector3 = modMgr.getPos(t1 + 1.0, td1_next * speedMult, td1_next, cBeat, hNoteData, pN, headNote); 
+                
+                final bent1 = modMgr.getPos(t1, td1 * speedMult, td1, cBeat, hNoteData, pN, headNote, null, sharedVec3_0);
+                final bent1_next = modMgr.getPos(t1 + 1.0, td1_next * speedMult, td1_next, cBeat, hNoteData, pN, headNote, null, sharedVec3_1); 
 
                 final cx1 = bent1.x + offsets.x;
                 final cy1 = bent1.y + offsets.y;
@@ -344,9 +365,14 @@ class TileRender extends flixel.FlxStrip
         getScreenPosition(_point, camera).subtract(offset.x, offset.y).add(origin.x, origin.y);
         _matrix.translate(_point.x, _point.y);
         
-        @:privateAccess
-        final ct:ColorTransform = colorTransform?.__clone() ?? new ColorTransform();
-        ct.alphaMultiplier *= camera.alpha;
+        sharedColorTransform.redMultiplier = colorTransform?.redMultiplier ?? 1.0;
+        sharedColorTransform.greenMultiplier = colorTransform?.greenMultiplier ?? 1.0;
+        sharedColorTransform.blueMultiplier = colorTransform?.blueMultiplier ?? 1.0;
+        sharedColorTransform.alphaMultiplier = (colorTransform?.alphaMultiplier ?? 1.0) * camera.alpha;
+        sharedColorTransform.redOffset = colorTransform?.redOffset ?? 0;
+        sharedColorTransform.greenOffset = colorTransform?.greenOffset ?? 0;
+        sharedColorTransform.blueOffset = colorTransform?.blueOffset ?? 0;
+        sharedColorTransform.alphaOffset = colorTransform?.alphaOffset ?? 0;
         
         if (isPixelPerfectRender(camera))
         {
@@ -354,8 +380,8 @@ class TileRender extends flixel.FlxStrip
             _matrix.ty = Math.floor(_matrix.ty);
         }
 
-        final hasRGB = ct.redMultiplier != 1 || ct.greenMultiplier != 1 || ct.blueMultiplier != 1;
-        final hasOffsets = ct.alphaMultiplier != 1 || ct.redOffset != 0 || ct.greenOffset != 0 || ct.blueOffset != 0 || ct.alphaOffset != 0;
+        final hasRGB = sharedColorTransform.redMultiplier != 1 || sharedColorTransform.greenMultiplier != 1 || sharedColorTransform.blueMultiplier != 1;
+        final hasOffsets = sharedColorTransform.alphaMultiplier != 1 || sharedColorTransform.redOffset != 0 || sharedColorTransform.greenOffset != 0 || sharedColorTransform.blueOffset != 0 || sharedColorTransform.alphaOffset != 0;
         final batch = camera.startQuadBatch(_frame.parent, hasRGB, hasOffsets, blend, antialiasing, shader);
           
         final bodyIndex = flipY ? tileCount - 1 : 0;
@@ -385,14 +411,14 @@ class TileRender extends flixel.FlxStrip
                     _matrix.translate(clipOffset * _sinAngle, -clipOffset * _cosAngle);
                 }
 
-                batch.addQuad(frameToDraw, _matrix, ct);
+                batch.addQuad(frameToDraw, _matrix, sharedColorTransform);
                 offsetAmount = frameToDraw.frame.height * absScaleY;
                 frameToDraw.frame.height += clipReduction;
                 frameToDraw.frame.y -= clipReduction;
             }
             else
             {
-                batch.addQuad(frameToDraw, _matrix, ct);
+                batch.addQuad(frameToDraw, _matrix, sharedColorTransform);
             }
 
             _matrix.translate(-offsetAmount * _sinAngle, offsetAmount * _cosAngle);
@@ -453,6 +479,10 @@ class TileRender extends flixel.FlxStrip
         tailFrame = FlxDestroyUtil.destroy(tailFrame);
         bodyFrame = FlxDestroyUtil.destroy(bodyFrame);
         originalFrame = null;
+        
+        vertices = null;
+        uvtData = null;
+        indices = null;
 
         super.destroy();
     }
