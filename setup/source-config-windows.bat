@@ -9,7 +9,7 @@ haxelib install tjson --quiet
 haxelib install hxjsonast --quiet
 haxelib git flixel https://github.com/FNF-CC-ENGINE/flixel.git
 haxelib git lime https://github.com/GreenColdTea/lime-fc.git
-haxelib git openfl https://github.com/GreenColdTea/openfl.git
+haxelib git openfl https://github.com/FNF-CC-ENGINE/openfl-fc
 haxelib install format --quiet
 haxelib install hxp --quiet
 haxelib install svg
