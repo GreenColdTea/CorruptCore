@@ -156,6 +156,10 @@ class Main extends Sprite
 
 		addChild(push);
 
+		//memory shit
+		if (!FlxG.signals.preStateCreate.has(memoryClean))
+            FlxG.signals.preStateCreate.add(memoryClean);
+
 		/*#if desktop
 		if(CoolUtil.hasVersion("Windows 10")) {
 			FlxG.stage.window.borderless = true;
@@ -163,6 +167,15 @@ class Main extends Sprite
 		}
 		#end*/
 	}
+
+	private static function memoryClean(newState:FlxState) {
+        final isPlay = (newState is game.PlayState || newState is game.states.options.OptionsState);
+        
+        if (!isPlay) FunkinCache.freeGraphicsFromMemory();
+
+        FunkinCache.clearUnusedMemory(!isPlay);
+        if (!isPlay) FunkinCache.clearStoredMemory();
+    }
 
 	/**
 	 * Colorblind mode stuff
@@ -254,10 +267,9 @@ class Main extends Sprite
 		}
 
 		if (intensity < 1) {
-			var identity = [1,0,0,0,0, 0,1,0,0,0, 0,0,1,0,0, 0,0,0,1,0];
-			for (i in 0...matrixShit.length) {
+			final identity = [1,0,0,0,0, 0,1,0,0,0, 0,0,1,0,0, 0,0,0,1,0];
+			for (i in 0...matrixShit.length)
 				matrixShit[i] = matrixShit[i] * intensity + identity[i] * (1 - intensity);
-			}
 		}
 		return matrixShit;
 	}

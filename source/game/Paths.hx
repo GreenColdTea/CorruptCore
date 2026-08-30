@@ -53,155 +53,6 @@ class Paths
     public static final SOUND_EXT = SOUND_EXTS[0];
     public static final VIDEO_EXT = VIDEO_EXTS[0];
 
-    public static function excludeAsset(key:String) {
-        if (!dumpExclusions.contains(key))
-            dumpExclusions.push(key);
-    }
-
-    public static var dumpExclusions:Array<String> =
-    [
-        getPath('music/freakyMenu.$SOUND_EXT'),
-    ];
-
-    public static var localTrackedAssets:Array<String> = [];
-    public static function clearUnusedMemory(cleanMajor:Bool = true) {
-        if (FlxG.state is PlayState) cleanMajor = false; // dont do major cleans ingame
-
-        missingAssets.clear();
-
-        var keysToRemove:Array<String> = [];
-        for (key in currentTrackedAssets.keys())
-        {
-            if (!localTrackedAssets.contains(key) && !dumpExclusions.contains(key))
-            {
-                final graphic = currentTrackedAssets.get(key);
-                if (graphic != null)
-                    destroyGraphic(graphic);
-
-                keysToRemove.push(key);
-                openfl.Assets.cache.removeBitmapData(key); 
-            }
-        }
-        
-        for (key in keysToRemove)
-            currentTrackedAssets.remove(key);
-
-        MemoryUtil.forceGC(cleanMajor);
-    }
-
-    @:access(flixel.system.frontEnds.BitmapFrontEnd._cache)
-    public static function clearStoredMemory() {
-        var flxgKeysToRemove:Array<String> = [];
-        for (key in FlxG.bitmap._cache.keys())
-        {
-            if (!currentTrackedAssets.exists(key)) {
-                final graphic = FlxG.bitmap.get(key);
-                if (graphic != null)
-                    destroyGraphic(graphic);
-
-                flxgKeysToRemove.push(key);
-            }
-        }
-
-        for (key in flxgKeysToRemove)
-            FlxG.bitmap.removeByKey(key);
-
-        var soundKeysToRemove:Array<String> = [];
-        for (key => asset in currentTrackedSounds)
-        {
-            if (!localTrackedAssets.contains(key) && !dumpExclusions.contains(key))
-            {
-                openfl.Assets.cache.removeSound(key);
-                soundKeysToRemove.push(key);
-            }
-        }
-        
-        for (key in soundKeysToRemove)
-            currentTrackedSounds.remove(key);
-
-        FlxG.bitmap.clearUnused();
-        
-        final protectedLibs:Array<String> = ["default", "preload"];
-
-        @:privateAccess
-        for (libName in Assets.libraries.keys()) 
-        {
-            if (!protectedLibs.contains(libName) && libName != null) 
-                openfl.Assets.cache.clear(libName);
-        }
-        
-        MemoryUtil.compact();
-
-        localTrackedAssets.resize(0);
-        
-        MemoryUtil.compact();
-        MemoryUtil.forceGC(true);
-        MemoryUtil.forceGC(true);
-    }
-    
-    public static function freeGraphicsFromMemory()
-    {
-        var protectedGfx:Array<FlxGraphic> = [];
-        function checkForGraphics(spr:Dynamic)
-        {
-            try
-            {
-                var grp:Array<Dynamic> = Reflect.getProperty(spr, 'members');
-                if(grp != null)
-                {
-                    for (member in grp)
-                        checkForGraphics(member);
-                    return;
-                }
-            }
-
-            try
-            {
-                var gfx:FlxGraphic = Reflect.getProperty(spr, 'graphic');
-                if(gfx != null) protectedGfx.push(gfx);
-            }
-        }
-
-        for (member in FlxG.state.members) checkForGraphics(member);
-
-        if(FlxG.state.subState != null)
-            for (member in FlxG.state.subState.members)
-                checkForGraphics(member);
-
-        for (key in currentTrackedAssets.keys())
-        {
-            if (!dumpExclusions.contains(key))
-            {
-                var graphic:FlxGraphic = currentTrackedAssets.get(key);
-                if(!protectedGfx.contains(graphic))
-                {
-                    destroyGraphic(graphic);
-                    currentTrackedAssets.remove(key);
-                }
-            }
-        }
-    }
-
-    inline static function destroyGraphic(graphic:FlxGraphic)
-    {
-        if (graphic?.bitmap != null)
-        {
-            graphic.bitmap.__texture?.dispose();
-            
-            if (graphic.bitmap.image != null)
-            {
-                graphic.bitmap.image.data = null;
-                graphic.bitmap.image = null;
-            }
-            
-            graphic.bitmap.disposeImage();
-            graphic.bitmap.dispose();
-            
-            FlxG.bitmap.remove(graphic);
-            graphic.destroy();
-        }
-    }
-
     public static var currentLevel:String;
     public static function setCurrentLevel(name:String)
     {
@@ -213,7 +64,7 @@ class Paths
         #if MODS_ALLOWED
         if(modsAllowed)
         {
-            var modded:String = Mods.modFolders(file);
+            final modded:String = Mods.modFolders(file);
             if(FileSystem.exists(modded)) return modded;
         }
         #end
@@ -221,7 +72,7 @@ class Paths
         //for backward compatibility
         if (library != null && library != "preload" && library != "default")
         {
-            var libraryPath = getLibraryPath(file, library);
+            final libraryPath = getLibraryPath(file, library);
             if (#if sys FileSystem.exists(libraryPath) || #end OpenFlAssets.exists(libraryPath))
                 return libraryPath;
         }
@@ -341,11 +192,6 @@ class Paths
     }
     #end
 
-    inline static public function file(file:String, type:AssetType = TEXT, ?library:String)
-    {
-        return getPath(file, type, library);
-    }
-
     inline static public function txt(key:String, ?library:String, ?modsAllowed:Bool = true)
     {
         return getPath('data/$key.txt', TEXT, library, modsAllowed);
@@ -405,7 +251,7 @@ class Paths
 
     inline static public function sound(key:String, ?library:String):Sound
     {
-        var sound:Sound = returnSound('sounds', key, library);
+        final sound:Sound = returnSound('sounds', key, library);
         return sound;
     }
 
@@ -414,7 +260,7 @@ class Paths
 
     inline static public function music(key:String, ?library:String):Sound
     {
-        var file:Sound = returnSound('music', key, library);
+        final file:Sound = returnSound('music', key, library);
         return file;
     }
 
@@ -507,22 +353,19 @@ class Paths
         return result;
     }
 
-    public static var currentTrackedAssets:Map<String, FlxGraphic> = [];
-    public static var missingAssets:Map<String, Bool> = [];
-
     static public function image(key:String, ?library:String = null, ?allowGPU:Bool = true):FlxGraphic
     {
-        if (currentTrackedAssets.exists(key))
+        if (FunkinCache.currentTrackedAssets.exists(key))
         {
-            localTrackedAssets.push(key);
-            return currentTrackedAssets.get(key);
+            FunkinCache.localTrackedAssets.push(key);
+            return FunkinCache.currentTrackedAssets.get(key);
         }
         return cacheBitmap(key, library, null, allowGPU);
     }
 
     static public function cacheBitmap(key:String, ?library:String = null, ?bitmap:BitmapData = null, ?allowGPU:Bool = true)
     {
-        if (missingAssets.exists(key)) return null;
+        if (FunkinCache.missingAssets.exists(key)) return null;
 
         if (bitmap == null)
         {
@@ -572,7 +415,7 @@ class Paths
             if (bitmap == null)
             {
                 trace('Bitmap not found for key: $key (tried: ${IMAGE_EXTS.join(", ")})');
-                missingAssets.set(key, true);
+                FunkinCache.missingAssets.set(key, true);
                 return null;
             }
         }
@@ -596,8 +439,8 @@ class Paths
         graph.persist = true;
         graph.destroyOnNoUse = false;
 
-        currentTrackedAssets.set(key, graph);
-        localTrackedAssets.push(key);
+        FunkinCache.currentTrackedAssets.set(key, graph);
+        FunkinCache.localTrackedAssets.push(key);
         return graph;
     }
 
@@ -791,8 +634,7 @@ class Paths
         #if MODS_ALLOWED
         if (library != null)
         {
-            var modPath = Mods.modFolders('$library/images/$key');
-
+            final modPath = Mods.modFolders('$library/images/$key');
             if (FileSystem.exists(modPath))
                 path = modPath;
         }
@@ -816,8 +658,7 @@ class Paths
         #if MODS_ALLOWED
         if (library != null)
         {
-            var modPath = Mods.modFolders('$library/images/$key.gif');
-
+            final modPath = Mods.modFolders('$library/images/$key.gif');
             if (FileSystem.exists(modPath))
                 path = modPath;
         }
@@ -860,7 +701,6 @@ class Paths
         #end
     }
 
-    public static var currentTrackedSounds:Map<String, Sound> = [];
     public static function returnSound(path:Null<String>, key:String, ?library:String, ?beepOnNull:Bool = true) {
         #if MODS_ALLOWED
         var modLibPath:String = '';
@@ -875,19 +715,19 @@ class Paths
                 var filePath = parts.slice(1).join('/');
                 var tempPath = Mods.extractFileFromZipMod(mod, filePath, 'sounds');
                 if(tempPath != null) {
-                    if(!currentTrackedSounds.exists(file)) {
-                        currentTrackedSounds.set(file, Sound.fromFile(tempPath));
+                    if(!FunkinCache.currentTrackedSounds.exists(file)) {
+                        FunkinCache.currentTrackedSounds.set(file, Sound.fromFile(tempPath));
                     }
-                    localTrackedAssets.push(file);
-                    return currentTrackedSounds.get(file);
+                    FunkinCache.localTrackedAssets.push(file);
+                    return FunkinCache.currentTrackedSounds.get(file);
                 }
             }
             else if(FileSystem.exists(file)) {
-                if(!currentTrackedSounds.exists(file)) {
-                    currentTrackedSounds.set(file, Sound.fromFile(file));
+                if(!FunkinCache.currentTrackedSounds.exists(file)) {
+                    FunkinCache.currentTrackedSounds.set(file, Sound.fromFile(file));
                 }
-                localTrackedAssets.push(file);
-                return currentTrackedSounds.get(file);
+                FunkinCache.localTrackedAssets.push(file);
+                return FunkinCache.currentTrackedSounds.get(file);
             }
         }
         #end
@@ -895,11 +735,11 @@ class Paths
         for (ext in SOUND_EXTS) {
             var soundPath:String = getPath((path != null ? '$path/' : '') + '$key.$ext', SOUND, library);
             if(OpenFlAssets.exists(soundPath)) {
-                if(!currentTrackedSounds.exists(soundPath)) {
-                    currentTrackedSounds.set(soundPath, OpenFlAssets.getSound(soundPath));
+                if(!FunkinCache.currentTrackedSounds.exists(soundPath)) {
+                    FunkinCache.currentTrackedSounds.set(soundPath, OpenFlAssets.getSound(soundPath));
                 }
-                localTrackedAssets.push(soundPath);
-                return currentTrackedSounds.get(soundPath);
+                FunkinCache.localTrackedAssets.push(soundPath);
+                return FunkinCache.currentTrackedSounds.get(soundPath);
             }
         }
 

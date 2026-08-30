@@ -59,8 +59,8 @@ class OptionsState extends MusicBeatState
 
 	override function create() {
 		if (!onPlayState) {
-			Paths.clearStoredMemory();
-			Paths.clearUnusedMemory();
+			FunkinCache.clearStoredMemory();
+			FunkinCache.clearUnusedMemory();
 		}
 
 		#if DISCORD_ALLOWED

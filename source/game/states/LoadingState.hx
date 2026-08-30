@@ -127,9 +127,6 @@ class LoadingState extends MusicBeatState
 
     override function create()
     {
-        Paths.clearStoredMemory();
-        Paths.clearUnusedMemory(false);
-
         FlxTransitionableState.skipNextTransIn = true;
 
         var bg:FlxSprite = new FlxSprite(0, 0).makeGraphic(FlxG.width, FlxG.height, 0xffcaff4d);
@@ -360,7 +357,7 @@ class LoadingState extends MusicBeatState
                     audioProcessingPool.sendComplete({
                         mainThreadCallback: () -> {
                             if (sound != null) {
-                                Paths.currentTrackedSounds.set(path, sound);
+                                FunkinCache.currentTrackedSounds.set(path, sound);
                             }
                             onComplete();
                         }

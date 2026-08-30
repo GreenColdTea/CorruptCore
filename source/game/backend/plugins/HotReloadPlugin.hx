@@ -40,8 +40,8 @@ class HotReloadPlugin extends FlxBasic
 		if (FlxG.keys.justPressed.F6)
 		{
 			FlxG.signals.preStateCreate.addOnce((state) -> {
-				Paths.clearStoredMemory();
-				Paths.clearUnusedMemory();
+				FunkinCache.clearStoredMemory();
+				FunkinCache.clearUnusedMemory();
 			});
 			FlxTransitionableState.skipNextTransIn = FlxTransitionableState.skipNextTransOut = true;
 			FlxG.resetState();

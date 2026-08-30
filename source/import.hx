@@ -40,6 +40,7 @@ import android.os.BatteryManager as AndroidBatteryManager;
 import psych.ui.*;
 
 import game.backend.ClientPrefs;
+import game.backend.FunkinCache;
 import game.backend.utils.CoolUtil;
 import game.backend.utils.MemoryUtil;
 

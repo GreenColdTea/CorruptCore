@@ -261,8 +261,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	
 	override function create()
 	{
-		Paths.clearStoredMemory();
-
 		#if desktop
 		FlxG.stage.addEventListener(MouseEvent.RIGHT_MOUSE_DOWN, (e:MouseEvent) -> e.preventDefault());
 		#end
@@ -497,8 +495,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			backupManager.createAutoBackup(_song);
 			tmr.reset(backupInterval);
 		}, 0);
-
-		Paths.clearUnusedMemory();
 
 		super.create();
 	}

@@ -94,9 +94,6 @@ class TitleState extends MusicBeatState
 			needsFullReset = false;
 		}
 
-		Paths.clearStoredMemory();
-		Paths.clearUnusedMemory();
-
 		credGroup = new FlxGroup();
 		textGroup = new FlxGroup();
 
