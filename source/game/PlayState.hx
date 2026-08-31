@@ -601,7 +601,7 @@ class PlayState extends MusicBeatState
 		SONG ??= Song.loadFromJson('tutorial');
 
 		Conductor.mapBPMChanges(SONG);
-		Conductor.changeBPM(SONG.bpm);
+		Conductor.bpm = SONG.bpm;
 
 		#if DISCORD_ALLOWED
 		storyDifficultyText = CoolUtil.difficulties[storyDifficulty];
@@ -1737,7 +1737,7 @@ class PlayState extends MusicBeatState
 		}
 
 		final songData = SONG;
-		Conductor.changeBPM(songData.bpm);
+		Conductor.bpm = songData.bpm;
 
 		curSong = songData.song;
 
@@ -3127,7 +3127,7 @@ class PlayState extends MusicBeatState
 
 		score = Math.round(score * comboMult);
 
-		var daRating:Rating = Conductor.judgeNote(ratingsData, noteDiff / playbackRate);
+		var daRating:Rating = Rating.judgeNote(ratingsData, noteDiff / playbackRate);
 
 		totalNotesHit += daRating.ratingMod;
 		note.ratingMod = daRating.ratingMod;
@@ -4274,7 +4274,8 @@ class PlayState extends MusicBeatState
 
 			if (SONG.notes[curSection].changeBPM)
 			{
-				Conductor.changeBPM(SONG.notes[curSection].bpm);
+				Conductor.bpm = SONG.notes[curSection].bpm;
+
 				setOnScripts('curBpm', Conductor.bpm);
 				setOnScripts('crochet', Conductor.crochet);
 				setOnScripts('stepCrochet', Conductor.stepCrochet);

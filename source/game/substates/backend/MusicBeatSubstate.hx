@@ -59,7 +59,7 @@ class MusicBeatSubstate extends FlxSubState #if (HSCRIPT_ALLOWED && SCRIPTABLE_S
             }
         }
         
-        camSubState ??= cameras != null && cameras.length > 0 ? cameras[0] : FlxG.camera;
+        camSubState ??= cameras?.length > 0 ? cameras[0] : FlxG.camera;
     }
 
     public function showSubStateCamera():Void
@@ -172,9 +172,7 @@ class MusicBeatSubstate extends FlxSubState #if (HSCRIPT_ALLOWED && SCRIPTABLE_S
 
     private function updateCurStep():Void
     {
-        final lastChange = Conductor.getBPMFromSeconds(Conductor.songPosition);
-        final stepCrochet:Float = (lastChange.stepCrochet != null && lastChange.stepCrochet > 0) ? lastChange.stepCrochet : Conductor.stepCrochet;
-        curStep = lastChange.stepTime + Math.floor(((Conductor.songPosition - ClientPrefs.noteOffset) - lastChange.songTime) / stepCrochet);
+        curStep = Math.floor(Conductor.getStep(Conductor.songPosition - ClientPrefs.noteOffset));
     }
 
     public function stepHit():Void

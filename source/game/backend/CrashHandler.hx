@@ -1,5 +1,6 @@
 package game.backend;
 
+import openfl.display.Shader;
 import openfl.events.UncaughtErrorEvent;
 import openfl.events.ErrorEvent;
 import openfl.errors.Error;
@@ -8,9 +9,10 @@ import sys.FileSystem;
 import sys.io.File;
 #end
 import haxe.Exception;
-import flixel.FlxG;
+
 import lime.system.System;
 import openfl.system.System as OpenFlSystem;
+
 import game.backend.utils.CoolUtil;
 import game.states.MainMenuState;
 
@@ -36,6 +38,7 @@ class CrashHandler
             #elseif hl
             hl.Api.setErrorHandler(onError);
             #end
+            Shader.onShaderError = onShaderCrash;
         } catch (e:Exception) {
             trace("Failed to initialize crash handler: " + e.message);
         }
@@ -64,6 +67,40 @@ class CrashHandler
         handleCrash(log.join('\n'), "");
     }
     #end
+
+    private static function onShaderCrash(errorMessage:String, shaderType:String):Void
+    {
+        final fullError = 'SHADER COMPILATION ERROR ($shaderType):$errorMessage\n';
+        
+        #if sys
+        saveCrashLog(fullError);
+        #end
+        
+        switchAudioStatus(PAUSE);
+        
+        try {
+            showErrorPopup(fullError, "Critical Shader Error!");
+        } catch(e:Dynamic) {
+            trace("Failed to show shader error popup: " + e);
+        }
+        
+        try {
+            switchAudioStatus(RESUME);
+            FlxG.sound.playMusic(Paths.music('freakyMenu'));
+
+            FlxTransitionableState.skipNextTransIn = true;
+            FlxTransitionableState.skipNextTransOut = true;
+            FlxG.switchState(MainMenuState.new);
+        } catch (e:Dynamic) {
+            switchAudioStatus(STOP);
+            trace("Failed to switch to MainMenuState: " + e);
+            #if sys
+            System.exit(1);
+            #elseif js
+            js.Browser.window.location.reload();
+            #end
+        }
+    }
 
     private static function parseErrorMessage(error:Dynamic):String
     {
@@ -167,10 +204,10 @@ class CrashHandler
         }
     }
 
-    private static function showErrorPopup(message:String):Void
+    private static function showErrorPopup(message:String, ?title:String = "Error!", ?isScrollable:Bool = false):Void
     {
         try {
-            CoolUtil.showPopUp(message, "Error!", #if sl_windows_api MSG_ERROR #end);
+            CoolUtil.showPopUp(message, title, #if sl_windows_api MSG_ERROR #end, isScrollable);
         } catch (e:Dynamic) {
             trace("Failed to show error popup: " + e);
         }

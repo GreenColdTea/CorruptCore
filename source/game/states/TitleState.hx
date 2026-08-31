@@ -169,7 +169,8 @@ class TitleState extends MusicBeatState
 
 		if(!initialized && FlxG.sound.music == null) FlxG.sound.playMusic(Paths.music('freakyMenu'), 0);
 
-		Conductor.changeBPM(titleJSON.bpm);
+		Conductor.bpm = titleJSON.bpm;
+		
 		persistentUpdate = true;
 
 		swagShader = new ColorSwap();

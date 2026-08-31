@@ -234,7 +234,7 @@ class NoteOffsetState extends MusicBeatState
 
 		updateMode();
 
-		Conductor.changeBPM(128.0);
+		Conductor.bpm = 128.0;
 		FlxG.sound.playMusic(Paths.music('offsetSong'), 1, true);
 
 		super.create();
@@ -683,7 +683,7 @@ class NoteOffsetState extends MusicBeatState
 		calibrationProgress.text = "Auto-Calibration\nPress arrow keys to the beat!";
 		calibrationResult.text = "Starting on next beat...";
 		
-		Conductor.changeBPM(128.0);
+		Conductor.bpm = 128.0;
 		Conductor.songPosition = FlxG.sound.music.time;
 		
 		new FlxTimer().start(1, (_) -> {

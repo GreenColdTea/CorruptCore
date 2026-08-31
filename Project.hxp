@@ -252,6 +252,7 @@ class Project extends HXProject
         haxelibs.push(new Haxelib("flixel-animate"));
         haxelibs.push(new Haxelib("flixel-waveform"));
         haxelibs.push(new Haxelib("flxgif"));
+        haxelibs.push(new Haxelib("flxrhythmconductor"));
         haxelibs.push(new Haxelib("hxcpp"));
         haxelibs.push(new Haxelib("away3d"));
         haxelibs.push(new Haxelib("thx.semver"));

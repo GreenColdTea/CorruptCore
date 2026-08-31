@@ -375,7 +375,8 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		loadSong();
 		_cacheSections();
 		reloadGridLayer();
-		Conductor.changeBPM(_song.bpm);
+
+		Conductor.bpm = _song.bpm;
 		Conductor.mapBPMChanges(_song);
 
 		strumLine = new FlxSprite(0, 50).makeGraphic(Std.int(gridWidth), 4);
@@ -689,8 +690,9 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		stepperBPM.onValueChange = () -> {
 			tempBpm = stepperBPM.value;
 			if (!check_changeBPM.checked) metronomeStepper.value = stepperBPM.value;
+
 			Conductor.mapBPMChanges(_song);
-			Conductor.changeBPM(stepperBPM.value);
+			Conductor.bpm = stepperBPM.value;
 			
 			var startRedistributeFrom = 0;
 			for (i in 0..._song.notes.length) {
@@ -2870,24 +2872,12 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	}
 
 	function recalculateSteps(add:Float = 0):Int
-	{
-		var lastChange:BPMChangeEvent = {
-			stepTime: 0,
-			songTime: 0,
-			bpm: 0
-		}
+    {
+        curStep = Math.floor(Conductor.getStep(FlxG.sound.music.time + add));
+        updateBeat();
 
-		for (i in 0...Conductor.bpmChangeMap.length)
-		{
-			if (FlxG.sound.music.time > Conductor.bpmChangeMap[i].songTime)
-				lastChange = Conductor.bpmChangeMap[i];
-		}
-
-		curStep = lastChange.stepTime + Math.floor((FlxG.sound.music.time - lastChange.songTime + add) / Conductor.stepCrochet);
-		updateBeat();
-
-		return curStep;
-	}
+        return curStep;
+    }
 
 	private function addSection(sectionBeats:Float = 4):Void
 	{
@@ -3165,7 +3155,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 		renderedNotes.clear();
 
-		Conductor.changeBPM(_song.bpm);
+		Conductor.bpm = _song.bpm;
 
 		final songLength:Float = FlxG.sound.music?.length ?? 0;
 		for (secIndex in 0..._song.notes.length) {

@@ -129,11 +129,11 @@ class Main extends Sprite
 		lime.RawKeyboard.init();
 
 		lime.Native.registerAsGame();
-		lime.Native.setConsoleOutputToUTF8();
 
 		#if sl_windows_api
 		WindowsAPI.disableWindowsReport();
-		//WindowsAPI.disableWindowsGhosting();
+		WindowsAPI.disableWindowsGhosting();
+		WindowsAPI.setConsoleOutputToUTF8();
 		#end
 
 		#if VIDEOS_ALLOWED

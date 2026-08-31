@@ -26,12 +26,12 @@ class FunkinCache
     }
 
     public static function clearUnusedMemory(cleanMajor:Bool = true) {
-        if (FlxG.state != null && Type.getClassName(Type.getClass(FlxG.state)) == "game.PlayState") 
+        if (FlxG.state != null && FlxG.state is game.PlayState) 
             cleanMajor = false; 
 
         missingAssets.clear();
 
-        var keysToRemove:Array<String> = [];
+        final keysToRemove:Array<String> = [];
         for (key in currentTrackedAssets.keys()) {
             if (!localTrackedAssets.contains(key) && !dumpExclusions.contains(key)) {
                 final graphic = currentTrackedAssets.get(key);
@@ -51,10 +51,19 @@ class FunkinCache
 
     @:access(flixel.system.frontEnds.BitmapFrontEnd._cache)
     public static function clearStoredMemory() {
-        var flxgKeysToRemove:Array<String> = [];
+        final protectedGfx:Array<FlxGraphic> = getProtectedGraphics();
+
+        final flxgKeysToRemove:Array<String> = [];
         for (key in FlxG.bitmap._cache.keys()) {
             if (!currentTrackedAssets.exists(key)) {
+                if (key?.indexOf('text') != -1)
+                    continue;
+
                 final graphic = FlxG.bitmap.get(key);
+
+                if (graphic != null && protectedGfx.contains(graphic))
+                    continue;
+
                 if (graphic != null)
                     destroyGraphic(graphic);
 
@@ -65,7 +74,7 @@ class FunkinCache
         for (key in flxgKeysToRemove)
             FlxG.bitmap.removeByKey(key);
 
-        var soundKeysToRemove:Array<String> = [];
+        final soundKeysToRemove:Array<String> = [];
         for (key => asset in currentTrackedSounds) {
             if (!localTrackedAssets.contains(key) && !dumpExclusions.contains(key)) {
                 openfl.Assets.cache.removeSound(key);
@@ -86,38 +95,13 @@ class FunkinCache
                 openfl.Assets.cache.clear(libName);
         }
         
-        MemoryUtil.compact();
         localTrackedAssets.resize(0);
         MemoryUtil.compact();
-        MemoryUtil.forceGC(true);
+        MemoryUtil.forceGC();
     }
     
     public static function freeGraphicsFromMemory() {
-        var protectedGfx:Array<FlxGraphic> = [];
-        function checkForGraphics(spr:Dynamic) {
-            try {
-                var grp:Array<Dynamic> = Reflect.getProperty(spr, 'members');
-                if(grp != null) {
-                    for (member in grp)
-                        checkForGraphics(member);
-                    return;
-                }
-            }
-            catch(e:Dynamic) {}
-
-            try {
-                var gfx:FlxGraphic = Reflect.getProperty(spr, 'graphic');
-                if(gfx != null) protectedGfx.push(gfx);
-            }
-            catch(e:Dynamic) {}
-        }
-
-        if (FlxG.state != null) {
-            for (member in FlxG.state.members) checkForGraphics(member);
-            if(FlxG.state.subState != null)
-                for (member in FlxG.state.subState.members)
-                    checkForGraphics(member);
-        }
+        final protectedGfx:Array<FlxGraphic> = getProtectedGraphics();
 
         for (key in currentTrackedAssets.keys()) {
             if (!dumpExclusions.contains(key)) {
@@ -128,6 +112,41 @@ class FunkinCache
                 }
             }
         }
+    }
+
+    private static function getProtectedGraphics():Array<FlxGraphic> {
+        final protectedGfx:Array<FlxGraphic> = [];
+        
+        function checkForGraphics(spr:Dynamic) {
+            try {
+                final grp:Array<Dynamic> = Reflect.getProperty(spr, 'members');
+                if (grp != null) {
+                    for (member in grp)
+                        checkForGraphics(member);
+                    return;
+                }
+            }
+            catch(e:Dynamic) {}
+
+            try {
+                final gfx:FlxGraphic = Reflect.getProperty(spr, 'graphic');
+                if (gfx != null && !protectedGfx.contains(gfx)) 
+                    protectedGfx.push(gfx);
+            }
+            catch(e:Dynamic) {}
+        }
+
+        if (FlxG.state != null) {
+            for (member in FlxG.state.members) 
+                checkForGraphics(member);
+                
+            if (FlxG.state.subState != null) {
+                for (member in FlxG.state.subState.members)
+                    checkForGraphics(member);
+            }
+        }
+        
+        return protectedGfx;
     }
 
     public static inline function destroyGraphic(graphic:FlxGraphic) {

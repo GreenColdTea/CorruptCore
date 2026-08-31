@@ -89,13 +89,6 @@ class Native
 	#end
 	public static function registerAsGame():Void {}
 
-	public static function setConsoleOutputToUTF8():Void
-	{
-		#if (cpp && windows)
-		untyped __cpp__('SetConsoleOutputCP(CP_UTF8);');
-		#end
-	}
-
 	#if cpp
 	@:functionCode('
 		return std::thread::hardware_concurrency();

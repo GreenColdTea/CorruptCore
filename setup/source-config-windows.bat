@@ -26,6 +26,7 @@ haxelib git hxcpp https://github.com/GreenColdTea/hxcpp.git
 haxelib git hxvlc https://github.com/MAJigsaw77/hxvlc.git --quiet --skip-dependencies
 haxelib git flxgif https://github.com/FNF-CC-ENGINE/flxgif.git
 haxelib git flxsoundfilters https://github.com/TheZoroForce240/FlxSoundFilters.git
+haxelib git flxrhythmconductor https://github.com/PurSnake/FlxRhythmConductor.git --skip-dependencies
 haxelib git rulescript https://github.com/FNF-CC-ENGINE/RuleScript.git dev --skip-dependencies
 haxelib git hscript https://github.com/HaxeFoundation/hscript.git 0c7f99dbacd5382d9266cf8dfa6192ef80e58ea4
 haxelib git sl-windows-api https://github.com/GreenColdTea/windows-api-improved.git

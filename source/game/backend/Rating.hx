@@ -23,6 +23,17 @@ class Rating
         hitWindow ??= 0;
     }
 
+    public static function judgeNote(arr:Array<Rating>, diff:Float = 0):Rating
+    {
+        final data:Array<Rating> = arr;
+        
+        for(i in 0...data.length - 1)
+            if (diff <= data[i].hitWindow)
+                return data[i];
+
+        return data[data.length - 1];
+    }
+
     public function increase(blah:Int = 1)
     {
         Reflect.setField(PlayState.instance, counter, Reflect.field(PlayState.instance, counter) + blah);

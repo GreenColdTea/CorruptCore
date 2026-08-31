@@ -5,9 +5,10 @@ import flixel.FlxCamera;
 import flixel.FlxG;
 import flixel.graphics.frames.FlxFrame;
 import flixel.math.FlxRect;
+import flixel.math.FlxMath;
 import flixel.util.FlxDestroyUtil;
-import openfl.Vector;
 import openfl.geom.ColorTransform;
+import openfl.Vector;
 
 import game.objects.Note;
 import game.objects.Note.Sustain;
@@ -20,19 +21,20 @@ import math.Vector3;
 
 using flixel.util.FlxColorTransformUtil;
 
-class TileRender extends flixel.FlxStrip
+class TileRender extends FlxSprite 
 {
-    static var sharedVertices:Vector<Float> = new Vector<Float>(2048, false);
-    static var sharedUvtData:Vector<Float> = new Vector<Float>(2048, false);
-    static var sharedIndices:Vector<Int> = new Vector<Int>(2048, false);
+    static inline final PIXEL_OFFSET_X:Float = 5.0;
+
     static var sharedColorTransform:ColorTransform = new ColorTransform();
     static var sharedVec3_0:Vector3 = new Vector3(0, 0, 0);
     static var sharedVec3_1:Vector3 = new Vector3(0, 0, 0);
-
-    static inline final PIXEL_OFFSET_X:Float = 5.0;
+    
+    var sustainVertices:Vector<Float> = new Vector<Float>(256, false);
+    var sustainUvtData:Vector<Float> = new Vector<Float>(256, false);
+    var sustainIndices:Vector<Int> = new Vector<Int>(256, false);
 
     public var tailAnim(default, set):String = null;
-    public var segmentsPerTile:Int = 12;
+    public var segmentsPerTile:Int = !ClientPrefs.lowQuality ? 12 : 4;
 
     var tailFrame:FlxFrame;
     var bodyFrame:FlxFrame;
@@ -105,49 +107,8 @@ class TileRender extends flixel.FlxStrip
         
         if (modMgr.activeModInstances[playerNum] == null || modMgr.activeModInstances[playerNum].length == 0) return false;
 
-        buildMesh(pNote, PlayState.instance, modMgr, playerNum);
-        drawMeshToCameras();
+        drawBentSustainToCameras(pNote, PlayState.instance, modMgr, playerNum);
         return true;
-    }
-
-    private function drawMeshToCameras():Void 
-    {
-        final cache = {
-            angle: this.angle, scaleX: this.scale.x, scaleY: this.scale.y,
-            offsetX: this.offset.x, offsetY: this.offset.y,
-            originX: this.origin.x, originY: this.origin.y
-        };
-
-        this.angle = 0;
-        this.scale.set(1, 1);
-        this.offset.set(0, 0);
-        this.origin.set(0, 0);
-
-        for (camera in cameras) {  
-            if (!camera.visible || !camera.exists) continue;
-            
-            final origCT = this.colorTransform;
-            
-            sharedColorTransform.redMultiplier = origCT?.redMultiplier ?? 1.0;
-            sharedColorTransform.greenMultiplier = origCT?.greenMultiplier ?? 1.0;
-            sharedColorTransform.blueMultiplier = origCT?.blueMultiplier ?? 1.0;
-            sharedColorTransform.alphaMultiplier = (origCT?.alphaMultiplier ?? 1.0) * camera.alpha;
-            sharedColorTransform.redOffset = origCT?.redOffset ?? 0;
-            sharedColorTransform.greenOffset = origCT?.greenOffset ?? 0;
-            sharedColorTransform.blueOffset = origCT?.blueOffset ?? 0;
-            sharedColorTransform.alphaOffset = origCT?.alphaOffset ?? 0;
-
-            this.colorTransform = sharedColorTransform;
-
-            super.draw();
-            
-            this.colorTransform = origCT;
-        }  
-          
-        this.angle = cache.angle;
-        this.scale.set(cache.scaleX, cache.scaleY);
-        this.offset.set(cache.offsetX, cache.offsetY);
-        this.origin.set(cache.originX, cache.originY);
     }
 
     private function calculateOffsets(swagWidth:Float, zoom:Float, isPixel:Bool, dScroll:Bool):{x:Float, y:Float} 
@@ -165,27 +126,23 @@ class TileRender extends flixel.FlxStrip
 
     private function allocateBuffers(neededVertices:Int, neededIndices:Int):Void 
     {
-        if (sharedVertices.length < neededVertices) 
+        if (sustainVertices.length < neededVertices) 
         {
-            final allocSize = neededVertices + 512;
-            final allocIdx = neededIndices + 512;
+            final allocSize = neededVertices + 256;
+            final allocIdx = neededIndices + 256;
 
-            sharedVertices = new Vector<Float>(allocSize, false);
-            sharedUvtData = new Vector<Float>(allocSize, false);
-            sharedIndices = new Vector<Int>(allocIdx, false);
+            sustainVertices = new Vector<Float>(allocSize, false);
+            sustainUvtData = new Vector<Float>(allocSize, false);
+            sustainIndices = new Vector<Int>(allocIdx, false);
         }
         
-        sharedVertices.length = neededVertices;
-        sharedUvtData.length = neededVertices;
-        sharedIndices.length = neededIndices;
-
-        this.vertices = sharedVertices;
-        this.uvtData = sharedUvtData;
-        this.indices = sharedIndices;
+        sustainVertices.length = neededVertices;
+        sustainUvtData.length = neededVertices;
+        sustainIndices.length = neededIndices;
     }
 
     @:access(game.PlayState)
-    private function buildMesh(pNote:Note, state:PlayState, modMgr:ModManager, pN:Int):Void  
+    private function drawBentSustainToCameras(pNote:Note, state:PlayState, modMgr:ModManager, pN:Int):Void  
     {  
         final isPixel:Bool = PlayState.isPixelStage;
         final zoom:Float = PlayState.daPixelZoom;
@@ -201,21 +158,15 @@ class TileRender extends flixel.FlxStrip
         final tailIndex = flipY ? 0 : tileCount - 1;
 
         var tStuffVal:Float = 0.0;
-        var isHit:Bool = false;
 
         if (Std.isOfType(this, Sustain)) 
         {
             final sus:Sustain = cast this;
-            tStuffVal = sus.timeStuff;
-            isHit = sus.hit;
+            tStuffVal = sus.timeStuff; 
         }
 
         final songPos:Float = Conductor.songPosition;
-        
-        if (isHit) tStuffVal = songPos - pNote.strumTime;
-
-        var currentLengthMs:Float = Math.max(0, pNote.sustainLength - tStuffVal);
-
+        final currentLengthMs:Float = Math.max(0, pNote.sustainLength - tStuffVal);
         final pointTimeBase:Float = pNote.strumTime + tStuffVal;
         final cBeat:Float = state.curDecBeat ?? 0.0;
         
@@ -225,15 +176,13 @@ class TileRender extends flixel.FlxStrip
         final invTotalHeight = height > 0 ? 1.0 / height : 0;
           
         final swagWidth:Float = Note.swagWidth;
-        
         final dScroll:Bool = ClientPrefs.downScroll;
-        
         final offsets = calculateOffsets(swagWidth, zoom, isPixel, dScroll);
 
         var currentLocalY:Float = 0.0;
         var vIdx:Int = 0;
         var iIdx:Int = 0;
-        var cx0:Float = 0, cy0:Float = 0, normX0:Float = 1.0, normY0:Float = 0;
+        var cx0:Float = 0, cy0:Float = 0, normX0:Float = 1.0, normY0:Float = 0.0;
         var isFirstPoint = true;
 
         for (i in 0...tileCount)
@@ -273,8 +222,7 @@ class TileRender extends flixel.FlxStrip
                 final y1 = currentLocalY + (tileHeight * pEnd);
 
                 if (isFirstPoint) {
-                    var timeProg0 = flipY ? (1.0 - y0 * invTotalHeight) : (y0 * invTotalHeight);
-                    
+                    final timeProg0 = FlxMath.bound(flipY ? (1.0 - y0 * invTotalHeight) : (y0 * invTotalHeight), 0.0, 1.0);
                     final t0 = pointTimeBase + (currentLengthMs * timeProg0);
                     final td0 = songPos - t0;
                     final td0_next = td0 - 1.0;
@@ -297,8 +245,7 @@ class TileRender extends flixel.FlxStrip
                     isFirstPoint = false;
                 }
 
-                var timeProg1 = flipY ? (1.0 - y1 * invTotalHeight) : (y1 * invTotalHeight);
-
+                final timeProg1 = FlxMath.bound(flipY ? (1.0 - y1 * invTotalHeight) : (y1 * invTotalHeight), 0.0, 1.0);
                 final t1 = pointTimeBase + (currentLengthMs * timeProg1);
                 final td1 = songPos - t1;
                 final td1_next = td1 - 1.0;
@@ -324,26 +271,44 @@ class TileRender extends flixel.FlxStrip
                 final v0 = vTop + (vBot - vTop) * pStart;
                 final v1 = vTop + (vBot - vTop) * pEnd;
 
-                vertices[vIdx] = cx0 - normX0 * halfWidth; uvtData[vIdx++] = u0;
-                vertices[vIdx] = cy0 - normY0 * halfWidth; uvtData[vIdx++] = v0;
-                vertices[vIdx] = cx0 + normX0 * halfWidth; uvtData[vIdx++] = u1;
-                vertices[vIdx] = cy0 + normY0 * halfWidth; uvtData[vIdx++] = v0;
-                vertices[vIdx] = cx1 - normX1 * halfWidth; uvtData[vIdx++] = u0;
-                vertices[vIdx] = cy1 - normY1 * halfWidth; uvtData[vIdx++] = v1;
-                vertices[vIdx] = cx1 + normX1 * halfWidth; uvtData[vIdx++] = u1;
-                vertices[vIdx] = cy1 + normY1 * halfWidth; uvtData[vIdx++] = v1;
+                sustainVertices[vIdx] = cx0 - normX0 * halfWidth; sustainUvtData[vIdx++] = u0;
+                sustainVertices[vIdx] = cy0 - normY0 * halfWidth; sustainUvtData[vIdx++] = v0;
+                sustainVertices[vIdx] = cx0 + normX0 * halfWidth; sustainUvtData[vIdx++] = u1;
+                sustainVertices[vIdx] = cy0 + normY0 * halfWidth; sustainUvtData[vIdx++] = v0;
+                sustainVertices[vIdx] = cx1 - normX1 * halfWidth; sustainUvtData[vIdx++] = u0;
+                sustainVertices[vIdx] = cy1 - normY1 * halfWidth; sustainUvtData[vIdx++] = v1;
+                sustainVertices[vIdx] = cx1 + normX1 * halfWidth; sustainUvtData[vIdx++] = u1;
+                sustainVertices[vIdx] = cy1 + normY1 * halfWidth; sustainUvtData[vIdx++] = v1;
 
-                indices[iIdx++] = bVertex;
-                indices[iIdx++] = bVertex + 1;
-                indices[iIdx++] = bVertex + 2;
-                indices[iIdx++] = bVertex + 1;
-                indices[iIdx++] = bVertex + 3;
-                indices[iIdx++] = bVertex + 2;
+                sustainIndices[iIdx++] = bVertex;
+                sustainIndices[iIdx++] = bVertex + 1;
+                sustainIndices[iIdx++] = bVertex + 2;
+                sustainIndices[iIdx++] = bVertex + 1;
+                sustainIndices[iIdx++] = bVertex + 3;
+                sustainIndices[iIdx++] = bVertex + 2;
 
                 cx0 = cx1; cy0 = cy1;
                 normX0 = normX1; normY0 = normY1;
             }
             currentLocalY += tileHeight;
+        }
+
+        sharedColorTransform.redMultiplier = colorTransform?.redMultiplier ?? 1.0;
+        sharedColorTransform.greenMultiplier = colorTransform?.greenMultiplier ?? 1.0;
+        sharedColorTransform.blueMultiplier = colorTransform?.blueMultiplier ?? 1.0;
+        sharedColorTransform.redOffset = colorTransform?.redOffset ?? 0;
+        sharedColorTransform.greenOffset = colorTransform?.greenOffset ?? 0;
+        sharedColorTransform.blueOffset = colorTransform?.blueOffset ?? 0;
+        sharedColorTransform.alphaOffset = colorTransform?.alphaOffset ?? 0;
+
+        for (camera in cameras) 
+        {
+            if (!camera.visible || !camera.exists) continue;
+            
+            sharedColorTransform.alphaMultiplier = (colorTransform?.alphaMultiplier ?? 1.0) * camera.alpha;
+            getScreenPosition(_point, camera);
+            
+            camera.drawTriangles(_frame.parent, sustainVertices, sustainIndices, sustainUvtData, null, _point, blend, false, antialiasing, sharedColorTransform, shader);
         }
     }
     #end
@@ -381,7 +346,9 @@ class TileRender extends flixel.FlxStrip
         }
 
         final hasRGB = sharedColorTransform.redMultiplier != 1 || sharedColorTransform.greenMultiplier != 1 || sharedColorTransform.blueMultiplier != 1;
-        final hasOffsets = sharedColorTransform.alphaMultiplier != 1 || sharedColorTransform.redOffset != 0 || sharedColorTransform.greenOffset != 0 || sharedColorTransform.blueOffset != 0 || sharedColorTransform.alphaOffset != 0;
+        final hasOffsets = sharedColorTransform.alphaMultiplier != 1 || sharedColorTransform.redOffset != 0 || sharedColorTransform.greenOffset != 0 
+                || sharedColorTransform.blueOffset != 0 || sharedColorTransform.alphaOffset != 0;
+        
         final batch = camera.startQuadBatch(_frame.parent, hasRGB, hasOffsets, blend, antialiasing, shader);
           
         final bodyIndex = flipY ? tileCount - 1 : 0;
@@ -479,10 +446,10 @@ class TileRender extends flixel.FlxStrip
         tailFrame = FlxDestroyUtil.destroy(tailFrame);
         bodyFrame = FlxDestroyUtil.destroy(bodyFrame);
         originalFrame = null;
-        
-        vertices = null;
-        uvtData = null;
-        indices = null;
+
+        sustainVertices = null;
+        sustainUvtData = null;
+        sustainIndices = null;
 
         super.destroy();
     }

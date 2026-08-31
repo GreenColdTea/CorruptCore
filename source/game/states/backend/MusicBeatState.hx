@@ -222,12 +222,8 @@ class MusicBeatState extends FlxTransitionableState #if (HSCRIPT_ALLOWED && SCRI
 
     private function updateCurStep():Void
     {
-        final lastChange = Conductor.getBPMFromSeconds(Conductor.songPosition);
-
-        final stepCrochet:Float = (lastChange.stepCrochet != null && lastChange.stepCrochet > 0) ? lastChange.stepCrochet : Conductor.stepCrochet;
-        final shit = ((Conductor.songPosition - ClientPrefs.noteOffset) - lastChange.songTime) / stepCrochet;
-        curDecStep = lastChange.stepTime + shit;
-        curStep = lastChange.stepTime + Math.floor(shit);
+        curDecStep = Conductor.getStep(Conductor.songPosition - ClientPrefs.noteOffset);
+        curStep = Math.floor(curDecStep);
     }
 
     public static function getState():MusicBeatState {

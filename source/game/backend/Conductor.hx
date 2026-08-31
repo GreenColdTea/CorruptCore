@@ -3,10 +3,8 @@ package game.backend;
 import game.backend.Song.SwagSong;
 import game.objects.Note;
 
-/**
- * ...
- * @author
- */
+import flixel.addons.sound.FlxRhythmConductor;
+import flixel.addons.sound.MusicTimeChangeEvent;
 
 typedef BPMChangeEvent =
 {
@@ -18,17 +16,42 @@ typedef BPMChangeEvent =
 
 class Conductor
 {
-    public static var bpm:Float = 100;
-    public static var crochet:Float = ((60 / bpm) * 1000); // beats in milliseconds
-    public static var stepCrochet:Float = crochet / 4; // steps in milliseconds
-    public static var songPosition:Float = 0;
-    public static var lastSongPos:Float = 0;
+    public static var bpm(get, set):Float;
+    static function get_bpm():Float return FlxRhythmConductor.instance.currentBpm;
+    static function set_bpm(v:Float):Float 
+    {
+        if (v == FlxRhythmConductor.instance.currentBpm) return v;
+
+        if (FlxRhythmConductor.instance.timeChanges.length <= 1 && songPosition <= 0) {
+            FlxRhythmConductor.instance.setupTimeChanges([new MusicTimeChangeEvent(0, v)]);
+        } else {
+            final changes = FlxRhythmConductor.instance.timeChanges.copy();
+            changes.push(new MusicTimeChangeEvent(songPosition, v));
+            FlxRhythmConductor.instance.setupTimeChanges(changes);
+        }
+        return v;
+    }
+
+    public static var crochet(get, never):Float;
+    static inline function get_crochet():Float return FlxRhythmConductor.instance.beatLengthMs;
+
+    public static var stepCrochet(get, never):Float;
+    static inline function get_stepCrochet():Float return FlxRhythmConductor.instance.stepLengthMs;
+
+    public static var songPosition(default, set):Float = 0;
+    static function set_songPosition(val:Float):Float 
+    {
+        songPosition = val;
+        FlxRhythmConductor.instance.update(val);
+        return val;
+    }
+
     public static var offset:Float = ClientPrefs.noteOffset;
 
-    public static final ROWS_PER_BEAT = 48; // from Stepmania
+    public static final ROWS_PER_BEAT = 48; 
     public static final BEATS_PER_MEASURE = 4;
-    public static final ROWS_PER_MEASURE = ROWS_PER_BEAT * BEATS_PER_MEASURE; // from Stepmania
-    public static final MAX_NOTE_ROW = 1 << 30; // from Stepmania
+    public static final ROWS_PER_MEASURE = ROWS_PER_BEAT * BEATS_PER_MEASURE; 
+    public static final MAX_NOTE_ROW = 1 << 30; 
 
     public inline static function beatToRow(beat:Float):Int
         return Math.round(beat * ROWS_PER_BEAT);
@@ -39,124 +62,137 @@ class Conductor
     public inline static function secsToRow(sex:Float):Int
         return Math.round(getBeat(sex) * ROWS_PER_BEAT);
 
-    //public static var safeFrames:Int = 10;
-    public static var safeZoneOffset:Float = (ClientPrefs.safeFrames / 60) * 1000; // is calculated in create(), is safeFrames in milliseconds
+    public static var safeZoneOffset:Float = (ClientPrefs.safeFrames / 60) * 1000;
 
-    public static var bpmChangeMap:Array<BPMChangeEvent> = [];
-
-    public static function judgeNote(arr:Array<Rating>, diff:Float = 0):Rating
-	{
-		final data:Array<Rating> = arr;
-        
-		for(i in 0...data.length - 1) //skips last window (Shit)
-			if (diff <= data[i].hitWindow)
-				return data[i];
-
-		return data[data.length - 1];
-	}
-
-    public static function getCrotchetAtTime(time:Float){
-        var lastChange = getBPMFromSeconds(time);
-        return lastChange.stepCrochet*4;
-    }
-
-    public static function getBPMFromSeconds(time:Float){
-        var lastChange:BPMChangeEvent = {
-            stepTime: 0,
-            songTime: 0,
-            bpm: bpm,
-            stepCrochet: stepCrochet
-        }
-        for (i in 0...Conductor.bpmChangeMap.length)
-        {
-            if (time >= Conductor.bpmChangeMap[i].songTime)
-                lastChange = Conductor.bpmChangeMap[i];
-        }
-
-        return lastChange;
-    }
-
-    public static function getBPMFromStep(step:Float){
-        var lastChange:BPMChangeEvent = {
-            stepTime: 0,
-            songTime: 0,
-            bpm: bpm,
-            stepCrochet: stepCrochet
-        }
-        for (i in 0...Conductor.bpmChangeMap.length)
-        {
-            if (Conductor.bpmChangeMap[i].stepTime<=step)
-                lastChange = Conductor.bpmChangeMap[i];
-        }
-
-        return lastChange;
-    }
-
-    public static function beatToSeconds(beat:Float): Float{
-        var step = beat * 4;
-        var lastChange = getBPMFromStep(step);
-        return lastChange.songTime + ((step - lastChange.stepTime) * lastChange.stepCrochet);
-    }
-
-    public static function stepToSeconds(step:Float)
+    public static function getCrotchetAtTime(time:Float):Float 
     {
-        var lastChange = getBPMFromStep(step);
-        return lastChange.songTime + ((step - lastChange.stepTime) * lastChange.stepCrochet);
+        final currentBpm = FlxRhythmConductor.instance.getCurrentTimeChangeBPMAccurate(time);
+        return (60 / currentBpm) * 1000;
     }
 
-    public static function getStep(time:Float){
-        var lastChange = getBPMFromSeconds(time);
-        return lastChange.stepTime + (time - lastChange.songTime) / lastChange.stepCrochet;
+    public static function getBPMFromSeconds(time:Float):BPMChangeEvent 
+    {
+        final changes = FlxRhythmConductor.instance.timeChanges;
+
+        var lastChange:BPMChangeEvent = {
+            stepTime: 0,
+            songTime: 0,
+            bpm: bpm,
+            stepCrochet: stepCrochet
+        };
+        
+        for (i in 0...changes.length) {
+            if (time >= changes[i].time) {
+                lastChange = {
+                    stepTime: Math.floor(FlxRhythmConductor.instance.getCumulativeSteps(changes[i].time)),
+                    songTime: changes[i].time,
+                    bpm: changes[i].bpm,
+                    stepCrochet: calculateCrochet(changes[i].bpm) / 4
+                };
+            }
+        }
+        return lastChange;
     }
 
-    public static function getStepRounded(time:Float){
-        var lastChange = getBPMFromSeconds(time);
-        return lastChange.stepTime + Math.floor(time - lastChange.songTime) / lastChange.stepCrochet;
+    public static function getBPMFromStep(step:Float):BPMChangeEvent 
+    {
+        final changes = FlxRhythmConductor.instance.timeChanges;
+
+        var lastChange:BPMChangeEvent = {
+            stepTime: 0,
+            songTime: 0,
+            bpm: bpm,
+            stepCrochet: stepCrochet
+        };
+        
+        for (i in 0...changes.length) 
+        {
+            final eventStep = FlxRhythmConductor.instance.getCumulativeSteps(changes[i].time);
+            
+            if (step >= eventStep) 
+            {
+                lastChange = {
+                    stepTime: Math.floor(eventStep),
+                    songTime: changes[i].time,
+                    bpm: changes[i].bpm,
+                    stepCrochet: calculateCrochet(changes[i].bpm) / 4
+                };
+            }
+        }
+        return lastChange;
     }
 
-    public static function getBeat(time:Float){
-        return getStep(time)/4;
+    public static function stepToSeconds(targetStep:Float):Float
+    {
+        final changes = FlxRhythmConductor.instance.timeChanges;
+        if (changes.length == 0) return targetStep * FlxRhythmConductor.instance.stepLengthMs;
+
+        var currentSteps:Float = 0;
+        for (i in 0...changes.length) 
+        {
+            final event = changes[i];
+            final nextEvent = changes[i + 1];
+            final eventSteps = (nextEvent != null) ? FlxRhythmConductor.instance.getCumulativeSteps(nextEvent.time) : Math.POSITIVE_INFINITY;
+            
+            if (targetStep < eventSteps) 
+            {
+                final stepDiff = targetStep - currentSteps;
+                final msPerStep = (60 / event.bpm) * 1000 / 4;
+                return event.time + (stepDiff * msPerStep);
+            }
+            currentSteps = eventSteps;
+        }
+        return 0;
     }
 
-    public static function getBeatRounded(time:Float):Int{
-        return Math.floor(getStepRounded(time)/4);
+    public inline static function beatToSeconds(targetBeat:Float):Float 
+    {
+        return stepToSeconds(targetBeat * 4);
+    }
+    
+    public inline static function getStep(time:Float)
+    {
+        return FlxRhythmConductor.instance.getCumulativeSteps(time);
+    }
+
+    public inline static function getStepRounded(time:Float)
+    {
+        return Math.floor(getStep(time));
+    }
+
+    public inline static function getBeat(time:Float)
+    {
+        return getStep(time) / 4;
+    }
+
+    public inline static function getBeatRounded(time:Float):Int
+    {
+        return Math.floor(getBeat(time));
     }
 
     public static function mapBPMChanges(song:SwagSong)
     {
-        bpmChangeMap = [];
-
+        var timeEvents:Array<MusicTimeChangeEvent> = [];
         var curBPM:Float = song.bpm;
         var totalSteps:Int = 0;
         var totalPos:Float = 0;
         
-        var initialEvent:BPMChangeEvent = {
-            stepTime: 0,
-            songTime: 0,
-            bpm: song.bpm,
-            stepCrochet: calculateCrochet(song.bpm)/4
-        };
-        bpmChangeMap.push(initialEvent);
+        timeEvents.push(new MusicTimeChangeEvent(0, song.bpm));
         
         for (i in 0...song.notes.length)
         {
             if(song.notes[i].changeBPM && song.notes[i].bpm != curBPM)
             {
                 curBPM = song.notes[i].bpm;
-                var event:BPMChangeEvent = {
-                    stepTime: totalSteps,
-                    songTime: totalPos,
-                    bpm: curBPM,
-                    stepCrochet: calculateCrochet(curBPM)/4
-                };
-                bpmChangeMap.push(event);
+                timeEvents.push(new MusicTimeChangeEvent(totalPos, curBPM));
             }
 
-            var deltaSteps:Int = Math.round(getSectionBeats(song, i) * 4);
+            final deltaSteps:Int = Math.round((song.notes[i]?.sectionBeats ?? 4) * 4);
             totalSteps += deltaSteps;
             totalPos += ((60 / curBPM) * 1000 / 4) * deltaSteps;
         }
-        trace("new BPM map BUDDY " + bpmChangeMap);
+        
+        FlxRhythmConductor.instance.setupTimeChanges(timeEvents);
     }
 
     static function getSectionBeats(song:SwagSong, section:Int)
@@ -166,15 +202,8 @@ class Conductor
         return val ?? 4;
     }
 
-    inline public static function calculateCrochet(bpm:Float){
-        return (60/bpm)*1000;
-    }
-
-    public static function changeBPM(newBpm:Float)
+    public inline static function calculateCrochet(bpm:Float)
     {
-        bpm = newBpm;
-
-        crochet = calculateCrochet(bpm);
-        stepCrochet = crochet / 4;
+        return (60 / bpm) * 1000;
     }
 }
