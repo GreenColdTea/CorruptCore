@@ -128,31 +128,24 @@ class TitleState extends MusicBeatState
 
 		persistentUpdate = persistentDraw = true;
 		
-		if (!isSoftcodedState())
-		{
-			#if FREEPLAY
-			FlxG.switchState(() -> new FreeplayState());
-			#elseif CHARTING
-			FlxG.switchState(() -> new ChartEditorState());
-			#else
-			if(FlxG.save.data.flashing == null && !FlashingState.leftState) {
-				FlxTransitionableState.skipNextTransIn = true;
-				FlxTransitionableState.skipNextTransOut = true;
-				FlxG.switchState(() -> new FlashingState());
-			} else {
-				sickBeats = 0;
+		#if FREEPLAY
+		FlxG.switchState(() -> new FreeplayState());
+		#elseif CHARTING
+		FlxG.switchState(() -> new ChartEditorState());
+		#else
+		if(FlxG.save.data.flashing == null && !FlashingState.leftState) {
+			FlxTransitionableState.skipNextTransIn = true;
+			FlxTransitionableState.skipNextTransOut = true;
+			FlxG.switchState(() -> new FlashingState());
+		} else {
+			sickBeats = 0;
 
-				if (initialized)
-					startIntro();
-				else
-					new FlxTimer().start(1, (_) -> startIntro());
-			}
-			#end
+			if (initialized)
+				startIntro();
+			else
+				new FlxTimer().start(1, (_) -> startIntro());
 		}
-		else
-		{
-			skippedIntro = true;
-		}
+		#end
 	}
 
 	var logoBl:FlxSprite;
@@ -163,8 +156,6 @@ class TitleState extends MusicBeatState
 
 	function startIntro()
 	{
-		if (isSoftcodedState()) return;
-
 		clearAll();
 
 		if(!initialized && FlxG.sound.music == null) FlxG.sound.playMusic(Paths.music('freakyMenu'), 0);
@@ -351,65 +342,62 @@ class TitleState extends MusicBeatState
 		if (FlxG.sound.music != null)
 			Conductor.songPosition = FlxG.sound.music.time;
 
-		if (!isSoftcodedState())
+		var pressedEnter:Bool = false;
+		final gamepad:FlxGamepad = FlxG.gamepads.lastActive;
+
+		pressedEnter = FlxG.keys.justPressed.ENTER || controls.ACCEPT;
+		
+		if (gamepad != null)
+			pressedEnter = pressedEnter || gamepad.justPressed.START #if switch || gamepad.justPressed.B #end;
+		
+		for (touch in FlxG.touches.list) {
+			if (touch.justPressed) {
+				pressedEnter = true;
+				break;
+			}
+		}
+		
+		if (newTitle) {
+			titleTimer += MathUtil.boundTo(elapsed, 0, 1);
+			if (titleTimer > 2) titleTimer -= 2;
+		}
+
+		if (initialized && !transitioning && skippedIntro)
 		{
-			var pressedEnter:Bool = false;
-			final gamepad:FlxGamepad = FlxG.gamepads.lastActive;
-
-			pressedEnter = FlxG.keys.justPressed.ENTER || controls.ACCEPT;
-			
-			if (gamepad != null)
-				pressedEnter = pressedEnter || gamepad.justPressed.START #if switch || gamepad.justPressed.B #end;
-			
-			for (touch in FlxG.touches.list) {
-				if (touch.justPressed) {
-					pressedEnter = true;
-					break;
-				}
-			}
-			
-			if (newTitle) {
-				titleTimer += MathUtil.boundTo(elapsed, 0, 1);
-				if (titleTimer > 2) titleTimer -= 2;
-			}
-
-			if (initialized && !transitioning && skippedIntro)
+			if (newTitle && !pressedEnter)
 			{
-				if (newTitle && !pressedEnter)
-				{
-					var timer:Float = titleTimer;
-					if (timer >= 1) timer = (-timer) + 2;
-					timer = FlxEase.quadInOut(timer);
-					titleText.color = FlxColor.interpolate(titleTextColors[0], titleTextColors[1], timer);
-					titleText.alpha = FlxMath.lerp(titleTextAlphas[0], titleTextAlphas[1], timer);
-				}
+				var timer:Float = titleTimer;
+				if (timer >= 1) timer = (-timer) + 2;
+				timer = FlxEase.quadInOut(timer);
+				titleText.color = FlxColor.interpolate(titleTextColors[0], titleTextColors[1], timer);
+				titleText.alpha = FlxMath.lerp(titleTextAlphas[0], titleTextAlphas[1], timer);
+			}
+			
+			if(pressedEnter)
+			{
+				titleText.color = FlxColor.WHITE;
+				titleText.alpha = 1;
 				
-				if(pressedEnter)
+				titleText?.animation.play('press');
+				FlxG.camera.flash(ClientPrefs.flashing ? FlxColor.WHITE : 0x4CFFFFFF, 1);
+				FlxG.sound.play(Paths.sound('confirmMenu'), 0.7);
+				transitioning = true;
+
+				new FlxTimer().start(1, (_) ->
 				{
-					titleText.color = FlxColor.WHITE;
-					titleText.alpha = 1;
-					
-					titleText?.animation.play('press');
-					FlxG.camera.flash(ClientPrefs.flashing ? FlxColor.WHITE : 0x4CFFFFFF, 1);
-					FlxG.sound.play(Paths.sound('confirmMenu'), 0.7);
-					transitioning = true;
-
-					new FlxTimer().start(1, (_) ->
-					{
-						FlxG.switchState(mustUpdate ? () -> new OutdatedState() : () -> new MainMenuState());
-						closedState = true;
-					});
-				}
+					FlxG.switchState(mustUpdate ? () -> new OutdatedState() : () -> new MainMenuState());
+					closedState = true;
+				});
 			}
+		}
 
-			if (initialized && pressedEnter && !skippedIntro)
-				skipIntro();
+		if (initialized && pressedEnter && !skippedIntro)
+			skipIntro();
 
-			if(swagShader != null)
-			{
-				if(controls.UI_LEFT) swagShader.hue -= elapsed * 0.1;
-				if(controls.UI_RIGHT) swagShader.hue += elapsed * 0.1;
-			}
+		if(swagShader != null)
+		{
+			if(controls.UI_LEFT) swagShader.hue -= elapsed * 0.1;
+			if(controls.UI_RIGHT) swagShader.hue += elapsed * 0.1;
 		}
 
 		super.update(elapsed);
@@ -458,51 +446,48 @@ class TitleState extends MusicBeatState
 	{
 		super.beatHit();
 
-		if (!isSoftcodedState())
-		{
-			logoBl?.animation?.play('bump', true);
+		logoBl?.animation?.play('bump', true);
 
-			if(gfDance != null) {
-				danceLeft = !danceLeft;
-				gfDance.animation.play(danceLeft ? 'danceRight' : 'danceLeft');
-			}
+		if(gfDance != null) {
+			danceLeft = !danceLeft;
+			gfDance.animation.play(danceLeft ? 'danceRight' : 'danceLeft');
+		}
 
-			if(!closedState) {
-				sickBeats++;
-				switch (sickBeats)
-				{
-					case 1:
-						FlxG.sound.playMusic(Paths.music('freakyMenu'), 0);
-						FlxG.sound.music.fadeIn(4, 0, 0.7);
-					case 2:
-						createCoolText(['ninjamuffin99', 'phantomArcade', 'kawaisprite', 'evilsk8er']);
-					case 4:
-						addMoreText('present');
-					case 5:
-						deleteCoolText();
-					case 6:
-						createCoolText(['In association', 'with'], -40);
-					case 8:
-						addMoreText('newgrounds', -40);
-						if (ngSpr != null) ngSpr.visible = true;
-					case 9:
-						deleteCoolText();
-						if (ngSpr != null) ngSpr.visible = false;
-					case 10:
-						createCoolText([curWacky[0]]);
-					case 12:
-						addMoreText(curWacky[1]);
-					case 13:
-						deleteCoolText();
-					case 14:
-						addMoreText('Friday');
-					case 15:
-						addMoreText('Night');
-					case 16:
-						addMoreText('Funkin');
-					case 17:
-						skipIntro();
-				}
+		if(!closedState) {
+			sickBeats++;
+			switch (sickBeats)
+			{
+				case 1:
+					FlxG.sound.playMusic(Paths.music('freakyMenu'), 0);
+					FlxG.sound.music.fadeIn(4, 0, 0.7);
+				case 2:
+					createCoolText(['ninjamuffin99', 'phantomArcade', 'kawaisprite', 'evilsk8er']);
+				case 4:
+					addMoreText('present');
+				case 5:
+					deleteCoolText();
+				case 6:
+					createCoolText(['In association', 'with'], -40);
+				case 8:
+					addMoreText('newgrounds', -40);
+					if (ngSpr != null) ngSpr.visible = true;
+				case 9:
+					deleteCoolText();
+					if (ngSpr != null) ngSpr.visible = false;
+				case 10:
+					createCoolText([curWacky[0]]);
+				case 12:
+					addMoreText(curWacky[1]);
+				case 13:
+					deleteCoolText();
+				case 14:
+					addMoreText('Friday');
+				case 15:
+					addMoreText('Night');
+				case 16:
+					addMoreText('Funkin');
+				case 17:
+					skipIntro();
 			}
 		}
 	}
@@ -512,12 +497,6 @@ class TitleState extends MusicBeatState
 	
 	function skipIntro():Void
 	{
-		if (isSoftcodedState())
-		{
-			skippedIntro = true;
-			return;
-		}
-
 		var ret = callOnMenuScript("onIntroSkip", [(!skippedIntro)]);
 		if (!skippedIntro #if SCRIPTABLE_STATES && ret != ScriptResult.Function_Stop #end)
 		{

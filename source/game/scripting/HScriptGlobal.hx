@@ -78,9 +78,10 @@ class HScriptGlobal {
     
     public static function setSoftcodedState(stateClassName:String, value:Bool):Void {
         #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
-        if (globalScriptActive && globalScript != null) {
+        stateRedirectMap.set(stateClassName, value);
+        
+        if (globalScriptActive && globalScript != null)
             callGlobalScript("setSoftcodedState", [stateClassName, value]);
-        }
         #end
     }
     

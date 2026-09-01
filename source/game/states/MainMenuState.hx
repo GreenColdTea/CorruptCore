@@ -56,19 +56,16 @@ class MainMenuState extends MusicBeatState
 
 		initCamera();
 
-		if (!isSoftcodedState())
-		{
-			if(FlxG.sound.music == null || !FlxG.sound.music.playing) 
-				FlxG.sound.playMusic(Paths.music('freakyMenu'));
+		if(FlxG.sound.music == null || !FlxG.sound.music.playing) 
+			FlxG.sound.playMusic(Paths.music('freakyMenu'));
 
-			createMenuStuff();
+		createMenuStuff();
 
-			FlxG.camera.follow(camFollow, null, 0.17);
+		FlxG.camera.follow(camFollow, null, 0.17);
 
-			#if ACHIEVEMENTS_ALLOWED
-			checkFridayNightAchievement();
-			#end
-		}
+		#if ACHIEVEMENTS_ALLOWED
+		checkFridayNightAchievement();
+		#end
 
 		super.create();
 	}
@@ -186,10 +183,7 @@ class MainMenuState extends MusicBeatState
 
 		if (!isTransitioning)
 		{
-			if (!isSoftcodedState())
-			{
-				handleInput();
-			}
+			handleInput();
 		}
 
 		super.update(elapsed);

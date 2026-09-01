@@ -61,14 +61,11 @@ class FreeplayState extends MusicBeatState
 
 		loadAvailableSongs();
 
-		if (!isSoftcodedState())
-		{
-			if(FlxG.sound.music == null || !FlxG.sound.music.playing) 
-				FlxG.sound.playMusic(Paths.music('freakyMenu'));
-			
-			createMenuInterface();
-			setupNavigation();
-		}
+		if(FlxG.sound.music == null || !FlxG.sound.music.playing) 
+			FlxG.sound.playMusic(Paths.music('freakyMenu'));
+		
+		createMenuInterface();
+		setupNavigation();
 
 		super.create();
 	}
@@ -192,9 +189,7 @@ class FreeplayState extends MusicBeatState
 
 	override function closeSubState()
 	{
-		if (!isSoftcodedState())
-			updateSelection(0, false);
-		
+		updateSelection(0, false);
 		persistentUpdate = true;
 		super.closeSubState();
 	}
@@ -216,11 +211,8 @@ class FreeplayState extends MusicBeatState
 		if (FlxG.sound.music?.volume < 0.7)
 			FlxG.sound.music.volume += 0.5 * FlxG.elapsed;
 
-		if (!isSoftcodedState())
-		{
-			updateScoreDisplay(elapsed);
-			handleInput(elapsed);
-		}
+		updateScoreDisplay(elapsed);
+		handleInput(elapsed);
 
 		super.update(elapsed);
 	}

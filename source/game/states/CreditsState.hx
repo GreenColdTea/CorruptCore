@@ -86,11 +86,9 @@ class CreditsState extends MusicBeatState
 		persistentUpdate = true;
 		initializeCredits();
 
-		if (!isSoftcodedState()) {
-			if(!FlxG.sound.music.playing) FlxG.sound.playMusic(Paths.music('freakyMenu'));
-			
-			createInterface();
-		}
+		if(!FlxG.sound.music.playing) FlxG.sound.playMusic(Paths.music('freakyMenu'));
+		
+		createInterface();
 
 		super.create();
 	}
@@ -253,15 +251,8 @@ class CreditsState extends MusicBeatState
 
 		if (!isQuitting)
 		{
-			if (!isSoftcodedState())
-			{
-				handleInput(elapsed);
-				updateMenuItems(elapsed);
-			}
-			else if (controls.BACK)
-			{
-				exitState();
-			}
+			handleInput(elapsed);
+			updateMenuItems(elapsed);
 		}
 
 		super.update(elapsed);
@@ -355,8 +346,6 @@ class CreditsState extends MusicBeatState
 
 	function changeSelection(change:Int = 0)
 	{
-		if (isSoftcodedState()) return;
-
 		FlxG.sound.play(Paths.sound('scrollMenu'), 0.4);
 		
 		do {
@@ -415,8 +404,6 @@ class CreditsState extends MusicBeatState
 
 	function getCurrentBackgroundColor():Int
 	{
-		if (isSoftcodedState()) return FlxColor.BLACK;
-
 		var colorString = creditsList[curSelected][4];
 		if (!colorString.startsWith('0x'))
 		{
@@ -427,7 +414,6 @@ class CreditsState extends MusicBeatState
 
 	function isUnselectable(index:Int):Bool
 	{
-		if (isSoftcodedState()) return true;
 		return creditsList[index].length <= 1;
 	}
 }

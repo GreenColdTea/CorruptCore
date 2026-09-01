@@ -69,19 +69,6 @@ class MusicBeatState extends FlxTransitionableState #if (HSCRIPT_ALLOWED && SCRI
         ];
     }
 
-    public function isSoftcodedState():Bool
-    {
-        #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES && GLOBAL_SCRIPTS)
-        if (HScriptGlobal.globalScriptActive && HScriptGlobal.globalScript != null)
-        {
-            var result = HScriptGlobal.callGlobalScript("isStateSoftcoded", [Type.getClassName(Type.getClass(this))]);
-            if (result != null && Std.isOfType(result, Bool))
-                return result;
-        }
-        #end
-        return false;
-    }
-
     public function new() {
         super();
 

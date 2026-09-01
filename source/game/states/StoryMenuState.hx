@@ -64,14 +64,11 @@ class StoryMenuState extends MusicBeatState
 		persistentUpdate = persistentDraw = true;
 		loadAvailableWeeks();
 
-		if (!isSoftcodedState())
-		{
-			if(FlxG.sound.music == null || !FlxG.sound.music.playing) 
-				FlxG.sound.playMusic(Paths.music('freakyMenu'));
-			
-			createMenuInterface();
-			setupInitialDisplay();
-		}
+		if(FlxG.sound.music == null || !FlxG.sound.music.playing) 
+			FlxG.sound.playMusic(Paths.music('freakyMenu'));
+		
+		createMenuInterface();
+		setupInitialDisplay();
 
 		#if DISCORD_ALLOWED
 		DiscordClient.changePresence("In the Menus", null);
@@ -243,21 +240,15 @@ class StoryMenuState extends MusicBeatState
 	override function closeSubState()
 	{
 		persistentUpdate = true;
-		
-		if (!isSoftcodedState())
-			updateWeekDisplay();
-		
+		updateWeekDisplay();
 		super.closeSubState();
 	}
 
 	override function update(elapsed:Float)
 	{
-		if (!isSoftcodedState())
-		{
-			updateScoreDisplay(elapsed);
-			handleUserInput();
-			updateLockPositions();
-		}
+		updateScoreDisplay(elapsed);
+		handleUserInput();
+		updateLockPositions();
 
 		super.update(elapsed);
 	}
