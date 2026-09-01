@@ -4,15 +4,12 @@ title Necessary Libraries Installer
 echo.
 echo Installing necessary libraries. Please wait...
 echo.
-haxelib setup C:\haxelib
-haxelib install tjson --quiet
-haxelib install hxjsonast --quiet
 haxelib git flixel https://github.com/FNF-CC-ENGINE/flixel.git
 haxelib git lime https://github.com/GreenColdTea/lime-fc.git
 haxelib git openfl https://github.com/FNF-CC-ENGINE/openfl-fc
 haxelib install format --quiet
 haxelib install hxp --quiet
-haxelib install svg
+haxelib install svg --quiet
 haxelib install flixel-waveform --quiet --skip-dependencies
 haxelib run lime setup flixel
 haxelib set flixel-tools 1.5.1
