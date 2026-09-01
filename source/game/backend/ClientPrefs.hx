@@ -10,7 +10,7 @@ import game.states.backend.Achievements;
 import game.backend.Controls;
 
 /**
- * ClientPrefs class to manage client preferences and settings.
+ * ClientPrefs class to manage client preferences and settings
  */
 class ClientPrefs {
     /**
@@ -42,7 +42,6 @@ class ClientPrefs {
     public static var hitsoundVolume:Float = 0;
     public static var pauseMusic:String = 'Tea Time';
     public static var checkForUpdates:Bool = true;
-    public static var comboStacking:Bool = true;
     public static var colorBlindMode:String = 'None';
     public static var colorBlindIntensity:Float = 1;
     public static var cacheOnGPU:Bool = #if !switch false #else true #end;
@@ -129,7 +128,6 @@ class ClientPrefs {
         vsync = false;
         unlimitedFPS = false;
         checkForUpdates = true;
-        comboStacking = true;
         colorBlindMode = 'None';
         colorBlindIntensity = 1;
         cacheOnGPU = #if !switch false #else true #end;
@@ -184,7 +182,6 @@ class ClientPrefs {
         FlxG.save.data.vsync = vsync;
         FlxG.save.data.unlimitedFPS = unlimitedFPS;
         FlxG.save.data.checkForUpdates = checkForUpdates;
-        FlxG.save.data.comboStacking = comboStacking;
         FlxG.save.data.colorBlindMode = colorBlindMode;
         FlxG.save.data.colorBlindIntensity = colorBlindIntensity;
         FlxG.save.data.cacheOnGPU = cacheOnGPU;
@@ -236,7 +233,6 @@ class ClientPrefs {
         if (FlxG.save.data.vsync != null) vsync = FlxG.save.data.vsync;
         if (FlxG.save.data.unlimitedFPS != null) unlimitedFPS = FlxG.save.data.unlimitedFPS;
         if (FlxG.save.data.checkForUpdates != null) checkForUpdates = FlxG.save.data.checkForUpdates;
-        if (FlxG.save.data.comboStacking != null) comboStacking = FlxG.save.data.comboStacking;
         if (FlxG.save.data.colorBlindMode != null) colorBlindMode = FlxG.save.data.colorBlindMode;
         if (FlxG.save.data.colorBlindIntensity != null) colorBlindIntensity = FlxG.save.data.colorBlindIntensity;
         if (FlxG.save.data.cacheOnGPU != null) cacheOnGPU = FlxG.save.data.cacheOnGPU;

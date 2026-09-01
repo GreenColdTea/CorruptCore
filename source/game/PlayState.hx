@@ -3153,16 +3153,6 @@ class PlayState extends MusicBeatState
 		var pixelShitPart1:String = PlayState.isPixelStage ? 'pixelUI/' : '';
 		var pixelShitPart2:String = PlayState.isPixelStage ? '-pixel' : '';
 
-		if (!ClientPrefs.comboStacking)
-		{
-			lastRating?.kill();
-			lastCombo?.kill();
-			if (lastScore != null) {
-				for (sc in lastScore) sc.kill();
-				lastScore.splice(0, lastScore.length);
-			}
-		}
-
 		final rating:FlxSprite = grpRatings.recycle(FlxSprite);
 		
 		grpRatings.remove(rating, true);
@@ -3194,12 +3184,6 @@ class PlayState extends MusicBeatState
 		comboSpr.visible = (!ClientPrefs.hideHud && showCombo && combo > 0 && combo % 10 == 0);
 		
 		comboSpr.velocity.x = FlxG.random.int(1, 10) * playbackRate;
-
-		if (!ClientPrefs.comboStacking)
-		{
-			lastRating = rating;
-			lastCombo = comboSpr;
-		}
 
 		if (!PlayState.isPixelStage)
 		{
@@ -3242,9 +3226,6 @@ class PlayState extends MusicBeatState
 			numScore.screenCenter();
 			numScore.x = placementX + (43 * daLoop) - 15 + ClientPrefs.comboOffset[2];
 			numScore.y += 105 - ClientPrefs.comboOffset[3];
-			
-			if (!ClientPrefs.comboStacking)
-				lastScore.push(numScore);
 
 			if (!PlayState.isPixelStage)
 			{
