@@ -1,4 +1,5 @@
 // How to basically change hardcoded state to softcoded
+
 import haxe.ds.StringMap;
 
 /* 
@@ -73,19 +74,3 @@ function getAllSoftcodedStates():Array<String> {
     }
     return states;
 }
-
-/* 
- * Example usage in other parts of the code:
- * 
- * 1. To check if the current state is softcoded:
- *    var isSoft = isStateSoftcoded("game.states.MainMenuState");
- * 
- * 2. To dynamically change a state to softcoded:
- *    setSoftcodedState("game.states.OptionsState", true);
- * 
- * 3. To toggle a state's softcoded status:
- *    var newStatus = toggleSoftcodedState("game.states.StoryMenuState");
- * 
- * 4. To get all softcoded states:
- *    var allSoftcoded = getAllSoftcodedStates();
- */

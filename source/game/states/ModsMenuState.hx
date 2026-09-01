@@ -481,14 +481,14 @@ class ModsMenuState extends MusicBeatState
             fileStr += values[0] + '|' + (values[1] ? '1' : '0');
         }
 
-        var path:String = 'modsList';
+        final path:String = 'modsList';
         File.saveContent(Paths.txt(path), fileStr);
         Mods.pushGlobalMods();
     }
 
     function extractSelectedMod() {
         if (mods.length == 0) return;
-        var modName = modsList[curSelected][0];
+        final modName = modsList[curSelected][0];
         
         if (!Mods.isZipMod(modName)) {
             FlxG.sound.play(Paths.sound('cancelMenu'));

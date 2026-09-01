@@ -416,4 +416,14 @@ class CreditsState extends MusicBeatState
 	{
 		return creditsList[index].length <= 1;
 	}
+
+	override function destroy()
+    {
+        #if MODS_ALLOWED
+        Mods.pushGlobalMods();
+        #end
+		WeekData.loadTheFirstEnabledMod();
+        
+        super.destroy();
+    }
 }

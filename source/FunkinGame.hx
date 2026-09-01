@@ -4,6 +4,7 @@ import flixel.FlxGame;
 import flixel.FlxG;
 import flixel.FlxState;
 import flixel.util.typeLimit.NextState.InitialState;
+import flixel.util.FlxDestroyUtil;
 
 #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
 import game.scripting.HScriptGlobal;
@@ -41,9 +42,23 @@ class FunkinGame extends FlxGame
 
         #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
         final stateClass = Type.getClassName(Type.getClass(_state));
-        if (HScriptGlobal.stateRedirectMap.exists(stateClass) && HScriptGlobal.stateRedirectMap.get(stateClass))
+
+        var isSoftcoded:Bool = false;
+        if (HScriptGlobal.globalScriptActive && HScriptGlobal.globalScript != null) {
+            final result = HScriptGlobal.callGlobalScript("isStateSoftcoded", [stateClass]);
+            if (result != null && Std.isOfType(result, Bool))
+                isSoftcoded = result;
+        }
+        
+        if (!isSoftcoded && HScriptGlobal.stateRedirectMap.exists(stateClass))
+            isSoftcoded = HScriptGlobal.stateRedirectMap.get(stateClass);
+
+        if (isSoftcoded)
         {
-            _state = new HScriptState(stateClass);
+            _state = FlxDestroyUtil.destroy(_state);
+            
+            _nextState = () -> new HScriptState(stateClass);
+            _state = _nextState.createInstance();
         }
         #end
 

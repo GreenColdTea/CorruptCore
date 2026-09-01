@@ -507,6 +507,16 @@ class FreeplayState extends MusicBeatState
 		scoreBackground.x = FlxG.width - (scoreBackground.scale.x / 2);
 		difficultyText.x = Std.int(scoreBackground.x + (scoreBackground.width / 2) - (difficultyText.width / 2));
 	}
+
+	override function destroy()
+    {
+        #if MODS_ALLOWED
+        Mods.pushGlobalMods();
+        #end
+		WeekData.loadTheFirstEnabledMod();
+        
+        super.destroy();
+    }
 }
 
 class SongMetadata

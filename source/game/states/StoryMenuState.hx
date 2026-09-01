@@ -15,7 +15,6 @@ import flixel.tweens.FlxTween;
 import flixel.util.FlxColor;
 import flixel.util.FlxTimer;
 
-import game.backend.WeekData;
 import game.states.objects.MenuItem;
 import game.states.objects.MenuCharacter;
 
@@ -554,4 +553,14 @@ class StoryMenuState extends MusicBeatState
 		return (!week.startUnlocked && week.weekBefore.length > 0 && 
 			(!weekCompleted.exists(week.weekBefore) || !weekCompleted.get(week.weekBefore)));
 	}
+
+	override function destroy()
+    {
+        #if MODS_ALLOWED
+        Mods.pushGlobalMods();
+        #end
+		WeekData.loadTheFirstEnabledMod();
+        
+        super.destroy();
+    }
 }
