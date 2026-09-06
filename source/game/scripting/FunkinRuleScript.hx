@@ -137,8 +137,8 @@ class FunkinRuleScript {
     
     private var rule:RuleScript;
     private var parentInstance:Dynamic;
-    private var callbacks:haxe.ds.Map<String, Array<Dynamic>> = new haxe.ds.Map();
-    private var importedPackages:haxe.ds.Map<String, Bool> = new haxe.ds.Map();
+    private var callbacks:Map<String, Array<Dynamic>> = new Map();
+    private var importedPackages:Map<String, Bool> = new Map();
 
     public function new(path:String, parentInstance:Dynamic = null, skipCreate:Bool = false, runScript:Bool = true) {
         this.parentInstance = parentInstance;
@@ -248,7 +248,20 @@ class FunkinRuleScript {
     function execute(code:String, skipCreate:Bool) {
         presetVariables();
         
-        rule.tryExecute(code);
+        try {
+            final parser = new HxParser();
+            parser.allowAll();
+            parser.mode = MODULE;
+            
+            final parsedDecls = parser.parseModule(code);
+            final injectedDecls = RuleScriptedClassUtil.injectImportHx(parsedDecls);
+            
+            final finalExpr = Tools.moduleDeclsToExpr(injectedDecls, {isScriptedClass: false});
+            rule.execute(finalExpr);
+        } catch (e:haxe.Exception) {
+            onError(e);
+        }
+
         if (!skipCreate) call("onCreate");
     }
 
@@ -257,8 +270,8 @@ class FunkinRuleScript {
             set(key, value);
 
         for (abstractType in ABSTRACT_IMPORTS) {
-            var abstractInstance = Abstracts.resolveAbstract(abstractType);
-            var typeName = abstractType.split('.').pop();
+            final abstractInstance = Abstracts.resolveAbstract(abstractType);
+            final typeName = abstractType.split('.').pop();
             set(typeName, abstractInstance);
         }
                 
@@ -283,50 +296,13 @@ class FunkinRuleScript {
             set("addBehindGF", PlayState.instance.addBehindGF);
             set("addBehindDad", PlayState.instance.addBehindDad);
             set("addBehindBF", PlayState.instance.addBehindBF);
-            
-            set("setVar", (name:String, value:Dynamic) -> {
-                PlayState.instance.variables.set(name, value);
-                return value;
-            });
-            set("getVar", (name:String) -> {
-                var result:Dynamic = null;
-                if(PlayState.instance.variables.exists(name)) 
-                    result = PlayState.instance.variables.get(name);
-
-                return result;
-            });
-            set("removeVar", (name:String) -> {
-                if(PlayState.instance.variables.exists(name)) {
-                    PlayState.instance.variables.remove(name);
-                    return true;
-                }
-                
-                return false;
-            });
-            
         } else {
-            final scriptObject = FlxG.state.subState ?? FlxG.state;
+            final scriptObject = FlxG.state?.subState ?? FlxG.state;
             set("instance", scriptObject);
 
             set("add", scriptObject.add);
             set("insert", scriptObject.insert);
             set("remove", scriptObject.remove);
-            
-            set("setVar", (name:String, value:Dynamic) -> {
-                rule.variables.set(name, value);
-                return value;
-            });
-            set("getVar", (name:String) -> {
-                final result:Dynamic = rule.variables.get(name);
-                return result;
-            });
-            set("removeVar", (name:String) -> {
-                if(rule.variables.exists(name)) {
-                    rule.variables.remove(name);
-                    return true;
-                }
-                return false;
-            });
         }
 
         set("controls", game.backend.PlayerSettings.player1.controls);
@@ -415,12 +391,17 @@ class FunkinRuleScript {
         }
         
         if (callbacks.exists(event)) {
-            for (cb in callbacks.get(event)) {
+            final cbs = callbacks.get(event);
+
+            var i = cbs.length;
+            while (--i >= 0) {
+                var cb = cbs[i];
                 try {
                     Reflect.callMethod(null, cb, args ?? []);
                 } catch (e:Dynamic) {
                     @:privateAccess
                     onError(haxe.Exception.caught(e));
+                    cbs.remove(cb);
                 }
             }
         }
@@ -432,6 +413,7 @@ class FunkinRuleScript {
             } catch (e:Dynamic) {
                 @:privateAccess
                 onError(haxe.Exception.caught(e));
+                rule.variables.remove(event);
             }
         }
         
@@ -471,9 +453,10 @@ class FunkinRuleScript {
 
     function onError(e:haxe.Exception):Void {
         if (!shouldTraceErrors()) return;
-        
-        final text = 'Error in $scriptName: ${e.details()}';
-        CoolUtil.hxTrace(text, FlxColor.RED);
+
+        CoolUtil.showPopUp('Error in $scriptName:\n${e.details()}', 'Error on HScript!');
+        if(!(FlxG.state is PlayState)) 
+            FlxG.resetState();
     }
 
     public function stop():Void {

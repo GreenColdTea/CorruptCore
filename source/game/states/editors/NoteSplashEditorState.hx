@@ -167,7 +167,7 @@ class NoteSplashEditorState extends MusicBeatState
         var maxFps:PsychUINumericStepper = new PsychUINumericStepper(150, 127.5, 1, 26, 1, 120);
         UI.add(maxFps);
 
-        animDropDown = new PsychUIDropDownMenu(-155, 57, [""], function(id:Int, name:String)
+        animDropDown = new PsychUIDropDownMenu(130, 57, [""], function(id:Int, name:String)
         {
             if (config != null && name.length > 0)
             {
@@ -280,7 +280,7 @@ class NoteSplashEditorState extends MusicBeatState
             }
         });
         UI.add(removeButton);
-        UI.add(animDropDown);
+        properUI.getTab("Properties").menu.add(animDropDown);
 
         reloadImage = function()
         {

@@ -318,19 +318,6 @@ class FunkinLua {
             return null;
         });
 
-        #if MODS_ALLOWED
-        LuaUtils.addFunction(lua, "getModSetting", function(saveTag:String, ?modName:String = null):Dynamic {
-            if (modName == null) {
-                if (this.modFolder == null) {
-                    luaTrace('getModSetting: Argument #2 is null and script is not inside a packed Mod folder!', false, false, FlxColor.RED);
-                    return null;
-                }
-                modName = this.modFolder;
-            }
-            return CoolUtil.getModSetting(saveTag, modName);
-        });
-        #end
-
         LuaUtils.addFunction(lua, "getGlobalFromScript", function(luaFile:String, global:String):Dynamic {
             var cervix:String = luaFile + ".lua";
             if (luaFile.endsWith(".lua")) cervix = luaFile;

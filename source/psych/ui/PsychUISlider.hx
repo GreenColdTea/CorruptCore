@@ -69,9 +69,8 @@ class PsychUISlider extends FlxSpriteGroup
 		labelText.alignment = CENTER;
 		add(labelText);
 
-		handle = new FlxSprite().makeGraphic(1, 1, FlxColor.WHITE);
-		handle.scale.set(5, 15);
-		handle.updateHitbox();
+		handle = new FlxSprite().makeGraphic(16, 16, FlxColor.TRANSPARENT);
+		flixel.util.FlxSpriteUtil.drawCircle(handle, -1, -1, -1, FlxColor.WHITE);
 		handle.color = handleColor;
 		add(handle);
 

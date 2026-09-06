@@ -179,6 +179,9 @@ class TileRender extends FlxSprite
         final dScroll:Bool = ClientPrefs.downScroll;
         final offsets = calculateOffsets(swagWidth, zoom, isPixel, dScroll);
 
+        final oldActive:Bool = headNote.active;
+        headNote.active = true;
+
         var currentLocalY:Float = 0.0;
         var vIdx:Int = 0;
         var iIdx:Int = 0;
@@ -292,6 +295,8 @@ class TileRender extends FlxSprite
             }
             currentLocalY += tileHeight;
         }
+
+        headNote.active = oldActive;
 
         sharedColorTransform.redMultiplier = colorTransform?.redMultiplier ?? 1.0;
         sharedColorTransform.greenMultiplier = colorTransform?.greenMultiplier ?? 1.0;
