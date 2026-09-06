@@ -3,6 +3,7 @@ package game.scripting;
 
 #if sys
 import sys.io.File;
+import sys.FileSystem;
 #end
 
 import haxe.ds.StringMap;
@@ -31,7 +32,6 @@ import lime.utils.Assets;
 
 using StringTools;
 using Lambda;
-
 using rulescript.Tools;
 
 class FunkinRuleScript {
@@ -144,15 +144,25 @@ class FunkinRuleScript {
         this.parentInstance = parentInstance;
         scriptName = path;
 
+        if (!RuleScriptInterp.globalVariables.keys().hasNext()) {
+            for (key => value in PRESET_VARS)
+                RuleScriptInterp.globalVariables.set(key, value);
+
+            for (abstractType in ABSTRACT_IMPORTS) {
+                final abstractInstance = Abstracts.resolveAbstract(abstractType);
+                final typeName = abstractType.split('.').pop();
+                RuleScriptInterp.globalVariables.set(typeName, abstractInstance);
+            }
+        }
+
         initScriptedClasses();
 
         rule = new RuleScript(new RuleScriptInterp());
         rule.scriptName = path;
-        rule.errorHandler = onError;
 
         if (runScript) {
             try {
-                var content = loadScriptContent(path);
+                final content = loadScriptContent(path);
                 execute(content, skipCreate);
             } catch (e:haxe.Exception) {
                 if (shouldTraceErrors())
@@ -163,6 +173,9 @@ class FunkinRuleScript {
     }
 
     private function initScriptedClasses() {
+        RuleScriptedClassUtil.fileExists = (p:String) -> return Paths.fileExists(p, TEXT);
+        RuleScriptedClassUtil.getFileContent = (p:String) -> return Paths.getTextFromFile(p);
+
         ScriptedTypeUtil.resolveModule = function(name:String):Array<ModuleDecl> {
             final filePath = 'scripts/classes/${name.replace('.', '/')}.hxc';
             if (!Paths.fileExists(filePath, TEXT))
@@ -178,7 +191,9 @@ class FunkinRuleScript {
             parser.allowAll();
             parser.mode = MODULE;
             try {
-                return parser.parseModule(content);
+                var moduleDecls = parser.parseModule(content);
+                var importDecls = RuleScriptedClassUtil.getImportDecls(filePath);
+                return importDecls.concat(moduleDecls);
             } catch (e:Dynamic) {
                 if (shouldTraceErrors()) trace('Failed to parse module $filePath: $e');
                 return null;
@@ -249,32 +264,22 @@ class FunkinRuleScript {
         presetVariables();
         
         try {
-            final parser = new HxParser();
-            parser.allowAll();
-            parser.mode = MODULE;
-            
-            final parsedDecls = parser.parseModule(code);
-            final injectedDecls = RuleScriptedClassUtil.injectImportHx(parsedDecls);
-            
-            final finalExpr = Tools.moduleDeclsToExpr(injectedDecls, {isScriptedClass: false});
-            rule.execute(finalExpr);
+            rule.tryExecute(code);
+            if (!skipCreate) call("onCreate");
         } catch (e:haxe.Exception) {
             onError(e);
         }
-
-        if (!skipCreate) call("onCreate");
     }
 
-    function presetVariables() {
-        for (key => value in PRESET_VARS)
-            set(key, value);
-
-        for (abstractType in ABSTRACT_IMPORTS) {
-            final abstractInstance = Abstracts.resolveAbstract(abstractType);
-            final typeName = abstractType.split('.').pop();
-            set(typeName, abstractInstance);
+    function presetVariables() {     
+        if (scriptName != null) {
+            final importDecls = RuleScriptedClassUtil.getImportDecls(scriptName);
+            if (importDecls?.length > 0) {
+                final expr = Tools.moduleDeclsToExpr(importDecls, {isScriptedClass: false});
+                rule.execute(expr);
+            }
         }
-                
+
         if (parentInstance != null)
             set("parent", parentInstance);
 
@@ -306,10 +311,8 @@ class FunkinRuleScript {
         }
 
         set("controls", game.backend.PlayerSettings.player1.controls);
-        
         set("getObject", getObject);
         set("getAll", getAllObjects);
-        
         set("showErrorTraces", true);
     }
 
@@ -392,7 +395,6 @@ class FunkinRuleScript {
         
         if (callbacks.exists(event)) {
             final cbs = callbacks.get(event);
-
             var i = cbs.length;
             while (--i >= 0) {
                 var cb = cbs[i];
@@ -414,6 +416,8 @@ class FunkinRuleScript {
                 @:privateAccess
                 onError(haxe.Exception.caught(e));
                 rule.variables.remove(event);
+                if (rule.interp != null)
+                    @:privateAccess cast(rule.interp, hscript.Interp).variables.remove(event);
             }
         }
         
@@ -455,8 +459,6 @@ class FunkinRuleScript {
         if (!shouldTraceErrors()) return;
 
         CoolUtil.showPopUp('Error in $scriptName:\n${e.details()}', 'Error on HScript!');
-        if(!(FlxG.state is PlayState)) 
-            FlxG.resetState();
     }
 
     public function stop():Void {
