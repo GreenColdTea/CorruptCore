@@ -37,7 +37,7 @@ using rulescript.Tools;
 class FunkinRuleScript {
 
     @:unreflective
-    static final PRESET_VARS:haxe.ds.Map<String, Dynamic> = [
+    static final PRESET_VARS:Map<String, Dynamic> = [
         // Flixel Classes
         "FlxG" => flixel.FlxG,
         "FlxSprite" => flixel.FlxSprite,
@@ -158,6 +158,7 @@ class FunkinRuleScript {
         initScriptedClasses();
 
         rule = new RuleScript(new RuleScriptInterp());
+        rule.getInterp(RuleScriptInterp).strictMode = true;
         rule.scriptName = path;
 
         if (runScript) {
@@ -191,8 +192,8 @@ class FunkinRuleScript {
             parser.allowAll();
             parser.mode = MODULE;
             try {
-                var moduleDecls = parser.parseModule(content);
-                var importDecls = RuleScriptedClassUtil.getImportDecls(filePath);
+                final moduleDecls = parser.parseModule(content);
+                final importDecls = RuleScriptedClassUtil.getImportDecls(filePath);
                 return importDecls.concat(moduleDecls);
             } catch (e:Dynamic) {
                 if (shouldTraceErrors()) trace('Failed to parse module $filePath: $e');
@@ -237,11 +238,12 @@ class FunkinRuleScript {
             script.superInstance = superInstance;
             script.getParser(HxParser).allowAll();
             script.getInterp(RuleScriptInterp).skipNextRestore = true;
+            script.getInterp(RuleScriptInterp).strictMode = true;
             if (type.isExpr) {
                 script.execute(cast type);
                 return script;
             } else {
-                var cl:ScriptedClass = cast type;
+                final cl:ScriptedClass = cast type;
                 RuleScriptedClassUtil.buildScriptedClass(cl, script);
             }
             return script;
