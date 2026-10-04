@@ -970,7 +970,7 @@ class PlayState extends MusicBeatState
 			curBeatText.borderSize = 1.25;
 			add(curBeatText);
 
-			final curSectionText = new FlxText(curStepText.x, curStepText.y + 30, 200, "curSection: " + curSection, 20);
+			final curSectionText = new FlxText(curBeatText.x, curBeatText.y + 30, 200, "curSection: " + curSection, 20);
 			curSectionText.setFormat("VCR OSD Mono", 20, FlxColor.YELLOW, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 			curSectionText.cameras = [camOther];
 			curSectionText.borderSize = 1.25;
