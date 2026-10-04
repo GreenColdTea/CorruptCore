@@ -288,7 +288,7 @@ class LuaPlayState
 		});
 
 		LuaUtils.addFunction(lua, "startDialogue", function(dialogueFile:String, music:String = null) {
-			var path:String = Paths.json("songs/" + Paths.formatToSongPath(PlayState.SONG.song) + '/' + dialogueFile);
+			var path:String = Paths.json("songs/" + SongUtil.formatToSongPath(PlayState.SONG.song) + '/' + dialogueFile);
 			FunkinLua.luaTrace('startDialogue: Trying to load dialogue: ' + path);
 
 			if(#if sys FileSystem.exists(path) || #end openfl.utils.Assets.exists(path))

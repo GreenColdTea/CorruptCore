@@ -348,8 +348,9 @@ class StoryMenuState extends MusicBeatState
 	{
 		if (controls.BACK && !isMovingBack && !isWeekSelected)
 		{
-			FlxG.sound.play(Paths.sound('cancelMenu'));
 			isMovingBack = true;
+			WeekData.loadTheFirstEnabledMod();
+			FlxG.sound.play(Paths.sound('cancelMenu'));
 			FlxG.switchState(() -> new MainMenuState());
 		}
 	}
@@ -427,7 +428,7 @@ class StoryMenuState extends MusicBeatState
 	function updateDifficultyDisplay()
 	{
 		var difficultyName = CoolUtil.difficulties[curDifficulty];
-		var difficultyImg = Paths.image('menudifficulties/' + Paths.formatToSongPath(difficultyName));
+		var difficultyImg = Paths.image('menudifficulties/' + SongUtil.formatToSongPath(difficultyName));
 
 		if (difficultySpr.graphic != difficultyImg)
 		{
@@ -510,7 +511,7 @@ class StoryMenuState extends MusicBeatState
 		CoolUtil.difficulties = CoolUtil.defaultDifficulties.copy();
 		var difficultyString = week.difficulties;
 
-		if (difficultyString != null && difficultyString.trim().length > 0)
+		if (difficultyString?.trim().length > 0)
 		{
 			var difficulties = difficultyString.split(',')
 				.map(diff -> diff.trim())
@@ -559,7 +560,6 @@ class StoryMenuState extends MusicBeatState
         #if MODS_ALLOWED
         Mods.pushGlobalMods();
         #end
-		WeekData.loadTheFirstEnabledMod();
         
         super.destroy();
     }

@@ -107,16 +107,15 @@ class CreditsState extends MusicBeatState
 	{
 		processedMods = [];
 
-		// load from mods list file
-		var modsListPath = Paths.txt('modsList');
-		if (FileSystem.exists(modsListPath))
+		final modsListPath = Paths.txt('modsList', false);
+		if (FileUtil.exists(modsListPath))
 		{
-			var modEntries = CoolUtil.coolTextFile(modsListPath);
+			final modEntries = CoolUtil.coolTextFile(modsListPath);
 			for (entry in modEntries)
 			{
 				if (modEntries.length > 1 && entry.length > 0)
 				{
-					var modData = entry.split('|');
+					final modData = entry.split('|');
 					if (!Mods.ignoreModFolders.contains(modData[0].toLowerCase()) && !processedMods.contains(modData[0]))
 					{
 						if (modData[1] == '1')
@@ -128,31 +127,26 @@ class CreditsState extends MusicBeatState
 			}
 		}
 
-		// load from mod directories
-		var modFolders = Mods.getModDirectories();
+		final modFolders = Mods.getModDirectories();
 		modFolders.push('');
-		for (folder in modFolders)
-		{
-			addModCredits(folder);
-		}
+		for (folder in modFolders) addModCredits(folder);
 	}
 
 	function addModCredits(folder:String)
 	{
 		if (processedMods.contains(folder)) return;
 
-		var creditsFile = folder != null && folder.trim().length > 0 
+		final creditsFile = (folder != null && folder.trim().length > 0) 
 			? Mods.getModPath(folder + '/data/credits.txt')
 			: Mods.getModPath('data/credits.txt');
 
-		if (FileSystem.exists(creditsFile))
+		if (FileUtil.exists(creditsFile))
 		{
-			var fileContent = File.getContent(creditsFile).split('\n');
+			final fileContent = FileUtil.getContent(creditsFile).split('\n');
 			for (line in fileContent)
 			{
-				var creditEntry = line.replace('\\n', '\n').split("::");
-				if (creditEntry.length >= 5) 
-					creditEntry.push(folder);
+				final creditEntry = line.replace('\\n', '\n').split("::");
+				if (creditEntry.length >= 5) creditEntry.push(folder);
 				creditsList.push(creditEntry);
 			}
 			creditsList.push(['']);

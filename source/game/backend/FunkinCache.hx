@@ -3,9 +3,11 @@ package game.backend;
 import flixel.FlxG;
 import flixel.graphics.FlxGraphic;
 
+import openfl.display.BitmapData;
 import openfl.media.Sound;
 
 import lime.utils.Assets;
+import openfl.utils.Assets as OpenFlAssets;
 
 @:access(openfl.display.BitmapData)
 class FunkinCache
@@ -23,6 +25,71 @@ class FunkinCache
     public static function excludeAsset(key:String) {
         if (!dumpExclusions.contains(key))
             dumpExclusions.push(key);
+    }
+
+    static public function cacheBitmap(key:String, ?library:String = null, ?bitmap:BitmapData = null, ?allowGPU:Bool = true)
+    {
+        if (missingAssets.exists(key)) return null;
+
+        if (bitmap == null) {
+            for (ext in Paths.IMAGE_EXTS) {
+                final relPath = library != null ? '$library/images/$key.$ext' : 'images/$key.$ext';
+                
+                #if MODS_ALLOWED
+                final modBytes = Mods.getModFileContent(relPath);
+                if (modBytes != null) {
+                    bitmap = BitmapData.fromBytes(modBytes);
+                    break;
+                }
+                #end
+                
+                final fallbackPath = Paths.getPath(relPath, IMAGE, library, true);
+                
+                #if sys
+                if (FileSystem.exists(fallbackPath)) {
+                    bitmap = BitmapData.fromFile(fallbackPath);
+                    break;
+                }
+                #end
+                
+                if (OpenFlAssets.exists(fallbackPath, IMAGE)) {
+                    bitmap = OpenFlAssets.getBitmapData(fallbackPath);
+                    break;
+                }
+            }
+
+            if (bitmap == null) {
+                trace('Bitmap not found for key: $key');
+                missingAssets.set(key, true);
+                return null;
+            }
+        }
+
+        if (allowGPU && (ClientPrefs.cacheOnGPU || ClientPrefs.adaptiveCache) && bitmap?.image != null) {
+            bitmap.lock();
+            
+            if (bitmap.__texture == null) {
+                bitmap.getTexture(FlxG.stage.context3D);
+            }
+
+            bitmap.getSurface();
+            bitmap.disposeImage();
+
+            if (bitmap.image != null) {
+                bitmap.image.data = null;
+                bitmap.image = null;
+            }
+
+            bitmap.readable = true;
+        }
+
+        final graph = FlxGraphic.fromBitmapData(bitmap, false, key);
+        graph.persist = true;
+        graph.destroyOnNoUse = false;
+
+        currentTrackedAssets.set(key, graph);
+        localTrackedAssets.push(key);
+        return graph;
     }
 
     public static function clearUnusedMemory(cleanMajor:Bool = true) {

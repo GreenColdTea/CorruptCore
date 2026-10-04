@@ -84,6 +84,8 @@ class FunkinRuleScript {
         "Character" => game.objects.Character,
         "PlayerSettings" => game.backend.PlayerSettings,
         "CoolUtil" => game.backend.utils.CoolUtil,
+        "SongUtil" => game.backend.utils.SongUtil,
+        "FileUtil" => game.backend.utils.FileUtil,
         "MusicBeatState" => MusicBeatState,
         "MusicBeatSubstate" => MusicBeatSubstate,
         "Conductor" => game.backend.Conductor,

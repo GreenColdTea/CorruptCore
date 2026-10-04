@@ -188,44 +188,7 @@ class TitleState extends MusicBeatState
 		add(gfDance);
 
 		titleText = new FlxSprite(titleJSON.startx, titleJSON.starty);
-		#if MODS_ALLOWED
-		var imageLoaded = false;
-
-		for (ext in Paths.IMAGE_EXTS) {
-			var path = '${Mods.MODS_FOLDER}/${Mods.currentModDirectory}/images/titleEnter.$ext';
-			if (!FileSystem.exists(path)) {
-				path = '${Mods.MODS_FOLDER}/images/titleEnter.$ext';
-			}
-			if (!FileSystem.exists(path)) {
-				path = Paths.getPath('images/titleEnter.$ext');
-			}
-			
-			if (FileSystem.exists(path)) {
-				var xmlPath = StringTools.replace(path, '.$ext', '.xml');
-				var titleXml:String = null;
-				
-				if (FileSystem.exists(xmlPath)) {
-					titleXml = File.getContent(xmlPath);
-				} else {
-					var assetXmlPath = StringTools.replace(Paths.getPath('images/titleEnter.$ext'), '.$ext', '.xml');
-					if (Assets.exists(assetXmlPath))
-						titleXml = Assets.getText(assetXmlPath);
-				}
-				
-				if (titleXml != null) {
-					titleText.frames = FlxAtlasFrames.fromSparrow(BitmapData.fromFile(path), titleXml);
-					imageLoaded = true;
-					break;
-				}
-			}
-		}
-		
-		if (!imageLoaded) {
-			trace('Could not load titleEnter image with any extension: ${Paths.IMAGE_EXTS}');
-		}
-		#else
 		titleText.frames = Paths.getSparrowAtlas('titleEnter');
-		#end
 		
 		var animFrames:Array<FlxFrame> = [];
 		@:privateAccess {

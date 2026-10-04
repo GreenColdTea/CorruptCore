@@ -13,7 +13,6 @@ import flixel.FlxG;
 import flixel.FlxSprite;
 import flixel.FlxCamera;
 import flixel.FlxObject;
-import flixel.FlxSprite;
 import flixel.addons.effects.FlxTrail;
 import flixel.input.keyboard.FlxKey;
 import flixel.tweens.FlxTween;
@@ -44,8 +43,6 @@ import sys.io.File;
 #end
 
 import Type.ValueType;
-
-import game.PlayState;
 
 import game.backend.Controls;
 import game.objects.Character;
@@ -149,7 +146,7 @@ class FunkinLua {
         set('stepCrochet', Conductor.stepCrochet);
         set('songLength', FlxG.sound.music.length);
         set('songName', PlayState.SONG.song);
-        set('songPath', Paths.formatToSongPath(PlayState.SONG.song));
+        set('songPath', SongUtil.formatToSongPath(PlayState.SONG.song));
         set('startedCountdown', false);
         set('curStage', PlayState.SONG.stage);
 
@@ -158,7 +155,7 @@ class FunkinLua {
 
         var difficultyName:String = CoolUtil.difficulties[PlayState.storyDifficulty];
         set('difficultyName', difficultyName);
-        set('difficultyPath', Paths.formatToSongPath(difficultyName));
+        set('difficultyPath', SongUtil.formatToSongPath(difficultyName));
         set('weekRaw', PlayState.storyWeek);
         set('week', WeekData.weeksList[PlayState.storyWeek]);
         set('seenCutscene', PlayState.seenCutscene);
@@ -241,6 +238,12 @@ class FunkinLua {
 
     private function registerCustomFunctions():Void {
         #if LUA_ALLOWED
+        var getActualPath = function(luaFile:String):String {
+            var cervix = luaFile.endsWith(".lua") ? luaFile : luaFile + ".lua";
+            var path = Paths.getPath(cervix, TEXT, null, true);
+            return FileUtil.exists(path) ? path : null;
+        };
+
         LuaUtils.addFunction(lua, "openCustomSubstate", function(name:String, pauseGame:Bool = false):Void {
             if (pauseGame) {
                 PlayState.instance.persistentUpdate = false;
@@ -284,208 +287,67 @@ class FunkinLua {
 
         LuaUtils.addFunction(lua, "callScript", function(luaFile:String, funcName:String, ?args:Array<Dynamic>):Dynamic {
             if (args == null) args = [];
-            
-            var cervix:String = luaFile + ".lua";
-            if (luaFile.endsWith(".lua")) cervix = luaFile;
-            
-            var doPush:Bool = false;
-            #if MODS_ALLOWED
-            if (FileSystem.exists(Mods.modFolders(cervix))) {
-                cervix = Mods.modFolders(cervix);
-                doPush = true;
-            } else if (FileSystem.exists(cervix)) {
-                doPush = true;
-            } else {
-                cervix = Paths.getPreloadPath(cervix);
-                if (FileSystem.exists(cervix)) {
-                    doPush = true;
-                }
-            }
-            #else
-            cervix = Paths.getPreloadPath(cervix);
-            if (Assets.exists(cervix)) {
-                doPush = true;
-            }
-            #end
-            
-            if (doPush) {
+            var actualPath = getActualPath(luaFile);
+            if (actualPath != null) {
                 for (luaInstance in PlayState.instance.luaArray) {
-                    if (luaInstance.scriptName == cervix) {
-                        return luaInstance.call(funcName, args);
-                    }
+                    if (luaInstance.scriptName == actualPath) return luaInstance.call(funcName, args);
                 }
             }
             return null;
         });
 
         LuaUtils.addFunction(lua, "getGlobalFromScript", function(luaFile:String, global:String):Dynamic {
-            var cervix:String = luaFile + ".lua";
-            if (luaFile.endsWith(".lua")) cervix = luaFile;
-            
-            var doPush:Bool = false;
-            #if MODS_ALLOWED
-            if (FileSystem.exists(Mods.modFolders(cervix))) {
-                cervix = Mods.modFolders(cervix);
-                doPush = true;
-            } else if (FileSystem.exists(cervix)) {
-                doPush = true;
-            } else {
-                cervix = Paths.getPreloadPath(cervix);
-                if (FileSystem.exists(cervix)) {
-                    doPush = true;
-                }
-            }
-            #else
-            cervix = Paths.getPreloadPath(cervix);
-            if (Assets.exists(cervix)) {
-                doPush = true;
-            }
-            #end
-            
-            if (doPush) {
+            var actualPath = getActualPath(luaFile);
+            if (actualPath != null) {
                 for (luaInstance in PlayState.instance.luaArray) {
-                    if (luaInstance.scriptName == cervix) {
-                        return LuaUtils.getVariable(luaInstance.lua, global);
-                    }
+                    if (luaInstance.scriptName == actualPath) return LuaUtils.getVariable(luaInstance.lua, global);
                 }
             }
             return null;
         });
 
         LuaUtils.addFunction(lua, "setGlobalFromScript", function(luaFile:String, global:String, val:Dynamic):Void {
-            var cervix:String = luaFile + ".lua";
-            if (luaFile.endsWith(".lua")) cervix = luaFile;
-            
-            var doPush:Bool = false;
-            #if MODS_ALLOWED
-            if (FileSystem.exists(Mods.modFolders(cervix))) {
-                cervix = Mods.modFolders(cervix);
-                doPush = true;
-            } else if (FileSystem.exists(cervix)) {
-                doPush = true;
-            } else {
-                cervix = Paths.getPreloadPath(cervix);
-                if (FileSystem.exists(cervix)) {
-                    doPush = true;
-                }
-            }
-            #else
-            cervix = Paths.getPreloadPath(cervix);
-            if (Assets.exists(cervix)) {
-                doPush = true;
-            }
-            #end
-            
-            if (doPush) {
+            var actualPath = getActualPath(luaFile);
+            if (actualPath != null) {
                 for (luaInstance in PlayState.instance.luaArray) {
-                    if (luaInstance.scriptName == cervix) {
-                        luaInstance.set(global, val);
-                    }
+                    if (luaInstance.scriptName == actualPath) luaInstance.set(global, val);
                 }
             }
         });
 
         LuaUtils.addFunction(lua, "isRunning", function(luaFile:String):Bool {
-            var cervix:String = luaFile + ".lua";
-            if (luaFile.endsWith(".lua")) cervix = luaFile;
-            
-            var doPush:Bool = false;
-            #if MODS_ALLOWED
-            if (FileSystem.exists(Mods.modFolders(cervix))) {
-                cervix = Mods.modFolders(cervix);
-                doPush = true;
-            } else if (FileSystem.exists(cervix)) {
-                doPush = true;
-            } else {
-                cervix = Paths.getPreloadPath(cervix);
-                if (FileSystem.exists(cervix)) {
-                    doPush = true;
-                }
-            }
-            #else
-            cervix = Paths.getPreloadPath(cervix);
-            if (Assets.exists(cervix)) {
-                doPush = true;
-            }
-            #end
-
-            if (doPush) {
+            var actualPath = getActualPath(luaFile);
+            if (actualPath != null) {
                 for (luaInstance in PlayState.instance.luaArray) {
-                    if (luaInstance.scriptName == cervix) {
-                        return true;
-                    }
+                    if (luaInstance.scriptName == actualPath) return true;
                 }
             }
             return false;
         });
 
         LuaUtils.addFunction(lua, "addLuaScript", function(luaFile:String, ?ignoreAlreadyRunning:Bool = false):Void {
-            var cervix:String = luaFile + ".lua";
-            if (luaFile.endsWith(".lua")) cervix = luaFile;
-            
-            var doPush:Bool = false;
-            #if MODS_ALLOWED
-            if (FileSystem.exists(Mods.modFolders(cervix))) {
-                cervix = Mods.modFolders(cervix);
-                doPush = true;
-            } else if (FileSystem.exists(cervix)) {
-                doPush = true;
-            } else {
-                cervix = Paths.getPreloadPath(cervix);
-                if (FileSystem.exists(cervix)) {
-                    doPush = true;
-                }
-            }
-            #else
-            cervix = Paths.getPreloadPath(cervix);
-            if (Assets.exists(cervix)) {
-                doPush = true;
-            }
-            #end
-
-            if (doPush) {
+            var actualPath = getActualPath(luaFile);
+            if (actualPath != null) {
                 if (!ignoreAlreadyRunning) {
                     for (luaInstance in PlayState.instance.luaArray) {
-                        if (luaInstance.scriptName == cervix) {
-                            luaTrace('addLuaScript: The script "$cervix" is already running!');
+                        if (luaInstance.scriptName == actualPath) {
+                            luaTrace('addLuaScript: The script "$luaFile" is already running!');
                             return;
                         }
                     }
                 }
-                PlayState.instance.luaArray.push(new FunkinLua(cervix));
+                PlayState.instance.luaArray.push(new FunkinLua(actualPath));
                 return;
             }
             luaTrace("addLuaScript: Script doesn't exist!", false, false, FlxColor.RED);
         });
 
         LuaUtils.addFunction(lua, "removeLuaScript", function(luaFile:String, ?ignoreAlreadyRunning:Bool = false):Void {
-            var cervix:String = luaFile + ".lua";
-            if (luaFile.endsWith(".lua")) cervix = luaFile;
-            
-            var doPush:Bool = false;
-            #if MODS_ALLOWED
-            if (FileSystem.exists(Mods.modFolders(cervix))) {
-                cervix = Mods.modFolders(cervix);
-                doPush = true;
-            } else if (FileSystem.exists(cervix)) {
-                doPush = true;
-            } else {
-                cervix = Paths.getPreloadPath(cervix);
-                if (FileSystem.exists(cervix)) {
-                    doPush = true;
-                }
-            }
-            #else
-            cervix = Paths.getPreloadPath(cervix);
-            if (Assets.exists(cervix)) {
-                doPush = true;
-            }
-            #end
-
-            if (doPush) {
+            var actualPath = getActualPath(luaFile);
+            if (actualPath != null) {
                 if (!ignoreAlreadyRunning) {
                     for (luaInstance in PlayState.instance.luaArray) {
-                        if (luaInstance.scriptName == cervix) {
+                        if (luaInstance.scriptName == actualPath) {
                             PlayState.instance.luaArray.remove(luaInstance);
                             return;
                         }
@@ -501,26 +363,19 @@ class FunkinLua {
             var retVal:Dynamic = null;
             initHaxeModule();
             try {
-                if (hscript != null) {
-                    retVal = hscript.executeString(codeToRun);
-                }
+                if (hscript != null) retVal = hscript.executeString(codeToRun);
             } catch (e:Dynamic) {
                 luaTrace(scriptName + ":" + lastCalledFunction + " - " + e, false, false, FlxColor.RED);
             }
 
-            if (retVal != null && !isOfTypes(retVal, [Bool, Int, Float, String, Array])) {
-                retVal = null;
-            }
+            if (retVal != null && !isOfTypes(retVal, [Bool, Int, Float, String, Array])) retVal = null;
             return retVal;
         });
 
         LuaUtils.addFunction(lua, "addHaxeLibrary", function(libName:String, ?libPackage:String = ''):Void {
             initHaxeModule();
             try {
-                var str:String = '';
-                if (libPackage.length > 0) {
-                    str = libPackage + '.';
-                }
+                var str:String = (libPackage.length > 0) ? libPackage + '.' : '';
                 hscript.set(libName, Type.resolveClass(str + libName));
             } catch (e:Dynamic) {
                 luaTrace(scriptName + ":" + lastCalledFunction + " - " + e, false, false, FlxColor.RED);
@@ -529,58 +384,38 @@ class FunkinLua {
         #end
 
         LuaUtils.addFunction(lua, "getProperty", function(variable:String):Dynamic {
-            var result:Dynamic = null;
-            var killMe:Array<String> = variable.split('.');
-            if (killMe.length > 1) {
-                result = getVarInArray(getPropertyLoopThingWhatever(killMe), killMe[killMe.length-1]);
-            } else {
-                result = getVarInArray(getInstance(), variable);
-            }
-            return result;
+            var killMe = variable.split('.');
+            if (killMe.length > 1) return getVarInArray(getPropertyLoopThingWhatever(killMe), killMe[killMe.length-1]);
+            return getVarInArray(getInstance(), variable);
         });
 
         LuaUtils.addFunction(lua, "setProperty", function(variable:String, value:Dynamic):Bool {
-            var killMe:Array<String> = variable.split('.');
-            if (killMe.length > 1) {
-                setVarInArray(getPropertyLoopThingWhatever(killMe), killMe[killMe.length-1], value);
-            } else {
-                setVarInArray(getInstance(), variable, value);
-            }
+            var killMe = variable.split('.');
+            if (killMe.length > 1) setVarInArray(getPropertyLoopThingWhatever(killMe), killMe[killMe.length-1], value);
+            else setVarInArray(getInstance(), variable, value);
             return true;
         });
 
         LuaUtils.addFunction(lua, "getPropertyFromGroup", function(obj:String, index:Int, variable:Dynamic):Dynamic {
-            var shitMyPants:Array<String> = obj.split('.');
+            var shitMyPants = obj.split('.');
             var realObject:Dynamic = Reflect.getProperty(getInstance(), obj);
-            if (shitMyPants.length > 1) {
-                realObject = getPropertyLoopThingWhatever(shitMyPants, true, false);
-            }
+            if (shitMyPants.length > 1) realObject = getPropertyLoopThingWhatever(shitMyPants, true, false);
 
-            if (Std.isOfType(realObject, FlxTypedGroup)) {
-                var result:Dynamic = getGroupStuff(realObject.members[index], variable);
-                return result;
-            }
+            if (Std.isOfType(realObject, FlxTypedGroup)) return getGroupStuff(realObject.members[index], variable);
 
             var leArray:Dynamic = realObject[index];
             if (leArray != null) {
-                var result:Dynamic = null;
-                if (Type.typeof(variable) == ValueType.TInt) {
-                    result = leArray[variable];
-                } else {
-                    result = getGroupStuff(leArray, variable);
-                }
-                return result;
+                if (Type.typeof(variable) == ValueType.TInt) return leArray[variable];
+                return getGroupStuff(leArray, variable);
             }
             luaTrace("getPropertyFromGroup: Object #" + index + " from group: " + obj + " doesn't exist!", false, false, FlxColor.RED);
             return null;
         });
 
         LuaUtils.addFunction(lua, "setPropertyFromGroup", function(obj:String, index:Int, variable:Dynamic, value:Dynamic):Void {
-            var shitMyPants:Array<String> = obj.split('.');
+            var shitMyPants = obj.split('.');
             var realObject:Dynamic = Reflect.getProperty(getInstance(), obj);
-            if (shitMyPants.length > 1) {
-                realObject = getPropertyLoopThingWhatever(shitMyPants, true, false);
-            }
+            if (shitMyPants.length > 1) realObject = getPropertyLoopThingWhatever(shitMyPants, true, false);
 
             if (Std.isOfType(realObject, FlxTypedGroup)) {
                 setGroupStuff(realObject.members[index], variable, value);
@@ -589,48 +424,37 @@ class FunkinLua {
 
             var leArray:Dynamic = realObject[index];
             if (leArray != null) {
-                if (Type.typeof(variable) == ValueType.TInt) {
-                    leArray[variable] = value;
-                    return;
-                }
-                setGroupStuff(leArray, variable, value);
+                if (Type.typeof(variable) == ValueType.TInt) leArray[variable] = value;
+                else setGroupStuff(leArray, variable, value);
             }
         });
 
         LuaUtils.addFunction(lua, "removeFromGroup", function(obj:String, index:Int, dontDestroy:Bool = false):Void {
             if (Std.isOfType(Reflect.getProperty(getInstance(), obj), FlxTypedGroup)) {
                 var sex = Reflect.getProperty(getInstance(), obj).members[index];
-                if (!dontDestroy) {
-                    sex.kill();
-                }
+                if (!dontDestroy) sex.kill();
                 Reflect.getProperty(getInstance(), obj).remove(sex, true);
-                if (!dontDestroy) {
-                    sex.destroy();
-                }
+                if (!dontDestroy) sex.destroy();
                 return;
             }
             Reflect.getProperty(getInstance(), obj).remove(Reflect.getProperty(getInstance(), obj)[index]);
         });
 
         LuaUtils.addFunction(lua, "getPropertyFromClass", function(classVar:String, variable:String):Dynamic {
-            var killMe:Array<String> = variable.split('.');
+            var killMe = variable.split('.');
             if (killMe.length > 1) {
-                var coverMeInPiss:Dynamic = getVarInArray(Type.resolveClass(classVar), killMe[0]);
-                for (i in 1...killMe.length-1) {
-                    coverMeInPiss = getVarInArray(coverMeInPiss, killMe[i]);
-                }
+                var coverMeInPiss = getVarInArray(Type.resolveClass(classVar), killMe[0]);
+                for (i in 1...killMe.length-1) coverMeInPiss = getVarInArray(coverMeInPiss, killMe[i]);
                 return getVarInArray(coverMeInPiss, killMe[killMe.length-1]);
             }
             return getVarInArray(Type.resolveClass(classVar), variable);
         });
 
         LuaUtils.addFunction(lua, "setPropertyFromClass", function(classVar:String, variable:String, value:Dynamic):Bool {
-            var killMe:Array<String> = variable.split('.');
+            var killMe = variable.split('.');
             if (killMe.length > 1) {
-                var coverMeInPiss:Dynamic = getVarInArray(Type.resolveClass(classVar), killMe[0]);
-                for (i in 1...killMe.length-1) {
-                    coverMeInPiss = getVarInArray(coverMeInPiss, killMe[i]);
-                }
+                var coverMeInPiss = getVarInArray(Type.resolveClass(classVar), killMe[0]);
+                for (i in 1...killMe.length-1) coverMeInPiss = getVarInArray(coverMeInPiss, killMe[i]);
                 setVarInArray(coverMeInPiss, killMe[killMe.length-1], value);
                 return true;
             }
@@ -639,29 +463,16 @@ class FunkinLua {
         });
 
         final luaFuncs:Array<Dynamic> = [
-            LuaColor,
-            LuaControls,
-            LuaFileManager,
-            LuaObject,
-            LuaPlayState,
-            LuaSave,
-            LuaSound,
-            LuaSprites,
-            LuaText,
-            LuaTimer,
-            LuaTween,
-            LuaRandom,
-            LuaShader,
-            LuaDeprecated
+            LuaColor, LuaControls, LuaFileManager, LuaObject, LuaPlayState, 
+            LuaSave, LuaSound, LuaSprites, LuaText, LuaTimer, LuaTween, 
+            LuaRandom, LuaShader, LuaDeprecated
         ];
         
         for (luaFunc in luaFuncs) {
-            if (luaFunc != null && Reflect.isFunction(luaFunc.init)) {
-                luaFunc.init(this);
-            }
+            if (luaFunc != null && Reflect.isFunction(luaFunc.init)) luaFunc.init(this);
         }
 
-        LuaUtils.addFunction(lua, "debugPrint", function(text1:Dynamic = '', text2:Dynamic = '', text3:Dynamic = '', text4:Dynamic = '', text5:Dynamic = ''):Void {
+        LuaUtils.addFunction(lua, "debugPrint", function(text1:Dynamic='', text2:Dynamic='', text3:Dynamic='', text4:Dynamic='', text5:Dynamic=''):Void {
             text1 = (text1 == null) ? '' : text1;
             text2 = (text2 == null) ? '' : text2;
             text3 = (text3 == null) ? '' : text3;
@@ -671,9 +482,7 @@ class FunkinLua {
         });
 
         LuaUtils.addFunction(lua, "import", function(className:String, ?packagePath:String = ""):Void {
-            #if HSCRIPT_ALLOWED
-            importClass(className, packagePath);
-            #end
+            #if HSCRIPT_ALLOWED importClass(className, packagePath); #end
         });
 
         LuaUtils.addFunction(lua, "getParent", function():Dynamic {
@@ -694,70 +503,32 @@ class FunkinLua {
             return true;
         });
 
-        // String functions
-        LuaUtils.addFunction(lua, "stringStartsWith", function(str:String, start:String):Bool {
-            return str.startsWith(start);
-        });
+        LuaUtils.addFunction(lua, "stringStartsWith", function(str:String, start:String):Bool return str.startsWith(start));
+        LuaUtils.addFunction(lua, "stringEndsWith", function(str:String, end:String):Bool return str.endsWith(end));
+        LuaUtils.addFunction(lua, "stringSplit", function(str:String, split:String):Array<String> return str.split(split));
+        LuaUtils.addFunction(lua, "stringTrim", function(str:String):String return str.trim());
 
-        LuaUtils.addFunction(lua, "stringEndsWith", function(str:String, end:String):Bool {
-            return str.endsWith(end);
-        });
-
-        LuaUtils.addFunction(lua, "stringSplit", function(str:String, split:String):Array<String> {
-            return str.split(split);
-        });
-
-        LuaUtils.addFunction(lua, "stringTrim", function(str:String):String {
-            return str.trim();
-        });
-
-       LuaUtils.addFunction(lua, "directoryFileList", function(folder:String):Array<String> {
+        LuaUtils.addFunction(lua, "directoryFileList", function(folder:String):Array<String> {
             var list:Array<String> = [];
-            
-            #if sys
-            if (FileSystem.exists(folder)) {
-                for (file in FileSystem.readDirectory(folder)) {
-                    if (!list.contains(file)) {
-                        list.push(file);
-                    }
-                }
+            var files = FileUtil.listDirectory(folder);
+            for (file in files) {
+                var fileName = haxe.io.Path.withoutDirectory(file);
+                if (!list.contains(fileName)) list.push(fileName);
             }
-            #else
-            var folderWithSlash:String = folder.endsWith("/") ? folder : folder + "/";
-            var allAssets:Array<String> = Assets.list();
-            
-            for (assetPath in allAssets) {
-                if (assetPath.startsWith(folderWithSlash)) {
-                    var parts:Array<String> = assetPath.split("/");
-                    if (parts.length > 0) {
-                        var fileName:String = parts[parts.length - 1];
-                        if (fileName.length > 0 && !list.contains(fileName)) {
-                            list.push(fileName);
-                        }
-                    }
-                }
-            }
-            #end
-            
             return list;
         });
 
         #if HSCRIPT_ALLOWED
         LuaUtils.addFunction(lua, "setOnHScript", PlayState.instance.setOnHScript);
-
         LuaUtils.addFunction(lua, "callOnHScript", function(funcName:String, ?args:Array<Dynamic> = null, ?ignoreStops:Bool = false, ?ignoreSelf:Bool = true, ?excludeScripts:Array<String> = null, ?excludeValues:Array<Dynamic> = null):Dynamic {
             excludeScripts = (excludeScripts == null) ? [] : excludeScripts;
-            if (ignoreSelf && !excludeScripts.contains(scriptName)) {
-                excludeScripts.push(scriptName);
-            }
+            if (ignoreSelf && !excludeScripts.contains(scriptName)) excludeScripts.push(scriptName);
             return PlayState.instance.callOnHScript(funcName, args, ignoreStops, excludeScripts, excludeValues);
         });
         #end
 
         if (useCustomFunctions && customFunctions != null) {
-            for (tag => func in customFunctions) {
-                LuaUtils.addFunction(lua, Std.string(tag), func);
-            }
+            for (tag => func in customFunctions) LuaUtils.addFunction(lua, Std.string(tag), func);
         }
         #end
     }
@@ -1002,9 +773,9 @@ class FunkinLua {
 
         if (v != null) v = v.trim();
         if (v == null || v == "") {
-            if (status == 2) return "Runtime Error"; // LUA_ERRRUN = 2
-            else if (status == 4) return "Memory Allocation Error"; // LUA_ERRMEM = 4
-            else if (status == 5) return "Critical Error"; // LUA_ERRERR = 5
+            if (status == 2) return "Runtime Error"; 
+            else if (status == 4) return "Memory Allocation Error"; 
+            else if (status == 5) return "Critical Error"; 
             return "Unknown Error";
         }
 
@@ -1015,13 +786,13 @@ class FunkinLua {
 
     function typeToString(type:Int):String {
         #if LUA_ALLOWED
-        if (type == 1) return "boolean"; // LUA_TBOOLEAN = 1
-        else if (type == 3) return "number"; // LUA_TNUMBER = 3
-        else if (type == 4) return "string"; // LUA_TSTRING = 4
-        else if (type == 5) return "table"; // LUA_TTABLE = 5
-        else if (type == 6) return "function"; // LUA_TFUNCTION = 6
+        if (type == 1) return "boolean"; 
+        else if (type == 3) return "number"; 
+        else if (type == 4) return "string"; 
+        else if (type == 5) return "table"; 
+        else if (type == 6) return "function"; 
         
-        if (type <= 0) return "nil"; // LUA_TNIL = 0
+        if (type <= 0) return "nil"; 
         #end
         return "unknown";
     }
@@ -1037,7 +808,7 @@ class FunkinLua {
             Lua.getglobal(lua, func);
             var type:Int = Lua.type(lua, -1);
             
-            if (type != 6) { // 6 = LUA_TFUNCTION
+            if (type != 6) { 
                 Lua.pop(lua, 1);
                 
                 if (func != 'onCreate' && func != 'onUpdate' && func != 'onStepHit' && 
@@ -1149,7 +920,7 @@ class FunkinLua {
         if (lua == null) return false;
         
         Lua.getglobal(lua, func);
-        var exists:Bool = Lua.type(lua, -1) == 6; // 6 = LUA_TFUNCTION
+        var exists:Bool = Lua.type(lua, -1) == 6; 
         Lua.pop(lua, 1);
         return exists;
         #else

@@ -1,8 +1,5 @@
 package game.states;
 
-import flixel.FlxG;
-import flixel.FlxSprite;
-import flixel.FlxState;
 import flixel.text.FlxText;
 import flixel.graphics.frames.FlxAtlasFrames;
 import flixel.util.FlxTimer;
@@ -129,7 +126,7 @@ class LoadingState extends MusicBeatState
     {
         FlxTransitionableState.skipNextTransIn = true;
 
-        var bg:FlxSprite = new FlxSprite(0, 0).makeGraphic(FlxG.width, FlxG.height, 0xffcaff4d);
+        final bg:FlxSprite = new FlxSprite(0, 0).makeGraphic(FlxG.width, FlxG.height, 0xffcaff4d);
         add(bg);
 
         funkay = new FlxSprite(0, 0).loadGraphic(Paths.image('funkay', null, true));
@@ -174,31 +171,31 @@ class LoadingState extends MusicBeatState
     {
         if (PlayState.SONG != null)
         {
-            var characters = [PlayState.SONG.player1, PlayState.SONG.player2, PlayState.SONG.gfVersion];
+            final characters = [PlayState.SONG.player1, PlayState.SONG.player2, PlayState.SONG.gfVersion];
 
             for (char in characters) {
                 if (char != null) {
-                    var cb = callbacks.add("character:" + char);
+                    final cb = callbacks.add("character:" + char);
                     loadCharacter(char, cb);
                 }
             }
 
-            var cbSong = callbacks.add("song audio");
+            final cbSong = callbacks.add("song audio");
             checkLoadSong(getSongPath(), cbSong);
 
             if (PlayState.SONG.needsVoices) {
                 for (vocalPath in getVocalPaths()) {
-                    var cbVocal = callbacks.add("vocal audio: " + vocalPath);
+                    final cbVocal = callbacks.add("vocal audio: " + vocalPath);
                     checkLoadSong(vocalPath, cbVocal);
                 }
             }
 
-            var stage = PlayState.SONG.stage ?? StageData.vanillaSongStage(PlayState.SONG.song);
-            var stageFile:StageFile = StageData.getStageFile(stage);
+            final stage = PlayState.SONG.stage ?? StageData.vanillaSongStage(PlayState.SONG.song);
+            final stageFile:StageFile = StageData.getStageFile(stage);
 
-            if (stageFile != null && stageFile.loadingImages != null) {
+            if (stageFile?.loadingImages != null) {
                 for (image in stageFile.loadingImages) {
-                    var cbImage = callbacks.add("stageImage:" + image);
+                    final cbImage = callbacks.add("stageImage:" + image);
                     loadStageImage(image, cbImage);
                 }
             }
@@ -214,7 +211,7 @@ class LoadingState extends MusicBeatState
             var count = 0;
             while (queueIndex < loadQueue.length && count < tasksPerFrame)
             {
-                var task = loadQueue[queueIndex];
+                final task = loadQueue[queueIndex];
                 try {
                     task.execute();
                 } catch(e:Dynamic) {
@@ -235,7 +232,7 @@ class LoadingState extends MusicBeatState
 
             loadBar.scale.x = targetShit;
             
-            var percent:Int = Math.floor(progress * 100);
+            final percent:Int = Math.floor(progress * 100);
             percentText.text = '$percent%';
         }
     }
@@ -246,10 +243,10 @@ class LoadingState extends MusicBeatState
             type: JSON_PROCESSING,
             description: 'Parse character JSON: $character',
             execute: function() {
-                var characterPath:String = 'data/characters/' + character + '.json';
-                var rawJson:String = Paths.getTextFromFile(characterPath);
+                final characterPath:String = 'data/characters/' + character + '.json';
+                final rawJson:String = Paths.getTextFromFile(characterPath);
+
                 var imageToLoad = 'characters/' + character;
-                
                 if (rawJson != null) {
                     try {
                         var json:Dynamic = haxe.Json.parse(rawJson);
@@ -278,7 +275,7 @@ class LoadingState extends MusicBeatState
             type: MAIN_THREAD,
             description: 'Load image: $image',
             execute: function() {
-                var formats = checkImageFormats(image);
+                final formats = checkImageFormats(image);
 
                 if (formats.animate)
                     #if flixel_animate Paths.getAnimateAtlas(image); #end
@@ -310,7 +307,7 @@ class LoadingState extends MusicBeatState
     @:access(flixel.system.frontEnds.BitmapFrontEnd._cache)
     static function isGraphicCached(imageName:String):Bool {
         for (ext in Paths.IMAGE_EXTS) {
-            var key = 'images/$imageName.$ext';
+            final key = 'images/$imageName.$ext';
             if (FlxG.bitmap._cache.exists(key)) return true;
         }
         return false;
@@ -341,13 +338,13 @@ class LoadingState extends MusicBeatState
 
     function checkLoadSong(path:String, onComplete:Void->Void)
     {
-        if (path == null) {
+        if (path == null #if FLX_STREAM_SOUND || FlxG.sound.useStreamingForAll #end) {
             onComplete();
             return;
         }
 
         #if MODS_ALLOWED
-        if (path.startsWith('${Mods.MODS_FOLDER}/')) {
+        if (path.startsWith('${Mods.MODS_FOLDER}/') || path.startsWith('temp/')) {
             audioProcessingPool.queue({
                 type: AUDIO_PROCESSING,
                 description: 'Decode Mod Audio: $path',
@@ -364,29 +361,27 @@ class LoadingState extends MusicBeatState
                     });
                 }
             });
-        } else #end {
-            if (!Assets.cache.hasSound(path)) {
-                Assets.loadSound(path).onComplete((_) -> onComplete()).onError((e) -> {
-                    trace('Error loading sound: $path, error: $e');
-                    onComplete();
-                });
-            } else {
+            return;
+        } 
+        #end
+        
+        if (!Assets.cache.hasSound(path)) {
+            Assets.loadSound(path).onComplete((_) -> onComplete()).onError((e) -> {
+                trace('Error loading sound: $path, error: $e');
                 onComplete();
-            }
+            });
+        } else {
+            onComplete();
         }
     }
 
     function loadSoundFromPath(path:String):Sound
     {
         #if sys
-        if (!FileSystem.exists(path)) return null;
+        if (!FileUtil.exists(path)) return null;
         
-        var extension = Path.extension(path).toLowerCase();
         try {
-            switch(extension) {
-                default:
-                    return Sound.fromFile(path);
-            }
+            return Sound.fromFile(path);
         } catch(e:Dynamic) {
             trace('Error loading sound file $path: $e');
             return null;
@@ -430,32 +425,59 @@ class LoadingState extends MusicBeatState
     }
 
     static function getSoundPath(song:String, type:String):String {
-        var songKey:String = '${Paths.formatToSongPath(song)}/$type';
+        final songKey:String = '${SongUtil.formatToSongPath(song)}/$type';
         
         #if MODS_ALLOWED
         for (ext in Paths.SOUND_EXTS) {
-            var file:String = Mods.modsSounds('songs', songKey, ext);
-            if (FileSystem.exists(file)) return file;
+            final modPathTarget = 'songs/$songKey.$ext';
+            
+            if (Mods.currentModDirectory?.length > 0) {
+                final target = '${Mods.currentModDirectory}/$modPathTarget';
+                final physicalPath = FileUtil.getAbsolutePath(Mods.getModPath(target));
+                if (sys.FileSystem.exists(physicalPath)) return physicalPath;
+            }
+        }
+
+        for (mod in Mods.enabledMods) {
+            if (mod == Mods.currentModDirectory) continue;
+            for (ext in Paths.SOUND_EXTS) {
+                final target = '$mod/songs/$songKey.$ext';
+                final physicalPath = FileUtil.getAbsolutePath(Mods.getModPath(target));
+                if (sys.FileSystem.exists(physicalPath)) return physicalPath;
+            }
         }
         #end
 
         for (ext in Paths.SOUND_EXTS) {
-            var soundPath:String = Paths.getPath('songs/$songKey.$ext', SOUND, 'songs');
+            final soundPath:String = Paths.getPath('songs/$songKey.$ext', SOUND, 'songs');
             if (Assets.exists(soundPath)) return soundPath;
         }
 
-        var capitalType = type.charAt(0).toUpperCase() + type.substr(1);
-        var songKeyCapital:String = '${Paths.formatToSongPath(song)}/$capitalType';
+        final capitalType = type.charAt(0).toUpperCase() + type.substr(1);
+        final songKeyCapital:String = '${SongUtil.formatToSongPath(song)}/$capitalType';
 
         #if MODS_ALLOWED
         for (ext in Paths.SOUND_EXTS) {
-            var file:String = Mods.modsSounds('songs', songKeyCapital, ext);
-            if (FileSystem.exists(file)) return file;
+            final modPathTarget = 'songs/$songKeyCapital.$ext';
+            if (Mods.currentModDirectory?.length > 0) {
+                final target = '${Mods.currentModDirectory}/$modPathTarget';
+                final physicalPath = FileUtil.getAbsolutePath(Mods.getModPath(target));
+                if (sys.FileSystem.exists(physicalPath)) return physicalPath;
+            }
+        }
+
+        for (mod in Mods.enabledMods) {
+            if (mod == Mods.currentModDirectory) continue;
+            for (ext in Paths.SOUND_EXTS) {
+                final target = '$mod/songs/$songKeyCapital.$ext';
+                final physicalPath = FileUtil.getAbsolutePath(Mods.getModPath(target));
+                if (sys.FileSystem.exists(physicalPath)) return physicalPath;
+            }
         }
         #end
 
         for (ext in Paths.SOUND_EXTS) {
-            var soundPath:String = Paths.getPath('songs/$songKeyCapital.$ext', SOUND, 'songs');
+            final soundPath:String = Paths.getPath('songs/$songKeyCapital.$ext', SOUND, 'songs');
             if (Assets.exists(soundPath)) return soundPath;
         }
 
@@ -519,7 +541,7 @@ class LoadingState extends MusicBeatState
             
             if (stageFile != null && stageFile.loadingImages != null) {
                 for (image in stageFile.loadingImages) {
-                    if (!isStageImageLoaded(image)) return false;
+                    if (!isGraphicCached(image)) return false;
                 }
             }
         }
@@ -529,10 +551,6 @@ class LoadingState extends MusicBeatState
     static function isCharacterLoaded(character:String):Bool {
         if (isGraphicCached('characters/$character')) return true;
         return Paths.fileExists('data/characters/$character.json', TEXT);
-    }
-
-    static function isStageImageLoaded(image:String):Bool {
-        return isGraphicCached(image);
     }
 
     #if MODS_ALLOWED
@@ -550,9 +568,11 @@ class LoadingState extends MusicBeatState
     }
 
     static function isSoundLoaded(path:String):Bool {
+        if (path == null) return false;
+        
         #if MODS_ALLOWED
-        if (path?.startsWith('${Mods.MODS_FOLDER}/')) {
-            return FileSystem.exists(path);
+        if (path.startsWith('${Mods.MODS_FOLDER}/') || path.startsWith('temp/')) {
+            return FileUtil.exists(path);
         }
         #end
 

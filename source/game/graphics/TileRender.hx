@@ -1,12 +1,15 @@
 package game.graphics;
 
-import flixel.FlxSprite;
-import flixel.FlxCamera;
 import flixel.FlxG;
+import flixel.FlxCamera;
+import flixel.FlxSprite;
 import flixel.graphics.frames.FlxFrame;
+import flixel.math.FlxAngle;
 import flixel.math.FlxRect;
 import flixel.math.FlxMath;
+import flixel.math.FlxPoint;
 import flixel.util.FlxDestroyUtil;
+
 import openfl.geom.ColorTransform;
 import openfl.Vector;
 
@@ -35,6 +38,7 @@ class TileRender extends FlxSprite
 
     public var tailAnim(default, set):String = null;
     public var segmentsPerTile:Int = !ClientPrefs.lowQuality ? 12 : 4;
+    public var skew:FlxPoint = FlxPoint.get();
 
     var tailFrame:FlxFrame;
     var bodyFrame:FlxFrame;
@@ -182,6 +186,11 @@ class TileRender extends FlxSprite
         final oldActive:Bool = headNote.active;
         headNote.active = true;
 
+        final tanX = Math.tan(skew.x * FlxAngle.TO_RAD);
+        final tanY = Math.tan(skew.y * FlxAngle.TO_RAD);
+        final ox = 0.0;
+        final oy = 0.0;
+
         var currentLocalY:Float = 0.0;
         var vIdx:Int = 0;
         var iIdx:Int = 0;
@@ -274,14 +283,23 @@ class TileRender extends FlxSprite
                 final v0 = vTop + (vBot - vTop) * pStart;
                 final v1 = vTop + (vBot - vTop) * pEnd;
 
-                sustainVertices[vIdx] = cx0 - normX0 * halfWidth; sustainUvtData[vIdx++] = u0;
-                sustainVertices[vIdx] = cy0 - normY0 * halfWidth; sustainUvtData[vIdx++] = v0;
-                sustainVertices[vIdx] = cx0 + normX0 * halfWidth; sustainUvtData[vIdx++] = u1;
-                sustainVertices[vIdx] = cy0 + normY0 * halfWidth; sustainUvtData[vIdx++] = v0;
-                sustainVertices[vIdx] = cx1 - normX1 * halfWidth; sustainUvtData[vIdx++] = u0;
-                sustainVertices[vIdx] = cy1 - normY1 * halfWidth; sustainUvtData[vIdx++] = v1;
-                sustainVertices[vIdx] = cx1 + normX1 * halfWidth; sustainUvtData[vIdx++] = u1;
-                sustainVertices[vIdx] = cy1 + normY1 * halfWidth; sustainUvtData[vIdx++] = v1;
+                var px:Float, py:Float;
+
+                px = cx0 - normX0 * halfWidth; py = cy0 - normY0 * halfWidth;
+                sustainVertices[vIdx] = px + (py - oy) * tanX; sustainUvtData[vIdx++] = u0;
+                sustainVertices[vIdx] = py + (px - ox) * tanY; sustainUvtData[vIdx++] = v0;
+
+                px = cx0 + normX0 * halfWidth; py = cy0 + normY0 * halfWidth;
+                sustainVertices[vIdx] = px + (py - oy) * tanX; sustainUvtData[vIdx++] = u1;
+                sustainVertices[vIdx] = py + (px - ox) * tanY; sustainUvtData[vIdx++] = v0;
+
+                px = cx1 - normX1 * halfWidth; py = cy1 - normY1 * halfWidth;
+                sustainVertices[vIdx] = px + (py - oy) * tanX; sustainUvtData[vIdx++] = u0;
+                sustainVertices[vIdx] = py + (px - ox) * tanY; sustainUvtData[vIdx++] = v1;
+
+                px = cx1 + normX1 * halfWidth; py = cy1 + normY1 * halfWidth;
+                sustainVertices[vIdx] = px + (py - oy) * tanX; sustainUvtData[vIdx++] = u1;
+                sustainVertices[vIdx] = py + (px - ox) * tanY; sustainUvtData[vIdx++] = v1;
 
                 sustainIndices[iIdx++] = bVertex;
                 sustainIndices[iIdx++] = bVertex + 1;
@@ -325,6 +343,14 @@ class TileRender extends FlxSprite
         _frame.prepareMatrix(_matrix, FlxFrameAngle.ANGLE_0, checkFlipX(), checkFlipY());
         _matrix.translate(-origin.x, -origin.y);
         _matrix.scale(scale.x, scale.y);
+
+        if (skew.x != 0 || skew.y != 0)
+        {
+            final skMat = new openfl.geom.Matrix();
+            skMat.b = Math.tan(skew.y * FlxAngle.TO_RAD);
+            skMat.c = Math.tan(skew.x * FlxAngle.TO_RAD);
+            _matrix.concat(skMat);
+        }
 
         if (bakedRotationAngle <= 0)
         {

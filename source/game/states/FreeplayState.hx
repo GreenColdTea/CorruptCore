@@ -314,6 +314,7 @@ class FreeplayState extends MusicBeatState
 		{
 			persistentUpdate = false;
 			colorTween?.cancel();
+			WeekData.loadTheFirstEnabledMod();
 			FlxG.sound.play(Paths.sound('cancelMenu'));
 			FlxG.switchState(() -> new MainMenuState());
 		}
@@ -356,7 +357,7 @@ class FreeplayState extends MusicBeatState
 	{
 		persistentUpdate = false;
 
-		var songPath = Paths.formatToSongPath(songs[curSelected].songName);
+		var songPath = SongUtil.formatToSongPath(songs[curSelected].songName);
 		var formattedSong = Highscore.formatSong(songPath, curDifficulty);
 
 		PlayState.SONG = Song.loadFromJson(formattedSong, songPath);
@@ -513,7 +514,6 @@ class FreeplayState extends MusicBeatState
         #if MODS_ALLOWED
         Mods.pushGlobalMods();
         #end
-		WeekData.loadTheFirstEnabledMod();
         
         super.destroy();
     }

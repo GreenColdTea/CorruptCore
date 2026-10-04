@@ -87,26 +87,12 @@ class DialogueCharacter extends FlxSprite
 	}
 
 	public function reloadCharacterJson(character:String) {
-		var characterPath:String = 'images/dialogue/' + character + '.json';
-		var rawJson = null;
-
-		#if MODS_ALLOWED
-		var path:String = Mods.modFolders(characterPath);
-		if (!FileSystem.exists(path)) {
-			path = Paths.getPreloadPath(characterPath);
-		}
-
-		if(!FileSystem.exists(path)) {
-			path = Paths.getPreloadPath('images/dialogue/' + DEFAULT_CHARACTER + '.json');
-		}
-		rawJson = File.getContent(path);
-
-		#else
-		var path:String = Paths.getPreloadPath(characterPath);
-		rawJson = Assets.getText(path);
-		#end
+		var path = Paths.getPath('images/dialogue/$character.json', TEXT, null, true);
 		
-		jsonFile = cast Json.parse(rawJson);
+		if (!FileUtil.exists(path))
+			path = Paths.getPath('images/dialogue/${DEFAULT_CHARACTER}.json', TEXT, null, true);
+		
+		jsonFile = cast Json.parse(FileUtil.getContent(path));
 	}
 
 	public function reloadAnimations() {
@@ -513,13 +499,7 @@ class DialogueBoxPsych extends FlxSpriteGroup
 	}
 
 	public static function parseDialogue(path:String):DialogueFile {
-		#if MODS_ALLOWED
-		if(FileSystem.exists(path))
-		{
-			return cast Json.parse(File.getContent(path));
-		}
-		#end
-		return cast Json.parse(Assets.getText(path));
+		return cast Json.parse(FileUtil.getContent(path));
 	}
 
 	public static function updateBoxOffsets(box:FlxSprite) { //Had to make it static because of the editors

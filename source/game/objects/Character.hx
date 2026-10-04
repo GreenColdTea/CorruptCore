@@ -651,7 +651,7 @@ class Character extends #if flixel_animate FlxAnimate #else FlxSprite #end
     {
         try
         {
-            var noteData:Array<SwagSection> = Song.loadFromJson('picospeaker', Paths.formatToSongPath(PlayState.SONG.song)).notes;
+            var noteData:Array<SwagSection> = Song.loadFromJson('picospeaker', SongUtil.formatToSongPath(PlayState.SONG.song)).notes;
             
             for (section in noteData)
             {

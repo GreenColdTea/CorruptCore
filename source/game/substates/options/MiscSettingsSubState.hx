@@ -51,8 +51,8 @@ class MiscSettingsSubState extends BaseOptionsMenu
 		addOption(option);
 		#end
 
-		var option:Option = new Option('Streaming Audio',
-			"If enabled, all sounds loaded via string paths will use streaming (OGG/Vorbis only).\nRequires restart to take full effect.\nReduces RAM usage but may cause slight CPU load.",
+		var option:Option = new Option('Streamed Audio',
+			"If enabled, all sounds loaded via string paths will use streaming.\nRequires restart to take full effect.\nReduces RAM usage but may cause slight CPU load.",
 			'useStreamingAudio',
 			'bool',
 			false);

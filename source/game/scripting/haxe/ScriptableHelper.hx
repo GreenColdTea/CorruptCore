@@ -67,57 +67,21 @@ class ScriptableHelper {
     }
 
     public static function collectScriptPaths(name:String, pathGetter:String->Array<String>):Array<String> {
-        var folders:Array<String> = pathGetter(name);
-        var scriptFiles:Array<String> = [];
-        var processedFiles:Map<String, Bool> = new Map();
+        final paths:Array<String> = pathGetter(name);
+        final scriptFiles:Array<String> = [];
 
-        for (path in folders) {
-            #if sys
-            if (FileSystem.exists(path)) {
-                if (FileSystem.isDirectory(path)) {
-                    final files = FileSystem.readDirectory(path)
-                        .map(file -> haxe.io.Path.join([path, file]))
-                        .filter(fullPath -> !FileSystem.isDirectory(fullPath) && 
-                                            Lambda.exists(Paths.HSCRIPT_EXTS, ext -> fullPath.endsWith('.$ext')));
-
-                    for (file in files) {
-                        if (!processedFiles.exists(file)) {
-                            scriptFiles.push(file);
-                            processedFiles.set(file, true);
-                        }
-                    }
-                    continue;
-                } else {
-                    if (Lambda.exists(Paths.HSCRIPT_EXTS, ext -> path.endsWith('.$ext')) && !processedFiles.exists(path)) {
-                        scriptFiles.push(path);
-                        processedFiles.set(path, true);
-                    }
-                    continue;
-                }
-            }
-            #end
-
-            if (OpenFlAssets.exists(path)) {
-                if (Lambda.exists(Paths.HSCRIPT_EXTS, ext -> path.endsWith('.$ext'))) {
-                    if (!processedFiles.exists(path)) {
-                        scriptFiles.push(path);
-                        processedFiles.set(path, true);
-                    }
-                } else {
-                    final prefix = path.endsWith('/') ? path : path + '/';
-                    final assetFiles = OpenFlAssets.list(TEXT).filter(file -> file.startsWith(prefix) && 
-                                        Lambda.exists(Paths.HSCRIPT_EXTS, ext -> file.endsWith('.$ext')));
-
-                    for (file in assetFiles) {
-                        if (!processedFiles.exists(file)) {
-                            scriptFiles.push(file);
-                            processedFiles.set(file, true);
-                        }
+        for (path in paths) {
+            if (Lambda.exists(Paths.HSCRIPT_EXTS, ext -> path.endsWith('.$ext'))) {
+                if (FileUtil.exists(path) && !scriptFiles.contains(path)) scriptFiles.push(path);
+            } else {
+                final files = FileUtil.listDirectory(path);
+                for (file in files) {
+                    if (Lambda.exists(Paths.HSCRIPT_EXTS, ext -> file.endsWith('.$ext')) && !scriptFiles.contains(file)) {
+                        scriptFiles.push(file);
                     }
                 }
             }
         }
-
         return scriptFiles;
     }
 }

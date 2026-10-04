@@ -350,6 +350,7 @@ class PlayState extends MusicBeatState
 
 	private var curStepText:FlxText;
 	private var curBeatText:FlxText;
+	private var curSectionText:FlxText;
 
 	private var precacheList:Map<String, String> = new Map<String, String>();
 	
@@ -506,9 +507,6 @@ class PlayState extends MusicBeatState
 
 	override public function create()
 	{
-		//trace('Playback Rate: ' + playbackRate);
-
-		// for lua
 		instance = this;
 
 		startCallback = startCountdown;
@@ -516,7 +514,7 @@ class PlayState extends MusicBeatState
 
 		debugKeysChart = ClientPrefs.copyKey(ClientPrefs.keyBinds.get('debug_1'));
 		debugKeysCharacter = ClientPrefs.copyKey(ClientPrefs.keyBinds.get('debug_2'));
-		PauseSubState.songName = null; //Reset to default
+		PauseSubState.songName = null; 
 		playbackRate = ClientPrefs.getGameplaySetting('songspeed', 1);
 
 		keysArray = [
@@ -527,16 +525,12 @@ class PlayState extends MusicBeatState
 		];
 
 		controlArray = [
-			'NOTE_LEFT',
-			'NOTE_DOWN',
-			'NOTE_UP',
-			'NOTE_RIGHT'
+			'NOTE_LEFT', 'NOTE_DOWN', 'NOTE_UP', 'NOTE_RIGHT'
 		];
 
 		displayHealth = health;
 
-		//Ratings
-		ratingsData.push(new Rating('sick')); //default rating
+		ratingsData.push(new Rating('sick'));
 
 		var rating:Rating = new Rating('good');
 		rating.ratingMod = 0.85;
@@ -556,22 +550,16 @@ class PlayState extends MusicBeatState
 		rating.noteSplash = false;
 		ratingsData.push(rating);
 
-		// For the "Just the Two of Us" achievement
-		for (i in 0...keysArray.length)
-		{
-			keysPressed.push(false);
-		}
+		for (i in 0...keysArray.length) keysPressed.push(false);
 
 		FlxG.sound?.music?.stop();
 
-		// Gameplay settings
 		healthGain = ClientPrefs.getGameplaySetting('healthgain', 1);
 		healthLoss = ClientPrefs.getGameplaySetting('healthloss', 1);
 		instakillOnMiss = ClientPrefs.getGameplaySetting('instakill', false);
 		practiceMode = ClientPrefs.getGameplaySetting('practice', false);
 		cpuControlled = ClientPrefs.getGameplaySetting('botplay', false);
 
-		// var gameCam:FlxCamera = FlxG.camera;
 		camGame = initFunkinCamera();
 		camHUD = new FlxCamera();
 		camOther = new FlxCamera();
@@ -605,40 +593,25 @@ class PlayState extends MusicBeatState
 
 		#if DISCORD_ALLOWED
 		storyDifficultyText = CoolUtil.difficulties[storyDifficulty];
-
-		// String that contains the mode defined here so it isn't necessary to call changePresence for each mode
-		if (isStoryMode)
-		{
-			detailsText = "Story Mode: " + WeekData.getCurrentWeek().weekName;
-		}
-		else
-		{
-			detailsText = "Freeplay";
-		}
-
-		// String for when the game is paused
+		detailsText = isStoryMode ? "Story Mode: " + WeekData.getCurrentWeek().weekName : "Freeplay";
 		detailsPausedText = "Paused - " + detailsText;
 		#end
 
 		GameOverSubstate.resetVariables();
-		songName = Paths.formatToSongPath(SONG.song);
+		songName = SongUtil.formatToSongPath(SONG.song);
 		if(SONG.stage == null || SONG.stage.length < 1) {
 			SONG.stage = StageData.vanillaSongStage(songName);
 		}
 		curStage = SONG.stage;
 
-		var stageData:StageFile = StageData.getStageFile(curStage);
-		//Stage couldn't be found, create a dummy stage for preventing a crash
-		stageData ??= {
+		final stageData:StageFile = StageData.getStageFile(curStage) ?? {
 			directory: "",
 			defaultZoom: 0.9,
 			isPixelStage: false,
-
 			boyfriend: [770, 100],
 			girlfriend: [400, 130],
 			opponent: [100, 100],
 			hide_girlfriend: false,
-
 			camera_boyfriend: [0, 0],
 			camera_opponent: [0, 0],
 			camera_girlfriend: [0, 0],
@@ -654,25 +627,17 @@ class PlayState extends MusicBeatState
 		DAD_X = stageData.opponent[0];
 		DAD_Y = stageData.opponent[1];
 
-		if(stageData.camera_speed != null)
-			cameraSpeed = stageData.camera_speed;
+		if(stageData.camera_speed != null) cameraSpeed = stageData.camera_speed;
 
-		boyfriendCameraOffset = stageData.camera_boyfriend;
-		//Fucks sake should have done it since the start :rolling_eyes:
-		boyfriendCameraOffset ??= [0, 0];
-
-		opponentCameraOffset = stageData.camera_opponent;
-		opponentCameraOffset ??= [0, 0];
-
-		girlfriendCameraOffset = stageData.camera_girlfriend;
-		girlfriendCameraOffset ??= [0, 0];
+		boyfriendCameraOffset = stageData.camera_boyfriend ?? [0, 0];
+		opponentCameraOffset = stageData.camera_opponent ?? [0, 0];
+		girlfriendCameraOffset = stageData.camera_girlfriend ?? [0, 0];
 
 		boyfriendGroup = new FlxSpriteGroup(BF_X, BF_Y);
 		dadGroup = new FlxSpriteGroup(DAD_X, DAD_Y);
 		gfGroup = new FlxSpriteGroup(GF_X, GF_Y);
 
-		if (Paths.formatToSongPath(SONG.song) != 'tutorial')
-			camZooming = true;
+		if (SongUtil.formatToSongPath(SONG.song) != 'tutorial') camZooming = true;
 
 		switch (curStage)
 		{
@@ -689,7 +654,7 @@ class PlayState extends MusicBeatState
 			#end
 		}
 
-		switch(Paths.formatToSongPath(SONG.song))
+		switch(SongUtil.formatToSongPath(SONG.song))
 		{
 			case 'stress':
 				GameOverSubstate.characterName = 'bf-holding-gf-dead';
@@ -709,82 +674,55 @@ class PlayState extends MusicBeatState
 		add(luaDebugGroup);
 
 		// "GLOBAL" SCRIPTS
-		var filesPushed:Array<String> = [];
-		var foldersToCheck:Array<String> = [Paths.getPreloadPath('scripts/')];
+        var filesPushed:Array<String> = [];
+        final scriptFolders:Array<String> = [Paths.getPreloadPath('scripts/')];
 
-		#if MODS_ALLOWED
-		foldersToCheck.insert(0, Mods.getModPath('scripts/'));
-		if(Mods.currentModDirectory?.length > 0)
-			foldersToCheck.insert(0, Mods.getModPath(Mods.currentModDirectory + '/scripts/'));
+        #if MODS_ALLOWED
+        for (mod in Mods.globalMods) {
+            final p = Mods.getModPath('$mod/scripts/');
+            if (!scriptFolders.contains(p)) scriptFolders.push(p);
+        }
+        if (Mods.currentModDirectory?.length > 0) {
+            final p = Mods.getModPath('${Mods.currentModDirectory}/scripts/');
+            if (!scriptFolders.contains(p)) scriptFolders.push(p);
+        }
+        #end
 
-		for(mod in Mods.getGlobalMods())
-			foldersToCheck.insert(0, Mods.getModPath(mod + '/scripts/'));
-		#end
+        for (dir in scriptFolders) {
+            #if sys
+            if (!FileSystem.exists(dir) || !FileSystem.isDirectory(dir)) continue;
 
-		for (folder in foldersToCheck) {
-			#if sys
-			if (FileSystem.exists(folder)) {
-				final allFiles = FileSystem.readDirectory(folder);
+            for (file in FileSystem.readDirectory(dir)) {
+                final fullPath = haxe.io.Path.join([dir, file]);
+                if (FileSystem.isDirectory(fullPath)) continue;
 
-				#if LUA_ALLOWED
-				final luaFiles = allFiles.filter(file -> file.endsWith(".lua") && !file.contains("/states/") && !file.contains("/substates/"));
-				for (file in luaFiles) {
-					if (!filesPushed.contains(file)) {
-						luaArray.push(new FunkinLua(folder + file));
-						filesPushed.push(file);
-					}
-				}
-				#end
+                final fileName = haxe.io.Path.withoutDirectory(fullPath);
+                if (filesPushed.contains(fileName) || fullPath.contains("/states/") || fullPath.contains("/substates/")) continue;
 
-				#if HSCRIPT_ALLOWED
-				final hscriptFiles = allFiles.filter(file -> 
-					Lambda.exists(Paths.HSCRIPT_EXTS, ext -> file.endsWith('.$ext')) && !file.contains("/states/") && !file.contains("/substates/")
-				);
-				for (file in hscriptFiles) {
-					if (!filesPushed.contains(file)) {
-						hscriptArray.push(new FunkinHScript(folder + file));
-						filesPushed.push(file);
-					}
-				}
-				#end
-			}
-			#end
-
-			final assetFiles = OpenFlAssets.list().filter(f -> f.startsWith(folder));
-
-			#if LUA_ALLOWED
-			final luaAssets = assetFiles.filter(file -> file.endsWith(".lua"));
-			for (file in luaAssets) {
-				final fileName = file.substring(file.lastIndexOf("/") + 1);
-				if (!filesPushed.contains(fileName) && !file.contains("/states/") &&
-					!file.contains("/substates/")) {
-					luaArray.push(new FunkinLua(file));
-					filesPushed.push(fileName);
-				}
-			}
-			#end
-
-			#if HSCRIPT_ALLOWED
-			final hscriptAssets = assetFiles.filter(file -> Lambda.exists(Paths.HSCRIPT_EXTS, ext -> file.endsWith('.$ext')));
-			for (file in hscriptAssets) {
-				final fileName = file.substring(file.lastIndexOf("/") + 1);
-				if (!filesPushed.contains(fileName) && !file.contains("/states/") &&
-					!file.contains("/substates/")) {
-					hscriptArray.push(new FunkinHScript(file));
-					filesPushed.push(fileName);
-				}
-			}
-			#end
-		}
+                #if LUA_ALLOWED
+                if (fullPath.endsWith(".lua")) {
+                    luaArray.push(new FunkinLua(fullPath));
+                    filesPushed.push(fileName);
+                }
+                #end
+                #if HSCRIPT_ALLOWED
+                if (Lambda.exists(Paths.HSCRIPT_EXTS, ext -> fullPath.endsWith('.$ext'))) {
+                    hscriptArray.push(new FunkinHScript(fullPath));
+                    filesPushed.push(fileName);
+                }
+                #end
+            }
+            #end
+        }
 
 		// STAGE SCRIPTS
-		startLuasOnFolder('data/stages/' + curStage + '.lua');
+		startLuasOnFolder('data/stages/$curStage.lua');
 		for (ext in Paths.HSCRIPT_EXTS)
-			startHScriptOnFolder('data/stages/' + curStage + '.$ext');
+			startHScriptOnFolder('data/stages/$curStage.$ext');
 
 		if (!stageData.hide_girlfriend)
 		{
-			if(SONG.gfVersion == null || SONG.gfVersion.length < 1) SONG.gfVersion = 'gf'; //Fix for the Chart Editor
+			if(SONG.gfVersion == null || SONG.gfVersion.length < 1) SONG.gfVersion = 'gf';
 			gf = new Character(0, 0, SONG.gfVersion);
 			startCharacterPos(gf);
 			gf.scrollFactor.set(0.95, 0.95);
@@ -806,7 +744,7 @@ class PlayState extends MusicBeatState
 		add(grpRatings);
 		add(grpNumbers);
 
-		var camPos:FlxPoint = FlxPoint.get(girlfriendCameraOffset[0], girlfriendCameraOffset[1]);
+		final camPos:FlxPoint = FlxPoint.get(girlfriendCameraOffset[0], girlfriendCameraOffset[1]);
 		if(gf != null)
 		{
 			camPos.x += gf.getGraphicMidpoint().x + gf.cameraPosition[0];
@@ -815,24 +753,16 @@ class PlayState extends MusicBeatState
 
 		if(dad.curCharacter.startsWith('gf')) {
 			dad.setPosition(GF_X, GF_Y);
-			if(gf != null)
-				gf.visible = false;
+			if(gf != null) gf.visible = false;
 		}
 
-		switch(curStage)
-		{
-			
-		}
+		final jsonFile = Paths.json('songs/$songName/dialogue');
+		if (FileUtil.exists(jsonFile))
+			dialogueJson = DialogueBoxPsych.parseDialogue(jsonFile);
 
-		var file:String = Paths.json('songs/$songName/dialogue'); //Checks for json/Psych Engine dialogue
-		if (OpenFlAssets.exists(file) #if sys || FileSystem.exists(file) #end) {
-			dialogueJson = DialogueBoxPsych.parseDialogue(file);
-		}
-
-		var file:String = Paths.txt('songs/$songName/${songName}Dialogue'); //Checks for vanilla/Senpai dialogue
-		if (OpenFlAssets.exists(file) #if sys || FileSystem.exists(file) #end) {
-			dialogue = CoolUtil.coolTextFile(file);
-		}
+		final txtFile = Paths.txt('songs/$songName/${songName}Dialogue');
+		if (FileUtil.exists(txtFile))
+			dialogue = CoolUtil.coolTextFile(txtFile);
 
 		Conductor.songPosition = -Conductor.crochet * 5 + Conductor.offset;
 
@@ -840,7 +770,7 @@ class PlayState extends MusicBeatState
 		if(ClientPrefs.downScroll) strumLine.y = FlxG.height - 150;
 		strumLine.scrollFactor.set();
 
-		var showTime:Bool = (ClientPrefs.timeBarType != 'Disabled');
+		final showTime:Bool = (ClientPrefs.timeBarType != 'Disabled');
 		timeTxt = new FlxText(STRUM_X + (FlxG.width / 2) - 248, 19, 400, "", 32);
 		timeTxt.setFormat(Paths.font("vcr.ttf"), 32, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 		timeTxt.scrollFactor.set();
@@ -861,11 +791,10 @@ class PlayState extends MusicBeatState
 		timeBarBG.yAdd = -4;
 		add(timeBarBG);
 
-		timeBar = new FlxBar(timeBarBG.x + 4, timeBarBG.y + 4, LEFT_TO_RIGHT, Std.int(timeBarBG.width - 8), Std.int(timeBarBG.height - 8), this,
-			'songPercent', 0, 1);
+		timeBar = new FlxBar(timeBarBG.x + 4, timeBarBG.y + 4, LEFT_TO_RIGHT, Std.int(timeBarBG.width - 8), Std.int(timeBarBG.height - 8), this, 'songPercent', 0, 1);
 		timeBar.scrollFactor.set();
 		timeBar.createFilledBar(0xFF000000, 0xFFFFFFFF);
-		timeBar.numDivisions = 200; //How much lag this causes?? Should i tone it down to idk, 400 or 200?
+		timeBar.numDivisions = 200;
 		timeBar.alpha = 0;
 		timeBar.visible = showTime;
 		add(timeBar);
@@ -880,11 +809,11 @@ class PlayState extends MusicBeatState
 			timeTxt.y += 3;
 		}
 
-		var splash:NoteSplash = new NoteSplash(100, 100, 0);
+		final splash:NoteSplash = new NoteSplash(100, 100, 0);
 		grpNoteSplashes.add(splash);
 		splash.alpha = 0.0;
 
-		var holdCover:NoteHoldCover = new NoteHoldCover();
+		final holdCover:NoteHoldCover = new NoteHoldCover();
 		grpHoldCovers.add(holdCover);
 		holdCover.alpha = 0.0;
 
@@ -895,9 +824,6 @@ class PlayState extends MusicBeatState
 		#if MODCHART_ALLOWED
 		modManager = new ModManager(this);
 		#end
-
-		// After all characters being loaded, it makes then invisible 0.01s later so that the player won't freeze when you change characters
-		// add(strumLine);
 
 		camFollow = new FlxObject(0, 0, 1, 1);
 		camFollow.setPosition(camPos.x, camPos.y);
@@ -927,11 +853,8 @@ class PlayState extends MusicBeatState
 		add(healthBarBG);
 		if(ClientPrefs.downScroll) healthBarBG.y = 0.11 * FlxG.height;
 
-		healthBar = new FlxBar(healthBarBG.x + 4, healthBarBG.y + 4, RIGHT_TO_LEFT,
-			Std.int(healthBarBG.width - 8), Std.int(healthBarBG.height - 8),
-			this, 'displayHealth', 0, 2);
+		healthBar = new FlxBar(healthBarBG.x + 4, healthBarBG.y + 4, RIGHT_TO_LEFT, Std.int(healthBarBG.width - 8), Std.int(healthBarBG.height - 8), this, 'displayHealth', 0, 2);
 		healthBar.scrollFactor.set();
-		// healthBar
 		healthBar.visible = !ClientPrefs.hideHud;
 		healthBar.alpha = ClientPrefs.healthBarAlpha;
 		add(healthBar);
@@ -957,7 +880,6 @@ class PlayState extends MusicBeatState
 		scoreTxt.visible = !ClientPrefs.hideHud;
 		add(scoreTxt);
 
-		//for better notes visibility
 		add(strumLineNotes);
 		add(notesSustains);
 		add(notes);
@@ -970,9 +892,7 @@ class PlayState extends MusicBeatState
 		botplayTxt.borderSize = 1.25;
 		botplayTxt.visible = cpuControlled;
 		add(botplayTxt);
-		if(ClientPrefs.downScroll) {
-			botplayTxt.y = timeBarBG.y - 78;
-		}
+		if(ClientPrefs.downScroll) botplayTxt.y = timeBarBG.y - 78;
 
 		grpRatings.cameras = [camHUD];
 		grpCombos.cameras = [camHUD];
@@ -992,23 +912,18 @@ class PlayState extends MusicBeatState
 		timeBarBG.cameras = [camHUD];
 		timeTxt.cameras = [camHUD];
 
-		// if (SONG.song == 'South')
-		// FlxG.camera.alpha = 0.7;
-		// UI_camera.zoom = 1;
-
-		// cameras = [FlxG.cameras.list[1]];
 		startingSong = true;
 		
 		for (ext in Paths.HSCRIPT_EXTS) {
 			for (notetype in noteTypeMap.keys())
 			{
-				startLuasOnFolder('custom_notetypes/' + notetype + '.lua');
-				startHScriptOnFolder('custom_notetypes/' + notetype + '.$ext');
+				startLuasOnFolder('custom_notetypes/$notetype.lua');
+				startHScriptOnFolder('custom_notetypes/$notetype.$ext');
 			}
 			for (event in eventPushedMap.keys())
 			{
-				startLuasOnFolder('custom_events/' + event + '.lua');
-				startHScriptOnFolder('custom_events/' + event + '.$ext');
+				startLuasOnFolder('custom_events/$event.lua');
+				startHScriptOnFolder('custom_events/$event.$ext');
 			}
 		}
 
@@ -1019,65 +934,22 @@ class PlayState extends MusicBeatState
 
 		// SONG SPECIFIC SCRIPTS
 		filesPushed = [];
-		foldersToCheck = [Paths.getPreloadPath('data/songs/${Paths.formatToSongPath(SONG.song)}/')];
+		final songScripts = FileUtil.listDirectory('data/songs/${SongUtil.formatToSongPath(SONG.song)}');
+		
+		for (file in songScripts) {
+			final fileName = haxe.io.Path.withoutDirectory(file);
+			if (filesPushed.contains(fileName)) continue;
 
-		#if MODS_ALLOWED
-		foldersToCheck.insert(0, Mods.getModPath('data/songs/${Paths.formatToSongPath(SONG.song)}/'));
-		if(Mods.currentModDirectory?.length > 0)
-			foldersToCheck.insert(0, Mods.getModPath(Mods.currentModDirectory + '/data/songs/' + Paths.formatToSongPath(SONG.song) + '/'));
-
-		for(mod in Mods.getGlobalMods())
-			foldersToCheck.insert(0, Mods.getModPath(mod + '/data/songs/' + Paths.formatToSongPath(SONG.song) + '/' ));
-		#end
-
-		for (folder in foldersToCheck) {
-			#if sys
-			if (FileSystem.exists(folder)) {
-				final allFiles = FileSystem.readDirectory(folder);
-				
-				#if LUA_ALLOWED
-				final luaFiles = allFiles.filter(file -> file.endsWith(".lua"));
-				for (file in luaFiles) {
-					if (!filesPushed.contains(file)) {
-						luaArray.push(new FunkinLua(folder + file));
-						filesPushed.push(file);
-					}
-				}
-				#end
-				
-				#if HSCRIPT_ALLOWED
-				final hscriptFiles = allFiles.filter(file -> Lambda.exists(Paths.HSCRIPT_EXTS, ext -> file.endsWith("." + ext)));
-				for (file in hscriptFiles) {
-					if (!filesPushed.contains(file)) {
-						hscriptArray.push(new FunkinHScript(folder + file));
-						filesPushed.push(file);
-					}
-				}
-				#end
-			}
-			#end
-			
-			final assetFiles = OpenFlAssets.list().filter(f -> f.startsWith(folder));
-			
 			#if LUA_ALLOWED
-			final luaAssets = assetFiles.filter(file -> file.endsWith(".lua"));
-			for (file in luaAssets) {
-				final fileName = file.substring(file.lastIndexOf("/") + 1);
-				if (!filesPushed.contains(fileName)) {
-					luaArray.push(new FunkinLua(file));
-					filesPushed.push(fileName);
-				}
+			if (file.endsWith(".lua")) {
+				luaArray.push(new FunkinLua(file));
+				filesPushed.push(fileName);
 			}
 			#end
-			
 			#if HSCRIPT_ALLOWED
-			final hscriptAssets = assetFiles.filter(file -> Lambda.exists(Paths.HSCRIPT_EXTS, ext -> file.endsWith("." + ext)));
-			for (file in hscriptAssets) {
-				final fileName = file.substring(file.lastIndexOf("/") + 1);
-				if (!filesPushed.contains(fileName)) {
-					hscriptArray.push(new FunkinHScript(file));
-					filesPushed.push(fileName);
-				}
+			if (Lambda.exists(Paths.HSCRIPT_EXTS, ext -> file.endsWith('.$ext'))) {
+				hscriptArray.push(new FunkinHScript(file));
+				filesPushed.push(fileName);
 			}
 			#end
 		}
@@ -1085,45 +957,47 @@ class PlayState extends MusicBeatState
 		startCallback();
 		RecalculateRating();
 
-		// Add curStep and curBeat display
 		if (chartingMode) {
-			var curStepText = new FlxText(20, 20, 200, "curStep: " + curStep, 20);
+			final curStepText = new FlxText(20, 20, 200, "curStep: " + curStep, 20);
 			curStepText.setFormat("VCR OSD Mono", 20, FlxColor.YELLOW, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 			curStepText.cameras = [camOther];
 			curStepText.borderSize = 1.25;
 			add(curStepText);
 
-			var curBeatText = new FlxText(20, 50, 200, "curBeat: " + curBeat, 20);
+			final curBeatText = new FlxText(curStepText.x, curStepText.y + 30, 200, "curBeat: " + curBeat, 20);
 			curBeatText.setFormat("VCR OSD Mono", 20, FlxColor.YELLOW, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 			curBeatText.cameras = [camOther];
 			curBeatText.borderSize = 1.25;
 			add(curBeatText);
 
+			final curSectionText = new FlxText(curStepText.x, curStepText.y + 30, 200, "curSection: " + curSection, 20);
+			curSectionText.setFormat("VCR OSD Mono", 20, FlxColor.YELLOW, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+			curSectionText.cameras = [camOther];
+			curSectionText.borderSize = 1.25;
+			add(curSectionText);
+
 			if (!ClientPrefs.downScroll) {
 				curStepText.y += 500;
 				curBeatText.y += 500;
+				curSectionText.y += 500;
 			}
-
-			// Update this texts in update()
 			this.curStepText = curStepText;
 			this.curBeatText = curBeatText;
+			this.curSectionText = curSectionText;
 		}
 
-		//PRECACHING MISS SOUNDS BECAUSE I THINK THEY CAN LAG PEOPLE AND FUCK THEM UP IDK HOW HAXE WORKS
 		if(ClientPrefs.hitsoundVolume > 0) precacheList.set('hitsound', 'sound');
-		
 		for (i in 1...4) precacheList.set('missnote$i', 'sound');
 
 		if (PauseSubState.songName != null) {
 			precacheList.set(PauseSubState.songName, 'music');
 		} else if(ClientPrefs.pauseMusic != 'None') {
-			precacheList.set(Paths.formatToSongPath(ClientPrefs.pauseMusic), 'music');
+			precacheList.set(SongUtil.formatToSongPath(ClientPrefs.pauseMusic), 'music');
 		}
 
 		precacheList.set('alphabet', 'image');
 	
 		#if DISCORD_ALLOWED
-		// Updating Discord Rich Presence.
 		DiscordClient.changePresence(detailsText, SONG.song.replace('-', ' ') + " (" + storyDifficultyText + ")", iconP2.getCharacter());
 		#end
 
@@ -1140,15 +1014,11 @@ class PlayState extends MusicBeatState
 		cachePopUpScore();
 		for (key => type in precacheList)
 		{
-			//trace('Key $key is type $type');
 			switch(type)
 			{
-				case 'image':
-					Paths.image(key);
-				case 'sound':
-					Paths.sound(key);
-				case 'music':
-					Paths.music(key);
+				case 'image': Paths.image(key);
+				case 'sound': Paths.sound(key);
+				case 'music': Paths.music(key);
 			}
 		}
 		
@@ -1159,7 +1029,7 @@ class PlayState extends MusicBeatState
 		luaDebugGroup.forEachAlive((spr:DebugLuaText) -> spr.y += 20);
 
 		if(luaDebugGroup.members.length > 34) {
-			var blah = luaDebugGroup.members[34];
+			final blah = luaDebugGroup.members[34];
 			blah.destroy();
 			luaDebugGroup.remove(blah);
 		}
@@ -1213,25 +1083,14 @@ class PlayState extends MusicBeatState
 	function startCharacterScripts(name:String)
 	{
 		function addScript(scriptPath:String, scriptArray:Array<Dynamic>, createScript:String->Dynamic):Void {
-			var finalPath:String = null;
-			#if MODS_ALLOWED
-			var modPath = Mods.modFolders(scriptPath);
-			if (FileSystem.exists(modPath)) {
-				finalPath = modPath;
-			} 
-			else 
-			#end
-			{
-				finalPath = Paths.getPreloadPath(scriptPath);
-				if (#if sys !FileSystem.exists(finalPath) || #end !OpenFlAssets.exists(finalPath)) finalPath = null;
-			}
-
-			if (finalPath == null) return;
+			final finalPath = Paths.getPath(scriptPath, TEXT, null, true);
+			
+			if (!FileUtil.exists(finalPath)) return;
 
 			for (script in scriptArray)
 				if (script.scriptName == finalPath) return;
 
-			var newScript = createScript(finalPath);
+			final newScript = createScript(finalPath);
 			scriptArray.push(newScript);
 
 			var scripts = characterScripts.get(name);
@@ -1239,7 +1098,6 @@ class PlayState extends MusicBeatState
 				scripts = [];
 				characterScripts.set(name, scripts);
 			}
-			
 			scripts.push(newScript);
 		}
 
@@ -1295,9 +1153,8 @@ class PlayState extends MusicBeatState
 		inCutscene = isNotMidPartSong;
 		canPause = !isNotMidPartSong;
 
-		var filePath = (name.startsWith("https://") ? name : Paths.video(name));
-		
-		var fileExists = #if sys FileSystem.exists(filePath) || #end OpenFlAssets.exists(filePath) || name.startsWith("https://");
+		final filePath = name.startsWith("https://") ? name : Paths.video(name);
+		final fileExists = FileUtil.exists(filePath) || name.startsWith("https://");
 		
 		if(!fileExists) {
 			FlxG.log.warn('Couldnt find video file: $name');
@@ -1318,7 +1175,6 @@ class PlayState extends MusicBeatState
 		video.onEnd(() -> {
 			callOnScripts('onVideoCompleted', [name]);
 			canPause = true;
-			
 			if(isNotMidPartSong) startAndEnd();
 		});
 
@@ -1782,7 +1638,7 @@ class PlayState extends MusicBeatState
 		var oldNote:Note = null;
 		var daBpm:Float = Conductor.bpm;
 
-		var songName:String = Paths.formatToSongPath(SONG.song);
+		var songName:String = SongUtil.formatToSongPath(SONG.song);
 		var file:String = Paths.json('songs/$songName/events');
 		try {
 			var eventsData:Array<Dynamic> = Song.loadFromJson('events', songName).events;
@@ -2057,6 +1913,7 @@ class PlayState extends MusicBeatState
 		if (chartingMode) {
 			if (curStepText != null) curStepText.text = "curStep: " + curStep;
 			if (curBeatText != null) curBeatText.text = "curBeat: " + curBeat;
+			if (curSectionText != null) curSectionText.text = "curSection: " + curSection;
 		}
 		callOnScripts('onUpdate', [elapsed]);
 
@@ -2913,7 +2770,7 @@ class PlayState extends MusicBeatState
 	}
 
 	function tweenCamIn() {
-		if (Paths.formatToSongPath(SONG.song) == 'tutorial' && cameraTwn == null && FlxG.camera.zoom != 1.3) {
+		if (SongUtil.formatToSongPath(SONG.song) == 'tutorial' && cameraTwn == null && FlxG.camera.zoom != 1.3) {
 			cameraTwn = FlxTween.tween(FlxG.camera, {zoom: 1.3}, (Conductor.stepCrochet * 4 / 1000), {ease: FlxEase.elasticInOut, onComplete:
 				(_) -> cameraTwn = null
 			});
@@ -3029,7 +2886,7 @@ class PlayState extends MusicBeatState
 					var difficulty:String = CoolUtil.getDifficultyFilePath();
 
 					trace('LOADING NEXT SONG');
-					trace(Paths.formatToSongPath(PlayState.storyPlaylist[0]) + difficulty);
+					trace(SongUtil.formatToSongPath(PlayState.storyPlaylist[0]) + difficulty);
 
 					FlxTransitionableState.skipNextTransIn = true;
 					FlxTransitionableState.skipNextTransOut = true;
@@ -4292,74 +4149,37 @@ class PlayState extends MusicBeatState
 	public function startLuasOnFolder(luaFile:String):Bool
 	{
 		#if LUA_ALLOWED
-		var fileName = luaFile.substring(luaFile.lastIndexOf("/") + 1);
+		final fileName = haxe.io.Path.withoutDirectory(luaFile);
 		
-		final alreadyLoaded = Lambda.exists(luaArray, script -> {
-			final scriptFileName = script.scriptName.substring(script.scriptName.lastIndexOf("/") + 1);
-			return scriptFileName == fileName;
-		});
+		if (Lambda.exists(luaArray, script -> haxe.io.Path.withoutDirectory(script.scriptName) == fileName)) 
+			return false;
 		
-		if (alreadyLoaded) return false;
-		
-		var actualPath:String = null;
-		#if MODS_ALLOWED
-		var modPath = Mods.modFolders(luaFile);
-		if (FileSystem.exists(modPath)) {
-			actualPath = modPath;
-		} else
-		#end
-		{
-			final basePath = Paths.getPreloadPath(luaFile);
-			#if sys
-			if (FileSystem.exists(basePath)) actualPath = basePath;
-			#end
-			if (actualPath == null && OpenFlAssets.exists(luaFile)) actualPath = luaFile;
-		}
-		
-		if (actualPath != null) {
+		final actualPath = Paths.getPath(luaFile, TEXT, null, true);
+		if (FileUtil.exists(actualPath)) {
 			luaArray.push(new FunkinLua(actualPath));
 			return true;
 		}
 		#end
-		
 		return false;
 	}
 
 	public function startHScriptOnFolder(hscriptFile:String):Bool
 	{
 		#if HSCRIPT_ALLOWED
-		var fileName = hscriptFile.substring(hscriptFile.lastIndexOf("/") + 1);
+		final fileName = haxe.io.Path.withoutDirectory(hscriptFile);
 
-		final alreadyLoaded = Lambda.exists(hscriptArray, script -> {
-			final scriptFileName = script.scriptName.substring(script.scriptName.lastIndexOf("/") + 1);
-			return scriptFileName == fileName;
-		});
+		if (Lambda.exists(hscriptArray, script -> haxe.io.Path.withoutDirectory(script.scriptName) == fileName)) 
+			return false;
 		
-		if (alreadyLoaded) return false;
-		
-		var actualPath:String = null;
-		#if MODS_ALLOWED
-		var modPath = Mods.modFolders(hscriptFile);
-		if (FileSystem.exists(modPath)) {
-			actualPath = modPath;
-		} else
-		#end
-		{
-			final basePath = Paths.getPreloadPath(hscriptFile);
-			#if sys
-			if (FileSystem.exists(basePath)) actualPath = basePath;
-			#end
-			if (actualPath == null && OpenFlAssets.exists(hscriptFile)) actualPath = hscriptFile;
-		}
-		
-		if (actualPath != null) {
+		final actualPath = Paths.getPath(hscriptFile, TEXT, null, true);
+		if (FileUtil.exists(actualPath)) {
 			hscriptArray.push(new FunkinHScript(actualPath));
 			return true;
 		}
 		#end
-		
 		return false;
 	}
+
 	public function setOnHScript(variable:String, arg:Dynamic) {
 		#if HSCRIPT_ALLOWED
 		for (script in hscriptArray) {
@@ -4367,6 +4187,7 @@ class PlayState extends MusicBeatState
 		}
 		#end
 	}
+
 	public function callOnHScript(event:String, args:Array<Dynamic>, ignoreStops = true, exclusions:Array<String> = null, excludeValues:Array<Dynamic> = null):Dynamic {
 		var returnVal = ScriptResult.Function_Continue;
 		#if HSCRIPT_ALLOWED
@@ -4602,7 +4423,7 @@ class PlayState extends MusicBeatState
 						if(/*ClientPrefs.framerate <= 60 &&*/ !ClientPrefs.shaders && ClientPrefs.lowQuality && !ClientPrefs.globalAntialiasing) {
 							unlock = true;
 						}
-					case 'debugger' if(Paths.formatToSongPath(SONG.song) == 'test' && !usedPractice):
+					case 'debugger' if(SongUtil.formatToSongPath(SONG.song) == 'test' && !usedPractice):
 						unlock = true;
 				}
 

@@ -247,6 +247,7 @@ class NoteHoldCover extends flixel.addons.effects.FlxSkewedSprite {
         } else {
             clipRect = new FlxRect(0, 0, frameWidth, frameHeight);
             offset.set(OFFSET_X, OFFSET_Y);
+            origin.set(OFFSET_X - (frameWidth / 2 - OFFSET_X), OFFSET_Y);
         }
 
         defScale.copyFrom(scale);

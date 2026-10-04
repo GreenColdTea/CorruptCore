@@ -66,7 +66,7 @@ final class CoolUtil
 		{
 			fileSuffix = '';
 		}
-		return Paths.formatToSongPath(fileSuffix);
+		return SongUtil.formatToSongPath(fileSuffix);
 	}
 
 	public static function difficultyString():String
@@ -104,7 +104,7 @@ final class CoolUtil
 		return daList;
 	}
 
-	inline public static function dominantColor(sprite:flixel.FlxSprite):Int
+	inline public static function dominantColor(sprite:FlxSprite):Int
 	{
 		var countByColor:Map<Int, Int> = [];
 		for(col in 0...sprite.frameWidth)
@@ -115,7 +115,8 @@ final class CoolUtil
 				if(colorOfThisPixel.alphaFloat > 0.05)
 				{
 					colorOfThisPixel = FlxColor.fromRGB(colorOfThisPixel.red, colorOfThisPixel.green, colorOfThisPixel.blue, 255);
-					var count:Int = countByColor.exists(colorOfThisPixel) ? countByColor[colorOfThisPixel] : 0;
+					
+					final count:Int = countByColor.exists(colorOfThisPixel) ? countByColor[colorOfThisPixel] : 0;
 					countByColor[colorOfThisPixel] = count + 1;
 				}
 			}
@@ -229,94 +230,5 @@ final class CoolUtil
 		// #if (flixel < "5.0.0") return company; #else
 		return '${company}/${flixel.util.FlxSave.validate(FlxG.stage.application.meta.get('file'))}';
 		// #end
-	}
-
-	public static function recursivelyReadFolders(path:String)
-	{
-		#if sys
-		var ret:Array<String> = [];
-		for (i in FileSystem.readDirectory(path))
-			returnFileName(i, ret, path);
-
-
-		path += '/';
-		for (i in 0...ret.length)
-			ret[i] = ret[i].replace(path, '');
-
-		return ret;
-		#end
-	}
-
-	static function returnFileName(path:String, toAdd:Array<String>, full:String) {
-		#if sys
-		if (FileSystem.isDirectory('$full/$path')) {
-			for (i in FileSystem.readDirectory('$full/$path')) {
-				returnFileName(i, toAdd, '$full/$path');
-			}
-		} else {
-			toAdd.push(('$full/$path'));
-		}
-		#end
-	}
-
-	public static inline function readRecursive(path:String):Array<String>
-	{
-		#if sys
-		var result:Array<String> = [];
-		for (directory in Paths.listDirectory(path))
-		{
-			for (file in recursivelyReadFolders(directory))
-			{
-				if (!result.contains(file))
-					result.push(file);
-			}
-		}
-
-		return result;
-		#else
-		return [];
-		#end
-	}
-
-	public static function loadHighBitrateWav(key:String, path:String):Sound
-	{
-		#if (sys && !web)
-		try {
-			var tempPath = '${Paths.getPreloadPath("temp")}/$key.converted.wav';
-
-			if (FileSystem.exists(tempPath)) {
-				trace('Using existing converted WAV file: $key');
-				return Sound.fromFile(tempPath);
-			}
-
-			var bytes = File.getBytes(path);
-			var buffer = AudioBuffer.fromBytes(bytes);
-
-			if (buffer.sampleRate > 44100 || buffer.bitsPerSample > 32) {
-				trace('Converting high bitrate WAV: $key');
-
-				if (!FileSystem.exists(Paths.getPreloadPath('temp')))
-					FileSystem.createDirectory(Paths.getPreloadPath('temp'));
-
-				if (!FileSystem.exists(tempPath)) {
-					//yea yea it will work if you have ffmpeg on your desktop
-					//if not then it wont work lel
-					var cmd = 'ffmpeg -i "$path" -ar 44100 -ac ${buffer.channels} -sample_fmt s32 "$tempPath"';
-					var result = Sys.command(cmd);
-
-					if (result == 0 && FileSystem.exists(tempPath)) {
-						trace('Successfully converted WAV file: $key');
-						return Sound.fromFile(tempPath);
-					} else {
-						trace('FFmpeg conversion failed for $key, using original file');
-					}
-				}
-			}
-		} catch (e:Dynamic) {
-			trace('Error processing WAV file $key: $e');
-		}
-		#end
-
-		return Sound.fromFile(path);
 	}
 }

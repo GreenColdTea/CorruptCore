@@ -23,6 +23,11 @@ class SkewModifier extends NoteModifier {
 
         note.skew.x = skewX;
         note.skew.y = skewY;
+
+        if (note.isSustainNote && note.holdNote != null) {
+            note.holdNote.skew.x = skewX;
+            note.holdNote.skew.y = skewY;
+        }
     }
 
     override function updateReceptor(beat:Float, receptor:StrumNote, pos:Vector3, player:Int) {

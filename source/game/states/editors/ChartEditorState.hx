@@ -6,6 +6,7 @@ import api.Discord.DiscordClient;
 import haxe.Json;
 import haxe.format.JsonParser;
 import haxe.io.Bytes;
+import haxe.io.Path;
 
 import flixel.FlxG;
 import flixel.FlxObject;
@@ -55,8 +56,6 @@ import game.objects.Prompt;
 
 import game.states.editors.meta.MetaNote;
 import game.states.editors.meta.ChartBackupManager;
-
-using StringTools;
 
 #if sys
 import sys.FileSystem;
@@ -371,7 +370,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		addSection();
 
 		updateJsonData();
-		currentSongName = Paths.formatToSongPath(_song.song);
+		currentSongName = SongUtil.formatToSongPath(_song.song);
 		loadSong();
 		_cacheSections();
 		reloadGridLayer();
@@ -502,7 +501,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 	function loadJSONEvents()
 	{
-		var songName:String = Paths.formatToSongPath(_song.song);
+		var songName:String = SongUtil.formatToSongPath(_song.song);
 		var file:String = Paths.json('songs/$songName/events');
 		
 		if (_song.events == null || _song.events.length == 0) {
@@ -613,7 +612,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 		var reloadSong:PsychUIButton = new PsychUIButton(saveButton.x + 90, saveButton.y, "Reload Audio", function()
 		{
-			currentSongName = Paths.formatToSongPath(UI_songTitle.text);
+			currentSongName = SongUtil.formatToSongPath(UI_songTitle.text);
 			_song.song = UI_songTitle.text;
 			updateJsonData();
 			loadSong();
@@ -631,7 +630,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			
 			openSubState(new Prompt('This action will clear current progress.\n\nProceed?', 0, function() {
 				_song.song = UI_songTitle.text;
-				var songName = Paths.formatToSongPath(_song.song);
+				var songName = SongUtil.formatToSongPath(_song.song);
 				
 				openSubState(new ChartSelectorSubstate(songName, (selectedSong:String, selectedChart:String) -> {
 					loadJson(selectedChart, selectedSong);
@@ -721,27 +720,18 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 		final tempMap:Map<String, Bool> = new Map<String, Bool>();
 		final characters:Array<String> = CoolUtil.coolTextFile(Paths.txt('characterList'));
-		for (i in 0...characters.length) {
-			tempMap.set(characters[i], true);
-		}
+		for (i in 0...characters.length) tempMap.set(characters[i], true);
 
-		#if sys
-		for (i in 0...directories.length) {
-			var directory:String = directories[i];
-			if(FileSystem.exists(directory)) {
-				for (file in FileSystem.readDirectory(directory)) {
-					var path = haxe.io.Path.join([directory, file]);
-					if (!FileSystem.isDirectory(path) && file.endsWith('.json')) {
-						var charToCheck:String = file.substr(0, file.length - 5);
-						if(!charToCheck.endsWith('-dead') && !tempMap.exists(charToCheck)) {
-							tempMap.set(charToCheck, true);
-							characters.push(charToCheck);
-						}
-					}
+		final charFiles = FileUtil.listDirectory('data/characters');
+		for (file in charFiles) {
+			if (file.endsWith('.json')) {
+				final charToCheck = haxe.io.Path.withoutExtension(haxe.io.Path.withoutDirectory(file));
+				if (!charToCheck.endsWith('-dead') && !tempMap.exists(charToCheck)) {
+					tempMap.set(charToCheck, true);
+					characters.push(charToCheck);
 				}
 			}
 		}
-		#end
 
 		var player1DropDown = new PsychUIDropDownMenu(10, stepperSpeed.y + 45, characters, function(id:Int, character:String)
 		{
@@ -781,30 +771,20 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		var stages:Array<String> = [];
 		for (i in 0...stageFile.length) {
 			var stageToCheck:String = stageFile[i];
-			if(!tempMap.exists(stageToCheck)) {
-				stages.push(stageToCheck);
-			}
+			if(!tempMap.exists(stageToCheck)) stages.push(stageToCheck);
 			tempMap.set(stageToCheck, true);
 		}
 
-		#if sys
-		for (i in 0...directories.length) {
-			var directory:String = directories[i];
-			if(FileSystem.exists(directory)) {
-				for (file in FileSystem.readDirectory(directory)) {
-					var path = haxe.io.Path.join([directory, file]);
-					if (!FileSystem.isDirectory(path) && file.endsWith('.json')) {
-						var stageToCheck:String = file.substr(0, file.length - 5);
-						if(!tempMap.exists(stageToCheck)) {
-							tempMap.set(stageToCheck, true);
-							stages.push(stageToCheck);
-						}
-					}
+		var stageFiles = FileUtil.listDirectory('data/stages');
+		for (file in stageFiles) {
+			if (file.endsWith('.json')) {
+				var stageToCheck = haxe.io.Path.withoutExtension(haxe.io.Path.withoutDirectory(file));
+				if (!tempMap.exists(stageToCheck)) {
+					tempMap.set(stageToCheck, true);
+					stages.push(stageToCheck);
 				}
 			}
 		}
-		#end
-
 		if(stages.length < 1) stages.push('stage');
 
 		stageDropDown = new PsychUIDropDownMenu(player1DropDown.x + 175, player1DropDown.y, stages, (id:Int, character:String) -> _song.stage = stages[id]);
@@ -1219,41 +1199,21 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			key++;
 		}
 
-		#if (LUA_ALLOWED || HSCRIPT_ALLOWED)
-		var directories:Array<String> = [];
-
-		directories.push(Paths.getPreloadPath('custom_notetypes/'));
-		#if MODS_ALLOWED
-		directories.push(Mods.modFolders('custom_notetypes/'));
-		#end
-
-		#if sys
+		var customNoteFiles = FileUtil.listDirectory('custom_notetypes');
 		var allowedExtensions:Array<String> = [];
 		#if LUA_ALLOWED allowedExtensions.push('lua'); #end
 		#if HSCRIPT_ALLOWED allowedExtensions = allowedExtensions.concat(Paths.HSCRIPT_EXTS); #end
 
-		for (directory in directories) {
-			if (FileSystem.exists(directory)) {
-				final files = FileSystem.readDirectory(directory);
-				final scriptFiles = files.filter(file -> {
-					final lastDot = file.lastIndexOf('.');
-					if (lastDot == -1) return false;
-
-					final ext = file.substr(lastDot + 1).toLowerCase();
-					return allowedExtensions.contains(ext);
-				});
-				
-				for (file in scriptFiles) {
-					final nameWithoutExt = file.substr(0, file.lastIndexOf('.'));
-					if (!curNoteTypes.contains(nameWithoutExt)) {
-						curNoteTypes.push(nameWithoutExt);
-						key++;
-					}
+		for (file in customNoteFiles) {
+			var ext = Path.extension(file).toLowerCase();
+			if (allowedExtensions.contains(ext)) {
+				var nameWithoutExt = Path.withoutExtension(Path.withoutDirectory(file));
+				if (!curNoteTypes.contains(nameWithoutExt)) {
+					curNoteTypes.push(nameWithoutExt);
+					key++;
 				}
 			}
 		}
-		#end
-		#end
 
 		var displayNameList:Array<String> = curNoteTypes.copy();
 		for (i in 1...displayNameList.length) {
@@ -1316,30 +1276,18 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 		#if (LUA_ALLOWED || HSCRIPT_ALLOWED)
 		var eventPushedMap:Map<String, Bool> = new Map<String, Bool>();
-		var directories:Array<String> = [];
+		var customEventFiles = FileUtil.listDirectory('custom_events');
 
-		directories.push(Paths.getPreloadPath('custom_events/'));
-		#if MODS_ALLOWED
-		directories.push(Mods.modFolders('custom_events/'));
-		#end
-
-		#if sys
-		for (i in 0...directories.length) {
-			var directory:String =  directories[i];
-			if(FileSystem.exists(directory)) {
-				for (file in FileSystem.readDirectory(directory)) {
-					var path = haxe.io.Path.join([directory, file]);
-					if (!FileSystem.isDirectory(path) && file != 'readme.txt' && file.endsWith('.txt')) {
-						var fileToCheck:String = file.substr(0, file.length - 4);
-						if(!eventPushedMap.exists(fileToCheck)) {
-							eventPushedMap.set(fileToCheck, true);
-							eventStuff.push([fileToCheck, File.getContent(path)]);
-						}
-					}
+		for (file in customEventFiles) {
+			final fileName = Path.withoutDirectory(file);
+			if (fileName != 'readme.txt' && fileName.endsWith('.txt')) {
+				final fileToCheck = Path.withoutExtension(fileName);
+				if (!eventPushedMap.exists(fileToCheck)) {
+					eventPushedMap.set(fileToCheck, true);
+					eventStuff.push([fileToCheck, FileUtil.getContent(file)]);
 				}
 			}
 		}
-		#end
 		eventPushedMap.clear();
 		eventPushedMap = null;
 		#end
@@ -3012,29 +2960,20 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 	function loadHealthIconFromCharacter(char:String):CharacterFile {
 		characterFailed = false;
 
-		var characterPath:String = 'characters/$char';
-		var path:String = '';
-		var rawJson:String = '';
-		
-		path = Paths.json(characterPath);
-
-		var fileExists:Bool = #if sys FileSystem.exists(path) || #end OpenFlAssets.exists(path);
-		if (!fileExists) {
+		var path = Paths.json('characters/$char');
+		if (!FileUtil.exists(path)) {
 			path = Paths.json('characters/' + Character.DEFAULT_CHARACTER);
 			characterFailed = true;
 		}
 		
 		try {
-			rawJson = #if sys FileSystem.exists(path) ? File.getContent(path) : #end OpenFlAssets.getText(path);
+			return cast Json.parse(FileUtil.getContent(path));
 		} catch (e:Dynamic) {
 			trace('Error loading character file: ' + e);
 			path = Paths.json('characters/' + Character.DEFAULT_CHARACTER);
 			characterFailed = true;
-			
-			rawJson = #if sys FileSystem.exists(path) ? File.getContent(path) : #end OpenFlAssets.getText(path);
+			return cast Json.parse(FileUtil.getContent(path));
 		}
-		
-		return cast Json.parse(rawJson);
 	}
 
 	function updateNoteUI():Void
@@ -3789,7 +3728,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			PlayState.SONG = Song.loadFromJson(chartName, songName);
 			
 			_song = PlayState.SONG;
-			currentSongName = Paths.formatToSongPath(_song.song);
+			currentSongName = SongUtil.formatToSongPath(_song.song);
 			
 			FlxG.resetState();
 		} catch (e:Dynamic) {
@@ -3830,7 +3769,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			_file.addEventListener(#if desktop Event.SELECT #else Event.COMPLETE #end, onSaveComplete);
 			_file.addEventListener(Event.CANCEL, onSaveCancel);
 			_file.addEventListener(IOErrorEvent.IO_ERROR, onSaveError);
-			_file.save(data.trim(), Paths.formatToSongPath(_song.song) + ".json");
+			_file.save(data.trim(), SongUtil.formatToSongPath(_song.song) + ".json");
 		}
 	}
 
@@ -4408,60 +4347,23 @@ class ChartSelectorSubstate extends MusicBeatSubstate
 	function loadChartList()
 	{
 		charts = [];
-		
 		try {
-			final songPath:String = 'data/songs/$currentSong';
-			final fullPath:String = Paths.getPreloadPath(songPath);
-			
-			#if sys
-			if (FileSystem.exists(fullPath) && FileSystem.isDirectory(fullPath)) {
-				for (file in FileSystem.readDirectory(fullPath)) {
-					if (file.endsWith('.json') && file.startsWith(currentSong)) {
-						final chartName = file.substr(0, file.length - 5);
-						charts.push(chartName);
-					}
-				}
-			}
-			#end
-			
-			#if MODS_ALLOWED
-			for (mod in [Mods.currentModDirectory]) {
-				if (mod == null || mod.length == 0) continue;
-				
-				final modPath = Mods.getModPath('$mod/data/songs/$currentSong');
-				if (FileSystem.exists(modPath) && FileSystem.isDirectory(modPath)) {
-					for (file in FileSystem.readDirectory(modPath)) {
-						if (file.endsWith('.json') && file.startsWith(currentSong) && !charts.contains(file.substr(0, file.length - 5))) {
-							final chartName = file.substr(0, file.length - 5);
-							charts.push(chartName);
-						}
-					}
-				}
-			}
-			#end
-			
-			for (file in OpenFlAssets.list(TEXT).filter(f -> f.startsWith('$fullPath/$currentSong'))) {
-				if (file.endsWith('.json')) {
-					final parts = file.split('/');
-					if (parts.length >= 3) {
-						final fileName = parts[parts.length - 1];
-						if (fileName != 'events.json') {
-							final chartName = fileName.substr(0, fileName.length - 5);
-							if (!charts.contains(chartName)) {
-								charts.push(chartName);
-							}
-						}
-					}
+			final songFiles = FileUtil.listDirectory('data/songs/$currentSong');
+			for (file in songFiles) {
+				final fileName = Path.withoutDirectory(file);
+				if (fileName.endsWith('.json') && fileName.startsWith(currentSong) && fileName != 'events.json') {
+					final chartName = fileName.substr(0, fileName.length - 5);
+					if (!charts.contains(chartName)) charts.push(chartName);
 				}
 			}
 		} catch (e:Dynamic) {
 			trace("Error scanning charts: " + e);
 		}
 		
-		charts.sort(function(a, b):Int {
-			var difficulties = CoolUtil.defaultDifficulties.map(d -> d.toLowerCase());
-			var aIndex = difficulties.indexOf(a.toLowerCase());
-			var bIndex = difficulties.indexOf(b.toLowerCase());
+		charts.sort((a, b) -> {
+			final difficulties = CoolUtil.defaultDifficulties.map(d -> d.toLowerCase());
+			final aIndex = difficulties.indexOf(a.toLowerCase());
+			final bIndex = difficulties.indexOf(b.toLowerCase());
 			
 			if (aIndex >= 0 && bIndex >= 0) return aIndex - bIndex;
 			if (aIndex >= 0) return -1;
@@ -4470,14 +4372,10 @@ class ChartSelectorSubstate extends MusicBeatSubstate
 		});
 		
 		var uniqueCharts:Array<String> = [];
-		for (chart in charts) {
-			if (!uniqueCharts.contains(chart)) {
-				uniqueCharts.push(chart);
-			}
-		}
+		for (chart in charts)
+			if (!uniqueCharts.contains(chart)) uniqueCharts.push(chart);
+
 		charts = uniqueCharts;
-		
-		trace('Found ${charts.length} charts for $currentSong: $charts');
 	}
 
 	function updateList()

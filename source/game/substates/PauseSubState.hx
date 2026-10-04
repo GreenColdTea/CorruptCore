@@ -68,7 +68,7 @@ class PauseSubState extends MusicBeatSubstate
 
 		pauseMusic = new FlxSound();
 		if(songName != null) pauseMusic.load(Paths.music(songName)).setup(0, true, false);
-		else if (songName != 'None') pauseMusic.load(Paths.music(Paths.formatToSongPath(ClientPrefs.pauseMusic))).setup(0, true, false);
+		else if (songName != 'None') pauseMusic.load(Paths.music(SongUtil.formatToSongPath(ClientPrefs.pauseMusic))).setup(0, true, false);
 		pauseMusic.play(false, FlxG.random.int(0, Std.int(pauseMusic.length / 2)));
 
 		FlxG.sound.list.add(pauseMusic);
@@ -261,7 +261,7 @@ class PauseSubState extends MusicBeatSubstate
 					FlxG.switchState(() -> new OptionsState());
 					if (ClientPrefs.pauseMusic != "None")
 					{
-						FlxG.sound.playMusic(Paths.music(Paths.formatToSongPath(ClientPrefs.pauseMusic)), pauseMusic.volume);
+						FlxG.sound.playMusic(Paths.music(SongUtil.formatToSongPath(ClientPrefs.pauseMusic)), pauseMusic.volume);
 						FlxTween.tween(FlxG.sound.music, {volume: 1}, 0.8);
 						FlxG.sound.music.time = pauseMusic.time;
 					}

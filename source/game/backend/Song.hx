@@ -160,8 +160,8 @@ class Song
 	{
 		var rawJson = null;
 		
-		final formattedFolder:String = Paths.formatToSongPath(folder);
-		final formattedSong:String = Paths.formatToSongPath(jsonInput);
+		final formattedFolder:String = SongUtil.formatToSongPath(folder);
+		final formattedSong:String = SongUtil.formatToSongPath(jsonInput);
 
 		#if sys
 		if (FileSystem.exists(Paths.json('songs/$formattedFolder/$formattedSong'))) 
