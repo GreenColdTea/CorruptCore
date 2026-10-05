@@ -1321,6 +1321,7 @@ class PlayState extends MusicBeatState
 				return true;
 			}
 			moveCameraSection();
+			FlxG.camera.snapToTarget();
 
 			startTimer = new FlxTimer().start(Conductor.crochet / 1000 / playbackRate, function(tmr:FlxTimer)
 			{
