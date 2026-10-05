@@ -12,6 +12,10 @@ class StrumLine extends FlxTypedGroup<StrumNote> {
     public var startY:Float;
     public var isDownscroll:Bool;
 
+    public var onNoteHit:(Note)->Void = null;
+    public var onNoteMiss:(Note)->Void = null;
+    public var onNoteHold:(Note, Float)->Void = null;
+
     public function new(x:Float, y:Float, player:Int = 0, keyAmount:Int = 4, isDownscroll:Bool = false) {
         super();
         this.startX = x;

@@ -1283,6 +1283,14 @@ class PlayState extends MusicBeatState
 			opponentStrums = new StrumLine(strumLineX, strumLineY, 0, keysAmount, ClientPrefs.downScroll);
 			playerStrums = new StrumLine(strumLineX, strumLineY, 1, keysAmount, ClientPrefs.downScroll);
 
+			playerStrums.onNoteHit = goodNoteHit;
+			playerStrums.onNoteMiss = noteMiss;
+			playerStrums.onNoteHold = handleSustainLogic;
+
+			opponentStrums.onNoteHit = opponentNoteHit;
+			opponentStrums.onNoteMiss = noteMiss;
+			opponentStrums.onNoteHold = handleSustainLogic;
+
 			for (i in 0...playerStrums.members.length) {
 				setOnScripts('defaultPlayerStrumX' + i, playerStrums.members[i].x);
 				setOnScripts('defaultPlayerStrumY' + i, playerStrums.members[i].y);
@@ -2253,22 +2261,22 @@ class PlayState extends MusicBeatState
 
 							if (!daNote.mustPress && daNote.wasGoodHit && !daNote.hitByOpponent && !daNote.ignoreNote) 
 							{
-								opponentNoteHit(daNote);
+								if (opponentStrums.onNoteHit != null) opponentStrums.onNoteHit(daNote);
 							}
 
 							if (daNote.mustPress && cpuControlled && !daNote.ignoreNote && !daNote.hitCausesMiss && !daNote.wasGoodHit) 
 							{
 								if (daNote.strumTime <= Conductor.songPosition)
-									goodNoteHit(daNote);
+									if (playerStrums.onNoteHit != null) playerStrums.onNoteHit(daNote);
 							}
 
 							if (daNote.mustPress) 
 							{
 								if (daNote.isSustainNote && daNote.wasGoodHit && !daNote.ignoreNote)
-									handleSustainLogic(daNote, elapsed);
+									if (playerStrums.onNoteHold != null) playerStrums.onNoteHold(daNote, elapsed);
 							} else {
 								if (daNote.isSustainNote && daNote.wasGoodHit)
-       	 							handleSustainLogic(daNote, elapsed);
+									if (opponentStrums.onNoteHold != null) opponentStrums.onNoteHold(daNote, elapsed);
 							}
 
 							if (daNote.isSustainNote && daNote.holdNote != null)
@@ -2292,7 +2300,7 @@ class PlayState extends MusicBeatState
 							if (Conductor.songPosition > noteKillOffset + killTime)
 							{
 								if (daNote.mustPress && !cpuControlled &&!daNote.ignoreNote && !endingSong && (daNote.tooLate || !daNote.wasGoodHit)) {
-									noteMiss(daNote);
+									if (playerStrums.onNoteMiss != null) playerStrums.onNoteMiss(daNote);
 								}
 
 								daNote.active = false;
@@ -3184,7 +3192,7 @@ class PlayState extends MusicBeatState
 
 						// eee jack detection before was not super good
 						if (!notesStopped) {
-							goodNoteHit(epicNote);
+							if (playerStrums.onNoteHit != null) playerStrums.onNoteHit(epicNote);
 							pressNotes.push(epicNote);
 						}
 
@@ -3299,7 +3307,7 @@ class PlayState extends MusicBeatState
 								}
 
 								if (!notesStopped) {
-									goodNoteHit(epicNote);
+									if (playerStrums.onNoteHit != null) playerStrums.onNoteHit(epicNote);
 									pressNotes.push(epicNote);
 								}
 							}
@@ -3380,7 +3388,7 @@ class PlayState extends MusicBeatState
 						
 						if (!released) {
 							if (daNote.parent?.wasGoodHit || daNote.parent?.extraData.exists('tailCaught')) {
-								goodNoteHit(daNote);
+								if (playerStrums.onNoteHit != null) playerStrums.onNoteHit(daNote);
 							}
 						}
 					}
@@ -3747,6 +3755,12 @@ class PlayState extends MusicBeatState
 	function handleSustainLogic(daNote:Note, elapsed:Float):Void 
 	{
 		if (daNote.mustPress) {
+			final leData:Int = Math.round(Math.abs(daNote.noteData));
+
+			var result:Dynamic = callOnLuas('preGoodNoteHold', [notes.members.indexOf(daNote), leData, daNote.noteType, daNote.isSustainNote]);
+			if (result != ScriptResult.Function_Stop) result = callOnHScript('preGoodNoteHold', [daNote]);
+			if (result == ScriptResult.Function_Stop) return;
+
 			final isHeld:Bool = cpuControlled ? true : getControl(controlArray[daNote.noteData]);
 			
 			var noteEndTime:Float = daNote.strumTime;
@@ -3799,6 +3813,10 @@ class PlayState extends MusicBeatState
 				}
 
 				if (!practiceMode) health += 4.0 * elapsed * daNote.hitHealth * healthGain;
+
+				final leData:Int = Math.round(Math.abs(daNote.noteData));
+				callOnLuas('goodNoteHold', [notes.members.indexOf(daNote), leData, daNote.noteType, daNote.isSustainNote]);
+				callOnHScript('goodNoteHold', [daNote]);
 			}
 
 			if (Conductor.songPosition >= noteEndTime && !endingSong) {
@@ -3822,6 +3840,12 @@ class PlayState extends MusicBeatState
 				invalidateNote(daNote);
 			}
 		} else {
+			final leData:Int = Math.round(Math.abs(daNote.noteData));
+			
+			var result:Dynamic = callOnLuas('preOpponentNoteHold', [notes.members.indexOf(daNote), leData, daNote.noteType, daNote.isSustainNote]);
+			if (result != ScriptResult.Function_Stop) result = callOnHScript('preOpponentNoteHold', [daNote]);
+			if (result == ScriptResult.Function_Stop) return;
+
 			final char:Character = daNote.gfNote ? gf : dad;
 			
 			if (char?.endAnimTimer != null) {
@@ -3858,6 +3882,10 @@ class PlayState extends MusicBeatState
 					}
 				}
 			}
+
+			final leData:Int = Math.round(Math.abs(daNote.noteData));
+			callOnLuas('opponentNoteHold', [notes.members.indexOf(daNote), leData, daNote.noteType, daNote.isSustainNote]);
+			callOnHScript('opponentNoteHold', [daNote]);
 
 			var noteEndTime:Float = daNote.strumTime;
 			if (daNote.parent != null) {

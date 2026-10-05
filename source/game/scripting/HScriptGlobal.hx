@@ -1,10 +1,7 @@
 package game.scripting;
 
 import flixel.FlxG;
-#if sys
-import sys.FileSystem;
-#end
-import openfl.utils.Assets as OpenFlAssets;
+import game.backend.utils.FileUtil;
 using StringTools;
 using Lambda;
 
@@ -15,40 +12,29 @@ class HScriptGlobal {
     
     public static function addGlobalScript() {
         var scriptPath:String = null;
-        var foldersToCheck:Array<String> = [Paths.getPreloadPath('data/')];
+        
+        final foldersToCheck:Array<String> = [Paths.getPreloadPath('data/')];
         
         #if MODS_ALLOWED
         foldersToCheck.insert(0, Mods.getModPath('data/'));
-        if(Mods.currentModDirectory?.length > 0) 
+        
+        if(Mods.currentModDirectory?.length > 0)
             foldersToCheck.insert(0, Mods.getModPath('${Mods.currentModDirectory}/data/'));
-        for(mod in Mods.getGlobalMods()) 
+        
+        for(mod in Mods.getGlobalMods())
             foldersToCheck.insert(0, Mods.getModPath('$mod/data/'));
         #end
         
-        var scriptPath:String = null;
         for (folder in foldersToCheck) {
-            #if sys
-            if (FileSystem.exists(folder) && FileSystem.isDirectory(folder)) {
-                var files = FileSystem.readDirectory(folder)
-                    .map(file -> haxe.io.Path.join([folder, file]))
-                    .filter(fullPath -> !FileSystem.isDirectory(fullPath));
-
-                scriptPath = files.find(fullPath -> {
-                    final fileName = fullPath.substring(fullPath.lastIndexOf("/") + 1).toLowerCase();
-                    return Lambda.exists(Paths.HSCRIPT_EXTS, ext -> fileName == 'global.$ext');
-                });
-                
-                if (scriptPath != null) break;
-            }
-            #end
-
             var possiblePaths:Array<String> = [];
+            
             for (ext in Paths.HSCRIPT_EXTS) {
-                possiblePaths.push(folder + "Global." + ext);
-                possiblePaths.push(folder + "global." + ext);
+                possiblePaths.push(haxe.io.Path.join([folder, "Global." + ext]));
+                possiblePaths.push(haxe.io.Path.join([folder, "global." + ext]));
             }
             
-            scriptPath = possiblePaths.find(path -> OpenFlAssets.exists(path));
+            scriptPath = possiblePaths.find(path -> FileUtil.exists(path));
+            
             if (scriptPath != null) break;
         }
 

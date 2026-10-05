@@ -156,7 +156,7 @@ class FunkinVideoSprite extends FlxVideoSprite
     public function setTime(time:Float):Void
     {
         if (bitmap != null) {
-            final microSeconds:Float = time * 1000;
+            final microSeconds:Float = time;
             bitmap.time = haxe.Int64.fromFloat(microSeconds);
         }
     }
@@ -167,12 +167,12 @@ class FunkinVideoSprite extends FlxVideoSprite
      */
     public function getTime():Float
     {
-        if (bitmap != null) {
-            final time64 = bitmap.time;
-            final microSeconds:Float = (time64.high * 4294967296.0) + time64.low;
-            return microSeconds / 1000;
-        }
-        return 0;
+        if (bitmap != null)
+		{
+			final time64 = bitmap.time;
+			return (time64.high * 4294967296.0) + time64.low;
+		}
+		return 0;
     }
 
     /**
@@ -206,21 +206,19 @@ class FunkinVideoSprite extends FlxVideoSprite
     public function seekToMs(ms:Float):Void
     {
         if (bitmap == null) return;
-        
-        final durationMicro = bitmap.length;
-        if (haxe.Int64.compare(durationMicro, haxe.Int64.ofInt(0)) <= 0) {
-            setTime(ms);
-            return;
-        }
-        
-        final targetMicro = haxe.Int64.fromFloat(ms * 1000);
-        final durationFloat = haxe.Int64.toInt(durationMicro);
-        final targetFloat = haxe.Int64.toInt(targetMicro);
-        
-        if (durationFloat > 0) {
-            final percent = targetFloat / durationFloat;
-            setVideoPercent(percent);
-        }
+
+		final durationMs = bitmap.length;
+
+		if (haxe.Int64.compare(durationMs, haxe.Int64.ofInt(0)) <= 0)
+		{
+			setTime(ms);
+			return;
+		}
+
+		final durFloat = (durationMs.high * 4294967296.0) + durationMs.low;
+
+		if (durFloat > 0)
+			setVideoPercent(ms / durFloat);
     }
 
     /**
@@ -272,13 +270,26 @@ class FunkinVideoSprite extends FlxVideoSprite
 
 	private function onFocusGained():Void
 	{
-		if (FlxG.autoPause && wasPlayingBeforeFocusLost)
+		if (PlayState.instance != null && !PlayState.instance.paused && FlxG.autoPause && wasPlayingBeforeFocusLost)
 			bitmap?.resume();
 	}
 
     override public function update(elapsed:Float):Void
     {
         super.update(elapsed);
+
+        if (isPlaying() && PlayState.instance != null && !PlayState.instance.paused)
+		{
+			final targetTime = Conductor.songPosition - Conductor.offset;
+			if (targetTime >= 0)
+			{
+				final drift = Math.abs(getTime() - targetTime);
+				if (drift > 205.0)
+				{
+					setTime(targetTime);
+				}
+			}
+		}
 
         if (canSkip)
         {

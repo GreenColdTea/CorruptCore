@@ -139,16 +139,15 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 	}
 
 	private function set_multSpeed(value:Float):Float {
-		resizeByRatio(value / multSpeed);
+		resizeByRatio(value);
 		multSpeed = value;
 		return value;
 	}
 
-	public function resizeByRatio(ratio:Float) {
+	public function resizeByRatio(speedMult:Float) {
 		if(isSustainNote && !animation?.curAnim?.name?.endsWith('end')) {
 			if(scale != null && defScale != null) {
-				scale.y *= ratio;
-				defScale.y = scale.y;
+				scale.y = defScale.y * speedMult; 
 				updateHitbox();
 			}
 		}

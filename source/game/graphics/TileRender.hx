@@ -36,6 +36,9 @@ class TileRender extends FlxSprite
     var sustainUvtData:Vector<Float> = new Vector<Float>(256, false);
     var sustainIndices:Vector<Int> = new Vector<Int>(256, false);
 
+    var _vertexCapacity:Int = 256;
+    var _indexCapacity:Int = 256;
+
     public var tailAnim(default, set):String = null;
     public var segmentsPerTile:Int = !ClientPrefs.lowQuality ? 12 : 4;
     public var skew:FlxPoint = FlxPoint.get();
@@ -130,14 +133,14 @@ class TileRender extends FlxSprite
 
     private function allocateBuffers(neededVertices:Int, neededIndices:Int):Void 
     {
-        if (sustainVertices.length < neededVertices) 
+        if (_vertexCapacity < neededVertices || _indexCapacity < neededIndices) 
         {
-            final allocSize = neededVertices + 256;
-            final allocIdx = neededIndices + 256;
+            _vertexCapacity = neededVertices + 256;
+            _indexCapacity = neededIndices + 256;
 
-            sustainVertices = new Vector<Float>(allocSize, false);
-            sustainUvtData = new Vector<Float>(allocSize, false);
-            sustainIndices = new Vector<Int>(allocIdx, false);
+            sustainVertices = new Vector<Float>(_vertexCapacity, false);
+            sustainUvtData = new Vector<Float>(_vertexCapacity, false);
+            sustainIndices = new Vector<Int>(_indexCapacity, false);
         }
         
         sustainVertices.length = neededVertices;
@@ -400,8 +403,12 @@ class TileRender extends FlxSprite
             if (i == bodyIndex && tiles < tileCount)  
             {
                 final clipReduction = frameToDraw.frame.height * (tileCount - tiles);
-                frameToDraw.frame.height -= clipReduction;
-                frameToDraw.frame.y += clipReduction;
+                
+                final oldHeight = frameToDraw.frame.height;
+                final oldY = frameToDraw.frame.y;
+
+                frameToDraw.frame.height = oldHeight - clipReduction;
+                frameToDraw.frame.y = oldY + clipReduction;
 
                 if (flipY)
                 {
@@ -411,8 +418,9 @@ class TileRender extends FlxSprite
 
                 batch.addQuad(frameToDraw, _matrix, sharedColorTransform);
                 offsetAmount = frameToDraw.frame.height * absScaleY;
-                frameToDraw.frame.height += clipReduction;
-                frameToDraw.frame.y -= clipReduction;
+                
+                frameToDraw.frame.height = oldHeight;
+                frameToDraw.frame.y = oldY;
             }
             else
             {
