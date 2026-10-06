@@ -57,7 +57,7 @@ class FunkinVideoSprite extends FlxVideoSprite
         }
         
         try {
-            var loadArgs:Array<String> = args != null ? args.copy() : [];
+            var loadArgs:Array<String> = args?.copy() ?? [];
             
             if (!loadArgs.contains(ARG_HW_ACCEL))
                 loadArgs.push(ARG_HW_ACCEL);
@@ -93,7 +93,7 @@ class FunkinVideoSprite extends FlxVideoSprite
         
         #if FLX_PITCH 
         if (bitmap != null) {
-            bitmap.rate = PlayState.instance != null ? PlayState.instance.playbackRate : 1.0;
+            bitmap.rate = PlayState.instance?.playbackRate ?? 1.0;
         }
         #end
     }
@@ -196,7 +196,7 @@ class FunkinVideoSprite extends FlxVideoSprite
      */
     public function getVideoPercent():Float
     {
-        return bitmap != null ? bitmap.position : 0;
+        return bitmap?.position ?? 0;
     }
 
     /**
@@ -235,7 +235,7 @@ class FunkinVideoSprite extends FlxVideoSprite
      */
     public function isPlaying():Bool
     {
-        return bitmap != null && bitmap.isPlaying;
+        return bitmap?.isPlaying;
     }
     
     private function setupEventListeners():Void
@@ -284,7 +284,7 @@ class FunkinVideoSprite extends FlxVideoSprite
 			if (targetTime >= 0)
 			{
 				final drift = Math.abs(getTime() - targetTime);
-				if (drift > 205.0)
+				if (drift > 600.0)
 				{
 					setTime(targetTime);
 				}
