@@ -42,6 +42,8 @@ class FunkinVideoSprite extends FlxVideoSprite
 	
 	private var wasPlayingBeforeFocusLost:Bool = false;
 
+	private var _isLooped:Bool = false;
+
 	/**
 	 * Creates a new video sprite.
 	 * 
@@ -85,6 +87,8 @@ class FunkinVideoSprite extends FlxVideoSprite
 			if (!loadArgs.contains(ARG_HW_ACCEL)) loadArgs.push(ARG_HW_ACCEL);
 			if (!loadArgs.contains(ARG_DROP_LATE)) loadArgs.push(ARG_DROP_LATE);
 			if (!loadArgs.contains(ARG_SKIP_FRAMES)) loadArgs.push(ARG_SKIP_FRAMES);
+
+			_isLooped = args?.contains(ARG_LOOPING) ?? false;
 			
 			final success:Bool = load(videoPath, loadArgs);
 			
@@ -332,7 +336,7 @@ class FunkinVideoSprite extends FlxVideoSprite
 		super.update(elapsed);
 
 		final isGamePaused:Bool = PlayState.instance?.paused ?? true;
-		if (isPlaying() && !isGamePaused)
+		if (isPlaying() && !isGamePaused && !_isLooped)
 		{
 			final targetTime:Float = Conductor.songPosition - initialConductTime - Conductor.offset;
 			if (targetTime >= 0)
