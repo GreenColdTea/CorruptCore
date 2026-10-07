@@ -334,7 +334,7 @@ class FunkinVideoSprite extends FlxVideoSprite
 		final isGamePaused:Bool = PlayState.instance?.paused ?? true;
 		if (isPlaying() && !isGamePaused)
 		{
-			final targetTime:Float = Conductor.songPosition - Conductor.offset - initialConductTime;
+			final targetTime:Float = Conductor.songPosition - initialConductTime - Conductor.offset;
 			if (targetTime >= 0)
 			{
 				final drift:Float = Math.abs(getTime() - targetTime);
