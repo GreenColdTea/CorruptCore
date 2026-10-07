@@ -37,6 +37,8 @@ class FunkinVideoSprite extends FlxVideoSprite
 	
 	/** The maximum desync allowed (in milliseconds) before a forced seek occurs. */
 	public var syncLeniency:Float = 500.0;
+
+	public var initialConductTime:Float = 0;
 	
 	private var wasPlayingBeforeFocusLost:Bool = false;
 
@@ -148,6 +150,12 @@ class FunkinVideoSprite extends FlxVideoSprite
 			bitmap.rate = PlayState.instance?.playbackRate ?? 1.0;
 		}
 		#end
+	}
+
+	override function play():Bool
+	{
+		initialConductTime = Conductor.songPosition;
+		return super.play();
 	}
 
 	/**
@@ -326,7 +334,7 @@ class FunkinVideoSprite extends FlxVideoSprite
 		final isGamePaused:Bool = PlayState.instance?.paused ?? true;
 		if (isPlaying() && !isGamePaused)
 		{
-			final targetTime:Float = Conductor.songPosition - Conductor.offset;
+			final targetTime:Float = Conductor.songPosition - Conductor.offset - initialConductTime;
 			if (targetTime >= 0)
 			{
 				final drift:Float = Math.abs(getTime() - targetTime);
@@ -369,7 +377,7 @@ class FunkinVideoSprite extends FlxVideoSprite
 				FlxG.signals.focusLost.remove(onFocusLost);
 			}
 			
-			bitmap.stop();
+			stop();
 		}
 		
 		super.destroy();
