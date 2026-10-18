@@ -325,7 +325,7 @@ class FunkinVideoSprite extends FlxVideoSprite
 	private function onFocusGained():Void
 	{
 		final isGamePaused:Bool = PlayState.instance?.paused ?? true;
-		if (!isGamePaused && FlxG.autoPause && wasPlayingBeforeFocusLost)
+		if ((!isGamePaused || PlayState.instance == null) && FlxG.autoPause && wasPlayingBeforeFocusLost)
 		{
 			bitmap?.resume();
 		}
