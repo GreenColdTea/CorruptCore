@@ -3316,6 +3316,9 @@ class PlayState extends MusicBeatState
 					}
 				}
 			}
+
+			if (!parsedHoldArray.contains(true))
+				playerDance();
 		}
 
 		handleControllerInput();
