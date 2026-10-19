@@ -17,7 +17,6 @@ import flixel.util.FlxColor;
 
 import lime.app.Application;
 
-import game.states.backend.Achievements;
 import game.states.editors.MasterEditorMenu;
 
 using StringTools;
@@ -28,7 +27,6 @@ class MainMenuState extends MusicBeatState
 		'story_mode',
 		'freeplay',
 		#if MODS_ALLOWED 'mods', #end
-		#if ACHIEVEMENTS_ALLOWED 'awards', #end
 		'credits',
 		'options'
 	];
@@ -62,10 +60,6 @@ class MainMenuState extends MusicBeatState
 		createMenuStuff();
 
 		FlxG.camera.follow(camFollow, null, 0.17);
-
-		#if ACHIEVEMENTS_ALLOWED
-		checkFridayNightAchievement();
-		#end
 
 		super.create();
 	}
@@ -155,26 +149,6 @@ class MainMenuState extends MusicBeatState
 		var customVersion = "CorruptCore Engine v" + Application.current.meta.get('version');
 		return '$baseVersion\n$customVersion';
 	}
-
-	#if ACHIEVEMENTS_ALLOWED
-	function checkFridayNightAchievement()
-	{
-		var currentDate = Date.now();
-		if (currentDate.getDay() == 5 && currentDate.getHours() >= 18) {
-			var achieveID = Achievements.getAchievementIndex('friday_night_play');
-			if (!Achievements.isAchievementUnlocked(Achievements.achievementsStuff[achieveID][2])) {
-				Achievements.achievementsMap.set(Achievements.achievementsStuff[achieveID][2], true);
-				unlockAchievement();
-			}
-		}
-	}
-
-	function unlockAchievement()
-	{
-		add(new AchievementObject('friday_night_play', new FlxCamera()));
-		FlxG.sound.play(Paths.sound('confirmMenu'), 0.7);
-	}
-	#end
 
 	override function update(elapsed:Float)
 	{
@@ -272,10 +246,6 @@ class MainMenuState extends MusicBeatState
 			#if MODS_ALLOWED
 			case 'mods':
 				FlxG.switchState(() -> new ModsMenuState());
-			#end
-			#if ACHIEVEMENTS_ALLOWED
-			case 'awards':
-				FlxG.switchState(() -> new AchievementsMenuState());
 			#end
 			case 'credits':
 				FlxG.switchState(() -> new CreditsState());

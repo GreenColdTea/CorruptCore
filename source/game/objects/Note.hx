@@ -120,13 +120,13 @@ class Note extends flixel.addons.effects.FlxSkewedSprite
 	public var hitsoundDisabled:Bool = false;
 
 	private function get_canBeHit():Bool {
-		if (!mustPress) return false;
-		
+		if (!mustPress || !spawned) return false;
+
 		if (isSustainNote) {
 			return Conductor.songPosition >= strumTime - (Conductor.safeZoneOffset * lateHitMult) && 
-				   Conductor.songPosition <= strumTime + sustainLength + (Conductor.safeZoneOffset * earlyHitMult);
+				Conductor.songPosition <= strumTime + sustainLength + (Conductor.safeZoneOffset * earlyHitMult);
 		}
-		
+
 		return strumTime > Conductor.songPosition - (Conductor.safeZoneOffset * lateHitMult)
 			&& strumTime < Conductor.songPosition + (Conductor.safeZoneOffset * earlyHitMult);
 	}

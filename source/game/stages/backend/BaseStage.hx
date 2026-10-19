@@ -41,7 +41,7 @@ class BaseStage extends FlxBasic
 	public var boyfriendGroup(get, never):FlxSpriteGroup;
 	public var dadGroup(get, never):FlxSpriteGroup;
 	public var gfGroup(get, never):FlxSpriteGroup;
-	
+
 	public var camGame(get, never):FlxCamera;
 	public var camHUD(get, never):FlxCamera;
 	public var camOther(get, never):FlxCamera;
@@ -57,7 +57,7 @@ class BaseStage extends FlxBasic
 			FlxG.log.warn('Invalid state for the stage added!');
 			destroy();
 		}
-		else 
+		else
 		{
 			this.game.stages.push(this);
 			super();
@@ -65,10 +65,10 @@ class BaseStage extends FlxBasic
 		}
 	}
 
-	//main callbacks
+	// main callbacks
 	public function create() {}
 	public function createPost() {}
-	//public function update(elapsed:Float) {}
+	public function updatePost(elapsed:Float) {}
 	public function countdownTick(swagCounter:Int) {}
 
 	// FNF steps, beats and sections
@@ -88,18 +88,62 @@ class BaseStage extends FlxBasic
 	// Events
 	public function eventCalled(eventName:String, value1:String, value2:String) {}
 	public function eventPushed(event:EventNote) {}
+	public function eventEarlyTrigger(eventName:String):Float return 0;
 
+	// Notes
 	public function opponentNoteHit(note:Note) {}
 	public function goodNoteHit(note:Note) {}
+	public function preGoodNoteHit(note:Note) {}
+	public function preOpponentNoteHit(note:Note) {}
+	public function goodNoteHold(note:Note, elapsed:Float) {}
+	public function opponentNoteHold(note:Note) {}
+	public function preGoodNoteHold(note:Note) {}
+	public function preOpponentNoteHold(note:Note) {}
+	public function noteMiss(note:Note) {}
+	public function noteMissPress(direction:Int) {}
+	public function onSpawnNote(note:Note) {}
+
+	// Input
+	public function preKeyPress(key:Int) {}
+	public function onKeyPress(key:Int) {}
+	public function preKeyRelease(key:Int) {}
+	public function onKeyRelease(key:Int) {}
+	public function onGhostTap(key:Int) {}
+
+	// Song lifecycle
+	public function onStartCountdown() {}
+	public function onCountdownStarted() {}
+	public function startSong() {}
+	public function onEndSong() {}
+	public function onPause() {}
+	public function onResume() {}
+	public function onGameOver() {}
+
+	// Score / rating
+	public function preUpdateScore(miss:Bool) {}
+	public function updateScore(miss:Bool) {}
+	public function popUpScore(ratingName:String, combo:Int, noteDiff:Float) {}
+	public function popUpScorePost(ratingName:String, combo:Int, noteDiff:Float) {}
+	public function recalculateRating() {}
+	public function reloadHealthBarColors() {}
+
+	// Camera / character
+	public function onMoveCamera(target:String) {}
+	public function characterBopper(beat:Int) {}
+
+	// Dialogues
+	public function startNextDialogue(count:Int) {}
+	public function skipDialogue(count:Int) {}
 
 	// Things to replace FlxGroup stuff and inject sprites directly into the state
 	function add(object:FlxBasic) game.add(object);
 	function remove(object:FlxBasic) game.remove(object);
 	function insert(position:Int, object:FlxBasic) game.insert(position, object);
-	
+
 	public function addBehindGF(obj:FlxBasic) insert(members.indexOf(game.gfGroup), obj);
 	public function addBehindBF(obj:FlxBasic) insert(members.indexOf(game.boyfriendGroup), obj);
 	public function addBehindDad(obj:FlxBasic) insert(members.indexOf(game.dadGroup), obj);
+	
 	public function setDefaultGF(name:String) //Fix for the Chart Editor on Base Game game.stages
 	{
 		var gfVersion:String = PlayState.SONG.gfVersion;
@@ -114,20 +158,18 @@ class BaseStage extends FlxBasic
 	public function setStartCallback(myfn:Void->Void)
 	{
 		if(!onPlayState) return;
-		game.startCallback = myfn; 
+		game.startCallback = myfn;
 	}
 
 	public function setEndCallback(myfn:Void->Void)
 	{
 		if(!onPlayState) return;
-		game.endCallback = myfn; 
+		game.endCallback = myfn;
 	}
 
-	// overrides
-	function startCountdown() if (onPlayState) return PlayState.instance.startCountdown(); else return false;
-	function endSong() if(onPlayState)return PlayState.instance.endSong(); else return false;
-	function moveCameraSection() if(onPlayState) moveCameraSection();
-	function moveCamera(isDad:Bool) if(onPlayState) moveCamera(isDad);
+	function startCountdown():Dynamic if (onPlayState) return PlayState.instance.startCountdown(); else return false;
+	function endSong():Dynamic      if (onPlayState) return PlayState.instance.endSong(); else return false;
+	function moveCamera(isDad:Bool):Void if (onPlayState) PlayState.instance.moveCamera(isDad);
 
 	inline private function get_paused() return game.paused;
 	inline private function get_songName() return game.songName;
@@ -162,7 +204,7 @@ class BaseStage extends FlxBasic
 	inline private function get_gfGroup():FlxSpriteGroup return game.gfGroup;
 
 	inline function get_controls():Controls return PlayerSettings.player1.controls;
-	
+
 	inline private function get_camGame():FlxCamera return game.camGame;
 	inline private function get_camHUD():FlxCamera return game.camHUD;
 	inline private function get_camOther():FlxCamera return game.camOther;

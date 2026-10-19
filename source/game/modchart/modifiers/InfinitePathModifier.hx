@@ -30,7 +30,7 @@ class InfinitePathModifier extends PathModifier {
      */
     override function getPath():Array<Array<Vector3>> {
         var infinitePath:Array<Array<Vector3>> = [[], [], [], []];
-        var angleStep:Int = 15; // Degrees between each path point
+        var angleStep:Int = 2; // Degrees between each path point
         
         // Generate path points from 0 to 360 degrees
         var currentAngle:Int = 0;

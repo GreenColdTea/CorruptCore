@@ -311,19 +311,5 @@ class LuaPlayState
 			}
 			return false;
 		});
-		LuaUtils.addFunction(lua, "playVideo", function(videoFile:String, ?isNotMidPartSong:Bool = false) {
-			#if VIDEOS_ALLOWED
-			if(FileSystem.exists(Paths.video(videoFile))) {
-				PlayState.instance.playVideo(videoFile, isNotMidPartSong);
-				return true;
-			} else {
-				FunkinLua.luaTrace('playVideo: Video file not found: ' + videoFile, false, false, FlxColor.RED);
-			}
-			return false;
-
-			#else
-			return true;
-			#end
-		});
     }
 }

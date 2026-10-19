@@ -57,10 +57,6 @@ import flxgif.*;
 import flixel.sound.filters.*;
 #end
 
-#if away3d
-import away3d.*;
-#end
-
 //mb lol
 #if haxeui_flixel
 import haxe.ui.backend.flixel.UIState;

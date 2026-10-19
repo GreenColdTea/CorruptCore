@@ -101,26 +101,48 @@ class PathModifier extends NoteModifier {
     return progress;
   }
 
-  private function interpolateAlongPath(noteData:Int, progress:Float, originalPos:Vector3, player:Int):Vector3 {
+    private function interpolateAlongPath(noteData:Int, progress:Float, originalPos:Vector3, player:Int):Vector3 {
     final path = pathData[noteData];
+    
+    if (path == null || path.length < 2) return originalPos;
     
     if (progress <= 0)
         return originalPos.lerp(path[0].position, getValue(player), originalPos);
     
-    for (pointIndex in 0...path.length - 1) {
-        final currentPoint = path[pointIndex];
-        final nextPoint = path[pointIndex + 1];
+    var low = 0;
+    var high = path.length - 2; 
+    var foundIdx = -1;
+
+    while (low <= high) {
+        final mid = (low + high) >> 1;
+        final currentPoint = path[mid];
         
         if (progress >= currentPoint.start && progress <= currentPoint.end) {
-            final interpolationAlpha = (currentPoint.start - progress) / currentPoint.dist;
-            final tempPathPos = currentPoint.position.lerp(nextPoint.position, interpolationAlpha, Vector3.get());
-            
-            originalPos.lerp(tempPathPos, getValue(player), originalPos);
-            
-            tempPathPos.put();
+            foundIdx = mid;
             break;
+        } else if (progress < currentPoint.start) {
+            high = mid - 1;
+        } else {
+            low = mid + 1;
         }
     }
+
+    if (foundIdx == -1) foundIdx = path.length - 2;
+
+    final p1 = path[foundIdx];
+    final p2 = path[foundIdx + 1];
+    final p0 = foundIdx > 0 ? path[foundIdx - 1] : p1;
+    final p3 = (foundIdx + 2 < path.length) ? path[foundIdx + 2] : p2;
+
+    final alpha = (p1.start - progress) / p1.dist;
+
+    final px = MathUtil.catmullRom(alpha, p0.position.x, p1.position.x, p2.position.x, p3.position.x);
+    final py = MathUtil.catmullRom(alpha, p0.position.y, p1.position.y, p2.position.y, p3.position.y);
+    final pz = MathUtil.catmullRom(alpha, p0.position.z, p1.position.z, p2.position.z, p3.position.z);
+
+    final tempPathPos = Vector3.get(px, py, pz);
+    originalPos.lerp(tempPathPos, getValue(player), originalPos);
+    tempPathPos.put();
     
     return originalPos;
   }

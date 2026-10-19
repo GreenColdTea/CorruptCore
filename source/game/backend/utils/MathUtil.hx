@@ -104,4 +104,15 @@ final class MathUtil
         var fAngle = angle % (Math.PI * 2);
         return fAngle >= Math.PI ? -1.0 : 1.0;
     }
+
+	inline public static function catmullRom(t:Float, p0:Float, p1:Float, p2:Float, p3:Float):Float {
+		final t2 = t * t;
+		final t3 = t2 * t;
+		return 0.5 * (2*p1 + (-p0 + p2)*t + (2*p0 - 5*p1 + 4*p2 - p3)*t2 + (-p0 + 3*p1 - 3*p2 + p3)*t3);
+	}
+
+	inline public static function catmullRomDeriv(t:Float, p0:Float, p1:Float, p2:Float, p3:Float):Float {
+        final t2 = t * t;
+        return 0.5 * ((-p0 + p2) + 2*(2*p0 - 5*p1 + 4*p2 - p3)*t + 3*(-p0 + 3*p1 - 3*p2 + p3)*t2);
+    }
 }

@@ -1,7 +1,6 @@
 package game.stages;
 
 import game.stages.objects.*;
-import game.states.backend.Achievements;
 
 enum HenchmenKillState
 {

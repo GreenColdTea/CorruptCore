@@ -16,7 +16,7 @@ class Project extends HXProject
     // METADATA
     //
 
-    static final VERSION:String = "0.3.1";
+    static final VERSION:String = "0.3.2";
     static final TITLE:String = "Friday Night Funkin': CorruptCore Engine";
     static final PACKAGE_NAME:String = "com.justin.corruptcore";
     static final EXECUTABLE_NAME:String = "CorruptCore";
@@ -254,7 +254,6 @@ class Project extends HXProject
         haxelibs.push(new Haxelib("flxgif"));
         haxelibs.push(new Haxelib("flxrhythmconductor"));
         haxelibs.push(new Haxelib("hxcpp"));
-        haxelibs.push(new Haxelib("away3d"));
         haxelibs.push(new Haxelib("thx.semver"));
 
         haxelibs.push(new Haxelib("haxeui-core"));
@@ -414,7 +413,6 @@ class Project extends HXProject
         }
 
         haxeflags.push("--macro include('flixel.effects',true)");
-        haxeflags.push("--macro include('away3d.*',true)");
     }
 
     //

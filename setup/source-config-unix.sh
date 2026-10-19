@@ -1,40 +1,28 @@
 #!/bin/bash
-clear
-echo
-echo "Installing necessary libraries. Please wait..."
+
+cd "$(dirname "$0")/.."
+
+echo "Installing dependencies with HMM..."
 echo
 
-haxelib setup ~/haxelib
+if [ ! -f "hmm.json" ]; then
+    echo "ERROR: hmm.json not found!"
+    exit 1
+fi
 
-haxelib git flixel https://github.com/FNF-CC-ENGINE/flixel.git
-haxelib git lime https://github.com/GreenColdTea/lime-fc.git
-haxelib git openfl https://github.com/FNF-CC-ENGINE/openfl-fc
-haxelib install format --quiet
-haxelib install hxp --quiet
-haxelib install svg --quiet
-haxelib install flixel-waveform --quiet --skip-dependencies
-haxelib run lime setup flixel
-haxelib set flixel-tools 1.5.1
-haxelib set hxdiscord_rpc 1.3.0
-haxelib git flixel-addons https://github.com/GreenColdTea/flixel-addons.git funkin-before-rebase
-haxelib git away3d https://github.com/openfl/away3d.git
-haxelib git nape-haxe4 https://github.com/HaxeFlixel/nape-haxe4.git
-haxelib git haxeui-core https://github.com/FunkinCrew/haxeui-core.git
-haxelib git haxeui-flixel https://github.com/haxeui/haxeui-flixel.git
-haxelib git hxcpp https://github.com/GreenColdTea/hxcpp.git
-haxelib git hxvlc https://github.com/MAJigsaw77/hxvlc.git --quiet --skip-dependencies
-haxelib git flxgif https://github.com/FNF-CC-ENGINE/flxgif.git
-haxelib git flxsoundfilters https://github.com/TheZoroForce240/FlxSoundFilters.git
-haxelib git flxrhythmconductor https://github.com/PurSnake/FlxRhythmConductor.git --skip-dependencies
-haxelib git rulescript https://github.com/FNF-CC-ENGINE/RuleScript.git dev --skip-dependencies
-haxelib git hscript https://github.com/HaxeFoundation/hscript.git e38a276448c746e9025cf70d4b4d92294c11e82d
-haxelib git sl-windows-api https://github.com/GreenColdTea/windows-api-improved.git
-haxelib git flixel-animate https://github.com/FNF-CC-ENGINE/flixel-animate.git
-haxelib git hxluajit https://github.com/MAJigsaw77/hxluajit.git
-haxelib git hxluajit-wrapper https://github.com/MAJigsaw77/hxluajit-wrapper.git --skip-dependencies
-haxelib git thx.semver https://github.com/fponticelli/thx.semver.git
-haxelib list
+if ! haxelib list | grep -q "^hmm"; then
+    echo "hmm not found. Installing hmm globally..."
+    haxelib --global install hmm
+    haxelib --global run hmm setup
+fi
+
+haxelib run hmm install
+
+if [ $? -ne 0 ]; then
+    echo
+    echo "ERROR: Failed to install dependencies."
+    exit 1
+fi
 
 echo
-read -n 1 -s -r -p "Done! Press any key to close the app!"
-echo
+echo "Dependencies installed successfully!"

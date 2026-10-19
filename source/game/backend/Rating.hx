@@ -13,6 +13,11 @@ class Rating
     public var score:Int = 350;
     public var noteSplash:Bool = true;
 
+    public var folder:String = '';
+    public var comboImage:String = 'combo';
+    public var numPrefix:String = 'num';
+    public var scale:Float = 1.0;
+
     public function new(name:String)
     {
         this.name = name;

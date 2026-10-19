@@ -6,7 +6,6 @@ import flixel.input.keyboard.FlxKey;
 
 import lime.ui.WindowVSyncMode;
 
-import game.states.backend.Achievements;
 import game.backend.Controls;
 
 /**
@@ -195,10 +194,8 @@ class ClientPrefs {
         FlxG.save.data.badWindow = badWindow;
         FlxG.save.data.safeFrames = safeFrames;
         FlxG.save.data.gameplaySettings = gameplaySettings;
-        FlxG.save.data.achievementsMap = Achievements.achievementsMap;
-        FlxG.save.data.henchmenDeath = Achievements.henchmenDeath;
 
-        var save:FlxSave = new FlxSave();
+        final save:FlxSave = new FlxSave();
         save.bind('Preferences', CoolUtil.getSavePath());
         save.data.customControls = keyBinds;
         save.flush();
