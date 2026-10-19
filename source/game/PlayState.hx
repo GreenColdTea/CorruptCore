@@ -2200,8 +2200,8 @@ class PlayState extends MusicBeatState
 
 							daNote.distance = (0.45 * (Conductor.songPosition - daNote.strumTime) * songSpeed * daNote.multSpeed);
 							
-							if (daNote.isSustainNote && daNote.wasGoodHit)
-								daNote.distance = Math.min(0, daNote.distance);
+							if (daNote.isSustainNote && daNote.wasGoodHit && (daNote.parent?.wasGoodHit || daNote.parent?.extraData?.get('tailCaught') == true))
+    							daNote.distance = Math.min(0, daNote.distance);
 
 							if (!strumScroll)
 								daNote.distance *= -1;
@@ -2242,11 +2242,13 @@ class PlayState extends MusicBeatState
 
 							if (daNote.isSustainNote && daNote.holdNote != null)
 							{
-								daNote.holdNote.hit = daNote.wasGoodHit;
-								
-								if (daNote.wasGoodHit)
+								final parentWasHit:Bool = daNote.parent?.wasGoodHit || daNote.parent?.extraData.get('tailCaught') == true;
+
+								daNote.holdNote.hit = daNote.wasGoodHit && parentWasHit;
+
+								if (daNote.wasGoodHit && parentWasHit)
 									daNote.holdNote.timeStuff = Conductor.songPosition - daNote.strumTime;
-								
+
 								daNote.strum = strumGroup.members[daNote.noteData];
 
 								daNote.holdNote.updateVisuals((songSpeed * daNote.multSpeed), strumScroll);
@@ -2255,14 +2257,23 @@ class PlayState extends MusicBeatState
 
 							// Kill extremely late notes and cause misses
 							var killTime:Float = daNote.strumTime;
-							if(daNote.isSustainNote && daNote.parent != null)
+							if (daNote.isSustainNote && daNote.parent != null)
 								killTime = daNote.parent.strumTime + daNote.parent.sustainLength;
-							else if(!daNote.isSustainNote && daNote.sustainLength > 0)
+							else if (!daNote.isSustainNote && daNote.sustainLength > 0)
 								killTime = daNote.strumTime + daNote.sustainLength;
+
+							if (!daNote.isSustainNote && daNote.sustainLength > 0 && daNote.mustPress && !cpuControlled && 
+								!daNote.ignoreNote && !endingSong && daNote.tooLate && !daNote.wasGoodHit && !daNote.extraData.get('missed'))
+							{
+								daNote.extraData.set('missed', true);
+								if (playerStrums.onNoteMiss != null) playerStrums.onNoteMiss(daNote);
+							}
 
 							if (Conductor.songPosition > noteKillOffset + killTime)
 							{
-								if (daNote.mustPress && !cpuControlled && !daNote.ignoreNote && !endingSong && (daNote.tooLate || !daNote.wasGoodHit)) {
+								if (daNote.mustPress && !cpuControlled && !daNote.ignoreNote && !endingSong && (daNote.tooLate || !daNote.wasGoodHit) && !daNote.extraData.get('missed'))
+								{
+									daNote.extraData.set('missed', true);
 									if (playerStrums.onNoteMiss != null) playerStrums.onNoteMiss(daNote);
 								}
 
@@ -3293,7 +3304,14 @@ class PlayState extends MusicBeatState
 					if (canHit && daNote.isSustainNote) {
 						final released:Bool = !parsedHoldArray[daNote.noteData];
 						final parentHit:Bool = daNote.parent?.wasGoodHit;
-						if (!released && parentHit)
+
+						var tailCaught:Bool = false;
+						if (daNote.parent != null) {
+							final tc:Dynamic = daNote.parent.extraData.get('tailCaught');
+							if (tc == true) tailCaught = true;
+						}
+
+						if (!released && (parentHit || tailCaught))
 							if (playerStrums.onNoteHit != null) playerStrums.onNoteHit(daNote);
 					}
 				}
@@ -3496,7 +3514,7 @@ class PlayState extends MusicBeatState
 		{
 			if(cpuControlled && (note.ignoreNote || note.hitCausesMiss)) return;
 
-			if (!cpuControlled && note.isSustainNote && note.parent != null && note.parent.alive && !note.parent.wasGoodHit) {
+			if (!cpuControlled && note.isSustainNote && note.parent?.alive && !note.parent.wasGoodHit && note.parent.extraData.get('tailCaught') != true) {
 				noteMiss(note.parent);
 				
 				note.parent.active = false;
