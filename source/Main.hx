@@ -49,9 +49,20 @@ class Main extends Sprite
 		startFullscreen: false // if the game should start at fullscreen mode
 	};
 
+	public static final COLORBLIND_MODES:Array<String> = [
+		'Deuteranopia', 
+		'Protanopia', 
+		'Tritanopia', 
+		'Protanomaly', 
+		'Deuteranomaly', 
+		'Tritanomaly', 
+		'Monochromacy'
+	];
+
 	//for colorblind mode
 	public static var colorblindMode:Int = -1;
 	public static var colorblindIntensity:Float = 1.0;
+	
 	private static var currentColorblindFilter:ColorMatrixFilter = null;
 
 	// You can pretty much ignore everything from here on - your code should go in your game.states.
@@ -208,62 +219,54 @@ class Main extends Sprite
 	private static function getColorblindMatrix(type:Int, intensity:Float):Array<Float> {
 		var matrixShit:Array<Float> = [];
 		switch (type) {
-			// colorblindness types
 			case 0: // Deuteranopia
 				matrixShit = [
-					0.625, 0.375, 0, 0, 0,
-					0.700, 0.300, 0, 0, 0,
-					0,     0.300, 0.700, 0, 0,
-					0, 0, 0, 1, 0];
+					0.50,  0.50,  0.00,  0, 0,
+					0.00,  0.30,  0.70,  0, 0,
+					0.00,  0.20,  0.80,  0, 0,
+					0,     0,      0,     1, 0];
 
 			case 1: // Protanopia
 				matrixShit = [
-					0.567, 0.433, 0, 0, 0,
-					0.558, 0.442, 0, 0, 0,
-					0,     0.242, 0.758, 0, 0,
-					0, 0, 0, 1, 0];
+					0.20,  0.80,  0.00,  0, 0,
+					0.00,  0.90,  0.10,  0, 0,
+					0.00,  0.30,  0.70,  0, 0,
+					0,     0,      0,     1, 0];
 
 			case 2: // Tritanopia
 				matrixShit = [
-					0.950, 0.050, 0, 0, 0,
-					0,     0.433, 0.567, 0, 0,
-					0,     0.475, 0.525, 0, 0,
-					0, 0, 0, 1, 0];
+					0.90,  0.10,  0.00,  0, 0,
+					0.00,  0.80,  0.20,  0, 0,
+					0.40,  0.00,  0.60,  0, 0,
+					0,     0,      0,     1, 0];
 
 			case 3: // Protanomaly
 				matrixShit = [
-					0.817, 0.183, 0, 0, 0,
-					0.333, 0.667, 0, 0, 0,
-					0,     0.125, 0.875, 0, 0,
-					0, 0, 0, 1, 0];
+					0.60,  0.40,  0.00,  0, 0,
+					0.10,  0.85,  0.05,  0, 0,
+					0.00,  0.15,  0.85,  0, 0,
+					0,     0,      0,     1, 0];
 
 			case 4: // Deuteranomaly
 				matrixShit = [
-					0.800, 0.200, 0, 0, 0,
-					0.258, 0.742, 0, 0, 0,
-					0,     0.142, 0.858, 0, 0,
-					0, 0, 0, 1, 0];
+					0.75,  0.25,  0.00,  0, 0,
+					0.10,  0.65,  0.25,  0, 0,
+					0.00,  0.10,  0.90,  0, 0,
+					0,     0,      0,     1, 0];
 
 			case 5: // Tritanomaly
 				matrixShit = [
-					0.967, 0.033, 0, 0, 0,
-					0,     0.733, 0.267, 0, 0,
-					0,     0.183, 0.817, 0, 0,
-					0, 0, 0, 1, 0];
+					0.95,  0.05,  0.00,  0, 0,
+					0.00,  0.85,  0.15,  0, 0,
+					0.20,  0.00,  0.80,  0, 0,
+					0,     0,      0,     1, 0];
 
-			case 6: // Rod monochromacy
+			case 6: // Monochromacy
 				matrixShit = [
-					0.2126, 0.7152, 0.0722, 0, 0,
-					0.2126, 0.7152, 0.0722, 0, 0,
-					0.2126, 0.7152, 0.0722, 0, 0,
-					0,      0,      0,      1, 0];
-
-			case 7: // Cone monochromacy
-				matrixShit = [
-					0.299, 0.587, 0.114, 0, 0,
-					0.299, 0.587, 0.114, 0, 0,
-					0.299, 0.587, 0.114, 0, 0,
-					0,     0,     0,     1, 0];
+					0.30,  0.59,  0.11,  0, 0,
+					0.30,  0.59,  0.11,  0, 0,
+					0.30,  0.59,  0.11,  0, 0,
+					0,     0,      0,     1, 0];
 		}
 
 		if (intensity < 1) {
@@ -274,24 +277,14 @@ class Main extends Sprite
 		return matrixShit;
 	}
 
-	public static function updateColorblindFilter(type:Int = -1, intensity:Float = 1) {
+	public static function updateColorblindFilter(type:Int = -1, intensity:Float = 1) 
+	{
 		colorblindMode = type;
 		colorblindIntensity = intensity;
 
 		applyColorblindFilterToGame(type, intensity);
 
-		ClientPrefs.colorBlindMode = switch (type) {
-			case -1: 'None';
-			case 0: 'Deutranopia';
-			case 1: 'Protanopia';
-			case 2: 'Tritanopia';
-			case 3: 'Protanomaly';
-			case 4: 'Deuteranomaly';
-			case 5: 'Tritanomaly';
-			case 6: 'Rod monochromacy';
-			case 7: 'Cone monochromacy';
-			default: 'None';
-		};
+		ClientPrefs.colorBlindMode = (type == -1 || type >= COLORBLIND_MODES.length) ? 'None' : COLORBLIND_MODES[type];
 		ClientPrefs.colorBlindIntensity = intensity;
 		ClientPrefs.saveSettings();
 	}

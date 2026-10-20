@@ -73,9 +73,6 @@ class MusicBeatState extends FlxTransitionableState #if (HSCRIPT_ALLOWED && SCRI
     override function create() {
         if(!_FunkinCameraInitialized) initFunkinCamera();
 
-        final index = ['Deutranopia', 'Protanopia', 'Tritanopia', 'Protanomaly', 'Deuteranomaly', 'Tritanomaly', 'Rod monochromacy', 'Cone monochromacy'].indexOf(ClientPrefs.colorBlindMode);
-		Main.updateColorblindFilter(index, ClientPrefs.colorBlindIntensity);
-
         timePassedOnState = 0;
 
         #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)

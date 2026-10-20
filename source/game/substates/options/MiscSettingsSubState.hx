@@ -78,11 +78,11 @@ class MiscSettingsSubState extends BaseOptionsMenu
 		option.onChange = updateCacheOptionsVisibility;
 
 		var option:Option = new Option('Colorblind Mode:',
-			"What type of colorblind are you?",
+			"What type of colorblind filter to apply?",
 			'colorBlindMode',
 			'string',
 			'None',
-			['None', 'Deutranopia', 'Protanopia', 'Tritanopia', 'Protanomaly', 'Deuteranomaly', 'Tritanomaly', 'Rod monochromacy', 'Cone monochromacy']);
+			['None'].concat(Main.COLORBLIND_MODES));
 		addOption(option);
 		option.onChange = onChangeColorBlind;
 
@@ -112,7 +112,7 @@ class MiscSettingsSubState extends BaseOptionsMenu
 
 	function onChangeColorBlind()
 	{
-		var index = ['Deutranopia', 'Protanopia', 'Tritanopia', 'Protanomaly', 'Deuteranomaly', 'Tritanomaly', 'Rod monochromacy', 'Cone monochromacy'].indexOf(ClientPrefs.colorBlindMode);
+		final index = Main.COLORBLIND_MODES.indexOf(ClientPrefs.colorBlindMode);
 		Main.updateColorblindFilter(index, ClientPrefs.colorBlindIntensity);
 	}
 }
