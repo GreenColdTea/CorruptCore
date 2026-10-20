@@ -107,7 +107,7 @@ class MusicBeatSubstate extends FlxSubState #if (HSCRIPT_ALLOWED && SCRIPTABLE_S
         showSubStateCamera();
 
 		#if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
-        if (!excludeSubStates.contains(Type.getClass(this)))
+        if (!excludeSubStates.contains(Type.getClass(this)) && !Std.isOfType(this, rulescript.scriptedClass.RuleScriptedClass))
         {
             final substatePath = Type.getClassName(Type.getClass(this)).split(".");
             final substateString = substatePath[substatePath.length - 1];

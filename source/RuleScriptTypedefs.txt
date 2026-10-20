@@ -1,0 +1,2 @@
+flixel.group.FlxGroup
+flixel.group.FlxSpriteGroup

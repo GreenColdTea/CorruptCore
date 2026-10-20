@@ -52,43 +52,38 @@ class MusicBeatState extends FlxTransitionableState #if (HSCRIPT_ALLOWED && SCRI
 
     public static var timePassedOnState:Float = 0;
 
-    private var excludeStates:Array<Class<MusicBeatState>> = [];
+    private static final excludeStates:Array<String> = [
+        "game.PlayState", 
+        "game.scripting.HScriptState", 
+        "game.states.backend.MusicBeatState",
+        "game.states.editors.CharacterEditorState",
+        "game.states.editors.ChartEditorState",
+        "game.states.editors.DialogueCharacterEditorState",
+        "game.states.editors.DialogueEditorState",
+        "game.states.editors.MasterEditorMenu",
+        "game.states.editors.MenuCharacterEditorState",
+        "game.states.editors.WeekEditorState",
+    ];
 
-    private static function initExcludeStates():Array<Class<MusicBeatState>> {
-        return [
-            game.PlayState, 
-            game.scripting.HScriptState, 
-            MusicBeatState,
-            game.states.editors.CharacterEditorState,
-            game.states.editors.ChartEditorState,
-            game.states.editors.DialogueCharacterEditorState,
-            game.states.editors.DialogueEditorState,
-            game.states.editors.MasterEditorMenu,
-            game.states.editors.MenuCharacterEditorState,
-            game.states.editors.WeekEditorState,
-        ];
-    }
-
-    public function new() {
+    public function new() 
+    {
         super();
-
-        #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
-        excludeStates = initExcludeStates();
-        #end
     }
 
     override function create() {
         if(!_FunkinCameraInitialized) initFunkinCamera();
 
-        var index = ['Deutranopia', 'Protanopia', 'Tritanopia', 'Protanomaly', 'Deuteranomaly', 'Tritanomaly', 'Rod monochromacy', 'Cone monochromacy'].indexOf(ClientPrefs.colorBlindMode);
+        final index = ['Deutranopia', 'Protanopia', 'Tritanopia', 'Protanomaly', 'Deuteranomaly', 'Tritanomaly', 'Rod monochromacy', 'Cone monochromacy'].indexOf(ClientPrefs.colorBlindMode);
 		Main.updateColorblindFilter(index, ClientPrefs.colorBlindIntensity);
 
         timePassedOnState = 0;
 
         #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
-        if (!excludeStates.contains(Type.getClass(this)))
+        final className = Type.getClassName(Type.getClass(this));
+        
+        if (!excludeStates.contains(className) && !Std.isOfType(this, rulescript.scriptedClass.RuleScriptedClass))
         {
-            final statePath = Type.getClassName(Type.getClass(this)).split(".");
+            final statePath = className.split(".");
             final stateString = statePath[statePath.length - 1];
             final scriptPaths = ScriptableHelper.collectScriptPaths(stateString, Paths.getStateScripts);
 
