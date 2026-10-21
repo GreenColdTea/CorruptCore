@@ -204,6 +204,10 @@ class FunkinRuleScript {
         };
 
         ScriptedTypeUtil.resolveScript = function(name:String):Dynamic {
+            final cached = RuleScriptedClassUtil.types.get(name);
+            if (cached != null)
+                return cached;
+
             final path = Tools.parseTypePath(name);
             if (path.name == null || path.name.length == 0) {
                 if (shouldTraceErrors()) trace('Invalid script path: $name');
@@ -218,9 +222,13 @@ class FunkinRuleScript {
                 @:privateAccess
                 final scriptedModule = new ScriptedModule(moduleName, module, ScriptedTypeUtil._currentContext);
                 final type = scriptedModule.types[path.typeName];
-                if (type != null)
+                if (type != null) {
                     RuleScriptedClassUtil.registerRuleScriptedClass(name, cast type);
-                
+
+                    final simple = path.typeName;
+                    if (simple != null && simple != name && !RuleScriptedClassUtil.types.exists(simple))
+                        RuleScriptedClassUtil.registerRuleScriptedClass(simple, cast type);
+                }
                 return type;
             } catch (e:Dynamic) {
                 if (shouldTraceErrors()) trace('Failed to create scripted module for $name: $e');
