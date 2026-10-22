@@ -1,10 +1,9 @@
 name: Build
-
 on:
   push:
-    branches: [ main ]
+    
   pull_request:
-    branches: [ main ]
+
   workflow_dispatch:
 
 jobs:
@@ -17,7 +16,9 @@ jobs:
       - uses: krdlab/setup-haxe@master
         with:
           haxe-version: 4.3.7
-          
+      - name: Set HAXEPATH
+        run: echo "HAXEPATH=$HAXE_STD_PATH/.." >> $GITHUB_ENV
+
       - name: Install System Dependencies
         run: |
           sudo apt-get update
@@ -26,6 +27,7 @@ jobs:
       - name: Install hmm and Dependencies
         run: |
           haxelib setup ~/haxelib
+          
           haxelib --global install hmm
           haxelib --global run hmm setup
           
@@ -33,7 +35,7 @@ jobs:
           haxelib run hmm install > hmm_install.log 2>&1 || (cat hmm_install.log && exit 1)
           
           echo "Setting up lime..."
-          haxelib run lime setup flixel > /dev/null 2>&1
+          haxelib run lime setup flixel > lime_setup.log 2>&1 || (cat lime_setup.log && exit 1)
           
           echo "Dependencies installed successfully!"
 
@@ -46,7 +48,6 @@ jobs:
           name: linuxBuild
           path: 'export/release/linux/bin'
 
-
   buildWindows:
     runs-on: windows-latest
 
@@ -56,10 +57,15 @@ jobs:
       - uses: krdlab/setup-haxe@master
         with:
           haxe-version: 4.3.7
-          
+
+      - name: Set HAXEPATH
+        run: echo "HAXEPATH=$Env:HAXE_STD_PATH\.." >> $Env:GITHUB_ENV
+        shell: pwsh
+
       - name: Install hmm and Dependencies
         run: |
           haxelib setup C:/haxelib
+          
           haxelib --global install hmm
           haxelib --global run hmm setup
           
@@ -86,7 +92,6 @@ jobs:
           name: windowsBuild
           path: export/release/windows/bin
 
-
   buildMac:
     runs-on: macos-latest
 
@@ -96,7 +101,9 @@ jobs:
       - uses: krdlab/setup-haxe@master
         with:
           haxe-version: 4.3.7
-          
+      - name: Set HAXEPATH
+        run: echo "HAXEPATH=$HAXE_STD_PATH/.." >> $GITHUB_ENV
+
       - name: Install hmm and Dependencies
         run: |
           haxelib --global install hmm
@@ -106,7 +113,7 @@ jobs:
           haxelib run hmm install > hmm_install.log 2>&1 || (cat hmm_install.log && exit 1)
           
           echo "Setting up lime..."
-          haxelib run lime setup flixel > /dev/null 2>&1
+          haxelib run lime setup flixel > lime_setup.log 2>&1 || (cat lime_setup.log && exit 1)
           
           echo "Dependencies installed successfully!"
 
