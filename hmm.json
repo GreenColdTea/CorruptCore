@@ -50,7 +50,9 @@
     {
       "name": "nape-haxe4",
       "type": "git",
-      "url": "https://github.com/HaxeFlixel/nape-haxe4.git"
+      "url": "https://github.com/HaxeFlixel/nape-haxe4",
+      "ref": "master",
+      "dir": "haxelib"
     },
     {
       "name": "haxeui-core",
