@@ -76,7 +76,7 @@ class LoadingState extends MusicBeatState
         initializeMultiChannelPools();
     }
 
-        function initializeMultiChannelPools()
+    function initializeMultiChannelPools()
     {
         if (imageProcessingPool == null) {
             imageProcessingPool = new ThreadPool(0, maxImageThreads);
