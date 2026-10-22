@@ -76,31 +76,28 @@ class LoadingState extends MusicBeatState
         initializeMultiChannelPools();
     }
 
-    function initializeMultiChannelPools()
+        function initializeMultiChannelPools()
     {
         if (imageProcessingPool == null) {
             imageProcessingPool = new ThreadPool(0, maxImageThreads);
-            imageProcessingPool.doWork.add(onPoolWork);
             imageProcessingPool.onComplete.add(onPoolComplete);
             imageProcessingPool.onError.add(onPoolError);
         }
 
         if (audioProcessingPool == null) {
             audioProcessingPool = new ThreadPool(0, maxAudioThreads);
-            audioProcessingPool.doWork.add(onPoolWork);
             audioProcessingPool.onComplete.add(onPoolComplete);
             audioProcessingPool.onError.add(onPoolError);
         }
 
         if (jsonProcessingPool == null) {
             jsonProcessingPool = new ThreadPool(0, maxJSONThreads);
-            jsonProcessingPool.doWork.add(onPoolWork);
             jsonProcessingPool.onComplete.add(onPoolComplete);
             jsonProcessingPool.onError.add(onPoolError);
         }
     }
 
-    function onPoolWork(task:LoadTask) {
+    function onPoolWork(task:LoadTask, ?output:WorkOutput) {
         try {
             task.execute();
         } catch(e:Dynamic) {
@@ -239,10 +236,10 @@ class LoadingState extends MusicBeatState
 
     function loadCharacter(character:String, onComplete:Void->Void)
     {
-        jsonProcessingPool.queue({
+        jsonProcessingPool.queue(onPoolWork, {
             type: JSON_PROCESSING,
             description: 'Parse character JSON: $character',
-            execute: function() {
+            execute: () -> {
                 final characterPath:String = 'data/characters/' + character + '.json';
                 final rawJson:String = Paths.getTextFromFile(characterPath);
 
@@ -274,7 +271,7 @@ class LoadingState extends MusicBeatState
         loadQueue.push({
             type: MAIN_THREAD,
             description: 'Load image: $image',
-            execute: function() {
+            execute: () -> {
                 final formats = checkImageFormats(image);
 
                 if (formats.animate)
@@ -345,10 +342,10 @@ class LoadingState extends MusicBeatState
 
         #if MODS_ALLOWED
         if (path.startsWith('${Mods.MODS_FOLDER}/') || path.startsWith('temp/')) {
-            audioProcessingPool.queue({
+            audioProcessingPool.queue(onPoolWork, {
                 type: AUDIO_PROCESSING,
                 description: 'Decode Mod Audio: $path',
-                execute: function() {
+                execute: () -> {
                     final sound = loadSoundFromPath(path);
                     
                     audioProcessingPool.sendComplete({
