@@ -26,20 +26,19 @@ jobs:
       - name: Install hmm and Dependencies
         run: |
           haxelib setup ~/haxelib
-          # Устанавливаем сам менеджер зависимостей
           haxelib --global install hmm
           haxelib --global run hmm setup
           
-          # Устанавливаем всё, что прописано в hmm.json
-          haxelib run hmm install
+          echo "Installing dependencies via hmm..."
+          haxelib run hmm install > hmm_install.log 2>&1 || (cat hmm_install.log && exit 1)
           
-          # На всякий случай явно настраиваем lime (обычно hmm делает это сам)
-          haxelib run lime setup flixel
+          echo "Setting up lime..."
+          haxelib run lime setup flixel > /dev/null 2>&1
           
-          haxelib list
+          echo "Dependencies installed successfully!"
 
       - name: Compile
-        run: haxelib run lime build linux
+        run: haxelib run lime build Project.xml linux
         
       - name: Publish Artifact
         uses: actions/upload-artifact@v4
@@ -63,9 +62,18 @@ jobs:
           haxelib setup C:/haxelib
           haxelib --global install hmm
           haxelib --global run hmm setup
-          haxelib run hmm install
-          haxelib run lime setup flixel
-          haxelib list
+          
+          echo Installing dependencies via hmm...
+          haxelib run hmm install > hmm_install.log 2>&1
+          if errorlevel 1 (
+              type hmm_install.log
+              exit /b 1
+          )
+          
+          echo Setting up lime...
+          haxelib run lime setup flixel > nul 2>&1
+          
+          echo Dependencies installed successfully!
         shell: cmd
 
       - name: Compile
@@ -93,9 +101,14 @@ jobs:
         run: |
           haxelib --global install hmm
           haxelib --global run hmm setup
-          haxelib run hmm install
-          haxelib run lime setup flixel
-          haxelib list
+          
+          echo "Installing dependencies via hmm..."
+          haxelib run hmm install > hmm_install.log 2>&1 || (cat hmm_install.log && exit 1)
+          
+          echo "Setting up lime..."
+          haxelib run lime setup flixel > /dev/null 2>&1
+          
+          echo "Dependencies installed successfully!"
 
       - name: Compile
         run: haxelib run lime build mac
