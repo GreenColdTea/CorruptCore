@@ -35,7 +35,6 @@ using Lambda;
 using rulescript.Tools;
 
 class FunkinRuleScript {
-
     @:unreflective
     static final PRESET_VARS:Map<String, Dynamic> = [
         // Flixel Classes
@@ -115,8 +114,8 @@ class FunkinRuleScript {
         #end
 
         'StringMap' => haxe.ds.StringMap,
-		'IntMap' => haxe.ds.IntMap,
-		'ObjectMap' => haxe.ds.ObjectMap,
+        'IntMap' => haxe.ds.IntMap,
+        'ObjectMap' => haxe.ds.ObjectMap,
 
         'ScriptedClasses' => game.scripting.haxe.ScriptedClasses
     ];
@@ -136,7 +135,9 @@ class FunkinRuleScript {
 
     public var scriptName:String;
     public var active(default, null):Bool = true;
-    
+
+    public var resetStaticsOnStop:Bool = false;
+
     private var rule:RuleScript;
     private var parentInstance:Dynamic;
     private var callbacks:Map<String, Array<Dynamic>> = new Map();
@@ -274,7 +275,7 @@ class FunkinRuleScript {
 
     function execute(code:String, skipCreate:Bool) {
         presetVariables();
-        
+
         try {
             rule.tryExecute(code);
             if (!skipCreate) call("onCreate");
@@ -283,7 +284,7 @@ class FunkinRuleScript {
         }
     }
 
-    function presetVariables() {     
+    function presetVariables() {
         if (scriptName != null) {
             final importDecls = RuleScriptedClassUtil.getImportDecls(scriptName);
             if (importDecls?.length > 0) {
@@ -297,17 +298,17 @@ class FunkinRuleScript {
 
         if (FlxG.state is PlayState) {
             set("instance", PlayState.instance);
-            
+
             set("add", function(obj:flixel.FlxBasic) {
                 var position:Int = PlayState.instance.members.indexOf(PlayState.instance.gfGroup);
-                if(PlayState.instance.members.indexOf(PlayState.instance.boyfriendGroup) < position) 
+                if(PlayState.instance.members.indexOf(PlayState.instance.boyfriendGroup) < position)
                     position = PlayState.instance.members.indexOf(PlayState.instance.boyfriendGroup);
-                else if(PlayState.instance.members.indexOf(PlayState.instance.dadGroup) < position) 
+                else if(PlayState.instance.members.indexOf(PlayState.instance.dadGroup) < position)
                     position = PlayState.instance.members.indexOf(PlayState.instance.dadGroup);
-                
+
                 PlayState.instance.insert(position, obj);
             });
-            
+
             set("insert", PlayState.instance.insert);
             set("remove", PlayState.instance.remove);
             set("addBehindGF", PlayState.instance.addBehindGF);
@@ -334,7 +335,7 @@ class FunkinRuleScript {
 
     public function getObject(index:Int, group:String):Dynamic {
         if (parentInstance == null) return null;
-        
+
         try {
             if (Reflect.hasField(parentInstance, group)) {
                 var targetGroup = Reflect.field(parentInstance, group);
@@ -351,7 +352,7 @@ class FunkinRuleScript {
 
     public function getAllObjects(group:String):Array<Dynamic> {
         if (parentInstance == null) return [];
-        
+
         try {
             if (Reflect.hasField(parentInstance, group)) {
                 var targetGroup = Reflect.field(parentInstance, group);
@@ -373,7 +374,7 @@ class FunkinRuleScript {
 
         var scripted = ScriptedTypeUtil.resolveScript(full);
         if (scripted != null) return scripted;
-        
+
         for (pkg in importedPackages.keys()) {
             var candidate = pkg + "." + typeName;
             cl = Type.resolveClass(candidate);
@@ -381,7 +382,7 @@ class FunkinRuleScript {
             scripted = ScriptedTypeUtil.resolveScript(candidate);
             if (scripted != null) return scripted;
         }
-        
+
         try {
             var scriptedType = ScriptedTypeUtil.resolveScript(typeName);
             if (scriptedType != null) return scriptedType;
@@ -389,14 +390,14 @@ class FunkinRuleScript {
             if (shouldTraceErrors())
                 trace('Failed to resolve scripted type $typeName: $e');
         }
-        
+
         return null;
     }
 
-    public function call(event:String, ?args:Array<Dynamic>):Dynamic 
+    public function call(event:String, ?args:Array<Dynamic>):Dynamic
     {
         if (!active) return null;
-        
+
         var originalAdd = null;
         if (event == "onCreatePost" && PlayState.instance != null) {
             originalAdd = get("add");
@@ -404,7 +405,7 @@ class FunkinRuleScript {
                 PlayState.instance.add(obj);
             });
         }
-        
+
         if (callbacks.exists(event)) {
             final cbs = callbacks.get(event);
             var i = cbs.length;
@@ -419,7 +420,7 @@ class FunkinRuleScript {
                 }
             }
         }
-        
+
         var result:Dynamic = null;
         if (exists(event)) {
             try {
@@ -432,11 +433,11 @@ class FunkinRuleScript {
                     @:privateAccess cast(rule.interp, hscript.Interp).variables.remove(event);
             }
         }
-        
+
         if (event == "onCreatePost" && originalAdd != null) {
             set("add", originalAdd);
         }
-        
+
         return result;
     }
 
@@ -475,8 +476,12 @@ class FunkinRuleScript {
 
     public function stop():Void {
         if (!active) return;
-        
+
         active = false;
+
+        if (resetStaticsOnStop && scriptName != null)
+            RuleScriptInterp.resetStatics(scriptName);
+
         rule?.variables?.clear();
         callbacks?.clear();
         importedPackages?.clear();
