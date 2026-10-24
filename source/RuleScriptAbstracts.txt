@@ -11,6 +11,11 @@ flixel.input.gamepad.id.LogitechID
 flixel.input.gamepad.id.SwitchProID
 flixel.input.keyboard.FlxKey
 flixel.math.FlxPoint
+flixel.system.FlxAssets.FlxGraphicAsset
+flixel.system.FlxAssets.FlxSoundAsset
+flixel.system.FlxAssets.FlxAngelCodeAsset
+flixel.system.FlxAssets.FlxXmlAsset
+flixel.system.FlxAssets.FlxJsonAsset
 flixel.text.FlxText.FlxTextAlign
 flixel.tweens.FlxTween.FlxTweenType
 flixel.util.FlxAxes

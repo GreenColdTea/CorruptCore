@@ -57,6 +57,8 @@ class ScriptedAlphabet extends game.objects.Alphabet implements RuleScriptedClas
 class ScriptedMusicBeatState extends MusicBeatState implements RuleScriptedClass {}
 class ScriptedMusicBeatSubstate extends MusicBeatSubstate implements RuleScriptedClass {}
 class ScriptedOption extends game.substates.backend.Option implements RuleScriptedClass {}
+class ScriptedGameOverSubstate extends game.substates.GameOverSubstate implements RuleScriptedClass {}
+class ScriptedPauseSubState extends game.substates.PauseSubState implements RuleScriptedClass {}
 
 class ScriptedAttachedSprite extends game.objects.AttachedSprite implements RuleScriptedClass {}
 class ScriptedAttachedText extends game.objects.AttachedText implements RuleScriptedClass {}

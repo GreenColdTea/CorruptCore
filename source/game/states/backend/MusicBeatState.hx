@@ -70,7 +70,8 @@ class MusicBeatState extends FlxTransitionableState #if (HSCRIPT_ALLOWED && SCRI
         super();
     }
 
-    override function create() {
+    override function create() 
+    {
         if(!_FunkinCameraInitialized) initFunkinCamera();
 
         timePassedOnState = 0;
@@ -92,7 +93,8 @@ class MusicBeatState extends FlxTransitionableState #if (HSCRIPT_ALLOWED && SCRI
         super.create();
 
         #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
-        if (scriptHelper != null) {
+        if (scriptHelper != null) 
+        {
             scriptHelper.quickSetOnMenuScripts('this', this);
             scriptHelper.quickCallMenuScript("onCreatePost", []);
         }
@@ -140,7 +142,8 @@ class MusicBeatState extends FlxTransitionableState #if (HSCRIPT_ALLOWED && SCRI
         FlxG.watch.addQuick("decBeatShit", curDecBeat);
 
         #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
-        if (scriptHelper != null) {
+        if (scriptHelper != null) 
+        {
             scriptHelper.quickSetOnMenuScripts('curBpm', Conductor.bpm);
             scriptHelper.quickSetOnMenuScripts('crochet', Conductor.crochet);
             scriptHelper.quickSetOnMenuScripts('stepCrochet', Conductor.stepCrochet);
@@ -253,14 +256,13 @@ class MusicBeatState extends FlxTransitionableState #if (HSCRIPT_ALLOWED && SCRI
     function stagesFunc(func:BaseStage->Void)
     {
         for (stage in stages)
-            if(stage != null && stage.exists && stage.active)
+            if(stage?.exists && stage.active)
                 func(stage);
     }
 
     function getBeatsOnSection()
     {
-        var val:Null<Float> = 4;
-        if(PlayState.SONG?.notes[curSection] != null) val = PlayState.SONG.notes[curSection].sectionBeats;
+        final val:Null<Float> = PlayState.SONG?.notes[curSection]?.sectionBeats ?? 4;
         return val ?? 4;
     }
 
@@ -298,28 +300,32 @@ class MusicBeatState extends FlxTransitionableState #if (HSCRIPT_ALLOWED && SCRI
         #end
     }
     
-    override public function onFocus() {
+    override public function onFocus() 
+    {
         super.onFocus();
         #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
         scriptHelper?.quickCallMenuScript("onFocus", []);
         #end
     }
 
-    override public function onFocusLost() {
+    override public function onFocusLost() 
+    {
         super.onFocusLost();
         #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
         scriptHelper?.quickCallMenuScript("onFocusLost", []);
         #end
     }
     
-    override function destroy() {
+    override function destroy() 
+    {
         #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
         scriptHelper?.destroy();
         #end
         super.destroy();
     }
 
-    public function quickCallMenuScript(func:String, ?args:Dynamic):Dynamic {
+    public function quickCallMenuScript(func:String, ?args:Dynamic):Dynamic 
+    {
         #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
         return scriptHelper?.quickCallMenuScript(func, args) ?? ScriptResult.Function_Continue;
         #else
@@ -327,13 +333,15 @@ class MusicBeatState extends FlxTransitionableState #if (HSCRIPT_ALLOWED && SCRI
         #end
     }
 
-    public function quickSetOnMenuScripts(variable:String, arg:Dynamic):Void {
+    public function quickSetOnMenuScripts(variable:String, arg:Dynamic):Void 
+    {
         #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
         scriptHelper?.quickSetOnMenuScripts(variable, arg);
         #end
     }
 
-    public function callOnMenuScript(event:String, args:Array<Dynamic>, ignoreStops:Bool = true, exclusions:Array<String> = null, excludeValues:Array<Dynamic> = null):Dynamic {
+    public function callOnMenuScript(event:String, args:Array<Dynamic>, ignoreStops:Bool = true, exclusions:Array<String> = null, excludeValues:Array<Dynamic> = null):Dynamic 
+    {
         #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
         return scriptHelper?.callOnMenuScript(event, args, ignoreStops, exclusions, excludeValues) ?? ScriptResult.Function_Continue;
         #else

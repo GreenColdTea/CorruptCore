@@ -37,7 +37,6 @@ using rulescript.Tools;
 class FunkinRuleScript {
     @:unreflective
     static final PRESET_VARS:Map<String, Dynamic> = [
-        // Flixel Classes
         "FlxG" => flixel.FlxG,
         "FlxSprite" => flixel.FlxSprite,
         "FlxSpriteUtil" => flixel.util.FlxSpriteUtil,
@@ -176,6 +175,13 @@ class FunkinRuleScript {
         }
     }
 
+    private function attachInterpErrorHandler(interp:Dynamic, name:String):Void {
+        if (Std.isOfType(interp, RuleScriptInterp)) {
+            final rsInterp:RuleScriptInterp = cast interp;
+            rsInterp.errorHandler = (e:haxe.Exception) -> onError(e, rsInterp.scriptName ?? name);
+        }
+    }
+
     private function initScriptedClasses() {
         RuleScriptedClassUtil.fileExists = (p:String) -> return Paths.fileExists(p, TEXT);
         RuleScriptedClassUtil.getFileContent = (p:String) -> return Paths.getTextFromFile(p);
@@ -191,6 +197,8 @@ class FunkinRuleScript {
                 return null;
             }
 
+            RuleScriptedClassUtil.importHxCache.clear();
+
             final parser = new HxParser();
             parser.allowAll();
             parser.mode = MODULE;
@@ -198,16 +206,14 @@ class FunkinRuleScript {
                 final moduleDecls = parser.parseModule(content);
                 final importDecls = RuleScriptedClassUtil.getImportDecls(filePath);
                 return importDecls.concat(moduleDecls);
-            } catch (e:Dynamic) {
-                if (shouldTraceErrors()) trace('Failed to parse module $filePath: $e');
+            } catch (e:haxe.Exception) {
+                onError(e, filePath);
                 return null;
             }
         };
 
         ScriptedTypeUtil.resolveScript = function(name:String):Dynamic {
-            final cached = RuleScriptedClassUtil.types.get(name);
-            if (cached != null)
-                return cached;
+            if (name == null || name.length == 0) return null;
 
             final path = Tools.parseTypePath(name);
             if (path.name == null || path.name.length == 0) {
@@ -223,21 +229,66 @@ class FunkinRuleScript {
                 @:privateAccess
                 final scriptedModule = new ScriptedModule(moduleName, module, ScriptedTypeUtil._currentContext);
                 final type = scriptedModule.types[path.typeName];
+
                 if (type != null) {
+                    final simple = path.typeName;
+                    final fullName = Std.string(type);
+
+                    final oldClass:ScriptedClass = cast (
+                        RuleScriptedClassUtil.types.get(fullName) 
+                        ?? RuleScriptedClassUtil.types.get(name) 
+                        ?? (simple != null ? RuleScriptedClassUtil.types.get(simple) : null)
+                    );
+
+                    if (Std.isOfType(type, ScriptedClass)) {
+                        final newClass:ScriptedClass = cast type;
+
+                        @:privateAccess attachInterpErrorHandler(newClass.interp, fullName);
+                        @:privateAccess newClass.init();
+
+                        if (oldClass != null && @:privateAccess oldClass.initialized) {
+                            @:privateAccess {
+                                final oldVars = oldClass.interp.access.getVariables();
+                                final newVars = newClass.interp.access.getVariables();
+
+                                for (k => v in oldVars) {
+                                    if (k == newClass.className || newClass.module.types.exists(k) || Reflect.isFunction(v))
+                                        continue;
+
+                                    if (newVars.exists(k))
+                                        newClass.interp.access.setVariable(k, v);
+                                }
+
+                                if (oldClass.module.context != null && newClass.module.context != null) {
+                                    for (k => v in oldClass.module.context.staticVariables) {
+                                        if (!Reflect.isFunction(v))
+                                            newClass.module.context.staticVariables.set(k, v);
+                                    }
+                                    for (k => v in oldClass.module.context.publicVariables) {
+                                        if (!Reflect.isFunction(v))
+                                            newClass.module.context.publicVariables.set(k, v);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    RuleScriptedClassUtil.registerRuleScriptedClass(fullName, cast type);
                     RuleScriptedClassUtil.registerRuleScriptedClass(name, cast type);
 
-                    final simple = path.typeName;
-                    if (simple != null && simple != name && !RuleScriptedClassUtil.types.exists(simple))
+                    if (simple != null && simple != name)
                         RuleScriptedClassUtil.registerRuleScriptedClass(simple, cast type);
                 }
                 return type;
-            } catch (e:Dynamic) {
-                if (shouldTraceErrors()) trace('Failed to create scripted module for $name: $e');
+            } catch (e:haxe.Exception) {
+                onError(e, name);
                 return null;
             }
         };
 
         RuleScriptedClassUtil.buildBridge = function(typePath:String, superInstance:Dynamic):RuleScript {
+            if (typePath == null || typePath.length == 0) return null;
+            
             final type:ScriptedClassType = ScriptedTypeUtil.resolveScript(typePath);
             if (type == null) {
                 if (shouldTraceErrors()) trace('Failed to resolve script type: $typePath');
@@ -245,24 +296,34 @@ class FunkinRuleScript {
             }
 
             final script = new RuleScript(new RuleScriptInterp());
-            script.scriptName = typePath;
+            final fullName = Std.string(type);
+            script.scriptName = fullName;
             script.superInstance = superInstance;
             script.getParser(HxParser).allowAll();
-            script.getInterp(RuleScriptInterp).skipNextRestore = true;
-            script.getInterp(RuleScriptInterp).strictMode = true;
-            if (type.isExpr) {
-                script.execute(cast type);
-                return script;
-            } else {
-                final cl:ScriptedClass = cast type;
-                RuleScriptedClassUtil.buildScriptedClass(cl, script);
+
+            final interp = script.getInterp(RuleScriptInterp);
+            interp.skipNextRestore = true;
+            interp.strictMode = true;
+
+            attachInterpErrorHandler(interp, fullName);
+            interp.hasErrorHandler = false;
+
+            try {
+                if (type.isExpr) {
+                    script.execute(cast type);
+                } else {
+                    final cl:ScriptedClass = cast type;
+                    RuleScriptedClassUtil.buildScriptedClass(cl, script);
+                }
+            } catch (e:haxe.Exception) {
+                onError(e, fullName);
             }
             return script;
         };
     }
 
     private function loadScriptContent(path:String):String {
-        if (path == null || path.length == 0) return "// Empty script lol";
+        if (path == null || path.length == 0) return "";
 
         #if sys if (FileSystem.exists(path)) {
             return File.getContent(path);
@@ -330,7 +391,7 @@ class FunkinRuleScript {
     }
 
     private final function shouldTraceErrors():Bool {
-        return exists("showErrorTraces") && get("showErrorTraces") == true;
+        return !exists("showErrorTraces") || get("showErrorTraces") == true;
     }
 
     public function getObject(index:Int, group:String):Dynamic {
@@ -338,12 +399,11 @@ class FunkinRuleScript {
 
         try {
             if (Reflect.hasField(parentInstance, group)) {
-                var targetGroup = Reflect.field(parentInstance, group);
-                if (Std.isOfType(targetGroup, FlxTypedGroup)) {
+                final targetGroup = Reflect.field(parentInstance, group);
+                if (Std.isOfType(targetGroup, FlxTypedGroup))
                     return targetGroup.members[index];
-                }
             }
-        } catch (e:Dynamic) {
+        } catch (e:haxe.Exception) {
             if (shouldTraceErrors())
                 trace('Error getting object: ${e.message}');
         }
@@ -355,12 +415,11 @@ class FunkinRuleScript {
 
         try {
             if (Reflect.hasField(parentInstance, group)) {
-                var targetGroup = Reflect.field(parentInstance, group);
-                if (Std.isOfType(targetGroup, FlxTypedGroup)) {
+                final targetGroup = Reflect.field(parentInstance, group);
+                if (Std.isOfType(targetGroup, FlxTypedGroup))
                     return targetGroup.members;
-                }
             }
-        } catch (e:Dynamic) {
+        } catch (e:haxe.Exception) {
             if (shouldTraceErrors())
                 trace('Error getting objects: ${e.message}');
         }
@@ -368,7 +427,8 @@ class FunkinRuleScript {
     }
 
     public function resolveType(typeName:String):Dynamic {
-        var full = typeName;
+        final full = typeName;
+
         var cl = Type.resolveClass(full);
         if (cl != null) return cl;
 
@@ -376,19 +436,21 @@ class FunkinRuleScript {
         if (scripted != null) return scripted;
 
         for (pkg in importedPackages.keys()) {
-            var candidate = pkg + "." + typeName;
+            final candidate = pkg + "." + typeName;
+
             cl = Type.resolveClass(candidate);
             if (cl != null) return cl;
+
             scripted = ScriptedTypeUtil.resolveScript(candidate);
             if (scripted != null) return scripted;
         }
 
         try {
-            var scriptedType = ScriptedTypeUtil.resolveScript(typeName);
+            final scriptedType = ScriptedTypeUtil.resolveScript(typeName);
             if (scriptedType != null) return scriptedType;
-        } catch (e:Dynamic) {
+        } catch (e:haxe.Exception) {
             if (shouldTraceErrors())
-                trace('Failed to resolve scripted type $typeName: $e');
+                trace('Failed to resolve scripted type $typeName: ${e.message}');
         }
 
         return null;
@@ -408,14 +470,14 @@ class FunkinRuleScript {
 
         if (callbacks.exists(event)) {
             final cbs = callbacks.get(event);
+
             var i = cbs.length;
             while (--i >= 0) {
                 var cb = cbs[i];
                 try {
                     Reflect.callMethod(null, cb, args ?? []);
-                } catch (e:Dynamic) {
-                    @:privateAccess
-                    onError(haxe.Exception.caught(e));
+                } catch (e:haxe.Exception) {
+                    onError(e);
                     cbs.remove(cb);
                 }
             }
@@ -425,9 +487,8 @@ class FunkinRuleScript {
         if (exists(event)) {
             try {
                 result = Reflect.callMethod(null, get(event), args ?? []);
-            } catch (e:Dynamic) {
-                @:privateAccess
-                onError(haxe.Exception.caught(e));
+            } catch (e:haxe.Exception) {
+                onError(e);
                 rule.variables.remove(event);
                 if (rule.interp != null)
                     @:privateAccess cast(rule.interp, hscript.Interp).variables.remove(event);
@@ -442,7 +503,7 @@ class FunkinRuleScript {
     }
 
     public function exists(variable:String):Bool {
-        return active && rule.variables.exists(variable);
+        return active && rule?.variables.exists(variable);
     }
 
     public function get(variable:String):Dynamic {
@@ -450,7 +511,7 @@ class FunkinRuleScript {
     }
 
     public function set(variable:String, value:Dynamic):Void {
-        if (active) rule.variables.set(variable, value);
+        if (active) rule?.variables.set(variable, value);
     }
 
     public function addCallback(event:String, callback:Dynamic):Void {
@@ -461,17 +522,18 @@ class FunkinRuleScript {
 
     public function removeCallback(event:String, callback:Dynamic):Bool {
         return if (callbacks.exists(event)) {
-            var arr = callbacks.get(event);
-            var result = arr.remove(callback);
+            final arr = callbacks.get(event);
+            final result = arr.remove(callback);
             if (arr.length == 0) callbacks.remove(event);
             result;
         } else false;
     }
 
-    function onError(e:haxe.Exception):Void {
+    function onError(e:haxe.Exception, ?customName:String):Void {
         if (!shouldTraceErrors()) return;
 
-        CoolUtil.showPopUp('Error in $scriptName:\n${e.details()}', 'Error on HScript!');
+        final target = customName ?? scriptName;
+        CoolUtil.showPopUp('Error in $target:\n${e.details()}', 'Error on HScript!');
     }
 
     public function stop():Void {

@@ -73,7 +73,7 @@ class WeekData {
 		weekBackground = weekFile.weekBackground;
 		weekBefore = weekFile.weekBefore;
 		storyName = weekFile.storyName;
-		weekName = weekFile.weekName;
+		weekName = weekFile.weekName ?? fileName;
 		freeplayColor = weekFile.freeplayColor;
 		startUnlocked = weekFile.startUnlocked;
 		hiddenUntilUnlocked = weekFile.hiddenUntilUnlocked;
@@ -233,7 +233,16 @@ class WeekData {
 	}
 
 	public static function getCurrentWeek():WeekData {
-		return weeksLoaded.get(weeksList[PlayState.storyWeek]);
+		final idx = PlayState.storyWeek;
+		if (weeksList != null && idx >= 0 && idx < weeksList.length) {
+			final key = weeksList[idx];
+			if (key != null) {
+				final w = weeksLoaded.get(key);
+				if (w != null) return w;
+			}
+		}
+		
+		return new WeekData(createWeekFile(), 'unknown');
 	}
 
 	public static function setDirectoryFromWeek(?data:WeekData = null) {
