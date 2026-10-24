@@ -297,7 +297,7 @@ class FunkinRuleScript {
             set("parent", parentInstance);
 
         if (FlxG.state is PlayState) {
-            set("instance", PlayState.instance);
+            set("this", PlayState.instance);
 
             set("add", function(obj:flixel.FlxBasic) {
                 var position:Int = PlayState.instance.members.indexOf(PlayState.instance.gfGroup);
@@ -316,7 +316,7 @@ class FunkinRuleScript {
             set("addBehindBF", PlayState.instance.addBehindBF);
         } else {
             final scriptObject = FlxG.state?.subState ?? FlxG.state;
-            set("instance", scriptObject);
+            set("this", scriptObject);
 
             set("add", scriptObject.add);
             set("insert", scriptObject.insert);
