@@ -20,7 +20,6 @@ import openfl.utils.Assets as OpenFlAssets;
 import openfl.utils.AssetType;
 
 import game.backend.Conductor.BPMChangeEvent;
-import game.backend.FunkinCamera;
 
 #if (HSCRIPT_ALLOWED && SCRIPTABLE_STATES)
 import game.scripting.FunkinHScript;
@@ -48,7 +47,7 @@ class MusicBeatState extends FlxTransitionableState #if (HSCRIPT_ALLOWED && SCRI
     inline function get_controls():Controls
         return PlayerSettings.player1.controls;
 
-    var _FunkinCameraInitialized:Bool = false;
+    var _cameraInitialized:Bool = false;
 
     public static var timePassedOnState:Float = 0;
 
@@ -72,7 +71,7 @@ class MusicBeatState extends FlxTransitionableState #if (HSCRIPT_ALLOWED && SCRI
 
     override function create() 
     {
-        if(!_FunkinCameraInitialized) initFunkinCamera();
+        if(!_cameraInitialized) initCamera();
 
         timePassedOnState = 0;
 
@@ -101,12 +100,12 @@ class MusicBeatState extends FlxTransitionableState #if (HSCRIPT_ALLOWED && SCRI
         #end
     }
 
-    public function initFunkinCamera():FunkinCamera
+    public function initCamera():FlxCamera
     {
-        final camera = new FunkinCamera();
+        final camera = new FlxCamera();
         FlxG.cameras.reset(camera);
         FlxG.cameras.setDefaultDrawTarget(camera, true);
-        _FunkinCameraInitialized = true;
+        _cameraInitialized = true;
         return camera;
     }
 

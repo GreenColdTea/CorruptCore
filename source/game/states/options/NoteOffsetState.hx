@@ -71,7 +71,7 @@ class NoteOffsetState extends MusicBeatState
 
 	override public function create()
 	{
-		camGame = initFunkinCamera();
+		camGame = initCamera();
 
 		camHUD = new FlxCamera();
 		camOther = new FlxCamera();
