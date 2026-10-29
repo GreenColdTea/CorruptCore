@@ -376,7 +376,6 @@ class PlayState extends MusicBeatState
 
 	function set_playbackRate(value:Float):Float
 	{
-		#if FLX_PITCH
 		if(generatedMusic)
 			FlxG.sound.list.forEach((sound:FlxSound) -> if (sound != null) sound.pitch = value);
 		
@@ -385,9 +384,7 @@ class PlayState extends MusicBeatState
 		trace('Anim speed: ' + FlxG.animationTimeScale);
 		Conductor.safeZoneOffset = (ClientPrefs.safeFrames / 60) * 1000 * value;
 		setOnScripts('playbackRate', playbackRate);
-		#else
-		playbackRate = 1.0;
-		#end
+
 		return playbackRate;
 	}
 
@@ -545,7 +542,7 @@ class PlayState extends MusicBeatState
 		practiceMode = ClientPrefs.getGameplaySetting('practice', false);
 		cpuControlled = ClientPrefs.getGameplaySetting('botplay', false);
 
-		camGame = initCamera();
+		camGame = initMainCamera();
 		camHUD = new FlxCamera();
 		camOther = new FlxCamera();
 		camPause = new FlxCamera();
@@ -804,7 +801,7 @@ class PlayState extends MusicBeatState
 
 		notesSustains = new FlxTypedGroup<Sustain>();
 
-		generateSong(SONG.song);
+		generateSong();
 
 		#if MODCHART_ALLOWED
 		modManager = new ModManager(this);
@@ -1453,13 +1450,13 @@ class PlayState extends MusicBeatState
 		opponentVocals.pause();
 
 		FlxG.sound.music.time = time - Conductor.offset;
-		#if FLX_PITCH FlxG.sound.music.pitch = playbackRate; #end
+		FlxG.sound.music.pitch = playbackRate;
 		FlxG.sound.music.play();
 
 		if (Conductor.songPosition < vocals.length)
 		{
 			vocals.time = time - Conductor.offset;
-			#if FLX_PITCH vocals.pitch = playbackRate; #end
+			vocals.pitch = playbackRate;
 			vocals.play();
 		}
 		else vocals.pause();
@@ -1467,7 +1464,7 @@ class PlayState extends MusicBeatState
 		if (Conductor.songPosition < opponentVocals.length)
 		{
 			opponentVocals.time = time - Conductor.offset;
-			#if FLX_PITCH opponentVocals.pitch = playbackRate; #end
+			opponentVocals.pitch = playbackRate;
 			opponentVocals.play();
 		}
 		else opponentVocals.pause();
@@ -1492,7 +1489,7 @@ class PlayState extends MusicBeatState
 
 		@:privateAccess
 		FlxG.sound.playMusic(inst._sound, 1, false);
-		#if FLX_PITCH FlxG.sound.music.pitch = playbackRate; #end
+		FlxG.sound.music.pitch = playbackRate;
 		FlxG.sound.music.onComplete = finishSong.bind();
 		vocals.play();
 		opponentVocals.play();
@@ -1542,7 +1539,7 @@ class PlayState extends MusicBeatState
 	var debugNum:Int = 0;
 	private var noteTypeMap:Map<String, Bool> = new Map<String, Bool>();
 	private var eventPushedMap:Map<String, Bool> = new Map<String, Bool>();
-	private function generateSong(dataPath:String):Void
+	private function generateSong():Void
 	{
 		// FlxG.log.add(ChartParser.parse());
 		songSpeedType = ClientPrefs.getGameplaySetting('scrolltype','multiplicative');
@@ -1578,9 +1575,7 @@ class PlayState extends MusicBeatState
 		FlxG.sound.list.add(vocals);
 		FlxG.sound.list.add(opponentVocals);
 
-		#if FLX_PITCH
 		FlxG.sound.list.forEach((sound:FlxSound) -> if (sound != null) sound.pitch = playbackRate);
-		#end
 
 		inst = new FlxSound();
 		try {
@@ -1849,7 +1844,7 @@ class PlayState extends MusicBeatState
 		//trace('resynced vocals at ' + Math.floor(Conductor.songPosition));
 
 		FlxG.sound.music.play();
-		#if FLX_PITCH FlxG.sound.music.pitch = playbackRate; #end
+		FlxG.sound.music.pitch = playbackRate;
 		Conductor.songPosition = FlxG.sound.music.time + Conductor.offset;
 
 		var checkVocals = [vocals, opponentVocals];
@@ -1858,7 +1853,7 @@ class PlayState extends MusicBeatState
 			if (FlxG.sound.music.time < vocals.length)
 			{
 				voc.time = FlxG.sound.music.time;
-				#if FLX_PITCH voc.pitch = playbackRate; #end
+				voc.pitch = playbackRate;
 				voc.play();
 			}
 			else voc.pause();
@@ -3969,9 +3964,14 @@ class PlayState extends MusicBeatState
 			FlxG.stage.removeEventListener(KeyboardEvent.KEY_UP, onKeyRelease);
 		}
 		FlxG.animationTimeScale = 1;
-		#if FLX_PITCH
-		FlxG.sound.list.forEach((sound:FlxSound) -> if (sound != null) sound.pitch = 1);
-		#end
+		
+		FlxG.sound.list.forEach((sound:FlxSound) -> {
+			if (sound != null) 
+			{
+				sound.pitch = 1;
+				sound.onComplete = null;
+			}
+		});
 
 		instance = null;
 		shutdownThread = true;
@@ -4095,7 +4095,7 @@ class PlayState extends MusicBeatState
 	public function playerDance():Void
 	{
 		var anim:String = boyfriend?.getAnimationName();
-		if(boyfriend != null && boyfriend.holdTimer > Conductor.stepCrochet * (0.0011 #if FLX_PITCH / FlxG.sound.music.pitch #end) * boyfriend.singDuration && anim.startsWith('sing') && !anim.endsWith('miss'))
+		if(boyfriend != null && boyfriend.holdTimer > Conductor.stepCrochet * (0.0011 / FlxG.sound.music.pitch) * boyfriend.singDuration && anim.startsWith('sing') && !anim.endsWith('miss'))
 			boyfriend.dance();
 	}
 

@@ -94,10 +94,8 @@ class FunkinVideoSprite extends FlxVideoSprite
 			
 			if (success && bitmap != null) 
 			{
-				#if FLX_PITCH
 				if (FlxG.sound.music != null) 
 					bitmap.rate = FlxG.sound.music.pitch;
-				#end
 			}
 			
 			return success;
@@ -148,12 +146,10 @@ class FunkinVideoSprite extends FlxVideoSprite
 			new FlxTimer().start(delay, _ -> play());
 		}
 		
-		#if FLX_PITCH 
 		if (bitmap != null) 
 		{
 			bitmap.rate = PlayState.instance?.playbackRate ?? 1.0;
 		}
-		#end
 	}
 
 	override function play():Bool

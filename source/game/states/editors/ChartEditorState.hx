@@ -275,7 +275,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			PlayState.SONG = _song;
 		}
 
-		initCamera();
+		initMainCamera();
 		
 		camGrid = new FlxCamera();
 		camUI = new FlxCamera();
@@ -1598,11 +1598,9 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		voicesOppVolume.name = 'voices_opp_volume';
 		voicesOppVolume.onValueChange = () -> opponentVocals.volume = voicesOppVolume.value;
 		
-		#if FLX_PITCH
 		playbackSlider = new PsychUISlider(145, 120, (v:Float) -> playbackSpeed = v, 1, 0.1, 5.0, 200);
 		playbackSlider.label = 'Playback Rate';
 		tab_group_chart.add(playbackSlider);
-		#end
 
 		tab_group_chart.add(new FlxText(metronomeStepper.x, metronomeStepper.y - 15, 0, 'BPM:'));
 		tab_group_chart.add(new FlxText(metronomeOffsetStepper.x, metronomeOffsetStepper.y - 15, 0, 'Offset (ms):'));
@@ -2411,7 +2409,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 	function updatePlaybackSpeed():Void
 	{
-		#if FLX_PITCH
 		final holdingShift = FlxG.keys.pressed.SHIFT;
 		final holdingLB = FlxG.keys.pressed.LBRACKET;
 		final holdingRB = FlxG.keys.pressed.RBRACKET;
@@ -2434,7 +2431,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		vocals.pitch = playbackSpeed;
 		opponentVocals.pitch = playbackSpeed;
 		playbackSlider.value = playbackSpeed;
-		#end
 	}
 
 	function updateMetronome(time:Float):Void
@@ -3989,7 +3985,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			return;
 
 		wavData = [[[0], [0]], [[0], [0]]];
-		wavData = waveformData(sound._sound.__buffer, sound._sound.__buffer.data.toBytes(), 0, songLen, 1, wavData, totalHeight);
+		wavData = waveformData(sound._sound.__buffer, sound._sound.__buffer.data.buffer, 0, songLen, 1, wavData, totalHeight);
 
 		var waveformColor:FlxColor = waveformColors.exists(waveformTarget) ?
 			waveformColors.get(waveformTarget) : FlxColor.WHITE;
@@ -4245,12 +4241,10 @@ class ChartingTipsSubstate extends MusicBeatSubstate
             add(text);
         }
 
-        #if FLX_PITCH
         var speedText = new FlxText(0, panel.y + 480, FlxG.width, "[ / ] - Change playback speed (SHIFT for faster)  |  ALT + [ / ] - Reset speed", 18);
         speedText.setFormat(Paths.font("vcr.ttf"), 18, FlxColor.YELLOW, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
         speedText.scrollFactor.set();
         add(speedText);
-        #end
 
         var closeText = new FlxText(0, panel.y + 550, FlxG.width, "Press F1 or ESC to close", 16);
         closeText.setFormat(Paths.font("vcr.ttf"), 16, 0xFFAAAAAA, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);

@@ -52,7 +52,7 @@ class MainMenuState extends MusicBeatState
 		DiscordClient.changePresence("In the Menus", null);
 		#end
 
-		initCamera();
+		initMainCamera();
 
 		if(FlxG.sound.music == null || !FlxG.sound.music.playing) 
 			FlxG.sound.playMusic(Paths.music('freakyMenu'));
@@ -67,7 +67,7 @@ class MainMenuState extends MusicBeatState
 	function initCamera()
 	{
 		persistentUpdate = persistentDraw = true;
-		initCamera();
+		initMainCamera();
 		add(camFollow = new FlxObject(0, 0, 1, 1));
 	}
 

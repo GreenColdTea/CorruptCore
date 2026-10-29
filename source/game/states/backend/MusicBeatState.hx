@@ -71,7 +71,7 @@ class MusicBeatState extends FlxTransitionableState #if (HSCRIPT_ALLOWED && SCRI
 
     override function create() 
     {
-        if(!_cameraInitialized) initCamera();
+        if(!_cameraInitialized) initMainCamera();
 
         timePassedOnState = 0;
 
@@ -100,7 +100,7 @@ class MusicBeatState extends FlxTransitionableState #if (HSCRIPT_ALLOWED && SCRI
         #end
     }
 
-    public function initCamera():FlxCamera
+    public function initMainCamera():FlxCamera
     {
         final camera = new FlxCamera();
         FlxG.cameras.reset(camera);

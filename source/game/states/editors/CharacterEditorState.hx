@@ -129,7 +129,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 
 	override function create()
 	{
-		camEditor = initCamera();
+		camEditor = initMainCamera();
 		camUI = new FlxCamera();
 		camUI.bgColor.alpha = 0;
 
