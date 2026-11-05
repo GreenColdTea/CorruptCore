@@ -40,7 +40,6 @@ class Project extends HXProject
     static final SCRIPTABLE_STATES:FeatureFlag = "SCRIPTABLE_STATES";
     static final GLOBAL_SCRIPTS:FeatureFlag = "GLOBAL_SCRIPTS";
     static final CUSTOM_CLASSES:FeatureFlag = "CUSTOM_CLASSES";
-    static final TITLE_SCREEN_EASTER_EGG:FeatureFlag = "TITLE_SCREEN_EASTER_EGG";
 
     //
     // SWITCH SPECIFIC
@@ -155,9 +154,6 @@ class Project extends HXProject
         VIDEOS_ALLOWED.apply(this, isCPP());
         CRASH_HANDLER.apply(this, true);
         NDLL_ALLOWED.apply(this, true);
-
-        // TITLE_SCREEN_EASTER_EGG is enabled only if "officialBuild" is defined
-        TITLE_SCREEN_EASTER_EGG.apply(this, defines.exists("officialBuild"));
 
         if (HSCRIPT_ALLOWED.isEnabled(this))
         {
@@ -314,46 +310,20 @@ class Project extends HXProject
         if (isWeb())
         {
             addAssetRecursive("assets/preload", "assets", null, ["*"], ["*.ogg"], false);
+            addAssetRecursive("assets/songs", "assets/songs", null, ["*"], ["*.ogg"], false);
+            addAssetRecursive("assets/shared", "assets/shared", null, ["*"], ["*.ogg"], false);
         }
         else
         {
             addAssetRecursive("assets/preload", "assets", null, ["*"], ["*.mp3"], false);
-        }
-
-        if (TITLE_SCREEN_EASTER_EGG.isEnabled(this))
-        {
-            if (isWeb())
-            {
-                addAssetRecursive("assets/secrets", "assets", null, ["*"], ["*.ogg"], false);
-            }
-            else
-            {
-                addAssetRecursive("assets/secrets", "assets", null, ["*"], ["*.mp3"], false);
-            }
+            addAssetRecursive("assets/songs", "assets/songs", null, ["*"], ["*.mp3"], false);
+            addAssetRecursive("assets/shared", "assets/shared", null, ["*"], ["*.mp3"], false);
         }
 
         // videos
         if (VIDEOS_ALLOWED.isEnabled(this))
         {
             addAssetRecursive("assets/videos", "assets/videos", null, ["*"], [], false);
-        }
-
-        if (isWeb())
-        {
-            addAssetRecursive("assets/songs", "assets/songs", null, ["*"], ["*.ogg"], false);
-        }
-        else
-        {
-            addAssetRecursive("assets/songs", "assets/songs", null, ["*"], ["*.mp3"], false);
-        }
-
-        if (isWeb())
-        {
-            addAssetRecursive("assets/shared", "assets/shared", null, ["*"], ["*.ogg"], false);
-        }
-        else
-        {
-            addAssetRecursive("assets/shared", "assets/shared", null, ["*"], ["*.mp3"], false);
         }
 
         if (MODS_ALLOWED.isEnabled(this))

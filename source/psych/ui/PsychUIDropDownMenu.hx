@@ -25,7 +25,8 @@ class PsychUIDropDownMenu extends PsychUIInputText
 	public function new(x:Float, y:Float, list:Array<String>, callback:Int->String->Void, ?width:Float = 100)
 	{
 		super(x, y);
-		if(list == null) list = [];
+		
+		list ??= [];
 
 		_itemWidth = width - 2;
 		setGraphicSize(width, 20);
@@ -144,7 +145,7 @@ class PsychUIDropDownMenu extends PsychUIInputText
 
 	override public function destroy()
 	{
-		if (_isHovered && flixel.FlxG.mouse.useSystemCursor)
+		if (_isHovered && FlxG.mouse.useSystemCursor)
 			Mouse.cursor = MouseCursor.AUTO;
 		
 		super.destroy();
@@ -154,7 +155,7 @@ class PsychUIDropDownMenu extends PsychUIInputText
 	{
 		if(FlxG.mouse.justPressed)
 		{
-			for (item in _items) //extra update to fix a little bug where it wouldnt click on any option if another input text was behind the drop down
+			for (item in _items)
 				if(item != null && item.active && item.visible)
 					item.update(0);
 		}
@@ -224,15 +225,17 @@ class PsychUIDropDownMenu extends PsychUIInputText
 	inline function addOption(option:String)
 	{
 		@:bypassAccessor list.push(option);
-		var curID:Int = list.length - 1;
-		var item:PsychUIDropDownItem = cast recycle(PsychUIDropDownItem, () -> new PsychUIDropDownItem(1, 1, this._itemWidth), true);
+		final curID:Int = list.length - 1;
+		
+		final item:PsychUIDropDownItem = new PsychUIDropDownItem(0, 0, this._itemWidth);
 		item.cameras = cameras;
 		item.label = option;
 		item.visible = item.active = false;
 		item.onClick = function() clickedOn(curID, option);
 		item.forceNextUpdate = true;
+		
 		_items.push(item);
-		insert(1, item);
+		insert(1, item); 
 	}
 
 	function set_list(v:Array<String>)
@@ -241,7 +244,10 @@ class PsychUIDropDownMenu extends PsychUIInputText
 		showDropDown(false);
 
 		for (item in _items)
-			item.kill();
+		{
+			remove(item, true);
+			item.destroy();
+		}
 
 		_items = [];
 		list = [];
@@ -275,7 +281,7 @@ class PsychUIDropDownItem extends PsychUIGroup
 	{
 		super(x, y);
 
-		bg = new FlxSprite().makeGraphic(1, 1, FlxColor.WHITE);
+		bg = new FlxSprite(0, 0).makeGraphic(1, 1, FlxColor.WHITE);
 		bg.setGraphicSize(width, 20);
 		bg.updateHitbox();
 		add(bg);
@@ -295,13 +301,13 @@ class PsychUIDropDownItem extends PsychUIGroup
 
 		if (overlapped && !_isHovered)
 		{
-			if (flixel.FlxG.mouse.useSystemCursor) 
+			if (FlxG.mouse.useSystemCursor) 
 				Mouse.cursor = MouseCursor.BUTTON;
 			_isHovered = true;
 		}
 		else if (!overlapped && _isHovered)
 		{
-			if (flixel.FlxG.mouse.useSystemCursor) 
+			if (FlxG.mouse.useSystemCursor) 
 				Mouse.cursor = MouseCursor.AUTO;
 			_isHovered = false;
 		}
@@ -314,7 +320,7 @@ class PsychUIDropDownItem extends PsychUIGroup
 			bg.alpha = style.bgAlpha;
 			forceNextUpdate = false;
 
-			if(overlapped && FlxG.mouse.justPressed)
+			if(overlapped && FlxG.mouse.justPressed && onClick != null)
 				onClick();
 		}
 		
@@ -324,7 +330,7 @@ class PsychUIDropDownItem extends PsychUIGroup
 
 	override public function destroy()
 	{
-		if (_isHovered && flixel.FlxG.mouse.useSystemCursor)
+		if (_isHovered && FlxG.mouse.useSystemCursor)
 			Mouse.cursor = MouseCursor.AUTO;
 		
 		super.destroy();

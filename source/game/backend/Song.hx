@@ -1,11 +1,16 @@
 package game.backend;
 
-import game.backend.Section.SwagSection;
 import haxe.Json;
 import haxe.format.JsonParser;
+
+import flixel.addons.sound.FlxRhythmConductor;
+import flixel.addons.sound.MusicTimeChangeEvent;
+
 import lime.utils.Assets;
 
 import thx.semver.Version;
+
+import game.backend.Section.SwagSection;
 
 #if sys
 import sys.io.File;
@@ -13,6 +18,20 @@ import sys.FileSystem;
 #end
 
 using StringTools;
+
+typedef ChartNote = {
+	var t:Float;
+	var d:Int;
+	@:optional var l:Float;
+	@:optional var k:String;
+}
+
+typedef ChartEvent = {
+	var t:Float;
+	var e:String;
+	var v1:String;
+	var v2:String;
+}
 
 typedef SwagSong =
 {
@@ -27,14 +46,14 @@ typedef SwagSong =
 	var player2:String;
 	var gfVersion:String;
 
-    var arrowSkin:String;
-    var splashSkin:String;
+	var arrowSkin:String;
+	var splashSkin:String;
 	var holdCoverSkin:String;
 	var stage:String;
-    var validScore:Bool;
+	var validScore:Bool;
 
-    @:optional var offset:Float;
-    @:optional var format:String;
+	@:optional var offset:Float;
+	@:optional var format:String;
 	@:optional var gameOverChar:String;
 	@:optional var gameOverSound:String;
 	@:optional var gameOverLoop:String;
@@ -44,7 +63,7 @@ typedef SwagSong =
 
 class Song
 {
-	public static final CHART_VERSION:Version = "1.0.1";
+	public static final CHART_VERSION:Version = "2.0.0";
 
 	public var song:String;
 	public var notes:Array<SwagSection>;
@@ -62,12 +81,12 @@ class Song
 	public var holdCoverSkin:String;
 	public var speed:Float = 1;
 	public var stage:String;
-	public var validScore:Bool = false; // МУСОР
+	public var validScore:Bool = false;
 	public var player1:String = 'bf';
 	public var player2:String = 'dad';
 	public var gfVersion:String = 'gf';
 
-	private static function onLoadJson(songJson:Dynamic) // convert charts between formats
+	private static function onLoadJson(songJson:Dynamic) 
 	{
 		if(songJson.gfVersion == null)
 		{
@@ -87,19 +106,19 @@ class Song
 			{
 				for (secNum in 0...songJson.notes.length)
 				{
-					var sec:Dynamic = songJson.notes[secNum];
+					final sec:Dynamic = songJson.notes[secNum];
 
 					var i:Int = 0;
 					if (sec.sectionNotes != null && Std.isOfType(sec.sectionNotes, Array))
 					{
-						var notes:Array<Dynamic> = cast sec.sectionNotes;
+						final notes:Array<Dynamic> = cast sec.sectionNotes;
+
 						var len:Int = notes.length;
 						while(i < len)
 						{
 							var note:Array<Dynamic> = notes[i];
 							if(note[1] < 0)
 							{
-								//hl fix
 								try {
 									songJson.events.push([note[0], [[note[2], note[3], note[4]]]]);
 								} catch (e) {}
@@ -116,17 +135,16 @@ class Song
 		final versionString:String = songJson.version != null ? Std.string(songJson.version) : "0.0.0";
 		final chartVersion:Version = Version.stringToVersion(versionString);
 		
-		if (chartVersion < CHART_VERSION)
+		if (chartVersion < "1.0.1")
 		{
-			var sectionsData:Array<Dynamic> = cast songJson.notes;
-
+			final sectionsData:Array<Dynamic> = cast songJson.notes;
 			if (sectionsData == null) return;
 			
 			for (section in sectionsData)
 			{
 				if (section.sectionNotes != null && Std.isOfType(section.sectionNotes, Array))
 				{
-					var notes:Array<Dynamic> = cast section.sectionNotes;
+					final notes:Array<Dynamic> = cast section.sectionNotes;
 					for (note in notes)
 					{
 						if (songJson.format == null) {
@@ -140,12 +158,10 @@ class Song
 						}
 
 						if(!Std.isOfType(note[3], String))
-							note[3] = game.states.editors.ChartEditorState.noteTypeList[note[3]]; //compatibility with Week 7 and 0.1-0.3 psych charts
+							note[3] = game.states.editors.ChartEditorState.noteTypeList[note[3]];
 					}
 				}
 			}
-			
-			songJson.version = CHART_VERSION.toString();
 		}
 	}
 
@@ -177,7 +193,11 @@ class Song
 		songJson = cleanChart(songJson);
 
 		if(jsonInput != 'events') StageData.loadDirectory(songJson);
-		onLoadJson(songJson);
+		
+		if (songJson.version != "2.0.0") {
+			onLoadJson(songJson);
+			songJson.version = CHART_VERSION.toString();
+		}
 		
 		return songJson;
 	}
@@ -187,12 +207,15 @@ class Song
 		if (song.notes != null) {
 			for (section in song.notes) {
 				if (section?.sectionNotes != null) {
-					var uniqueNotes:Array<Dynamic> = [];
+					final uniqueNotes:Array<Dynamic> = [];
 
-					for (note in section.sectionNotes) {
+					for (note in section.sectionNotes) 
+					{
 						var isDup:Bool = false;
-						for (uNote in uniqueNotes) {
-							if (Math.abs(uNote[0] - note[0]) < 1 && uNote[1] == note[1]) {
+						for (uNote in uniqueNotes) 
+						{
+							if (Math.abs(uNote[0] - note[0]) < 1 && uNote[1] == note[1]) 
+							{
 								isDup = true;
 								break;
 							}
@@ -206,8 +229,8 @@ class Song
 		}
 
 		if (song.events != null) {
-			var timeMap:Map<String, Array<Dynamic>> = new Map();
-			var newEvents:Array<Dynamic> = [];
+			final timeMap:Map<String, Array<Dynamic>> = new Map();
+			final newEvents:Array<Dynamic> = [];
 			
 			for (eventNode in song.events) {
 				if (eventNode == null || eventNode[1] == null) continue;
@@ -218,11 +241,14 @@ class Song
 					timeMap.set(timeKey, []);
 				
 				final existingSubEvents = timeMap.get(timeKey);
-				for (subEvent in cast(eventNode[1], Array<Dynamic>)) {
+				for (subEvent in cast(eventNode[1], Array<Dynamic>)) 
+				{
 					var isSubDup:Bool = false;
 
-					for (e in existingSubEvents) {
-						if (e[0] == subEvent[0] && e[1] == subEvent[1] && e[2] == subEvent[2]) {
+					for (e in existingSubEvents) 
+					{
+						if (e[0] == subEvent[0] && e[1] == subEvent[1] && e[2] == subEvent[2]) 
+						{
 							isSubDup = true;
 							break;
 						}
@@ -232,11 +258,11 @@ class Song
 				}
 			}
 			
-			for (timeKey in timeMap.keys()) {
-				var subEvents = timeMap.get(timeKey);
-				if (subEvents.length > 0) {
+			for (timeKey in timeMap.keys()) 
+			{
+				final subEvents = timeMap.get(timeKey);
+				if (subEvents.length > 0)
 					newEvents.push([Std.parseFloat(timeKey), subEvents]);
-				}
 			}
 			
 			newEvents.sort((a:Dynamic, b:Dynamic) -> {
@@ -256,17 +282,154 @@ class Song
 		var parsedJson:Dynamic = Json.parse(rawJson);
 		var swagShit:SwagSong = null;
 		
-		switch (Type.typeof(parsedJson)) {
-			case TObject:
-				if (parsedJson.song != null && Type.typeof(parsedJson.song) == TObject)
-					swagShit = cast parsedJson.song;
-				else
-					swagShit = cast parsedJson;
-			default:
-				swagShit = getDefaultSong();
+		if (parsedJson.version == "2.0.0") 
+		{
+			swagShit = getDefaultSong();
+			
+			if (parsedJson.meta != null) 
+			{
+				swagShit.song = parsedJson.meta.song;
+				swagShit.bpm = parsedJson.meta.bpm;
+				swagShit.speed = parsedJson.meta.speed;
+				swagShit.needsVoices = parsedJson.meta.needsVoices;
+				swagShit.stage = parsedJson.meta.stage;
+				
+				if (parsedJson.meta.characters != null) 
+				{
+					swagShit.player1 = parsedJson.meta.characters.player1;
+					swagShit.player2 = parsedJson.meta.characters.player2;
+					swagShit.gfVersion = parsedJson.meta.characters.gfVersion;
+				}
+				
+				if (parsedJson.meta.assets != null) 
+				{
+					swagShit.arrowSkin = parsedJson.meta.assets.arrowSkin;
+					swagShit.splashSkin = parsedJson.meta.assets.splashSkin;
+					swagShit.holdCoverSkin = parsedJson.meta.assets.holdCoverSkin;
+				}
+			}
+			
+			swagShit.notes = mapFlatNotesToSections(parsedJson.notes, parsedJson.events, swagShit.bpm);
+			swagShit.events = mapFlatEventsToEngine(parsedJson.events);
+			swagShit.version = "2.0.0";
+			
+		} else {
+			switch (Type.typeof(parsedJson)) 
+			{
+				case TObject:
+					if (parsedJson.song != null && Type.typeof(parsedJson.song) == TObject)
+						swagShit = cast parsedJson.song;
+					else
+						swagShit = cast parsedJson;
+				default:
+					swagShit = getDefaultSong();
+			}
 		}
 		
 		return swagShit;
+	}
+
+	private static function mapFlatNotesToSections(flatNotes:Array<ChartNote>, flatEvents:Array<ChartEvent>, baseBpm:Float):Array<SwagSection> {
+		var sections:Array<SwagSection> = [];
+		
+		final timeEvents:Array<MusicTimeChangeEvent> = [
+			new MusicTimeChangeEvent(0, baseBpm)
+		];
+		
+		final bpmChangeMap:Map<Int, Float> = new Map();
+		if (flatEvents != null) {
+			for (ev in flatEvents) {
+				if (ev.e == "Change BPM" || ev.e == "BPM Change") 
+				{
+					final newBpm = Std.parseFloat(ev.v1);
+					if (!Math.isNaN(newBpm)) {
+						timeEvents.push(new MusicTimeChangeEvent(ev.t, newBpm));
+					}
+				}
+			}
+		}
+		
+		FlxRhythmConductor.instance.setupTimeChanges(timeEvents);
+		
+		for (event in timeEvents) 
+		{
+			if (event.time >= 0) 
+			{
+				final secIdx = Math.floor(Conductor.getStep(event.time) / 16);
+				bpmChangeMap.set(secIdx, event.bpm);
+			}
+		}
+
+		var maxStep:Float = 0;
+		if (flatNotes != null) {
+			for (note in flatNotes) {
+				final s = Conductor.getStep(note.t);
+				if (s > maxStep) maxStep = s;
+			}
+		}
+		for (ev in timeEvents) {
+			final s = Conductor.getStep(ev.time);
+			if (s > maxStep) maxStep = s;
+		}
+
+		final maxSectionIndex = Math.floor(maxStep / 16) + 2;
+		while (sections.length <= maxSectionIndex) {
+			final curIdx = sections.length;
+			final isBpmChanged = bpmChangeMap.exists(curIdx);
+			
+			sections.push({
+				sectionNotes: [], 
+				sectionBeats: 4, 
+				mustHitSection: false, 
+				changeBPM: isBpmChanged, 
+				bpm: isBpmChanged ? bpmChangeMap.get(curIdx) : baseBpm, 
+				gfSection: false, 
+				typeOfSection: 0, 
+				altAnim: false
+			});
+		}
+
+		if (flatNotes != null) {
+			for (note in flatNotes) {
+				final currentStep = Conductor.getStep(note.t);
+				final sectionIndex:Int = Math.floor(currentStep / 16);
+				
+				if (sectionIndex >= 0 && sectionIndex < sections.length) {
+					final engineNote:Array<Dynamic> = [note.t, note.d, note.l ?? 0];
+					if (note.k != null && note.k != "") engineNote.push(note.k);
+					sections[sectionIndex].sectionNotes.push(engineNote);
+				}
+			}
+		}
+		
+		return sections;
+	}
+
+	private static function mapFlatEventsToEngine(flatEvents:Array<ChartEvent>):Array<Dynamic> {
+		var events:Array<Dynamic> = [];
+		if (flatEvents == null) return events;
+		
+		final timeMap:Map<String, Array<Dynamic>> = new Map();
+		
+		for (ev in flatEvents) 
+		{
+			final timeKey = Std.string(ev.t);
+			if (!timeMap.exists(timeKey)) timeMap.set(timeKey, []);
+			
+			final eventDetail = [ev.e, ev.v1 ?? "", ev.v2 ?? ""];
+			timeMap.get(timeKey).push(eventDetail);
+		}
+		
+		for (timeKey in timeMap.keys())
+			events.push([Std.parseFloat(timeKey), timeMap.get(timeKey)]);
+		
+		events.sort((a:Dynamic, b:Dynamic) -> {
+			if (a[0] < b[0]) return -1;
+			if (a[0] > b[0]) return 1;
+			return 0;
+		});
+		
+		return events;
 	}
 
 	public static function getDefaultSong():SwagSong
@@ -278,7 +441,7 @@ class Song
 			bpm: 150.0,
 			needsVoices: true,
 			arrowSkin: '',
-			splashSkin: game.objects.NoteSplash.defaultNoteSplash, //idk it would crash if i didn't
+			splashSkin: game.objects.NoteSplash.defaultNoteSplash,
 			holdCoverSkin: 'holdCovers',
 			player1: 'bf',
 			player2: 'dad',
