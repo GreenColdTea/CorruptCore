@@ -2,6 +2,9 @@ package psych.ui;
 
 import openfl.ui.Mouse;
 import openfl.ui.MouseCursor;
+import flixel.FlxG;
+import flixel.FlxSprite;
+import flixel.math.FlxMath;
 
 class PsychUINumericStepper extends PsychUIInputText
 {
@@ -12,6 +15,7 @@ class PsychUINumericStepper extends PsychUIInputText
 	public var max(default, set):Float = 0;
 	public var decimals(default, set):Int = 0;
 	public var isPercent(default, set):Bool = false;
+	
 	public var buttonPlus:FlxSprite;
 	public var buttonMinus:FlxSprite;
 
@@ -20,6 +24,8 @@ class PsychUINumericStepper extends PsychUIInputText
 	
 	private var _isPlusHovered:Bool = false;
 	private var _isMinusHovered:Bool = false;
+	
+	public var broadcastStepperEvent:Bool = true;
 
 	public function new(x:Float = 0, y:Float = 0, step:Float = 1, defValue:Float = 0, min:Float = null, max:Float = null, decimals:Int = 0, ?wid:Int = 60, ?isPercent:Bool = false)
 	{
@@ -48,196 +54,198 @@ class PsychUINumericStepper extends PsychUIInputText
 		buttonMinus.antialiasing = false;
 		add(buttonMinus);
 
-		unfocus = function()
+		this.unfocus = function()
 		{
-			_updateValue();
+			_updateValueFromText();
 			_internalOnChange();
 		}
-		value = defValue;
+		
+		setValueSilent(defValue);
 	}
 
 	override function update(elapsed:Float)
 	{
 		super.update(elapsed);
 
-		var isOverPlus = FlxG.mouse.overlaps(buttonPlus, camera);
-		var isOverMinus = FlxG.mouse.overlaps(buttonMinus, camera);
-		var isOverStepper = isOverPlus || isOverMinus;
+		final isOverPlus = FlxG.mouse.overlaps(buttonPlus, camera);
+		final isOverMinus = FlxG.mouse.overlaps(buttonMinus, camera);
+		final isOverStepper = isOverPlus || isOverMinus;
 		
 		if (isOverStepper && (!_isPlusHovered && !_isMinusHovered))
 		{
-			if (flixel.FlxG.mouse.useSystemCursor) 
+			if (FlxG.mouse.useSystemCursor) 
 				Mouse.cursor = MouseCursor.BUTTON;
 		}
 		else if (!isOverStepper && (_isPlusHovered || _isMinusHovered))
 		{
-			if (flixel.FlxG.mouse.useSystemCursor) 
+			if (FlxG.mouse.useSystemCursor && PsychUIInputText.focusOn != this) 
 				Mouse.cursor = MouseCursor.AUTO;
 		}
 		
 		_isPlusHovered = isOverPlus;
 		_isMinusHovered = isOverMinus;
 
-		if(FlxG.mouse.justPressed)
+		if (FlxG.mouse.justPressed)
 		{
-			if(buttonPlus != null && buttonPlus.exists && isOverPlus)
+			if (buttonPlus?.exists && isOverPlus)
 			{
 				buttonPlus.animation.play('pressed');
-				value += step;
-				_internalOnChange();
+				this.value += step;
 			}
-			else if(buttonMinus != null && buttonMinus.exists && isOverMinus)
+			else if (buttonMinus?.exists && isOverMinus)
 			{
 				buttonMinus.animation.play('pressed');
-				value -= step;
-				_internalOnChange();
+				this.value -= step;
 			}
 		}
-		else if(FlxG.mouse.released)
+		else if (FlxG.mouse.released)
 		{
-			if(buttonPlus != null && buttonPlus.exists && buttonPlus.animation.curAnim != null && buttonPlus.animation.curAnim.name != 'normal')
+			if (buttonPlus?.exists && buttonPlus.animation.curAnim?.name != 'normal')
 				buttonPlus.animation.play('normal');
-			if(buttonMinus != null && buttonMinus.exists && buttonMinus.animation.curAnim != null && buttonMinus.animation.curAnim.name != 'normal')
+			if (buttonMinus?.exists && buttonMinus.animation.curAnim?.name != 'normal')
 				buttonMinus.animation.play('normal');
 		}
 	}
 
 	override public function destroy()
 	{
-		if ((_isPlusHovered || _isMinusHovered) && flixel.FlxG.mouse.useSystemCursor)
+		if ((_isPlusHovered || _isMinusHovered) && FlxG.mouse.useSystemCursor)
 			Mouse.cursor = MouseCursor.AUTO;
 		
 		super.destroy();
 	}
 
-	function set_value(v:Float)
+	function set_value(v:Float):Float
 	{
-		value = Math.max(min, Math.min(max, v));
-		text = Std.string(isPercent ? (value * 100) : value);
-		_updateValue();
+		v = Math.max(min, Math.min(max, v));
+		v = FlxMath.roundDecimal(v, decimals);
+		
+		if (value == v) return value;
+		
+		@:bypassAccessor value = v;
+		
+		_updateTextFromValue();
+		_internalOnChange();
+		
 		return value;
 	}
 
-	function set_min(v:Float)
+	public function setValueSilent(v:Float):Void
+	{
+		v = Math.max(min, Math.min(max, v));
+		v = FlxMath.roundDecimal(v, decimals);
+		
+		if (value == v) return;
+		
+		@:bypassAccessor value = v;
+		_updateTextFromValue();
+	}
+
+	function set_min(v:Float):Float
 	{
 		min = v;
-		@:bypassAccessor if(min > max) max = min;
+		if (min > max) @:bypassAccessor max = min;
+		
 		_updateFilter();
-		_updateValue();
+		setValueSilent(value);
 		return min;
 	}
 
-	function set_max(v:Float)
+	function set_max(v:Float):Float
 	{
 		max = v;
-		@:bypassAccessor if(max < min) min = max;
+		if (max < min) @:bypassAccessor min = max;
+		
 		_updateFilter();
-		_updateValue();
+		setValueSilent(value);
 		return max;
 	}
 
-	function set_decimals(v:Int)
+	function set_decimals(v:Int):Int
 	{
 		decimals = v;
 		_updateFilter();
+		setValueSilent(value);
 		return decimals;
 	}
-	function set_isPercent(v:Bool)
+	
+	function set_isPercent(v:Bool):Bool
 	{
-		var changed:Bool = (isPercent != v);
+		if (isPercent == v) return isPercent;
+		
 		isPercent = v;
 		_updateFilter();
-
-		if(changed)
-		{
-			text = Std.string(value * 100);
-			_updateValue();
-		}
+		_updateTextFromValue();
+		
 		return isPercent;
 	}
 
-	inline function _updateValue()
+	private function _updateValueFromText():Void
 	{
-		var txt:String = text.replace('%', '');
-		if(txt.indexOf('-') > 0)
-			txt.replace('-', '');
-
-		while(txt.indexOf('.') > -1 && txt.indexOf('.') != txt.lastIndexOf('.'))
+		var txt = this.text;
+		
+		if (isPercent) txt = StringTools.replace(txt, '%', '');
+		
+		while (txt.indexOf('.') > -1 && txt.indexOf('.') != txt.lastIndexOf('.'))
 		{
 			var lastId = txt.lastIndexOf('.');
-			txt = txt.substr(0, lastId) + txt.substring(lastId+1);
+			txt = txt.substring(0, lastId) + txt.substring(lastId + 1);
 		}
 
 		var val:Float = Std.parseFloat(txt);
-		if(Math.isNaN(val))
-			val = 0;
+		if (Math.isNaN(val)) val = 0;
 
-		if(isPercent) val /= 100;
+		if (isPercent) val /= 100;
 
-		if(val < min) val = min;
-		else if(val > max) val = max;
-		val = FlxMath.roundDecimal(val, decimals);
-		@:bypassAccessor value = val;
+		setValueSilent(val);
+	}
 
-		if(isPercent)
-		{
-			text = Std.string(val * 100);
-			text += '%';
-		}
-		else text = Std.string(val);
+	private function _updateTextFromValue():Void
+	{
+		var displayVal = isPercent ? (value * 100) : value;
+		var strValue = Std.string(displayVal);
+		if (isPercent) strValue += "%";
+		
+		final oldBroadcast = this.broadcastInputTextEvent;
+		this.broadcastInputTextEvent = false;
+		
+		this.text = strValue; 
+		
+		this.broadcastInputTextEvent = oldBroadcast;
 
-		if(caretIndex > text.length) caretIndex = text.length;
-		if(selectIndex > text.length) selectIndex = text.length;
+		if (caretIndex > this.text.length) caretIndex = this.text.length;
+		if (selectIndex > this.text.length) selectIndex = this.text.length;
+		updateCaret();
 	}
 	
-	inline function _updateFilter()
+	inline function _updateFilter():Void
 	{
-		if(min < 0)
+		if (min < 0)
 		{
-			if(decimals > 0)
-			{
-				if(isPercent)
-					customFilterPattern = ~/[^0-9.%\-]*/g;
-				else
-					customFilterPattern = ~/[^0-9.\-]*/g;
-			}
+			if (decimals > 0)
+				customFilterPattern = isPercent ? ~/[^0-9.%\-]*/g : ~/[^0-9.\-]*/g;
 			else
-			{
-				if(isPercent)
-					customFilterPattern = ~/[^0-9%\-]*/g;
-				else
-					customFilterPattern = ~/[^0-9\-]*/g;
-			}
+				customFilterPattern = isPercent ? ~/[^0-9%\-]*/g : ~/[^0-9\-]*/g;
 		}
 		else
 		{
-			if(decimals > 0)
-			{
-				if(isPercent)
-					customFilterPattern = ~/[^0-9.%]*/g;
-				else
-					customFilterPattern = ~/[^0-9.]*/g;
-			}
+			if (decimals > 0)
+				customFilterPattern = isPercent ? ~/[^0-9.%]*/g : ~/[^0-9.]*/g;
 			else
-			{
-				if(isPercent)
-					customFilterPattern = ~/[^0-9%]*/g;
-				else
-					customFilterPattern = ~/[^0-9]*/g;
-			}
+				customFilterPattern = isPercent ? ~/[^0-9%]*/g : ~/[^0-9]*/g;
 		}
 	}
 
-	public var broadcastStepperEvent:Bool = true;
-	inline function _internalOnChange()
+	inline function _internalOnChange():Void
 	{
-		if(onValueChange != null) onValueChange();
-		if(broadcastStepperEvent) PsychUIEventHandler.event(CHANGE_EVENT, this);
+		if (onValueChange != null) onValueChange();
+		if (broadcastStepperEvent) PsychUIEventHandler.event(CHANGE_EVENT, this);
 	}
 
 	override function setGraphicSize(width:Float = 0, height:Float = 0)
 	{
 		super.setGraphicSize(width, height);
-		behindText.setGraphicSize(width - 32, height - 2);
+		if (behindText != null)
+			behindText.setGraphicSize(width - 32, height - 2);
 	}
 }

@@ -102,8 +102,6 @@ class PsychUITab extends FlxSprite
 	{
 		if(menu != null && menu.exists && menu.active)
 		{
-			var visibleHeight:Float = parent.bg.height - parent.tabHeight;
-			var visibleWidth:Float = parent.bg.width;
 			var maxContentHeight:Float = 0.01;
 			var maxContentWidth:Float = 0.01;
 			
@@ -119,11 +117,35 @@ class PsychUITab extends FlxSprite
 				}
 			}
 
+			@:privateAccess var origHeight = parent._originalHeight;
+			var desiredHeight = maxContentHeight + parent.tabHeight + 10;
+			var maxHeight = FlxG.height - parent.y - 20;
+			
+			if (desiredHeight > maxHeight) desiredHeight = maxHeight;
+			if (desiredHeight < origHeight) desiredHeight = origHeight;
+
+			if (parent.bg.height != desiredHeight && !parent.isMinimized) {
+				parent.bg.setGraphicSize(Std.int(parent.bg.width), Std.int(desiredHeight));
+				parent.bg.updateHitbox();
+			}
+
+			var visibleHeight:Float = parent.bg.height - parent.tabHeight;
+			var visibleWidth:Float = parent.bg.width;
+			
 			var canScrollY = scrollable && maxContentHeight > visibleHeight;
 			var minScrollY = canScrollY ? visibleHeight - maxContentHeight : 0; 
 
 			var canScrollX = scrollable && maxContentWidth > visibleWidth;
 			var minScrollX = canScrollX ? visibleWidth - maxContentWidth : 0;
+
+			var isFocused = FlxG.mouse.overlaps(parent.bg, camera) || FlxG.mouse.overlaps(parent, camera);
+			var targetAlpha:Float = isFocused ? 1.0 : 0.0;
+			
+			scrollBarHandle.alpha += (targetAlpha - scrollBarHandle.alpha) * Math.min(1, elapsed * 10);
+			scrollBarBG.alpha = scrollBarHandle.alpha * 0.5;
+			
+			hScrollBarHandle.alpha = scrollBarHandle.alpha;
+			hScrollBarBG.alpha = scrollBarHandle.alpha * 0.5;
 
 			var boxTop = parent.y + parent.tabHeight;
 
@@ -308,12 +330,12 @@ class PsychUITab extends FlxSprite
 			final visibleHeight = parent.bg.height - parent.tabHeight;
 			final visibleWidth = parent.bg.width;
 			
-			if (scrollable && maxContentHeight > visibleHeight) {
+			if (scrollable && maxContentHeight > visibleHeight && scrollBarHandle.alpha > 0.01) {
 				scrollBarBG.draw();
 				scrollBarHandle.draw();
 			}
 			
-			if (scrollable && maxContentWidth > visibleWidth) {
+			if (scrollable && maxContentWidth > visibleWidth && hScrollBarHandle.alpha > 0.01) {
 				hScrollBarBG.draw();
 				hScrollBarHandle.draw();
 			}

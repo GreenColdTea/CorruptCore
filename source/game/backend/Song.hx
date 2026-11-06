@@ -194,7 +194,8 @@ class Song
 
 		if(jsonInput != 'events') StageData.loadDirectory(songJson);
 		
-		if (songJson.version != "2.0.0") {
+		if (songJson.version != "2.0.0") 
+		{
 			onLoadJson(songJson);
 			songJson.version = CHART_VERSION.toString();
 		}
@@ -228,11 +229,13 @@ class Song
 			}
 		}
 
-		if (song.events != null) {
+		if (song.events != null) 
+		{
 			final timeMap:Map<String, Array<Dynamic>> = new Map();
 			final newEvents:Array<Dynamic> = [];
 			
-			for (eventNode in song.events) {
+			for (eventNode in song.events) 
+			{
 				if (eventNode == null || eventNode[1] == null) continue;
 				
 				final timeKey = Std.string(Math.round(eventNode[0])); 
@@ -258,7 +261,7 @@ class Song
 				}
 			}
 			
-			for (timeKey in timeMap.keys()) 
+			for (timeKey in timeMap.keys())
 			{
 				final subEvents = timeMap.get(timeKey);
 				if (subEvents.length > 0)
@@ -311,7 +314,7 @@ class Song
 			
 			swagShit.notes = mapFlatNotesToSections(parsedJson.notes, parsedJson.events, swagShit.bpm);
 			swagShit.events = mapFlatEventsToEngine(parsedJson.events);
-			swagShit.version = "2.0.0";
+			swagShit.version = CHART_VERSION.toString();
 			
 		} else {
 			switch (Type.typeof(parsedJson)) 
@@ -337,9 +340,10 @@ class Song
 		];
 		
 		final bpmChangeMap:Map<Int, Float> = new Map();
+		
 		if (flatEvents != null) {
 			for (ev in flatEvents) {
-				if (ev.e == "Change BPM" || ev.e == "BPM Change") 
+				if (ev.e == "Change BPM") 
 				{
 					final newBpm = Std.parseFloat(ev.v1);
 					if (!Math.isNaN(newBpm)) {
@@ -348,6 +352,8 @@ class Song
 				}
 			}
 		}
+		
+		timeEvents.sort((a, b) -> return Std.int(a.time - b.time));
 		
 		FlxRhythmConductor.instance.setupTimeChanges(timeEvents);
 		
@@ -373,16 +379,21 @@ class Song
 		}
 
 		final maxSectionIndex = Math.floor(maxStep / 16) + 2;
+		
+		var curBpm = baseBpm;
 		while (sections.length <= maxSectionIndex) {
 			final curIdx = sections.length;
 			final isBpmChanged = bpmChangeMap.exists(curIdx);
+			
+			if (isBpmChanged)
+				curBpm = bpmChangeMap.get(curIdx);
 			
 			sections.push({
 				sectionNotes: [], 
 				sectionBeats: 4, 
 				mustHitSection: false, 
 				changeBPM: isBpmChanged, 
-				bpm: isBpmChanged ? bpmChangeMap.get(curIdx) : baseBpm, 
+				bpm: curBpm, 
 				gfSection: false, 
 				typeOfSection: 0, 
 				altAnim: false
