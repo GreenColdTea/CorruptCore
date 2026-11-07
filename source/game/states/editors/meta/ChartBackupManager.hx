@@ -75,16 +75,22 @@ class ChartBackupManager
 					mustHit: sec.mustHitSection,
 					gf: sec.gfSection,
 					alt: sec.altAnim,
-					beats: sec.sectionBeats != null ? sec.sectionBeats : 4
+					beats: sec.sectionBeats ?? 4
 				});
 
 				if (sec.sectionNotes != null) {
-					var sectionNotesArray:Array<Dynamic> = cast sec.sectionNotes;
-					for (note in sectionNotesArray) {
-						final noteObj:Dynamic = { t: note[0], d: note[1] };
-						if (note.length > 2 && note[2] > 0) noteObj.l = note[2];
-						if (note.length > 3 && note[3] != "") noteObj.k = note[3];
-						exportNotes.push(noteObj);
+					final sectionNotesArray:Array<Dynamic> = cast sec.sectionNotes;
+					if (sectionNotesArray != null) 
+                    {
+						for (note in sectionNotesArray) 
+                        {
+							if (note?.length >= 2) {
+								final noteObj:Dynamic = { t: note[0], d: note[1] };
+								if (note.length > 2 && note[2] > 0) noteObj.l = note[2];
+								if (note.length > 3 && note[3] != "") noteObj.k = note[3];
+								exportNotes.push(noteObj);
+							}
+						}
 					}
 				}
 			}
@@ -131,19 +137,26 @@ class ChartBackupManager
 			}
 		}
 
-		if (songObj.events != null) {
-			var eventsArray:Array<Dynamic> = cast songObj.events;
-			for (eventNode in eventsArray) {
-				if (eventNode[1] != null) {
-					var subEventsArray:Array<Dynamic> = cast eventNode[1];
-					for (subEvent in subEventsArray) {
-						exportEvents.push({
-							t: eventNode[0],
-							e: subEvent[0],
-							v1: subEvent[1],
-							v2: subEvent[2]
-						});
-					}
+		if (songObj.events != null) 
+        {
+			final eventsArray:Array<Dynamic> = cast songObj.events;
+			for (eventNode in eventsArray) 
+            {
+				if (eventNode[1] != null) 
+                {
+					final subEventsArray:Array<Dynamic> = cast eventNode[1];
+                    if (subEventsArray != null) 
+                    {
+                        for (subEvent in subEventsArray) 
+                        {
+                            exportEvents.push({
+                                t: eventNode[0],
+                                e: subEvent[0],
+                                v1: subEvent[1],
+                                v2: subEvent[2]
+                            });
+                        }
+                    }
 				}
 			}
 		}

@@ -16,6 +16,7 @@ import flixel.FlxCamera;
 import flixel.util.FlxStringUtil;
 import game.states.options.OptionsState;
 
+@:access(game.PlayState)
 class PauseSubState extends MusicBeatSubstate
 {
 	var grpMenuShit:FlxTypedGroup<Alphabet>;
@@ -251,6 +252,7 @@ class PauseSubState extends MusicBeatSubstate
 						{
 							PlayState.instance.clearNotesBefore(curTime);
 							PlayState.instance.setSongTime(curTime);
+							PlayState.instance.currentUnspawnIndex = 0;
 						}
 						close();
 					}

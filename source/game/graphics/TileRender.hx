@@ -41,7 +41,7 @@ class TileRender extends FlxSprite
 {
     private static inline final PIXEL_OFFSET_X:Float = 5.0;
     private static inline final MAX_TOTAL_SEGMENTS:Int = 48;
-    private static inline final MAX_TEXTURE_SIZE:Int = 4096;
+    private static inline final MAX_TEXTURE_SIZE:Int = 8192;
     private static inline final MIN_TEXTURE_ALLOC:Int = 256;
 
     private static final sharedColorTransform:ColorTransform = new ColorTransform();
@@ -357,7 +357,15 @@ class TileRender extends FlxSprite
     @:access(game.PlayState)
     private function drawBentSustain(pNote:Note, state:PlayState, modMgr:ModManager, pN:Int):Void  
     {  
-        if (!bakeSustainStrip() || __bakedBitmap == null || __bakedGraphic == null) return;
+        if (!bakeSustainStrip() || __bakedBitmap == null || __bakedGraphic == null) 
+        {
+            for (camera in cameras)
+            {
+                if (camera == null || !camera.visible || !camera.exists) continue;
+                drawComplex(camera);
+            }
+            return;
+        }
 
         final isPixel = PlayState.isPixelStage;
         final zoom = PlayState.daPixelZoom;
@@ -646,14 +654,19 @@ class TileRender extends FlxSprite
     {  
         if (height == value || frames == null || _frame == null) return value;  
 
-        final absScaleY = Math.abs(scale.y);
-        final tailHeight = (tailFrame?.frame.height ?? _frame.frame.height) * absScaleY;
-        tiles = value <= tailHeight ? value / tailHeight : (value - tailHeight) / (_frame.frame.height * absScaleY) + 1.0;
+        final safeValue = Math.max(0.1, value);
+        final safeScaleY = Math.max(0.0001, Math.abs(scale.y));
+
+        final tailHeight = (tailFrame?.frame.height ?? _frame.frame.height) * safeScaleY;
+        tiles = safeValue <= tailHeight ? safeValue / tailHeight : (safeValue - tailHeight) / (_frame.frame.height * safeScaleY) + 1.0;
+        
         tileCount = Math.ceil(tiles);
+        if (tileCount < 1) tileCount = 1;
+        
         __bakeDirty = true;
         
-        return super.set_height(value);  
-    }  
+        return super.set_height(safeValue);  
+    }
 
     override public function destroy():Void
     {
