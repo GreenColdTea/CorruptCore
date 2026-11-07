@@ -571,7 +571,6 @@ class PlayState extends MusicBeatState
 		SONG ??= Song.loadFromJson('tutorial');
 
 		Conductor.mapBPMChanges(SONG);
-		Conductor.bpm = SONG.bpm;
 
 		#if DISCORD_ALLOWED
 		storyDifficultyText = CoolUtil.difficulties[storyDifficulty];
@@ -1553,8 +1552,6 @@ class PlayState extends MusicBeatState
 		}
 
 		final songData = SONG;
-		Conductor.bpm = songData.bpm;
-
 		curSong = songData.song;
 
 		vocals = new FlxSound();
@@ -4064,8 +4061,6 @@ class PlayState extends MusicBeatState
 
 			if (SONG.notes[curSection].changeBPM)
 			{
-				Conductor.bpm = SONG.notes[curSection].bpm;
-
 				setOnScripts('curBpm', Conductor.bpm);
 				setOnScripts('crochet', Conductor.crochet);
 				setOnScripts('stepCrochet', Conductor.stepCrochet);
