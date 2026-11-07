@@ -150,10 +150,13 @@ class Init extends FlxState
 	private static function resetSpriteCache(sprite:Sprite):Void {
 		@:privateAccess {
 			if (sprite != null) {
-		   		sprite.__cacheBitmapData = null;
+				for (bitmap in [sprite.__cacheBitmapData, sprite.__cacheBitmapData2, sprite.__cacheBitmapData3])
+					bitmap?.__texture?.dispose();
+
+		   		sprite.__cacheBitmap = null;
+				sprite.__cacheBitmapData = null;
 				sprite.__cacheBitmapData2 = null;
 				sprite.__cacheBitmapData3 = null;
-				sprite.__cacheBitmapColorTransform = null;
 			}
 		}
     }
