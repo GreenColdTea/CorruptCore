@@ -466,8 +466,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		if(lastSong != currentSongName) changeSection();
 		lastSong = currentSongName;
 
-		loadJSONEvents();
-
 		createSongSlider();
 
 		opponent.visible = false;
@@ -495,23 +493,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		}, 0);
 
 		super.create();
-	}
-
-	function loadJSONEvents()
-	{
-		var songName:String = SongUtil.formatToSongPath(_song.song);
-		var file:String = Paths.json('songs/$songName/events');
-
-		if (_song.events == null || _song.events.length == 0) {
-			try {
-				var events:SwagSong = Song.loadFromJson('events', songName);
-				_song.events = events.events;
-				changeSection(curSec);
-				updateBpmFromEvents();
-			} catch (e) {
-				_song.events = [];
-			}
-		}
 	}
 
 	var sliderBg:FlxSprite;
@@ -643,11 +624,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		var createBackupButton:PsychUIButton = new PsychUIButton(loadBackupButton.x - 90, loadBackupButton.y, "Create Backup", () ->
 			backupManager.createManualBackup(_song)
 		);
-
-		var saveEvents:PsychUIButton = new PsychUIButton(saveButton.x, loadSongJsonButton.y, 'Save Events', function ()
-		{
-			saveEvents();
-		});
 
 		var clear_notes:PsychUIButton = new PsychUIButton(260, 340, 'Clear Notes', function()
 			{
@@ -821,7 +797,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		tab_group_song.add(clear_events);
 		tab_group_song.add(clear_notes);
 		tab_group_song.add(saveButton);
-		tab_group_song.add(saveEvents);
 		tab_group_song.add(reloadSong);
 		tab_group_song.add(loadSongJsonButton);
 		tab_group_song.add(createBackupButton);
@@ -4029,58 +4004,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			   StringTools.lpad(Std.string(msDisplay), "0", 2);
 	}
 
-	private function saveEvents()
-	{
-		if(_song.events?.length > 1) 
-		{
-			_song.events = _song.events.filter((event) -> return event != null);
-			_song.events.sort(sortByTime);
-		}
-
-		final exportEvents:Array<Dynamic> = [];
-		if (_song.events != null) 
-		{
-			for (eventNode in _song.events) 
-			{
-				if (eventNode[1] != null) 
-				{
-					for (subEvent in cast(eventNode[1], Array<Dynamic>)) 
-					{
-						exportEvents.push({
-							t: eventNode[0],
-							e: subEvent[0],
-							v1: subEvent[1],
-							v2: subEvent[2]
-						});
-					}
-				}
-			}
-		}
-
-		final json = {
-			version: Song.CHART_VERSION.toString(),
-			events: exportEvents
-		};
-
-		var rawJson:String = Json.stringify(json, "\t");
-
-		final regex = new EReg('\\{\\n\\t+([^\\{\\}]*?)\\n\\t+\\}', 'g');
-		rawJson = regex.map(rawJson, function(e:EReg):String {
-			final match = e.matched(0);
-			final trimRegex = new EReg('\\n\\t+', 'g');
-			return trimRegex.replace(match, ' ');
-		});
-
-		if (rawJson?.length > 0)
-		{
-			_file = new FileReference();
-			_file.addEventListener(#if desktop Event.SELECT #else Event.COMPLETE #end, onSaveComplete);
-			_file.addEventListener(Event.CANCEL, onSaveCancel);
-			_file.addEventListener(IOErrorEvent.IO_ERROR, onSaveError);
-			_file.save(rawJson.trim(), "events.json");
-		}
-	}
-
 	function onSaveComplete(_):Void
 	{
 		_file.removeEventListener(Event.COMPLETE, onSaveComplete);
@@ -4546,7 +4469,6 @@ class ChartingTipsSubstate extends MusicBeatSubstate
         var shortcutsLeft = [
             "F2 - Toggle characters visibility",
             "W/S or Mouse Wheel - Change playback position",
-            "A/D - Go to previous/next section",
             "Left/Right - Change quantization",
             "Up/Down - Change pos with quantization",
             "SPACE - Pause/resume playback",

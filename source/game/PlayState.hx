@@ -568,9 +568,10 @@ class PlayState extends MusicBeatState
 		persistentUpdate = true;
 		persistentDraw = true;
 
-		SONG ??= Song.loadFromJson('tutorial');
+		SONG ??= Song.loadFromJson('test');
 
 		Conductor.mapBPMChanges(SONG);
+		Conductor.songPosition = 0;
 
 		#if DISCORD_ALLOWED
 		storyDifficultyText = CoolUtil.difficulties[storyDifficulty];
@@ -1593,34 +1594,8 @@ class PlayState extends MusicBeatState
 		var oldNote:Note = null;
 		var daBpm:Float = Conductor.bpm;
 
-		var songName:String = SongUtil.formatToSongPath(SONG.song);
-		var file:String = Paths.json('songs/$songName/events');
-		try {
-			var eventsData:Array<Dynamic> = Song.loadFromJson('events', songName).events;
-			for (event in eventsData) //Event Notes
-			{
-				for (i in 0...event[1].length)
-				{
-					var newEventNote:Array<Dynamic> = [event[0], event[1][i][0], event[1][i][1], event[1][i][2]];
-					var subEvent:EventNote = {
-						strumTime: newEventNote[0] + ClientPrefs.noteOffset,
-						event: newEventNote[1],
-						value1: newEventNote[2],
-						value2: newEventNote[3]
-					};
-					subEvent.strumTime -= eventNoteEarlyTrigger(subEvent);
-					eventNotes.push(subEvent);
-					eventPushed(subEvent);
-				}
-			}
-		} 
-		catch (e) {}
-
 		for (section in noteData)
 		{
-			if (section.changeBPM && daBpm != section.bpm)
-				daBpm = section.bpm;
-
 			for (i in 0...section.sectionNotes.length)
 			{
 				final songNotes:Array<Dynamic> = section.sectionNotes[i];

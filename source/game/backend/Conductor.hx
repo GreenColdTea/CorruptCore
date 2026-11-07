@@ -174,71 +174,71 @@ class Conductor
     {
         final timeEvents:Array<MusicTimeChangeEvent> = [];
         timeEvents.push(new MusicTimeChangeEvent(0, song.bpm));
-        
-        var hasBpmEvents:Bool = false;
+
+        var hasV2Events = false;
         if (song.events != null)
         {
             for (eventNode in song.events)
             {
-                if (eventNode[1] != null)
+                if (eventNode != null && eventNode[1] != null)
                 {
                     for (subEvent in cast(eventNode[1], Array<Dynamic>))
                     {
                         if (subEvent[0] == "Change BPM")
                         {
-                            final newBpm = Std.parseFloat(subEvent[1]);
-                            if (!Math.isNaN(newBpm))
+                            var newBpm = Std.parseFloat(subEvent[1]);
+                            if (!Math.isNaN(newBpm) && newBpm > 0)
                             {
                                 timeEvents.push(new MusicTimeChangeEvent(eventNode[0], newBpm));
-                                hasBpmEvents = true;
+                                hasV2Events = true;
                             }
                         }
                     }
                 }
             }
         }
-        
-        if (hasBpmEvents)
+
+        if (!hasV2Events && song.notes != null)
         {
-            timeEvents.sort(function(a, b) {
-                if (a.time < b.time) return -1;
-                if (a.time > b.time) return 1;
-                return 0;
-            });
-            
-            var uniqueEvents:Array<MusicTimeChangeEvent> = [];
-            var lastTime:Float = -999;
-            for (ev in timeEvents) {
-                if (Math.abs(ev.time - lastTime) > 0.001) {
-                    uniqueEvents.push(ev);
-                    lastTime = ev.time;
-                } else {
-                    uniqueEvents[uniqueEvents.length - 1].bpm = ev.bpm;
+            var curBPM:Float = song.bpm;
+            var totalPos:Float = 0;
+
+            for (i in 0...song.notes.length)
+            {
+                final section = song.notes[i];
+                if (section != null)
+                {
+                    if(section.changeBPM && section.bpm != curBPM)
+                    {
+                        curBPM = section.bpm;
+                        timeEvents.push(new MusicTimeChangeEvent(totalPos, curBPM));
+                    }
+
+                    final beats:Float = section.sectionBeats ?? 4;
+                    final deltaSteps = Math.round(beats * 4);
+                    totalPos += ((60 / curBPM) * 1000 / 4) * deltaSteps;
                 }
             }
-            
-            FlxRhythmConductor.instance.setupTimeChanges(uniqueEvents);
-            return;
         }
 
-        var curBPM:Float = song.bpm;
-        var totalSteps:Int = 0;
-        var totalPos:Float = 0;
+        timeEvents.sort((a, b) -> {
+            if (a.time < b.time) return -1;
+            if (a.time > b.time) return 1;
+            return 0;
+        });
         
-        for (i in 0...song.notes.length)
-        {
-            if(song.notes[i].changeBPM && song.notes[i].bpm != curBPM)
-            {
-                curBPM = song.notes[i].bpm;
-                timeEvents.push(new MusicTimeChangeEvent(totalPos, curBPM));
+        var uniqueEvents:Array<MusicTimeChangeEvent> = [];
+        var lastTime:Float = -999;
+        for (ev in timeEvents) {
+            if (Math.abs(ev.time - lastTime) > 0.001) {
+                uniqueEvents.push(ev);
+                lastTime = ev.time;
+            } else {
+                uniqueEvents[uniqueEvents.length - 1].bpm = ev.bpm;
             }
-
-            final deltaSteps:Int = Math.round((song.notes[i]?.sectionBeats ?? 4) * 4);
-            totalSteps += deltaSteps;
-            totalPos += ((60 / curBPM) * 1000 / 4) * deltaSteps;
         }
-        
-        FlxRhythmConductor.instance.setupTimeChanges(timeEvents);
+
+        FlxRhythmConductor.instance.setupTimeChanges(uniqueEvents);
     }
 
     static function getSectionBeats(song:SwagSong, section:Int)
