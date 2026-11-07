@@ -6,7 +6,9 @@ import openfl.net.FileReference;
 import openfl.events.IOErrorEvent;
 import openfl.net.FileFilter;
 import flixel.FlxG;
+import flixel.util.FlxSort;
 
+import game.backend.Song;
 import game.objects.Prompt;
 import game.states.editors.ChartEditorState;
 
@@ -27,7 +29,7 @@ import sys.io.File;
 class ChartBackupManager
 {
     /** Current version of the backup format */
-    public static final VERSION:String = "1.0";
+    public static final VERSION:String = "2.0";
     
     /** File extension used for backup files */
     @:unreflective public static final BACKUP_EXTENSION:String = "ccb";
@@ -50,6 +52,128 @@ class ChartBackupManager
         }
         return name;
     }
+
+	private function generateCleanChartData(songObj:Dynamic):Dynamic {
+		if (songObj.events != null) {
+			var eventsArray:Array<Dynamic> = cast songObj.events;
+			if(eventsArray.length > 1) {
+				eventsArray = eventsArray.filter((event) -> return event != null);
+				eventsArray.sort((a, b) -> return FlxSort.byValues(FlxSort.ASCENDING, a[0], b[0]));
+				songObj.events = eventsArray;
+			}
+		}
+
+		final exportNotes:Array<Dynamic> = [];
+		final exportSections:Array<Dynamic> = []; 
+		
+		if (songObj.notes != null) {
+			var notesArray:Array<Dynamic> = cast songObj.notes;
+			for (i in 0...notesArray.length) {
+				final sec:Dynamic = notesArray[i];
+				
+				exportSections.push({
+					mustHit: sec.mustHitSection,
+					gf: sec.gfSection,
+					alt: sec.altAnim,
+					beats: sec.sectionBeats != null ? sec.sectionBeats : 4
+				});
+
+				if (sec.sectionNotes != null) {
+					var sectionNotesArray:Array<Dynamic> = cast sec.sectionNotes;
+					for (note in sectionNotesArray) {
+						final noteObj:Dynamic = { t: note[0], d: note[1] };
+						if (note.length > 2 && note[2] > 0) noteObj.l = note[2];
+						if (note.length > 3 && note[3] != "") noteObj.k = note[3];
+						exportNotes.push(noteObj);
+					}
+				}
+			}
+		}
+		exportNotes.sort((a:Dynamic, b:Dynamic) -> return Std.int(a.t - b.t));
+
+		final exportEvents:Array<Dynamic> = [];
+		var accumulatedTime:Float = 0;
+		var currentBpm:Float = songObj.bpm;
+
+		if (songObj.notes != null) {
+			var notesArray:Array<Dynamic> = cast songObj.notes;
+			for (i in 0...notesArray.length) {
+				final sec:Dynamic = notesArray[i];
+				if (sec != null) {
+					if (sec.changeBPM && sec.bpm != currentBpm) {
+						currentBpm = sec.bpm;
+						
+						var alreadyExists = false;
+						if (songObj.events != null) {
+							var eventsArray:Array<Dynamic> = cast songObj.events;
+							for (eventNode in eventsArray) {
+								if (Math.abs(eventNode[0] - accumulatedTime) < 1 && eventNode[1] != null) {
+									var subEventsArray:Array<Dynamic> = cast eventNode[1];
+									for (subEvent in subEventsArray) {
+										if (subEvent[0] == "Change BPM") alreadyExists = true;
+									}
+								}
+							}
+						}
+
+						if (!alreadyExists) {
+							exportEvents.push({
+								t: accumulatedTime,
+								e: "Change BPM",
+								v1: Std.string(currentBpm),
+								v2: ""
+							});
+						}
+					}
+					final beats = sec.sectionBeats != null ? sec.sectionBeats : 4;
+					accumulatedTime += beats * (1000 * 60 / currentBpm);
+				}
+			}
+		}
+
+		if (songObj.events != null) {
+			var eventsArray:Array<Dynamic> = cast songObj.events;
+			for (eventNode in eventsArray) {
+				if (eventNode[1] != null) {
+					var subEventsArray:Array<Dynamic> = cast eventNode[1];
+					for (subEvent in subEventsArray) {
+						exportEvents.push({
+							t: eventNode[0],
+							e: subEvent[0],
+							v1: subEvent[1],
+							v2: subEvent[2]
+						});
+					}
+				}
+			}
+		}
+		
+		exportEvents.sort((a:Dynamic, b:Dynamic) -> return Std.int(a.t - b.t));
+
+		return {
+			version: Song.CHART_VERSION.toString(),
+			meta: {
+				song: songObj.song,
+				bpm: songObj.bpm,
+				speed: songObj.speed,
+				needsVoices: songObj.needsVoices,
+				stage: songObj.stage,
+				characters: {
+					player1: songObj.player1,
+					player2: songObj.player2,
+					gfVersion: songObj.gfVersion
+				},
+				assets: {
+					arrowSkin: songObj.arrowSkin,
+					splashSkin: songObj.splashSkin,
+					holdCoverSkin: songObj.holdCoverSkin
+				}
+			},
+			sections: exportSections,
+			notes: exportNotes,
+			events: exportEvents
+		};
+	}
     
     /**
      * Creates a backup file with metadata and timestamp information
@@ -79,7 +203,7 @@ class ChartBackupManager
         };
         
         // Write backup file to disk
-        File.saveContent(backupDir + backupFileName, Json.stringify(backupData, "\t"));
+        File.saveContent(backupDir + backupFileName, Json.stringify(backupData));
         #end
     }
     
@@ -89,45 +213,46 @@ class ChartBackupManager
      */
     inline public function createAutoBackup(songData:Dynamic):Void {
         #if sys
+		var cleanSong = generateCleanChartData(songData);
+
         var json = {
-            "song": songData,
+            "song": cleanSong,
             "timestamp": Date.now().toString(),
             "version": VERSION
         };
 
-        var data:String = Json.stringify(json, "\t");
+        var data:String = Json.stringify(json);
         createBackup(sanitizeFileName(editor._song.song) + ".json", data, "auto");
         #end
     }
     
     /**
-     * Creates a manual backup with system-specific implementations:
-     * - Desktop: Native file save dialog
-     * - Systems with file access: Direct filesystem write
-     * - Others: Fallback prompt about limitations
+     * Creates a manual backup with system-specific implementations
      * @param songData Dynamic object containing song chart data
      */
     inline public function createManualBackup(songData:Dynamic):Void {
+		var cleanSong = generateCleanChartData(songData);
+		
         #if desktop
         var json = {
-            "song": songData,
+            "song": cleanSong,
             "timestamp": Date.now().toString(),
             "version": VERSION
         };
 
-        var data:String = Json.stringify(json, "\t");
+        var data:String = Json.stringify(json);
         var sanitizedSongName = sanitizeFileName(editor._song.song);
         var fileRef = new FileReference();
         fileRef.save(data, '${sanitizedSongName}_backup_${Date.now().toString().replace(" ", "_").replace(":", "-")}.$BACKUP_EXTENSION');
         #else
         #if sys
         var json = {
-            "song": songData,
+            "song": cleanSong,
             "timestamp": Date.now().toString(),
             "version": VERSION
         };
 
-        var data:String = Json.stringify(json, "\t");
+        var data:String = Json.stringify(json);
         createBackup(sanitizeFileName(editor._song.song) + ".json", data, "manual");
         #else
         editor.openSubState(new Prompt('Backup creation is only available on desktop and mobile with file system access', 1, () ->
@@ -222,19 +347,28 @@ class ChartBackupManager
      */
     inline private function loadBackupData(backupData:Dynamic):Void {
         try {
-            // Handle different backup file formats
+            var chartToLoad:Dynamic = null;
+
             if (backupData.data != null && Std.isOfType(backupData.data, String)) {
                 var songData:Dynamic = Json.parse(backupData.data);
-                if (songData.song != null) {
-                    editor._song = songData.song;
-                    editor.openSubState(new Prompt('Backup loaded successfully!\nTimestamp: ${backupData.timestamp != null ? backupData.timestamp : "Unknown"}', 1, () ->
-                        editor.reloadAfterBackup(), null, false, "OK", null));
-                } else {
-                    editor.openSubState(new Prompt('Invalid backup file format', 1, () -> editor.closeSubState(), null, false, "OK", null));
-                }
+                if (songData.song != null) chartToLoad = songData.song;
             }
             else if (backupData.song != null) {
-                editor._song = backupData.song;
+                chartToLoad = backupData.song;
+            }
+
+            if (chartToLoad != null) {
+                if (chartToLoad.version == null || chartToLoad.version != Song.CHART_VERSION.toString()) {
+                    final oldRaw = Json.stringify(chartToLoad);
+                    chartToLoad = Song.parseJSONshit(oldRaw);
+                } else {
+                    final raw = Json.stringify(chartToLoad);
+                    chartToLoad = Song.parseJSONshit(raw);
+                }
+                
+                chartToLoad = Song.cleanChart(chartToLoad);
+                editor._song = chartToLoad;
+                
                 editor.openSubState(new Prompt('Backup loaded successfully!\nTimestamp: ${backupData.timestamp != null ? backupData.timestamp : "Unknown"}', 1, () ->
                     editor.reloadAfterBackup(), null, false, "OK", null));
             } else {

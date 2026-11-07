@@ -102,6 +102,8 @@ class PsychUITab extends FlxSprite
 	{
 		if(menu != null && menu.exists && menu.active)
 		{
+			var visibleHeight:Float = parent.bg.height - parent.tabHeight;
+			var visibleWidth:Float = parent.bg.width;
 			var maxContentHeight:Float = 0.01;
 			var maxContentWidth:Float = 0.01;
 			
@@ -117,23 +119,8 @@ class PsychUITab extends FlxSprite
 				}
 			}
 
-			@:privateAccess var origHeight = parent._originalHeight;
-			var desiredHeight = maxContentHeight + parent.tabHeight + 10;
-			var maxHeight = FlxG.height - parent.y - 20;
-			
-			if (desiredHeight > maxHeight) desiredHeight = maxHeight;
-			if (desiredHeight < origHeight) desiredHeight = origHeight;
-
-			if (parent.bg.height != desiredHeight && !parent.isMinimized) {
-				parent.bg.setGraphicSize(Std.int(parent.bg.width), Std.int(desiredHeight));
-				parent.bg.updateHitbox();
-			}
-
-			var visibleHeight:Float = parent.bg.height - parent.tabHeight;
-			var visibleWidth:Float = parent.bg.width;
-			
 			var canScrollY = scrollable && maxContentHeight > visibleHeight;
-			var minScrollY = canScrollY ? visibleHeight - maxContentHeight : 0; 
+			var minScrollY = canScrollY ? visibleHeight - maxContentHeight - 20 : 0;
 
 			var canScrollX = scrollable && maxContentWidth > visibleWidth;
 			var minScrollX = canScrollX ? visibleWidth - maxContentWidth : 0;

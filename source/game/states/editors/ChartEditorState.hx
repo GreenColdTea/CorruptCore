@@ -3869,9 +3869,20 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		}
 
 		final exportNotes:Array<Dynamic> = [];
+		final exportSections:Array<Dynamic> = []; 
+		
 		if (_song.notes != null) 
 		{
-			for (sec in _song.notes) {
+			for (i in 0..._song.notes.length) {
+				final sec = _song.notes[i];
+				
+				exportSections.push({
+					beats: sec.sectionBeats ?? 4,
+					gf: sec.gfSection,
+					alt: sec.altAnim,
+					mustHit: sec.mustHitSection
+				});
+
 				if (sec?.sectionNotes != null) 
 				{
 					for (note in sec.sectionNotes) {
@@ -3966,18 +3977,27 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 					holdCoverSkin: _song.holdCoverSkin
 				}
 			},
+			sections: exportSections,
 			notes: exportNotes,
 			events: exportEvents
 		};
 
-		final data:String = Json.stringify(cleanJson, "\t");
-		if (data?.length > 0)
+		var rawJson:String = Json.stringify(cleanJson, "\t");
+
+		final regex = new EReg('\\{\\n\\t+([^\\{\\}]*?)\\n\\t+\\}', 'g');
+		rawJson = regex.map(rawJson, (e:EReg) -> {
+			final match = e.matched(0);
+			final trimRegex = new EReg('\\n\\t+', 'g');
+			return trimRegex.replace(match, ' ');
+		});
+
+		if (rawJson?.length > 0)
 		{
 			_file = new FileReference();
 			_file.addEventListener(#if desktop Event.SELECT #else Event.COMPLETE #end, onSaveComplete);
 			_file.addEventListener(Event.CANCEL, onSaveCancel);
 			_file.addEventListener(IOErrorEvent.IO_ERROR, onSaveError);
-			_file.save(data.trim(), SongUtil.formatToSongPath(_song.song) + ".json");
+			_file.save(rawJson.trim(), SongUtil.formatToSongPath(_song.song) + ".json");
 		}
 	}
 
@@ -4042,14 +4062,22 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			events: exportEvents
 		};
 
-		final data:String = Json.stringify(json, "\t");
-		if (data?.length > 0)
+		var rawJson:String = Json.stringify(json, "\t");
+
+		final regex = new EReg('\\{\\n\\t+([^\\{\\}]*?)\\n\\t+\\}', 'g');
+		rawJson = regex.map(rawJson, function(e:EReg):String {
+			final match = e.matched(0);
+			final trimRegex = new EReg('\\n\\t+', 'g');
+			return trimRegex.replace(match, ' ');
+		});
+
+		if (rawJson?.length > 0)
 		{
 			_file = new FileReference();
 			_file.addEventListener(#if desktop Event.SELECT #else Event.COMPLETE #end, onSaveComplete);
 			_file.addEventListener(Event.CANCEL, onSaveCancel);
 			_file.addEventListener(IOErrorEvent.IO_ERROR, onSaveError);
-			_file.save(data.trim(), "events.json");
+			_file.save(rawJson.trim(), "events.json");
 		}
 	}
 

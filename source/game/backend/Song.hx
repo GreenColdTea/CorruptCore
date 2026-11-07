@@ -312,7 +312,7 @@ class Song
 				}
 			}
 			
-			swagShit.notes = mapFlatNotesToSections(parsedJson.notes, parsedJson.events, swagShit.bpm);
+			swagShit.notes = mapFlatNotesToSections(parsedJson.notes, parsedJson.events, parsedJson.sections, swagShit.bpm);
 			swagShit.events = mapFlatEventsToEngine(parsedJson.events);
 			swagShit.version = CHART_VERSION.toString();
 			
@@ -332,7 +332,7 @@ class Song
 		return swagShit;
 	}
 
-	private static function mapFlatNotesToSections(flatNotes:Array<ChartNote>, flatEvents:Array<ChartEvent>, baseBpm:Float):Array<SwagSection> {
+	private static function mapFlatNotesToSections(flatNotes:Array<ChartNote>, flatEvents:Array<ChartEvent>, flatSections:Array<Dynamic>, baseBpm:Float):Array<SwagSection> {
 		var sections:Array<SwagSection> = [];
 		
 		final timeEvents:Array<MusicTimeChangeEvent> = [
@@ -388,15 +388,30 @@ class Song
 			if (isBpmChanged)
 				curBpm = bpmChangeMap.get(curIdx);
 			
+			var sMustHit = false;
+			var sGf = false;
+			var sAlt = false;
+			var sBeats:Float = 4;
+
+			if (flatSections != null && curIdx < flatSections.length) {
+				final secData = flatSections[curIdx];
+				if (secData != null) {
+					sMustHit = secData.mustHit == true;
+					sGf = secData.gf == true;
+					sAlt = secData.alt == true;
+					if (secData.beats != null) sBeats = secData.beats;
+				}
+			}
+			
 			sections.push({
 				sectionNotes: [], 
-				sectionBeats: 4, 
-				mustHitSection: false, 
+				sectionBeats: sBeats, 
+				mustHitSection: sMustHit, 
 				changeBPM: isBpmChanged, 
 				bpm: curBpm, 
-				gfSection: false, 
+				gfSection: sGf, 
 				typeOfSection: 0, 
-				altAnim: false
+				altAnim: sAlt
 			});
 		}
 
