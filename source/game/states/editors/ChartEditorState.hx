@@ -508,7 +508,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		add(sliderBg);
 
 		pressF1Text = new FlxText(sliderBg.x, sliderBg.y + 45, 0, "Press F1 to open tips", 8);
-		pressF1Text.setFormat(Paths.font("pixel-latin.ttf"), 8, FlxColor.WHITE, LEFT);
+		pressF1Text.setFormat(null, 8, FlxColor.WHITE, LEFT);
 		pressF1Text.scrollFactor.set();
 		pressF1Text.cameras = [camUI];
 		add(pressF1Text);
@@ -1906,12 +1906,6 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		
 		if (!FlxG.keys.pressed.ALT && FlxG.keys.justPressed.R)
 			resetSection(FlxG.keys.pressed.SHIFT);
-		
-		var shiftThing:Int = (FlxG.keys.pressed.SHIFT) ? 4 : 1;
-		if (FlxG.keys.justPressed.D && !(FlxG.keys.pressed.SHIFT || FlxG.keys.pressed.CONTROL)) 
-			changeSection(curSec + shiftThing);
-		if (FlxG.keys.justPressed.A && !(FlxG.keys.pressed.SHIFT || FlxG.keys.pressed.CONTROL))
-			changeSection((curSec <= 0) ? 0 : curSec - shiftThing);
 		
 		if (FlxG.keys.pressed.W || (FlxG.keys.pressed.S && !FlxG.keys.pressed.CONTROL))
 			handlePlaybackSeeking();
@@ -4448,12 +4442,12 @@ class ChartingTipsSubstate extends MusicBeatSubstate
     {
         super();
 
-        var bg:FlxSprite = new FlxSprite().makeGraphic(FlxG.width, FlxG.height, FlxColor.BLACK);
+        final bg:FlxSprite = new FlxSprite().makeGraphic(FlxG.width, FlxG.height, FlxColor.BLACK);
         bg.alpha = 0.6;
         bg.scrollFactor.set();
         add(bg);
 
-        var panel = new FlxSprite(0, 0);
+        final panel = new FlxSprite(0, 0);
         panel.makeGraphic(900, 600, FlxColor.TRANSPARENT);
         flixel.util.FlxSpriteUtil.drawRoundRect(panel, 0, 0, 900, 600, 20, 20, 0xDD111111);
         flixel.util.FlxSpriteUtil.drawRoundRect(panel, 2, 2, 896, 596, 20, 20, FlxColor.TRANSPARENT, {thickness: 2, color: 0xFF555555});
@@ -4461,12 +4455,12 @@ class ChartingTipsSubstate extends MusicBeatSubstate
         panel.scrollFactor.set();
         add(panel);
 
-        var title = new FlxText(0, panel.y + 20, FlxG.width, "CHART EDITOR SHORTCUTS", 28);
+        final title = new FlxText(0, panel.y + 20, FlxG.width, "CHART EDITOR SHORTCUTS", 28);
         title.setFormat(Paths.font("vcr.ttf"), 28, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
         title.scrollFactor.set();
         add(title);
 
-        var shortcutsLeft = [
+        final shortcutsLeft = [
             "F2 - Toggle characters visibility",
             "W/S or Mouse Wheel - Change playback position",
             "Left/Right - Change quantization",
@@ -4474,11 +4468,11 @@ class ChartingTipsSubstate extends MusicBeatSubstate
             "SPACE - Pause/resume playback",
             "ENTER - Play chart in PlayState",
             "TAB - Cycle UI tabs (SHIFT to reverse)",
-            "BACKSPACE - Return to editor menu"
+            "BACKSPACE - Return to editor menu",
+			"CTRL + click - Select/deselect notes",
         ];
         
-        var shortcutsRight = [
-            "CTRL + click - Select/deselect notes",
+        final shortcutsRight = [
             "Click + Drag - Select multiple notes",
             "CTRL + SHIFT + A - Select all notes in section",
             "CTRL + C / V - Copy / Paste selected notes",
@@ -4490,27 +4484,27 @@ class ChartingTipsSubstate extends MusicBeatSubstate
             "R - Reset section (SHIFT for start of song)"
         ];
 
-        var startY = panel.y + 90;
+        final startY = panel.y + 90;
         for (i in 0...shortcutsLeft.length) {
-            var text = new FlxText(panel.x + 30, startY + (i * 35), 400, shortcutsLeft[i], 16);
+            final text = new FlxText(panel.x + 30, startY + (i * 35), 400, shortcutsLeft[i], 16);
             text.setFormat(Paths.font("vcr.ttf"), 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
             text.scrollFactor.set();
             add(text);
         }
         
         for (i in 0...shortcutsRight.length) {
-            var text = new FlxText(panel.x + 450, startY + (i * 35), 400, shortcutsRight[i], 16);
+            final text = new FlxText(panel.x + 450, startY + (i * 35), 400, shortcutsRight[i], 16);
             text.setFormat(Paths.font("vcr.ttf"), 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
             text.scrollFactor.set();
             add(text);
         }
 
-        var speedText = new FlxText(0, panel.y + 480, FlxG.width, "[ / ] - Change playback speed (SHIFT for faster)  |  ALT + [ / ] - Reset speed", 18);
+        final speedText = new FlxText(0, panel.y + 480, FlxG.width, "[ / ] - Change playback speed (SHIFT for faster)  |  ALT + [ / ] - Reset speed", 18);
         speedText.setFormat(Paths.font("vcr.ttf"), 18, FlxColor.YELLOW, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
         speedText.scrollFactor.set();
         add(speedText);
 
-        var closeText = new FlxText(0, panel.y + 550, FlxG.width, "Press F1 or ESC to close", 16);
+        final closeText = new FlxText(0, panel.y + 550, FlxG.width, "Press F1 or ESC to close", 16);
         closeText.setFormat(Paths.font("vcr.ttf"), 16, 0xFFAAAAAA, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
         closeText.scrollFactor.set();
         add(closeText);

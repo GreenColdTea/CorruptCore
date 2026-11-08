@@ -167,7 +167,7 @@ class MetaNote extends Note
 			if(!noteTypeTexts.exists(num))
 			{
 				txt = new FlxText(0, 0, ChartEditorState.GRID_SIZE, (num > 0) ? Std.string(num) : '?', 14);
-				txt.setFormat(Paths.font("pixel-latin.ttf"), 14, FlxColor.WHITE, CENTER, FlxTextBorderStyle.SHADOW, FlxColor.BLACK);
+				txt.setFormat(null, 14, FlxColor.WHITE, CENTER, FlxTextBorderStyle.SHADOW, FlxColor.BLACK);
 				txt.setBorderStyle(SHADOW_XY(2, 2));
 				txt.autoSize = false;
 				txt.scrollFactor.x = 0;
@@ -235,7 +235,7 @@ class EventMetaNote extends MetaNote
 		updateHitbox();
 
 		eventText = new FlxText(50, 0, 400, '', 8);
-		eventText.setFormat(Paths.font("pixel-latin.ttf"), 8, FlxColor.WHITE, RIGHT, FlxColor.BLACK);
+		eventText.setFormat(null, 8, FlxColor.WHITE, RIGHT, FlxColor.BLACK);
 		eventText.scrollFactor.x = 0;
 		eventText.borderSize = 1;
 		updateEventText();
@@ -243,7 +243,7 @@ class EventMetaNote extends MetaNote
 
 	override function draw()
 	{
-		if(eventText != null && eventText.exists && eventText.visible)
+		if(eventText?.exists && eventText.visible)
 		{
 			final noteScale = this.width / ChartEditorState.GRID_SIZE;
 			eventText.scale.set(noteScale, noteScale);

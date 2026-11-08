@@ -274,6 +274,7 @@ class PsychUIDropDownItem extends PsychUIGroup
 
 	public var bg:FlxSprite;
 	public var text:FlxText;
+	public var line:FlxSprite;
 	
 	private var _isHovered:Bool = false;
 
@@ -289,6 +290,9 @@ class PsychUIDropDownItem extends PsychUIGroup
 		text = new FlxText(0, 0, width, 8);
 		text.color = FlxColor.BLACK;
 		add(text);
+
+		line = new FlxSprite(0, 0).makeGraphic(Std.int(width), 1, 0xFFCCCCCC);
+		add(line);
 	}
 
 	public var onClick:Void->Void;
@@ -326,6 +330,9 @@ class PsychUIDropDownItem extends PsychUIGroup
 		
 		text.x = bg.x;
 		text.y = bg.y + bg.height/2 - text.height/2;
+
+		line.x = bg.x;
+		line.y = bg.y + bg.height - 1;
 	}
 
 	override public function destroy()
