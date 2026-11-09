@@ -3,646 +3,398 @@ package psych.ui;
 import flixel.FlxG;
 import flixel.FlxSprite;
 import flixel.math.FlxMath;
+import flixel.math.FlxPoint;
+import flixel.text.FlxText;
 import flixel.util.FlxColor;
 import flixel.util.FlxDestroyUtil;
 
-import openfl.ui.Mouse;
-import openfl.ui.MouseCursor;
-import openfl.display.BlendMode;
 import openfl.display.BitmapData;
+import openfl.display.BlendMode;
 import openfl.display.GradientType;
 import openfl.display.Shape;
 import openfl.geom.Matrix;
 
-enum ColorMode
-{
-	RGB;
-	HSB;
-	HEX;
-}
-
 class PsychUIColorPicker extends PsychUIGroup
 {
 	@:unreflective public static final CHANGE_EVENT = "colorpicker_change";
-	
+
 	private var _selectedColor:FlxColor;
 	public var selectedColor(get, set):FlxColor;
-	
+
 	public var onColorChange:FlxColor->Void;
 	public var broadcastPickerEvent:Bool = true;
-	
-	private var _mode:ColorMode = RGB;
-	
-	// RGB Components
-	private var redSlider:PsychUISlider;
-	private var greenSlider:PsychUISlider;
-	private var blueSlider:PsychUISlider;
-	private var alphaSlider:PsychUISlider;
-	
-	// HSB Components
-	private var hueSlider:PsychUISlider;
-	private var saturationSlider:PsychUISlider;
-	private var brightnessSlider:PsychUISlider;
-	
-	private var hexInput:PsychUIInputText;
-	private var rgbInputs:Array<PsychUIInputText> = [];
-	private var hsbInputs:Array<PsychUIInputText> = [];
-	
-	// Preview and mode selector
-	private var currentPreview:FlxSprite;
-	private var previousPreview:FlxSprite;
-	private var modeSelector:PsychUIDropDownMenu;
-	
-	// Color wheel for HEX mode
-	private var colorWheel:FlxSprite;
-	private var colorWheelSelector:FlxSprite;
-	private var colorWheelBrightnessSlider:PsychUISlider;
-	private var colorWheelOverlay:FlxSprite;
-	
-	private var isDraggingColorWheel:Bool = false;
-	
-	private var hexLabel:FlxText;
-	private var previewLabel:FlxText;
-	private var brightnessLabel:FlxText;
-	
-	// Layout
-	private var currentY:Float = 0;
-	private var sliderWidth:Float = 200;
-	private var inputWidth:Float = 45;
-	private var colorWheelSize:Float = 100;
-	
-	private var _updating:Bool = false;
-	private var _previousColor:FlxColor;
-	private var _uiCreated:Bool = false;
 
-	public var customLabel:String = "";
+	final boxWidth:Int = 280;
+	final boxHeight:Int = 170;
+	final hueHeight:Int = 18;
 
-	public function new(x:Float = 0, y:Float = 0, defaultColor:FlxColor = FlxColor.WHITE, ?onColorChange:FlxColor->Void, showAlpha:Bool = false, customLabel:String = "")
+	var svBox:FlxSprite;
+	var svCursor:FlxSprite;
+
+	var hueBar:FlxSprite;
+	var hueCursor:FlxSprite;
+
+	var previewBox:FlxSprite;
+	var hexText:PsychUIInputText;
+
+	var rSliderBg:FlxSprite;
+	var gSliderBg:FlxSprite;
+	var bSliderBg:FlxSprite;
+	var rHandle:FlxSprite;
+	var gHandle:FlxSprite;
+	var bHandle:FlxSprite;
+	var rValText:FlxText;
+	var gValText:FlxText;
+	var bValText:FlxText;
+
+	var curHue:Float = 195;
+	var curSat:Float = 0.8;
+	var curVal:Float = 0.8;
+
+	var isDraggingSV:Bool = false;
+	var isDraggingHue:Bool = false;
+	var activeDraggingSlider:Int = -1; // 0 = R, 1 = G, 2 = B
+
+	var _updating:Bool = false;
+	var _uiCreated:Bool = false;
+
+	public function new(x:Float = 0, y:Float = 0, defaultColor:FlxColor = 0xFF31B0D1, ?onColorChange:FlxColor->Void, showAlpha:Bool = false, customLabel:String = "")
 	{
 		super(x, y);
-		
-		this.customLabel = customLabel;
+
 		this.onColorChange = onColorChange;
-
 		_selectedColor = defaultColor;
-		_previousColor = defaultColor;
-		
-		createUI(showAlpha);
+
+		curHue = defaultColor.hue;
+		curSat = defaultColor.saturation;
+		curVal = defaultColor.brightness;
+
+		createUI();
 		_uiCreated = true;
-		
-		updateFromColor(_selectedColor);
-		previousPreview.color = _previousColor;
+
+		setColor(defaultColor);
 	}
-	
-	private function createUI(showAlpha:Bool):Void
+
+	function createUI():Void
 	{
-		currentY = 0;
-		if (customLabel != null && customLabel != "") {
-			var label = new FlxText(0, currentY, 0, customLabel, 8);
-			add(label);
-			currentY += 15;
-		}
-		
-		modeSelector = new PsychUIDropDownMenu(0, currentY, ["RGB", "HSB", "Hex"], function(index:Int, mode:String) {
-			switch(index) {
-				case 0: setMode(RGB);
-				case 1: setMode(HSB);
-				case 2: setMode(HEX);
-			}
-		});
-		modeSelector.selectedLabel = "RGB";
-		
-		currentY += modeSelector.height + 10;
-		var sliderBaseY = currentY;
-		
-		redSlider = createSlider("R:", 0, 255, FlxColor.RED, sliderBaseY);
-		redSlider.onChange = (v) -> updateFromRGB();
-		
-		greenSlider = createSlider("G:", 0, 255, FlxColor.GREEN, sliderBaseY + 50);
-		greenSlider.onChange = (v) -> updateFromRGB();
-		
-		blueSlider = createSlider("B:", 0, 255, FlxColor.BLUE, sliderBaseY + 100);
-		blueSlider.onChange = (v) -> updateFromRGB();
-		
-		if (showAlpha) {
-			alphaSlider = createSlider("A:", 0, 255, FlxColor.GRAY, sliderBaseY + 150);
-			alphaSlider.onChange = (v) -> updateFromRGB();
-		}
-		
-		var rgbInputX = sliderWidth + 10;
-		for (i in 0...3) {
-			var input = new PsychUIInputText(rgbInputX, sliderBaseY + 20 + (i * 50), Std.int(inputWidth), "0", 8);
-			input.filterMode = ONLY_NUMERIC;
-			input.maxLength = 3;
-			input.onChange = (old, val) -> {
-				var v = Std.parseInt(val);
-				if (v != null && !_updating) {
-					v = Std.int(Math.max(0, Math.min(255, v)));
-					switch(i) {
-						case 0: redSlider.value = v;
-						case 1: greenSlider.value = v;
-						case 2: blueSlider.value = v;
-					}
-					updateFromRGB();
-				}
-			};
-			rgbInputs.push(input);
-			add(input);
-		}
-		
-		if (showAlpha) {
-			var alphaInput = new PsychUIInputText(rgbInputX, sliderBaseY + 90, Std.int(inputWidth), "255", 8);
-			alphaInput.filterMode = ONLY_NUMERIC;
-			alphaInput.maxLength = 3;
-			alphaInput.onChange = (old, val) -> {
-				var v = Std.parseInt(val);
-				if (v != null && alphaSlider != null && !_updating) {
-					alphaSlider.value = Std.int(Math.max(0, Math.min(255, v)));
-					updateFromRGB();
-				}
-			};
-			rgbInputs.push(alphaInput);
-			add(alphaInput);
-		}
-		
-		hueSlider = createSlider("H:", 0, 360, FlxColor.WHITE, sliderBaseY);
-		hueSlider.onChange = (v) -> updateFromHSB();
-		hueSlider.visible = hueSlider.active = false;
-		
-		saturationSlider = createSlider("S:", 0, 100, FlxColor.WHITE, sliderBaseY + 50);
-		saturationSlider.onChange = (v) -> updateFromHSB();
-		saturationSlider.visible = saturationSlider.active = false;
-		
-		brightnessSlider = createSlider("B:", 0, 100, FlxColor.WHITE, sliderBaseY + 100);
-		brightnessSlider.onChange = (v) -> updateFromHSB();
-		brightnessSlider.visible = brightnessSlider.active = false;
-		
-		for (i in 0...3) {
-			var input = new PsychUIInputText(rgbInputX, sliderBaseY + 20 + (i * 50), Std.int(inputWidth), "0", 8);
-			input.filterMode = ONLY_NUMERIC;
-			input.maxLength = 3;
-			input.visible = input.active = false;
-			input.onChange = (old, val) -> {
-				var v = Std.parseFloat(val);
-				if (!Math.isNaN(v) && !_updating) {
-					switch(i) {
-						case 0: hueSlider.value = Math.max(0, Math.min(360, v));
-						case 1: saturationSlider.value = Math.max(0, Math.min(100, v));
-						case 2: brightnessSlider.value = Math.max(0, Math.min(100, v));
-					}
-					updateFromHSB();
-				}
-			};
-			hsbInputs.push(input);
-			add(input);
-		}
-		
-		var wheelY = showAlpha ? sliderBaseY + 75 : sliderBaseY + 25;
-		colorWheel = createColorWheel(0, wheelY, Std.int(colorWheelSize));
-		colorWheel.visible = colorWheel.active = false;
-		add(colorWheel);
-		
-		colorWheelOverlay = createCircleOverlay(Std.int(colorWheelSize), FlxColor.WHITE);
-		colorWheelOverlay.x = 0;
-		colorWheelOverlay.y = wheelY;
-		colorWheelOverlay.visible = false;
-		add(colorWheelOverlay);
-		
-		colorWheelSelector = createSelectorSprite();
-		colorWheelSelector.x = 0;
-		colorWheelSelector.y = 0;
-		colorWheelSelector.visible = false;
-		add(colorWheelSelector);
-		
-		brightnessLabel = new FlxText(colorWheelSize + 10, wheelY, 0, "Brightness:", 8);
-		brightnessLabel.visible = brightnessLabel.active = false;
-		add(brightnessLabel);
-		
-		colorWheelBrightnessSlider = new PsychUISlider(colorWheelSize + 10, wheelY + 15, null, 100, 0, 100, 100, FlxColor.WHITE);
-		colorWheelBrightnessSlider.label = "";
-		colorWheelBrightnessSlider.decimals = 0;
-		colorWheelBrightnessSlider.visible = colorWheelBrightnessSlider.active = false;
-		colorWheelBrightnessSlider.onChange = (v) -> {
-			updateColorWheelBrightness();
-			updateFromColorWheel();
-		};
-		add(colorWheelBrightnessSlider);
-		
-		var hexY = wheelY + colorWheelSize + 10;
-		hexLabel = new FlxText(0, hexY, 0, "Hex:", 8);
-		hexLabel.visible = hexLabel.active = false;
-		add(hexLabel);
-		
-		hexInput = new PsychUIInputText(35, hexY, 80, "FFFFFF", 8);
-		hexInput.filterMode = ONLY_HEXADECIMAL;
-		hexInput.forceCase = UPPER_CASE;
-		hexInput.maxLength = 6;
-		hexInput.visible = hexInput.active = false;
-		hexInput.onChange = (old, val) -> {
-			if (val.length == 6 && !_updating) {
-				var newColor = FlxColor.fromString("#" + val);
-				if (newColor != null) {
-					newColor.alpha = alphaSlider != null ? Std.int(alphaSlider.value) : _selectedColor.alpha;
-					setColor(newColor);
-				}
-			}
-		};
-		add(hexInput);
-		
-		var previewY = hexY + 30;
-		previewLabel = new FlxText(0, previewY, 0, "Preview:", 8);
-		add(previewLabel);
-		
-		currentPreview = new FlxSprite(50, previewY).makeGraphic(40, 40, FlxColor.WHITE);
-		add(currentPreview);
-		
-		previousPreview = new FlxSprite(100, previewY).makeGraphic(40, 40, FlxColor.WHITE);
-		add(previousPreview);
-		
-		currentY = previewY + 50;
-		
-		add(redSlider);
-		add(greenSlider);
-		add(blueSlider);
-		if (alphaSlider != null) add(alphaSlider);
-		add(hueSlider);
-		add(saturationSlider);
-		add(brightnessSlider);
-		add(modeSelector);
-	}
-	
-	private function createColorWheel(x:Float, y:Float, size:Int):FlxSprite
-	{
-		final wheel = new FlxSprite(x, y);
-		wheel.makeGraphic(size, size, FlxColor.TRANSPARENT, false);
-		
-		final shape = new Shape();
-		final g = shape.graphics;
-		final radius = size / 2;
-		
-		final segments:Int = 360;
-		for (i in 0...segments)
+		final startX = 10;
+		final startY = 20;
+
+		svBox = new FlxSprite(startX, startY);
+		svBox.makeGraphic(boxWidth, boxHeight, FlxColor.WHITE, true);
+		add(svBox);
+
+		svCursor = createFilledCircleCursor(10);
+		add(svCursor);
+
+		final hueY = startY + boxHeight + 8;
+		hueBar = createHueGradient(startX, hueY, boxWidth, hueHeight);
+		add(hueBar);
+
+		hueCursor = new FlxSprite(startX, hueY - 2).makeGraphic(6, hueHeight + 4, FlxColor.WHITE);
+		add(hueCursor);
+
+		final bottomY = hueY + hueHeight + 10;
+		final sliderTrackW = 100;
+		final sliderX = startX + 25;
+
+		final rLabel = new FlxText(startX, bottomY - 2, 0, "R:", 12);
+		rLabel.setFormat(null, 12, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+		add(rLabel);
+
+		final gLabel = new FlxText(startX, bottomY + 18, 0, "G:", 12);
+		gLabel.setFormat(null, 12, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+		add(gLabel);
+
+		final bLabel = new FlxText(startX, bottomY + 38, 0, "B:", 12);
+		bLabel.setFormat(null, 12, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+		add(bLabel);
+
+		rSliderBg = new FlxSprite(sliderX, bottomY + 4).makeGraphic(sliderTrackW, 6, 0xFF333333);
+		gSliderBg = new FlxSprite(sliderX, bottomY + 24).makeGraphic(sliderTrackW, 6, 0xFF333333);
+		bSliderBg = new FlxSprite(sliderX, bottomY + 44).makeGraphic(sliderTrackW, 6, 0xFF333333);
+		add(rSliderBg);
+		add(gSliderBg);
+		add(bSliderBg);
+
+		rHandle = new FlxSprite(sliderX, bottomY).makeGraphic(8, 14, 0xFFAAAAAA);
+		gHandle = new FlxSprite(sliderX, bottomY + 20).makeGraphic(8, 14, 0xFFAAAAAA);
+		bHandle = new FlxSprite(sliderX, bottomY + 40).makeGraphic(8, 14, 0xFFAAAAAA);
+		add(rHandle);
+		add(gHandle);
+		add(bHandle);
+
+		rValText = new FlxText(sliderX + sliderTrackW + 8, bottomY - 1, 35, "0", 12);
+		gValText = new FlxText(sliderX + sliderTrackW + 8, bottomY + 19, 35, "0", 12);
+		bValText = new FlxText(sliderX + sliderTrackW + 8, bottomY + 39, 35, "0", 12);
+		for (txt in [rValText, gValText, bValText])
 		{
-			var startAngle = (i / segments) * Math.PI * 2;
-			var endAngle = ((i + 1.5) / segments) * Math.PI * 2;
-			
-			var hue = i * (360 / segments);
-			g.beginFill(FlxColor.fromHSB(hue, 1.0, 1.0), 1.0);
-			g.moveTo(radius, radius);
-			g.lineTo(radius + Math.cos(startAngle) * radius, radius + Math.sin(startAngle) * radius);
-			g.lineTo(radius + Math.cos(endAngle) * radius, radius + Math.sin(endAngle) * radius);
-			g.lineTo(radius, radius);
-			g.endFill();
+			txt.setFormat(null, 12, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+			add(txt);
 		}
-		
-		final bitmap = new BitmapData(size, size, true, 0x00000000);
-		bitmap.draw(shape);
-		
-		final saturationMask = new Shape();
-		final colors = [0xFFFFFFFF, 0x00FFFFFF];
-		final alphas:Array<Float> = [1, 1];
-		final ratios = [0, 255];
-		final matrix = new Matrix();
-		matrix.createGradientBox(size, size, 0, 0, 0);
-		
-		saturationMask.graphics.beginGradientFill(GradientType.RADIAL, colors, alphas, ratios, matrix);
-		saturationMask.graphics.drawCircle(radius, radius, radius);
-		saturationMask.graphics.endFill();
-		
-		bitmap.draw(saturationMask, null, null, BlendMode.MULTIPLY);
-		
-		wheel.pixels = bitmap;
-		return wheel;
-	}
-	
-	private function createCircleOverlay(size:Int, color:FlxColor):FlxSprite
-	{
-		final overlay = new FlxSprite().makeGraphic(size, size, FlxColor.TRANSPARENT, false);
-		final bitmap = new BitmapData(size, size, true, 0x00000000);
-		final radius = size / 2.0;
-		
-		for (px in 0...size) {
-			for (py in 0...size) {
-				var dx = px - radius;
-				var dy = py - radius;
-				if (Math.abs(Math.sqrt(dx * dx + dy * dy) - radius) <= 1.5) {
-					bitmap.setPixel32(px, py, color);
-				}
+
+		final previewW = 60;
+		final previewH = 38;
+		final previewX = startX + boxWidth - previewW;
+		final previewY = bottomY - 2;
+
+		previewBox = new FlxSprite(previewX, previewY).makeGraphic(previewW, previewH, _selectedColor);
+		add(previewBox);
+
+		hexText = new PsychUIInputText(previewX - 6, previewY + previewH + 4, previewW + 12, _selectedColor.toHexString(false, false), 12);
+		hexText.filterMode = ONLY_HEXADECIMAL;
+		hexText.forceCase = UPPER_CASE;
+		hexText.maxLength = 6;
+		hexText.onChange = (old, val) -> {
+			if (val.length == 6 && !_updating)
+			{
+				final parsed = FlxColor.fromString("#" + val);
+				if (parsed != null) setColor(parsed);
 			}
-		}
-		
-		overlay.pixels = bitmap;
-		return overlay;
-	}
-	
-	private function createSelectorSprite():FlxSprite
-	{
-		final size = 12;
-		final selector = new FlxSprite().makeGraphic(size, size, FlxColor.TRANSPARENT, false);
-		final bitmap = new BitmapData(size, size, true, 0x00000000);
-		final center = Std.int(size / 2);
-		
-		for (y in 0...size) {
-			bitmap.setPixel32(center, y, FlxColor.BLACK);
-			if (y > 0 && y < size - 1) bitmap.setPixel32(center, y, FlxColor.WHITE);
-		}
-		for (x in 0...size) {
-			bitmap.setPixel32(x, center, FlxColor.BLACK);
-			if (x > 0 && x < size - 1) bitmap.setPixel32(x, center, FlxColor.WHITE);
-		}
-		
-		selector.pixels = bitmap;
-		selector.offset.set(size / 2, size / 2);
-		return selector;
-	}
-	
-	private function updateColorWheelBrightness():Void
-	{
-		if (colorWheel == null || !colorWheel.visible) return;
-		final b = colorWheelBrightnessSlider.value / 100.0;
-		colorWheel.color = FlxColor.fromRGBFloat(b, b, b);
-	}
-	
-	private function updateColorWheelSelectorFromColor(color:FlxColor):Void
-	{
-		if (colorWheel == null || !colorWheel.visible) return;
-		
-		final hue = color.hue;
-		final saturation = color.saturation;
-		final brightness = color.brightness;
-		
-		_updating = true;
-		colorWheelBrightnessSlider.value = brightness * 100;
-		_updating = false;
-		
-		final angle = hue * Math.PI / 180;
-		final radius = saturation * (colorWheelSize / 2);
-		
-		final centerX = colorWheel.x + colorWheelSize / 2;
-		final centerY = colorWheel.y + colorWheelSize / 2;
-		
-		colorWheelSelector.x = centerX + Math.cos(angle) * radius;
-		colorWheelSelector.y = centerY + Math.sin(angle) * radius;
-		colorWheelSelector.visible = true;
-	}
-	
-	private function createSlider(label:String, min:Float, max:Float, color:FlxColor, y:Float):PsychUISlider
-	{
-		var slider = new PsychUISlider(0, y, null, 0, min, max, sliderWidth, color);
-		slider.label = label;
-		slider.decimals = 0;
-		return slider;
-	}
-	
-	private function setMode(mode:ColorMode):Void
-	{
-		_mode = mode;
-		final showRGB = mode == RGB;
-		final showHSB = mode == HSB;
-		final showHEX = mode == HEX;
-		
-		redSlider.visible = redSlider.active = showRGB;
-		greenSlider.visible = greenSlider.active = showRGB;
-		blueSlider.visible = blueSlider.active = showRGB;
-		if (alphaSlider != null) alphaSlider.visible = alphaSlider.active = showRGB;
-		
-		for (i in 0...rgbInputs.length) rgbInputs[i].visible = rgbInputs[i].active = showRGB;
-		
-		hueSlider.visible = hueSlider.active = showHSB;
-		saturationSlider.visible = saturationSlider.active = showHSB;
-		brightnessSlider.visible = brightnessSlider.active = showHSB;
-		
-		for (i in 0...hsbInputs.length) hsbInputs[i].visible = hsbInputs[i].active = showHSB;
-		
-		hexInput.visible = hexInput.active = showHEX;
-		hexLabel.visible = hexLabel.active = showHEX;
-		colorWheel.visible = colorWheel.active = showHEX;
-		colorWheelOverlay.visible = showHEX;
-		colorWheelBrightnessSlider.visible = colorWheelBrightnessSlider.active = showHEX;
-		brightnessLabel.visible = brightnessLabel.active = showHEX;
-		
-		if (showHEX) {
-			updateColorWheelBrightness();
-			updateColorWheelSelectorFromColor(_selectedColor);
-		} else {
-			colorWheelSelector.visible = false;
-			isDraggingColorWheel = false;
-		}
-		
-		updateUIFromColor();
-	}
-	
-	private function updateFromColor(color:FlxColor):Void
-	{
-		if (_updating || !_uiCreated) return;
+		};
+		add(hexText);
 
-		_updating = true;
-		
-		redSlider.value = color.red;
-		greenSlider.value = color.green;
-		blueSlider.value = color.blue;
-		if (alphaSlider != null) alphaSlider.value = color.alpha;
-		
-		rgbInputs[0].text = Std.string(color.red);
-		rgbInputs[1].text = Std.string(color.green);
-		rgbInputs[2].text = Std.string(color.blue);
-		if (alphaSlider != null && rgbInputs.length > 3) {
-			rgbInputs[3].text = Std.string(color.alpha);
-		}
-		
-		hueSlider.value = color.hue;
-		saturationSlider.value = color.saturation * 100;
-		brightnessSlider.value = color.brightness * 100;
-		
-		hsbInputs[0].text = Std.string(Math.round(color.hue));
-		hsbInputs[1].text = Std.string(Math.round(color.saturation * 100));
-		hsbInputs[2].text = Std.string(Math.round(color.brightness * 100));
-		
-		hexInput.text = color.toHexString(false, false);
-		currentPreview.color = color;
-		
-		if (_mode == HEX) {
-			updateColorWheelSelectorFromColor(color);
-		}
-		
-		_updating = false;
+		renderSVBox();
 	}
-	
-	private function updateFromRGB():Void
-	{
-		if (_updating) return;
 
-		final r = Std.int(redSlider.value);
-		final g = Std.int(greenSlider.value);
-		final b = Std.int(blueSlider.value);
-		final a = alphaSlider != null ? Std.int(alphaSlider.value) : _selectedColor.alpha;
-		
-		setColor(FlxColor.fromRGB(r, g, b, a));
-	}
-	
-	private function updateFromHSB():Void
+	function createFilledCircleCursor(size:Int):FlxSprite
 	{
-		if (_updating) return;
+		final circle = new FlxSprite().makeGraphic(size, size, FlxColor.TRANSPARENT, true);
+		final shape = new Shape();
+		
+		shape.graphics.lineStyle(1.5, 0xFF000000);
+		shape.graphics.beginFill(0xFFFFFFFF);
+		shape.graphics.drawCircle(size / 2, size / 2, (size / 2) - 1.5);
+		shape.graphics.endFill();
 
-		final h = hueSlider.value;
-		final s = saturationSlider.value / 100;
-		final b = brightnessSlider.value / 100;
-		final a = alphaSlider != null ? alphaSlider.value / 255 : _selectedColor.alphaFloat;
-		
-		setColor(FlxColor.fromHSB(h, s, b, a));
+		final bmp = new BitmapData(size, size, true, 0x00000000);
+		bmp.draw(shape);
+		circle.pixels = bmp;
+		circle.offset.set(size / 2, size / 2);
+		return circle;
 	}
-	
-	private function updateFromColorWheel():Void
+
+	function createHueGradient(x:Float, y:Float, w:Int, h:Int):FlxSprite
 	{
-		if (_updating || !colorWheelSelector.visible) return;
-		
-		final brightness = colorWheelBrightnessSlider.value / 100;
-		final centerX = colorWheel.x + colorWheelSize / 2;
-		final centerY = colorWheel.y + colorWheelSize / 2;
-		
-		final dx = colorWheelSelector.x - centerX;
-		final dy = colorWheelSelector.y - centerY;
-		
-		final distance = Math.sqrt(dx * dx + dy * dy);
-		
-		var angle = Math.atan2(dy, dx);
-		if (angle < 0) angle += Math.PI * 2;
-		
-		final hue = angle * 180 / Math.PI;
-		final saturation = Math.min(1.0, distance / (colorWheelSize / 2));
-		final alpha = alphaSlider != null ? alphaSlider.value / 255 : _selectedColor.alphaFloat;
-		
-		setColor(FlxColor.fromHSB(hue, saturation, brightness, alpha));
+		final bar = new FlxSprite(x, y);
+		final shape = new Shape();
+		final matrix = new Matrix();
+		matrix.createGradientBox(w, h, 0, 0, 0);
+
+		final colors:Array<UInt> = [0xFFFF0000, 0xFFFFFF00, 0xFF00FF00, 0xFF00FFFF, 0xFF0000FF, 0xFFFF00FF, 0xFFFF0000];
+		final alphas = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
+		final ratios = [0, 42, 85, 127, 170, 213, 255];
+
+		shape.graphics.beginGradientFill(GradientType.LINEAR, colors, alphas, ratios, matrix);
+		shape.graphics.drawRect(0, 0, w, h);
+		shape.graphics.endFill();
+
+		final bmp = new BitmapData(w, h, false);
+		bmp.draw(shape);
+		bar.pixels = bmp;
+		return bar;
 	}
-	
-	private function updateUIFromColor():Void
+
+	function renderSVBox():Void
 	{
-		updateFromColor(_selectedColor);
+		if (svBox == null) return;
+
+		final pureColor = FlxColor.fromHSB(curHue, 1.0, 1.0);
+		final w = boxWidth;
+		final h = boxHeight;
+
+		final bmp = new BitmapData(w, h, false);
+
+		final shapeH = new Shape();
+		final matrixH = new Matrix();
+		matrixH.createGradientBox(w, h, 0, 0, 0);
+		shapeH.graphics.beginGradientFill(GradientType.LINEAR, [0xFFFFFFFF, pureColor], [1.0, 1.0], [0, 255], matrixH);
+		shapeH.graphics.drawRect(0, 0, w, h);
+		shapeH.graphics.endFill();
+		bmp.draw(shapeH);
+
+		final shapeV = new Shape();
+		final matrixV = new Matrix();
+		matrixV.createGradientBox(w, h, Math.PI / 2, 0, 0);
+		shapeV.graphics.beginGradientFill(GradientType.LINEAR, [0x00000000, 0xFF000000], [0.0, 1.0], [0, 255], matrixV);
+		shapeV.graphics.drawRect(0, 0, w, h);
+		shapeV.graphics.endFill();
+		bmp.draw(shapeV, null, null, BlendMode.NORMAL);
+
+		svBox.pixels = bmp;
 	}
-	
-	public function setColor(newColor:FlxColor):Void
-	{
-		if (_selectedColor == newColor) return;
-		
-		_selectedColor = newColor;
-		updateFromColor(newColor);
-		
-		if (onColorChange != null) onColorChange(newColor);
-		if (broadcastPickerEvent) PsychUIEventHandler.event(CHANGE_EVENT, this);
-	}
-	
-	override public function update(elapsed:Float):Void
+
+	override function update(elapsed:Float)
 	{
 		super.update(elapsed);
-		
-		if (_mode == HSB && hueSlider != null)
-			updateHueSliderColors();
-			
-		if (_mode == HEX && colorWheel.visible)
-		{
-            final cam = this.camera ?? FlxG.camera;
-            final mousePos = FlxG.mouse.getWorldPosition(cam);
-            
-            final mouseX = mousePos.x;
-            final mouseY = mousePos.y;
-            mousePos.put();
-			
-			final wheelWorldX = colorWheel.x + colorWheelSize / 2;
-			final wheelWorldY = colorWheel.y + colorWheelSize / 2;
 
-			final dx = mouseX - wheelWorldX;
-			final dy = mouseY - wheelWorldY;
-			final distanceToCenter = Math.sqrt(dx * dx + dy * dy);
-			final wheelRadius = colorWheelSize / 2;
+		final cam = this.camera ?? FlxG.camera;
+		final mousePos = FlxG.mouse.getWorldPosition(cam);
+		final mx = mousePos.x;
+		final my = mousePos.y;
+		mousePos.put();
 
-			final selectorWorldX = colorWheelSelector.x;
-			final selectorWorldY = colorWheelSelector.y;
-			final dxSelector = mouseX - selectorWorldX;
-			final dySelector = mouseY - selectorWorldY;
-			final distanceToSelector = Math.sqrt(dxSelector * dxSelector + dySelector * dySelector);
-			
-			final isInsideWheel = distanceToCenter <= wheelRadius;
-			final isOnSelector = distanceToSelector <= 15;
-			
-			Mouse.cursor = (isInsideWheel || isOnSelector || isDraggingColorWheel) ? MouseCursor.HAND : MouseCursor.AUTO;
-			
-			if (FlxG.mouse.justPressed && (isInsideWheel || isOnSelector)) {
-				isDraggingColorWheel = true;
-				updateSelectorFromMouse(mouseX, mouseY);
-			}
-			
-			if (FlxG.mouse.justReleased) {
-				isDraggingColorWheel = false;
-			}
-			
-			if (isDraggingColorWheel && FlxG.mouse.pressed) {
-				updateSelectorFromMouse(mouseX, mouseY);
-			}
-		}
-		else
+		if (FlxG.mouse.justPressed)
 		{
-			isDraggingColorWheel = false;
+			if (FlxG.mouse.overlaps(svBox, cam))
+			{
+				isDraggingSV = true;
+				updateSVFromPoint(mx, my);
+			}
+			else if (FlxG.mouse.overlaps(hueBar, cam))
+			{
+				isDraggingHue = true;
+				updateHueFromPoint(mx);
+			}
+			else if (FlxG.mouse.overlaps(rSliderBg, cam) || FlxG.mouse.overlaps(rHandle, cam))
+			{
+				activeDraggingSlider = 0;
+				updateRGBSliderFromPoint(0, mx);
+			}
+			else if (FlxG.mouse.overlaps(gSliderBg, cam) || FlxG.mouse.overlaps(gHandle, cam))
+			{
+				activeDraggingSlider = 1;
+				updateRGBSliderFromPoint(1, mx);
+			}
+			else if (FlxG.mouse.overlaps(bSliderBg, cam) || FlxG.mouse.overlaps(bHandle, cam))
+			{
+				activeDraggingSlider = 2;
+				updateRGBSliderFromPoint(2, mx);
+			}
 		}
-	}
-	
-	private function updateSelectorFromMouse(mouseX:Float, mouseY:Float):Void
-	{
-		final wheelWorldX = colorWheel.x + colorWheelSize / 2;
-		final wheelWorldY = colorWheel.y + colorWheelSize / 2;
-		
-		var dx = mouseX - wheelWorldX;
-		var dy = mouseY - wheelWorldY;
-		var distance = Math.sqrt(dx * dx + dy * dy);
-		
-		var maxRadius = colorWheelSize / 2;
-		if (distance > maxRadius)
+
+		if (FlxG.mouse.justReleased)
 		{
-			dx = dx * maxRadius / distance;
-			dy = dy * maxRadius / distance;
+			isDraggingSV = false;
+			isDraggingHue = false;
+			activeDraggingSlider = -1;
 		}
-		
-		colorWheelSelector.x = colorWheel.x + colorWheelSize / 2 + dx;
-		colorWheelSelector.y = colorWheel.y + colorWheelSize / 2 + dy;
-		colorWheelSelector.visible = true;
-		
-		updateFromColorWheel();
+
+		if (FlxG.mouse.pressed)
+		{
+			if (isDraggingSV) updateSVFromPoint(mx, my);
+			if (isDraggingHue) updateHueFromPoint(mx);
+			if (activeDraggingSlider >= 0) updateRGBSliderFromPoint(activeDraggingSlider, mx);
+		}
 	}
-	
-	private function updateHueSliderColors():Void
+
+	function updateSVFromPoint(mx:Float, my:Float):Void
 	{
-		hueSlider.leftColor = FlxColor.RED;
-		hueSlider.rightColor = FlxColor.RED;
-		
-		final currentColor = FlxColor.fromHSB(hueSlider.value, 1, 1);
-		saturationSlider.mainColor = currentColor;
-		brightnessSlider.mainColor = currentColor;
+		var localX = FlxMath.bound(mx - svBox.x, 0, boxWidth);
+		var localY = FlxMath.bound(my - svBox.y, 0, boxHeight);
+
+		curSat = localX / boxWidth;
+		curVal = 1.0 - (localY / boxHeight);
+
+		svCursor.x = svBox.x + localX;
+		svCursor.y = svBox.y + localY;
+
+		applyHSBColor();
 	}
-	
-	private function get_selectedColor():FlxColor
+
+	function updateHueFromPoint(mx:Float):Void
 	{
-		return _selectedColor;
+		var localX = FlxMath.bound(mx - hueBar.x, 0, boxWidth);
+		curHue = (localX / boxWidth) * 360.0;
+		if (curHue >= 360) curHue = 359.9;
+
+		hueCursor.x = FlxMath.bound(hueBar.x + localX - (hueCursor.width / 2), hueBar.x, hueBar.x + boxWidth - hueCursor.width);
+
+		renderSVBox();
+		applyHSBColor();
 	}
-	
+
+	function updateRGBSliderFromPoint(channel:Int, mx:Float):Void
+	{
+		final trackW = 100;
+		final localX = FlxMath.bound(mx - rSliderBg.x, 0, trackW);
+		final val = Std.int((localX / trackW) * 255);
+
+		var r = _selectedColor.red;
+		var g = _selectedColor.green;
+		var b = _selectedColor.blue;
+
+		switch (channel)
+		{
+			case 0: r = val;
+			case 1: g = val;
+			case 2: b = val;
+		}
+
+		setColor(FlxColor.fromRGB(r, g, b, _selectedColor.alpha));
+	}
+
+	function applyHSBColor():Void
+	{
+		_updating = true;
+		_selectedColor = FlxColor.fromHSB(curHue, curSat, curVal, _selectedColor.alphaFloat);
+
+		previewBox.color = _selectedColor;
+		hexText.text = _selectedColor.toHexString(false, false);
+
+		updateSliderVisuals();
+
+		if (onColorChange != null) onColorChange(_selectedColor);
+		if (broadcastPickerEvent) PsychUIEventHandler.event(CHANGE_EVENT, this);
+		_updating = false;
+	}
+
+	function updateSliderVisuals():Void
+	{
+		final trackW = 100;
+
+		rHandle.x = rSliderBg.x + ((_selectedColor.red / 255.0) * trackW) - (rHandle.width / 2);
+		gHandle.x = gSliderBg.x + ((_selectedColor.green / 255.0) * trackW) - (gHandle.width / 2);
+		bHandle.x = bSliderBg.x + ((_selectedColor.blue / 255.0) * trackW) - (bHandle.width / 2);
+
+		rValText.text = Std.string(_selectedColor.red);
+		gValText.text = Std.string(_selectedColor.green);
+		bValText.text = Std.string(_selectedColor.blue);
+	}
+
+	public function setColor(newColor:FlxColor):Void
+	{
+		_selectedColor = newColor;
+
+		curHue = newColor.hue;
+		curSat = newColor.saturation;
+		curVal = newColor.brightness;
+
+		if (!_uiCreated) return;
+
+		_updating = true;
+
+		renderSVBox();
+
+		svCursor.x = svBox.x + (curSat * boxWidth);
+		svCursor.y = svBox.y + ((1.0 - curVal) * boxHeight);
+
+		hueCursor.x = FlxMath.bound(hueBar.x + ((curHue / 360.0) * boxWidth) - (hueCursor.width / 2), hueBar.x, hueBar.x + boxWidth - hueCursor.width);
+
+		previewBox.color = newColor;
+		hexText.text = newColor.toHexString(false, false);
+
+		updateSliderVisuals();
+
+		if (onColorChange != null) onColorChange(newColor);
+		if (broadcastPickerEvent) PsychUIEventHandler.event(CHANGE_EVENT, this);
+
+		_updating = false;
+	}
+
+	private function get_selectedColor():FlxColor return _selectedColor;
+
 	private function set_selectedColor(value:FlxColor):FlxColor
 	{
-		if (_uiCreated) {
-			setColor(value);
-		} else {
-			_selectedColor = value;
-		}
+		setColor(value);
 		return _selectedColor;
 	}
-	
+
 	override public function destroy():Void
 	{
-		if (colorWheel?.pixels != null)
-			FlxDestroyUtil.dispose(colorWheel.pixels);
-
-		if (colorWheelOverlay?.pixels != null)
-			FlxDestroyUtil.dispose(colorWheelOverlay.pixels);
-
-		if (colorWheelSelector?.pixels != null)
-			FlxDestroyUtil.dispose(colorWheelSelector.pixels);
+		if (svBox?.pixels != null) FlxDestroyUtil.dispose(svBox.pixels);
+		if (hueBar?.pixels != null) FlxDestroyUtil.dispose(hueBar.pixels);
+		if (svCursor?.pixels != null) FlxDestroyUtil.dispose(svCursor.pixels);
 		super.destroy();
 	}
 }

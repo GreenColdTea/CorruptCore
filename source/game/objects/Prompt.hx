@@ -234,6 +234,6 @@ class ExitConfirmationPrompt extends Prompt
 			if(finishCallback != null) finishCallback();
 		};
 		
-		super('There\'s unsaved progress,\nare you sure you want to exit?', 0, exitCallback, null, false, "Exit", null, true);
+		super('There\'s unsaved progress,\nare you sure you want to exit?', 0, exitCallback, () -> {}, false, "Yes", "No", true);
 	}
 }

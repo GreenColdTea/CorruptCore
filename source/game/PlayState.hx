@@ -568,7 +568,7 @@ class PlayState extends MusicBeatState
 		persistentUpdate = true;
 		persistentDraw = true;
 
-		SONG ??= Song.loadFromJson('test');
+		SONG ??= Song.loadFromJson('test', 'test');
 
 		Conductor.mapBPMChanges(SONG);
 		Conductor.songPosition = 0;
