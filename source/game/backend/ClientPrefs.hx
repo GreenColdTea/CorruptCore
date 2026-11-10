@@ -85,7 +85,8 @@ class ClientPrefs {
         'volume_up' => [NUMPADPLUS, PLUS],
         'volume_down' => [NUMPADMINUS, MINUS],
         'debug_1' => [SEVEN, NONE],
-        'debug_2' => [EIGHT, NONE]
+        'debug_2' => [EIGHT, NONE],
+        'debug_3' => [NINE, NONE],
     ];
 
     public static var defaultKeys:Map<String, Array<FlxKey>> = null;
@@ -246,10 +247,13 @@ class ClientPrefs {
 
         applySettings();
         
-        var save:FlxSave = new FlxSave();
+        final save:FlxSave = new FlxSave();
         save.bind('Preferences', CoolUtil.getSavePath());
-        if (save.data.customControls != null) {
-            keyBinds = save.data.customControls;
+        if (save.data.customControls != null) 
+        {
+            final loadedControls:Map<String, Array<FlxKey>> = save.data.customControls;
+            for (control => keys in loadedControls)
+                keyBinds.set(control, keys);
         }
         reloadControls();
     }
@@ -311,7 +315,10 @@ class ClientPrefs {
         reloadVolumeKeys();
     }
 
-    public static function copyKey(arrayToCopy:Array<FlxKey>):Array<FlxKey> {
+    public static function copyKey(arrayToCopy:Array<FlxKey>):Array<FlxKey> 
+    {
+        if (arrayToCopy == null) return [NONE];
+
         var copiedArray:Array<FlxKey> = arrayToCopy.copy();
         var i:Int = 0;
         var len:Int = copiedArray.length;

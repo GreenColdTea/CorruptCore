@@ -78,6 +78,8 @@ import game.shaders.WiggleEffect.WiggleEffectType;
 import game.states.editors.ChartEditorState;
 import game.states.editors.CharacterEditorState;
 
+import game.substates.editors.EventEditorSubState;
+
 #if !flash 
 import flixel.addons.display.FlxRuntimeShader;
 import openfl.filters.ShaderFilter;
@@ -325,6 +327,7 @@ class PlayState extends MusicBeatState
 	// Debug buttons
 	private var debugKeysChart:Array<FlxKey>;
 	private var debugKeysCharacter:Array<FlxKey>;
+	private var debugKeysEvent:Array<FlxKey>;
 
 	// Less laggy controls
 	private var keysArray:Array<Dynamic>;
@@ -483,7 +486,7 @@ class PlayState extends MusicBeatState
 	}
 
 	function get_songPercent():Float {
-		var curTime = Math.max(0, Conductor.songPosition - ClientPrefs.noteOffset);
+		final curTime = Math.max(0, Conductor.songPosition - ClientPrefs.noteOffset);
 		return curTime / songLength;
 	}
 
@@ -496,6 +499,8 @@ class PlayState extends MusicBeatState
 
 		debugKeysChart = ClientPrefs.copyKey(ClientPrefs.keyBinds.get('debug_1'));
 		debugKeysCharacter = ClientPrefs.copyKey(ClientPrefs.keyBinds.get('debug_2'));
+		debugKeysEvent = ClientPrefs.copyKey(ClientPrefs.keyBinds.get('debug_3'));
+
 		PauseSubState.songName = null; 
 		playbackRate = ClientPrefs.getGameplaySetting('songspeed', 1);
 
@@ -1886,9 +1891,16 @@ class PlayState extends MusicBeatState
 				openPauseMenu();
 		}
 
+		// chart editor
 		if (FlxG.keys.anyJustPressed(debugKeysChart) && !endingSong && !inCutscene)
 		{
 			openChartEditor();
+		}
+
+		// character editor
+		if (FlxG.keys.anyJustPressed(debugKeysCharacter) && !endingSong && !inCutscene) 
+		{
+			openCharacterEditor();
 		}
 
 		//for health bar smoothing
@@ -1905,15 +1917,6 @@ class PlayState extends MusicBeatState
 
 		iconP1.animation.curAnim.curFrame = healthBar.percent < 20 ? 1 : 0;
 		iconP2.animation.curAnim.curFrame = healthBar.percent > 80 ? 1 : 0;
-
-		if (FlxG.keys.anyJustPressed(debugKeysCharacter) && !endingSong && !inCutscene) {
-			FlxG.camera.followLerp = 0;
-			persistentUpdate = false;
-			paused = true;
-			canResync = false;
-			cancelMusicFadeTween();
-			FlxG.switchState(() -> new CharacterEditorState(dad?.curCharacter ?? SONG.player2));
-		}
 
 		if (startedCountdown && !paused)
 		{
@@ -2069,6 +2072,12 @@ class PlayState extends MusicBeatState
 
 		if (generatedMusic)
 		{
+			// event/cum editor
+			if (FlxG.keys.anyJustPressed(debugKeysEvent))
+			{
+				openSubState(new EventEditorSubState(instance));
+			}
+
 			if(!inCutscene)
 			{
 				if(!cpuControlled) {
@@ -2320,6 +2329,16 @@ class PlayState extends MusicBeatState
 		#if DISCORD_ALLOWED
 		DiscordClient.changePresence("Chart Editor", null, null, true);
 		#end
+	}
+
+	function openCharacterEditor()
+	{
+		FlxG.camera.followLerp = 0;
+		persistentUpdate = false;
+		paused = true;
+		canResync = false;
+		cancelMusicFadeTween();
+		FlxG.switchState(() -> new CharacterEditorState(dad?.curCharacter ?? SONG.player2));
 	}
 
 	public var isDead:Bool = false; //Don't mess with this on Lua!!!

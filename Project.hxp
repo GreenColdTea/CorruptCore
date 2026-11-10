@@ -307,18 +307,9 @@ class Project extends HXProject
     {
         assets = [];
 
-        if (isWeb())
-        {
-            addAssetRecursive("assets/preload", "assets", null, ["*"], ["*.ogg"], false);
-            addAssetRecursive("assets/songs", "assets/songs", null, ["*"], ["*.ogg"], false);
-            addAssetRecursive("assets/shared", "assets/shared", null, ["*"], ["*.ogg"], false);
-        }
-        else
-        {
-            addAssetRecursive("assets/preload", "assets", null, ["*"], ["*.mp3"], false);
-            addAssetRecursive("assets/songs", "assets/songs", null, ["*"], ["*.mp3"], false);
-            addAssetRecursive("assets/shared", "assets/shared", null, ["*"], ["*.mp3"], false);
-        }
+        addAssetRecursive("assets/preload", "assets", null, ["*"], false);
+        addAssetRecursive("assets/songs", "assets/songs", null, ["*"], false);
+        addAssetRecursive("assets/shared", "assets/shared", null, ["*"], false);
 
         // videos
         if (VIDEOS_ALLOWED.isEnabled(this))
@@ -334,14 +325,7 @@ class Project extends HXProject
         // base_game if INCLUDE_BASE_GAME is defined
         if (defines.exists("INCLUDE_BASE_GAME"))
         {
-            if (isWeb())
-            {
-                addAssetRecursive("base_game", "assets", null, ["*"], ["*.ogg"], false);
-            }
-            else
-            {
-                addAssetRecursive("base_game", "assets", null, ["*"], ["*.mp3"], false);
-            }
+            addAssetRecursive("base_game", "assets", null, ["*"], false);
         }
 
         addAssetRecursive("psych-ui", "assets/psych-ui", null, ["*"], [], true);

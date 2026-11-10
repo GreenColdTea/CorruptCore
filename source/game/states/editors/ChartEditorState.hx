@@ -80,37 +80,7 @@ enum abstract WaveformTarget(String)
 @:access(openfl.media.Sound.__buffer)
 class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.PsychUIEvent
 {
-	public static final GRID_SIZE:Int = 40;
-	public static final GRID_COLUMNS_PER_PLAYER:Int = 4;
-	public static final GRID_PLAYERS:Int = 2;
-	public static final GRID_COLUMNS_TOTAL:Int = GRID_COLUMNS_PER_PLAYER * GRID_PLAYERS;
-	public final CAM_OFFSET:Int = 180;
-
-	private var tempBpm:Float = 0;
-	private var bpmUpdateCooldown:Float = 0;
-
-	var autoBackupTimer:FlxTimer;
-	var backupInterval:Float = 30; // half minute per seconds
-
-	var backupManager:ChartBackupManager;
-
-	public static var noteTypeList:Array<String> = //Used for backwards compatibility with 0.1 - 0.3.2 charts, though, you should add your hardcoded custom note types here too.
-	[
-		'',
-		'Alt Animation',
-		'Hey!',
-		'Hurt Note',
-		'GF Sing',
-		'No Animation'
-	];
-	public var ignoreWarnings = false;
-	
-	var curNoteTypes:Array<String> = [];
-	var undos = [];
-	var redos = [];
-	var maxUndoSteps:Int = 50;
-
-	var eventStuff:Array<Array<String>> =
+	public static final defaultEvents:Array<Array<String>> =
 	[
 		['', "Nothing. Yep, that's right."],
 		['Change BPM', "Changes song BPM dynamically.\nValue 1: New BPM value (e.g. 150)"],
@@ -133,6 +103,37 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		["Lyrics", "Lyrics!!!\nValue 1: Text and optionally, colour\n(To specify colour, seperate it by a --)\nValue 2: Duration, in seconds.\nDuration defaults to text length multiplied by 0.5"],
 		['Set Property', "Value 1: Variable name\nValue 2: New value"]
 	];
+
+	public static var noteTypeList:Array<String> = //Used for backwards compatibility with 0.1 - 0.3.2 charts, though, you should add your hardcoded custom note types here too.
+	[
+		'',
+		'Alt Animation',
+		'Hey!',
+		'Hurt Note',
+		'GF Sing',
+		'No Animation'
+	];
+
+	public static final GRID_SIZE:Int = 40;
+	public static final GRID_COLUMNS_PER_PLAYER:Int = 4;
+	public static final GRID_PLAYERS:Int = 2;
+	public static final GRID_COLUMNS_TOTAL:Int = GRID_COLUMNS_PER_PLAYER * GRID_PLAYERS;
+	public final CAM_OFFSET:Int = 180;
+
+	private var tempBpm:Float = 0;
+	private var bpmUpdateCooldown:Float = 0;
+
+	var autoBackupTimer:FlxTimer;
+	var backupInterval:Float = 30; // half minute per seconds
+
+	var backupManager:ChartBackupManager;
+
+	public var ignoreWarnings = false;
+	
+	var curNoteTypes:Array<String> = [];
+	var undos = [];
+	var redos = [];
+	var maxUndoSteps:Int = 50;
 
 	var _file:FileReference;
     var postfix:String = '';
@@ -1216,7 +1217,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 				final fileToCheck = Path.withoutExtension(fileName);
 				if (!eventPushedMap.exists(fileToCheck)) {
 					eventPushedMap.set(fileToCheck, true);
-					eventStuff.push([fileToCheck, FileUtil.getContent(file)]);
+					defaultEvents.push([fileToCheck, FileUtil.getContent(file)]);
 				}
 			}
 		}
@@ -1224,18 +1225,18 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		eventPushedMap = null;
 		#end
 
-		descText = new FlxText(20, 200, 0, eventStuff[0][0]);
+		descText = new FlxText(20, 200, 0, defaultEvents[0][0]);
 
 		var leEvents:Array<String> = [];
-		for (i in 0...eventStuff.length) {
-			leEvents.push(eventStuff[i][0]);
+		for (i in 0...defaultEvents.length) {
+			leEvents.push(defaultEvents[i][0]);
 		}
 
 		var text:FlxText = new FlxText(20, 30, 0, "Event:");
 		tab_group_event.add(text);
 		eventDropDown = new PsychUIDropDownMenu(20, 50, leEvents, function(id:Int, type:String) {
-			final eventName = eventStuff[id][0];
-			descText.text = eventStuff[id][1] ?? "No description available lol.";
+			final eventName = defaultEvents[id][0];
+			descText.text = defaultEvents[id][1] ?? "No description available lol.";
 
 			if (selectedNotes.length > 1) {
 				for (note in selectedNotes) {
@@ -2972,14 +2973,14 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 				
 				if (allSameEvent && firstNote.songData[1][0] != null) {
 					var selectedEventIndex = -1;
-					for (i in 0...eventStuff.length) {
-						if (eventStuff[i][0] == firstNote.songData[1][0][0]) {
+					for (i in 0...defaultEvents.length) {
+						if (defaultEvents[i][0] == firstNote.songData[1][0][0]) {
 							selectedEventIndex = i;
 							break;
 						}
 					}
 					if (selectedEventIndex != -1) {
-						descText.text = eventStuff[selectedEventIndex][1];
+						descText.text = defaultEvents[selectedEventIndex][1];
 					}
 				} else {
 					descText.text = "Multiple Events Selected";
@@ -3005,8 +3006,8 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			} else {
 				eventDropDown.selectedLabel = curSelectedNote[1][curEventSelected][0];
 				var selected:Int = eventDropDown.selectedIndex;
-				if(selected > 0 && selected < eventStuff.length) {
-					descText.text = eventStuff[selected][1];
+				if(selected > 0 && selected < defaultEvents.length) {
+					descText.text = defaultEvents[selected][1];
 				}
 				value1InputText.text = curSelectedNote[1][curEventSelected][1];
 				value2InputText.text = curSelectedNote[1][curEventSelected][2];
@@ -3432,7 +3433,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		}
 		else
 		{
-			var event = eventStuff[eventDropDown.selectedIndex][0];
+			var event = defaultEvents[eventDropDown.selectedIndex][0];
 			var text1 = value1InputText.text;
 			var text2 = value2InputText.text;
 			_song.events.push([noteStrum, [[event, text1, text2]]]);
@@ -3514,10 +3515,13 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		if (song.notes != null) {
 			copied.notes = [];
 			for (sec in cast(song.notes, Array<Dynamic>)) {
+				if (sec == null) continue;
 				final newSec:Dynamic = Reflect.copy(sec);
 				newSec.sectionNotes = [];
 				if (sec.sectionNotes != null)
-					for (n in cast(sec.sectionNotes, Array<Dynamic>)) newSec.sectionNotes.push(n.copy());
+					for (n in cast(sec.sectionNotes, Array<Dynamic>)) {
+						if (n != null) newSec.sectionNotes.push(n.copy());
+					}
 
 				copied.notes.push(newSec);
 			}
@@ -3526,10 +3530,14 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		if (song.events != null) {
 			copied.events = [];
 			for (ev in cast(song.events, Array<Dynamic>)) {
+				if (ev == null) continue;
 				final newEvDetails = [];
-				if (ev[1] != null)
-					for (e in cast(ev[1], Array<Dynamic>)) newEvDetails.push(e.copy());
-				
+				if (ev[1] != null) {
+					for (e in cast(ev[1], Array<Dynamic>)) {
+						if (e != null && Std.isOfType(e, Array)) 
+							newEvDetails.push(cast(e, Array<Dynamic>).copy());
+					}
+				}
 				copied.events.push([ev[0], newEvDetails]);
 			}
 		}
@@ -4183,7 +4191,7 @@ class ChartEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			for (eventNode in _song.events) {
 				if (eventNode == null || eventNode[1] == null) continue;
 				for (subEvent in cast(eventNode[1], Array<Dynamic>)) {
-					if (subEvent[0] == "Change BPM") {
+					if (subEvent != null && subEvent[0] == "Change BPM") {
 						final newBpm = Std.parseFloat(subEvent[1]);
 						if (!Math.isNaN(newBpm) && newBpm > 0)
 							events.push({ time: eventNode[0], bpm: newBpm });
